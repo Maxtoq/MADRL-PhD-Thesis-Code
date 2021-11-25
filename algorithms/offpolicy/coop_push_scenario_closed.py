@@ -35,6 +35,7 @@ class PushWorld(World):
         self.nb_objects = nb_objects
         self.objects = [Object() for _ in range(self.nb_objects)]
         self.landmarks = [Landmark() for _ in range(self.nb_objects)]
+        self.world_length = 100
 
     @property
     def entities(self):
@@ -236,6 +237,5 @@ class Scenario(BaseScenario):
                 entity_obs.append(np.zeros(2))
 
         # Communication
-
 
         return np.concatenate([agent.state.p_pos, agent.state.p_vel] + entity_obs)
