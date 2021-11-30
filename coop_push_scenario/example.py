@@ -16,7 +16,7 @@ class RandomPolicy():
         if not obj_pos.any():
             return np.random.uniform(-1, 1, self.env.world.dim_p)
         else:
-            dir_vec = 0.1 * obj_pos / np.sqrt(np.sum(np.square(obj_pos)) + 0.001)
+            dir_vec = 0.1 * obj_pos / np.sqrt(np.sum(np.square(obj_pos)) + 1e-6)
             return dir_vec
 
 if __name__ == "__main__":
@@ -62,6 +62,6 @@ if __name__ == "__main__":
         if not config.no_render:
             env.render()
         it += 1
-        if it == 200:
+        if it == 100:
             print("seed:", seed)
             break
