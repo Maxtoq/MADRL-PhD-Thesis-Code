@@ -4,9 +4,9 @@ from offpolicy.envs.mpe.scenario import BaseScenario
 from offpolicy.envs.mpe.core import World, Agent, Landmark, Action, Entity
 
 LANDMARK_SIZE = 0.05
-OBJECT_SIZE = 0.08
+OBJECT_SIZE = 0.12
 OBJECT_MASS = 2.0
-AGENT_SIZE = 0.025
+AGENT_SIZE = 0.04
 AGENT_MASS = 0.4
 
 def get_dist(pos1, pos2, squared=False):
