@@ -19,3 +19,8 @@ models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run12/*
 models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run14/*
 !models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run14/model.pt
 !models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run14/sce_config.json
+
+!models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run20
+models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run20/*
+!models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run20/model.pt
+!models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run20/sce_config.json
