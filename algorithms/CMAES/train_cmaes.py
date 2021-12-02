@@ -101,6 +101,7 @@ def run(config):
     # Create the CMA-ES trainer
     es = cma.CMAEvolutionStrategy(np.zeros(get_num_params(policy)), 1, 
                                             {'seed': config.seed})
+    print('Pop_size =', es.popsize)
     
     t = 0
     for ep_i in tqdm(range(0, config.n_episodes, es.popsize)):

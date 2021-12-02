@@ -121,7 +121,8 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.size = AGENT_SIZE
             agent.initial_mass = AGENT_MASS
-            agent.color = np.array([0.5,0.0,0.0])
+            agent.color = np.array([0.0,0.0,0.0])
+            agent.color[i % 3] = 1.0
         # Objects and landmarks
         self.nb_objects = nb_objects
         # Scenario attributes
