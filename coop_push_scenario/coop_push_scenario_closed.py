@@ -5,7 +5,7 @@ from multiagent.core import World, Agent, Landmark, Action, Entity
 
 LANDMARK_SIZE = 0.05
 OBJECT_SIZE = 0.12
-OBJECT_MASS = 2.0
+OBJECT_MASS = 10.0
 AGENT_SIZE = 0.04
 AGENT_MASS = 0.4
 
