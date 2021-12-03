@@ -110,6 +110,9 @@ def run(config):
         # Ask for candidate solutions
         solutions = es.ask()
 
+        # Initialize seed for this round of evaluations
+        seed = np.random.randint(1e9)
+
         # Perform one episode for each solution
         tell_rewards = []
         for i in range(len(solutions)):
@@ -117,7 +120,7 @@ def run(config):
             load_array_in_model(solutions[i], policy)
             
             # Reset env
-            obs = env.reset()
+            obs = env.reset(seed)
             episode_reward = 0.0
             for et_i in range(config.episode_length):
                 # Rearrange observations to fit in the model
@@ -171,7 +174,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_episodes", default=25000, type=int)
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--save_interval", default=1000, type=int)
-    parser.add_argument("--hidden_dim", default=32, type=int)
+    parser.add_argument("--hidden_dim", default=8, type=int)
     parser.add_argument("--discrete_action", action='store_true')
     parser.add_argument("--sce_conf_path", default=None, type=str,
                         help="Path to the scenario config file")

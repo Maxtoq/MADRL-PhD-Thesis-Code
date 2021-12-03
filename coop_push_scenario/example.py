@@ -62,6 +62,6 @@ if __name__ == "__main__":
         if not config.no_render:
             env.render()
         it += 1
-        if it == 100:
+        if it == 200:
             print("seed:", seed)
             break

@@ -141,7 +141,9 @@ class Scenario(BaseScenario):
         # Done if all objects are on their landmarks
         return self._done_flag
 
-    def reset_world(self, world):
+    def reset_world(self, world, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         world.reset()
         # set initial states
         for agent in world.agents:
