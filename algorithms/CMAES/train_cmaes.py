@@ -104,7 +104,9 @@ def run(config):
     print('Pop_size =', es.popsize)
     
     t = 0
-    for ep_i in tqdm(range(0, config.n_episodes, es.popsize)):
+    for ep_i in tqdm(range(0, 
+                           config.n_episodes, 
+                           es.popsize * config.n_eps_per_eval)):
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
 
         # Ask for candidate solutions
@@ -115,32 +117,40 @@ def run(config):
 
         # Perform one episode for each solution
         tell_rewards = []
-        for i in range(len(solutions)):
+        for sol_i in range(len(solutions)):
             # Load solution in model
-            load_array_in_model(solutions[i], policy)
+            load_array_in_model(solutions[sol_i], policy)
             
-            # Reset env
-            obs = env.reset(seed)
-            episode_reward = 0.0
-            for et_i in range(config.episode_length):
-                # Rearrange observations to fit in the model
-                torch_obs = Variable(torch.Tensor(np.vstack(obs)),
-                                     requires_grad=False)
-              
-                actions = policy(torch_obs)
+            # Seed eval
+            np.random.seed(seed)
 
-                # Convert actions to numpy arrays
-                agent_actions = [ac.data.numpy() for ac in actions]
+            # Perform n_eps_per_eval episodes and average the rewards
+            sol_rewards = []
+            for eval_i in range(config.n_eps_per_eval):
+                # Reset env
+                obs = env.reset()
+                episode_reward = 0.0
+                for et_i in range(config.episode_length):
+                    # Rearrange observations to fit in the model
+                    torch_obs = Variable(torch.Tensor(np.vstack(obs)),
+                                        requires_grad=False)
+                
+                    actions = policy(torch_obs)
 
-                next_obs, rewards, dones, infos = env.step(agent_actions)
+                    # Convert actions to numpy arrays
+                    agent_actions = [ac.data.numpy() for ac in actions]
 
-                episode_reward += sum(rewards) / nb_agents
+                    next_obs, rewards, dones, infos = env.step(agent_actions)
 
-                if dones[0]:
-                    break
+                    episode_reward += sum(rewards) / nb_agents
 
-                obs = next_obs
-            tell_rewards.append(-episode_reward)
+                    if dones[0]:
+                        break
+
+                    obs = next_obs
+                sol_rewards.append(-episode_reward)
+            # Store average rewards of current solution
+            tell_rewards.append(sum(sol_rewards) / config.n_eps_per_eval)
 
         # Update CMA-ES model
         es.tell(solutions, tell_rewards)
@@ -168,6 +178,9 @@ if __name__ == '__main__':
     parser.add_argument("model_name",
                         help="Name of directory to store " +
                              "model/training contents")
+    parser.add_argument("--sce_conf_path", default=None, type=str,
+                        help="Path to the scenario config file")
+    parser.add_argument("--discrete_action", action='store_true')
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")
@@ -175,9 +188,7 @@ if __name__ == '__main__':
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--save_interval", default=1000, type=int)
     parser.add_argument("--hidden_dim", default=8, type=int)
-    parser.add_argument("--discrete_action", action='store_true')
-    parser.add_argument("--sce_conf_path", default=None, type=str,
-                        help="Path to the scenario config file")
+    parser.add_argument("--n_eps_per_eval", default=1, type=int)
 
     config = parser.parse_args()
 
