@@ -71,7 +71,7 @@ def make_env(scenario_name, sce_conf={}, discrete_action=False):
     world = scenario.make_world(**sce_conf)
     # create multiagent environment
     env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, 
-                        scenario.observation, 
+                        scenario.observation, discrete_action=discrete_action,
                         done_callback=scenario.done if hasattr(scenario, "done") 
                         else None)
     return env
@@ -119,7 +119,7 @@ def parse_args(args, parser):
     parser.add_argument('--num_agents', type=int,
                         default=3, help="number of agents")
     parser.add_argument('--use_same_share_obs', action='store_false',
-                        default=True, help="Whether to use available actions")
+                        default=True, help="")
     parser.add_argument("--sce_conf_path", default=None, type=str,
                         help="Path to the scenario config file")
     parser.add_argument("--model_name", type=str,
@@ -164,6 +164,9 @@ def main(args):
     num_agents = sce_conf['nb_agents']
 
     # create policies and mapping fn
+    print(env.observation_space)
+    print(env.action_space)
+    exit(0)
     if all_args.share_policy:
         policy_info = {
             'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),

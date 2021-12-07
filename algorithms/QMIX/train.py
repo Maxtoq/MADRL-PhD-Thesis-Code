@@ -1,39 +1,94 @@
 import argparse
 import torch
+import sys
 import os
 import numpy as np
 from tqdm import tqdm
 from gym.spaces import Box
 from torch.autograd import Variable
 from tensorboardX import SummaryWriter
-from utils.buffer import ReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_parallel_env
-from maddpg import MADDPG
+from utils.util import get_dim_from_space, get_cent_act_dim
+from utils.config import get_config
+
+from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy
+from offpolicy.algorithms.qmix.qmix import QMix
 
 USE_CUDA = torch.cuda.is_available()
 
 
-def run(config):
+def run(args):
+    parsed_args = get_config(args)
+
     # Get paths for saving logs and model
-    run_dir, model_cp_path, log_dir = get_paths(config)
+    run_dir, model_cp_path, log_dir = get_paths(parsed_args)
     print("Saving model in dir", run_dir)
 
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
 
     # Load scenario config
-    sce_conf = load_scenario_config(config, run_dir)
+    sce_conf = load_scenario_config(parsed_args, run_dir)
 
-    torch.manual_seed(config.seed)
-    np.random.seed(config.seed)
-    if not USE_CUDA:
-        torch.set_num_threads(config.n_training_threads)
+    # Set seeds
+    torch.manual_seed(parsed_args.seed)
+    np.random.seed(parsed_args.seed)
 
-    env = make_parallel_env(config.env_path, config.n_rollout_threads, 
-                            config.seed, config.discrete_action, sce_conf)
+    # Set cuda and threads
+    if parsed_args.cuda and torch.cuda.is_available():
+        print("Using GPU...")
+        device = torch.device("cuda:0")
+        torch.set_num_threads(parsed_args.n_training_threads)
+        if parsed_args.cuda_deterministic:
+            torch.backends.cudnn.benchmark = False
+            torch.backends.cudnn.deterministic = True
+    else:
+        print("Using CPU...")
+        device = torch.device("cpu")
+        torch.set_num_threads(parsed_args.n_training_threads)
 
+    env = make_parallel_env(parsed_args.env_path, parsed_args.n_rollout_threads, 
+                            parsed_args.seed, parsed_args.discrete_action, sce_conf)
+
+    # create policies and mapping fn
+    print(env.observation_space)
+    print(env.action_space)
+    exit(0)
+    if parsed_args.share_policy:
+        policy_info = {
+            'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
+                         "cent_act_dim": get_cent_act_dim(env.action_space),
+                         "obs_space": env.observation_space[0],
+                         "share_obs_space": env.share_observation_space[0],
+                         "act_space": env.action_space[0]}
+        }
+
+        def policy_mapping_fn(id): return 'policy_0'
+    else:
+        policy_info = {
+            'policy_' + str(agent_id): {"cent_obs_dim": get_dim_from_space(env.share_observation_space[agent_id]),
+                                        "cent_act_dim": get_cent_act_dim(env.action_space),
+                                        "obs_space": env.observation_space[agent_id],
+                                        "share_obs_space": env.share_observation_space[agent_id],
+                                        "act_space": env.action_space[agent_id]}
+            for agent_id in range(num_agents)
+        }
+
+        def policy_mapping_fn(agent_id): return 'policy_' + str(agent_id)
+    config = {
+        "args": parsed_args,
+        "policy_info": policy_info,
+        "policy_mapping_fn": policy_mapping_fn,
+        "env": env,
+        "eval_env": eval_env,
+        "num_agents": num_agents,
+        "device": device,
+        "use_same_share_obs": all_args.use_same_share_obs,
+        "run_dir": run_dir
+    }
     maddpg = MADDPG.init_from_env(
         env, 
+        agent_alg=config.agent_alg,
         adversary_alg=config.adversary_alg,
         gamma=config.gamma,
         tau=config.tau,
@@ -116,42 +171,4 @@ def run(config):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("env_path", help="Path to the environment")
-    parser.add_argument("model_name",
-                        help="Name of directory to store " +
-                             "model/training contents")
-    parser.add_argument("--seed",
-                        default=1, type=int,
-                        help="Random seed")
-    # Environment
-    parser.add_argument("--episode_length", default=100, type=int)
-    parser.add_argument("--discrete_action", action='store_true')
-    parser.add_argument("--sce_conf_path", default=None, type=str,
-                        help="Path to the scenario config file")
-    # Training
-    parser.add_argument("--n_rollout_threads", default=1, type=int)
-    parser.add_argument("--n_training_threads", default=6, type=int)
-    parser.add_argument("--n_episodes", default=25000, type=int)
-    parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--steps_per_update", default=1000, type=int)
-    parser.add_argument("--batch_size",
-                        default=1024, type=int,
-                        help="Batch size for model training")
-    parser.add_argument("--n_exploration_eps", default=25000, type=int)
-    parser.add_argument("--init_noise_scale", default=0.3, type=float)
-    parser.add_argument("--final_noise_scale", default=0.0, type=float)
-    parser.add_argument("--save_interval", default=1000, type=int)
-    # Model hyperparameters
-    parser.add_argument("--hidden_dim", default=64, type=int)
-    parser.add_argument("--lr", default=0.01, type=float)
-    parser.add_argument("--tau", default=0.01, type=float)
-    parser.add_argument("--gamma", default=0.95, type=float)
-    parser.add_argument("--adversary_alg",
-                        default="MADDPG", type=str,
-                        choices=['MADDPG', 'DDPG'])
-    parser.add_argument("--shared_params", action='store_true')
-
-    config = parser.parse_args()
-
-    run(config)
+    run(sys.argv[1:])
