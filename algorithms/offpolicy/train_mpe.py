@@ -164,9 +164,6 @@ def main(args):
     num_agents = sce_conf['nb_agents']
 
     # create policies and mapping fn
-    print(env.observation_space)
-    print(env.action_space)
-    exit(0)
     if all_args.share_policy:
         policy_info = {
             'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
