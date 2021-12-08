@@ -8,11 +8,11 @@ from gym.spaces import Box
 from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 from utils.make_env import get_paths, load_scenario_config, make_parallel_env
-from utils.util import get_dim_from_space, get_cent_act_dim
 from utils.config import get_config
+from algo.qmix import QMix
+from algo.QMixPolicy import QMixPolicy
 
-from offpolicy.algorithms.qmix.algorithm.QMixPolicy import QMixPolicy
-from offpolicy.algorithms.qmix.qmix import QMix
+from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
 
 USE_CUDA = torch.cuda.is_available()
 
@@ -47,45 +47,64 @@ def run(args):
         device = torch.device("cpu")
         torch.set_num_threads(parsed_args.n_training_threads)
 
-    env = make_parallel_env(parsed_args.env_path, parsed_args.n_rollout_threads, 
-                            parsed_args.seed, parsed_args.discrete_action, sce_conf)
+    env = make_parallel_env(parsed_args.env_path, 
+                    parsed_args.n_rollout_threads, 
+                    parsed_args.seed, parsed_args.discrete_action, 
+                    sce_conf)
+    num_agents = len(env.observation_space)
 
     # create policies and mapping fn
-    print(env.observation_space)
-    print(env.action_space)
-    exit(0)
     if parsed_args.share_policy:
         policy_info = {
-            'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
-                         "cent_act_dim": get_cent_act_dim(env.action_space),
-                         "obs_space": env.observation_space[0],
-                         "share_obs_space": env.share_observation_space[0],
-                         "act_space": env.action_space[0]}
+            'policy_0': {
+                "cent_obs_dim": get_dim_from_space(
+                                    env.share_observation_space[0]),
+                "cent_act_dim": get_cent_act_dim(env.action_space),
+                "obs_space": env.observation_space[0],
+                "share_obs_space": env.share_observation_space[0],
+                "act_space": env.action_space[0]}
         }
 
         def policy_mapping_fn(id): return 'policy_0'
     else:
         policy_info = {
-            'policy_' + str(agent_id): {"cent_obs_dim": get_dim_from_space(env.share_observation_space[agent_id]),
-                                        "cent_act_dim": get_cent_act_dim(env.action_space),
-                                        "obs_space": env.observation_space[agent_id],
-                                        "share_obs_space": env.share_observation_space[agent_id],
-                                        "act_space": env.action_space[agent_id]}
+            'policy_' + str(agent_id): {
+                "cent_obs_dim": get_dim_from_space(
+                                    env.share_observation_space[agent_id]),
+                "cent_act_dim": get_cent_act_dim(env.action_space),
+                "obs_space": env.observation_space[agent_id],
+                "share_obs_space": env.share_observation_space[agent_id],
+                "act_space": env.action_space[agent_id]}
             for agent_id in range(num_agents)
         }
 
         def policy_mapping_fn(agent_id): return 'policy_' + str(agent_id)
+    policy_ids = sorted(list(policy_info.keys()))
+    
     config = {
         "args": parsed_args,
         "policy_info": policy_info,
         "policy_mapping_fn": policy_mapping_fn,
         "env": env,
-        "eval_env": eval_env,
         "num_agents": num_agents,
         "device": device,
-        "use_same_share_obs": all_args.use_same_share_obs,
         "run_dir": run_dir
     }
+
+    # Policy for each agent
+    policies = {p_id: QMixPolicy(config, policy_info[p_id]) 
+                    for p_id in policy_ids}
+
+    # Trainer
+    trainer = QMix(parsed_args, num_agents, policies, policy_mapping_fn,
+                   device=device, episode_length=parsed_args.episode_length)
+    
+    # Replay buffer
+    num_train_episodes = (parsed_args.n_episodes //
+                          parsed_args.train_interval_eps)
+    print(parsed_args.n_episodes, parsed_args.train_interval_eps, num_train_episodes)
+    exit(0)
+
     maddpg = MADDPG.init_from_env(
         env, 
         agent_alg=config.agent_alg,

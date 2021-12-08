@@ -164,10 +164,6 @@ def main(args):
     num_agents = sce_conf['nb_agents']
 
     # create policies and mapping fn
-    # print(env.share_observation_space)
-    # print(env.action_space)
-    # print(env.observation_space)
-    # exit(0)
     if all_args.share_policy:
         policy_info = {
             'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
@@ -190,7 +186,6 @@ def main(args):
 
         def policy_mapping_fn(agent_id): return 'policy_' + str(agent_id)
 
-    # choose algo
     if all_args.algorithm_name in ["rmatd3", "rmaddpg", "rmasac", "qmix", "vdn"]:
         from offpolicy.runner.rnn.mpe_runner import MPERunner as Runner
         assert all_args.n_rollout_threads == 1, (

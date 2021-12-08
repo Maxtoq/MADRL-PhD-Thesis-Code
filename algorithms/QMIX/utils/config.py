@@ -34,6 +34,12 @@ def get_config(args):
                         help="Number of parallel envs for training rollout")
     parser.add_argument("--n_episodes", default=25000, type=int,
                         help="Number of episodes to train for")
+    parser.add_argument('--actor_train_interval', type=int, default=2,
+                        help="After how many critic updates actor should be updated")
+    parser.add_argument('--train_interval_eps', type=int, default=1,
+                        help="Number of episodes between updates to actor/critic")
+    parser.add_argument("--use_value_active_masks",
+                        action='store_true', default=False)
 
     # replay buffer parameters
     parser.add_argument('--buffer_size', type=int, default=1e6,
@@ -159,14 +165,6 @@ def get_config(args):
                         help="Number of episodes until epsilon reaches epsilon_finish")
     parser.add_argument('--act_noise_std', type=float,
                         default=0.1, help="Action noise")
-
-    # train parameters
-    parser.add_argument('--actor_train_interval_step', type=int, default=2,
-                        help="After how many critic updates actor should be updated")
-    parser.add_argument('--train_interval_episode', type=int, default=1,
-                        help="Number of episodes between updates to actor/critic")
-    parser.add_argument("--use_value_active_masks",
-                        action='store_true', default=False)
 
     # save parameters
     parser.add_argument('--save_interval', type=int, default=10000,

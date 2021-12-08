@@ -5,7 +5,7 @@ import os
 import re
 from pathlib import Path
 from shutil import copyfile
-from .env_wrappers import SubprocVecEnv, DummyVecEnv
+from offpolicy.envs.env_wrappers import DummyVecEnv, SubprocVecEnv
 
 def make_env(scenario_path, sce_conf={}, discrete_action=False):
     '''
@@ -24,7 +24,7 @@ def make_env(scenario_path, sce_conf={}, discrete_action=False):
         .action_space       :   Returns the action space for each agent
         .n                  :   Returns the number of Agents
     '''
-    from multiagent.environment import MultiAgentEnv
+    from offpolicy.envs.mpe.environment import MultiAgentEnv
 
     # load scenario from script
     scenario = imp.load_source('', scenario_path).Scenario()
