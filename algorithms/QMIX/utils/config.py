@@ -24,8 +24,8 @@ def get_config(args):
                         help="Path to the scenario config file")
     parser.add_argument('--episode_length', type=int,
                         default=100, help="Max length for any episode")
-    parser.add_argument("--discrete_action", action='store_true',
-                        default=False)    
+    parser.add_argument("--discrete_action", action='store_false',
+                        default=True)    
 
     # Training parameters
     parser.add_argument('--n_training_threads', type=int,

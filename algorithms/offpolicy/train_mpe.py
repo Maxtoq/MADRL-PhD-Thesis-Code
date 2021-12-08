@@ -47,7 +47,7 @@ def load_scenario_config(config, run_dir):
             print(sce_conf, '\n')
     return sce_conf
 
-def make_env(scenario_name, sce_conf={}, discrete_action=False):
+def make_env(scenario_name, sce_conf={}, discrete_action=True):
     '''
     Creates a MultiAgentEnv object as env. This can be used similar to a gym
     environment by calling env.reset() and env.step().
@@ -164,6 +164,10 @@ def main(args):
     num_agents = sce_conf['nb_agents']
 
     # create policies and mapping fn
+    # print(env.share_observation_space)
+    # print(env.action_space)
+    # print(env.observation_space)
+    # exit(0)
     if all_args.share_policy:
         policy_info = {
             'policy_0': {"cent_obs_dim": get_dim_from_space(env.share_observation_space[0]),
