@@ -42,7 +42,7 @@ def get_config(args):
                         action='store_true', default=False)
 
     # replay buffer parameters
-    parser.add_argument('--buffer_size', type=int, default=1e6,
+    parser.add_argument('--buffer_size', type=int, default=100000,
                         help="Max # of transitions that replay buffer can contain")
     parser.add_argument('--use_reward_normalization', action='store_true',
                         default=False, help="Whether to normalize rewards in replay buffer")
