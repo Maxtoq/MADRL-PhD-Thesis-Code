@@ -211,7 +211,6 @@ def run(args):
         # Save average rewards on this round of training
         average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], 
                                                  axis=0))
-        print(ep_i, average_episode_rewards)
 
         # Training
         if ep_i * parsed_args.episode_length >= parsed_args.batch_size and \
