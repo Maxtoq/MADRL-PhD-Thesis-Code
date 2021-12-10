@@ -154,7 +154,8 @@ def run(args):
         for step_i in range(parsed_args.episode_length):
             share_obs = obs.reshape(parsed_args.n_rollout_threads, -1)
             # Copy over agent dim
-            share_obs = np.repeat(share_obs[:, np.newaxis, :], 4, axis=1)
+            share_obs = np.repeat(share_obs[:, np.newaxis, :], 
+                                  num_agents, axis=1)
             # group observations from parallel envs into one batch to process
             # at once
             obs_batch = np.concatenate(obs)
@@ -194,7 +195,7 @@ def run(args):
         
         episode_obs[p_id][step_i + 1] = obs
         share_obs = obs.reshape(parsed_args.n_rollout_threads, -1)
-        share_obs = np.repeat(share_obs[:, np.newaxis, :], 4, axis=1)
+        share_obs = np.repeat(share_obs[:, np.newaxis, :], num_agents, axis=1)
         episode_share_obs[p_id][step_i + 1] = share_obs
 
         # push all episodes collected in this rollout step to the buffer
