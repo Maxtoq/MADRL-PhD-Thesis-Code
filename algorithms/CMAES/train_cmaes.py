@@ -13,7 +13,7 @@ from utils.make_env import get_paths, load_scenario_config, make_env
 
 class PolicyNetwork(nn.Module):
     def __init__(self, input_dim, out_dim, hidden_dim=32, nb_hidden_layers=0, 
-                 nonlin=F.relu, discrete_action=False):
+                 linear=False, nonlin=F.relu, discrete_action=False):
         """
         Inputs:
             input_dim (int): Number of dimensions in input
@@ -24,12 +24,16 @@ class PolicyNetwork(nn.Module):
         """
         super(PolicyNetwork, self).__init__()
 
-        self.fc_in = nn.Linear(input_dim, hidden_dim)
+        if linear:
+            self.fc_in = nn.Linear(input_dim, out_dim)
+        else:
+            self.fc_in = nn.Linear(input_dim, hidden_dim)
         self.fc_hidden = []
         for i in range(nb_hidden_layers):
             self.fc_hidden.append(nn.Linear(hidden_dim, hidden_dim))
         self.fc_out = nn.Linear(hidden_dim, out_dim)
         self.nonlin = nonlin
+        self.linear = linear
         if not discrete_action:
             # Constrain between 0 and 1
             # initialize small to prevent saturation
@@ -46,9 +50,11 @@ class PolicyNetwork(nn.Module):
             out (PyTorch Matrix): Output of network (actions)
         """
         x = self.nonlin(self.fc_in(X))
-        for fc in self.fc_hidden:
-            x = self.nonlin(fc(x))
-        out = self.out_fn(self.fc_out(x))
+        if not self.linear:
+            for fc in self.fc_hidden:
+                x = self.nonlin(fc(x))
+            x = self.fc_out(x)
+        out = self.out_fn(x)
         return out
 
 
@@ -94,7 +100,8 @@ def run(config):
         num_out_pol = env.action_space[0].n
     else:
         num_out_pol = env.action_space[0].shape[0]
-    policy = PolicyNetwork(num_in_pol, num_out_pol, config.hidden_dim,  
+    policy = PolicyNetwork(num_in_pol, num_out_pol, config.hidden_dim,
+                           linear=config.linear, 
                            discrete_action=config.discrete_action)
     policy.eval()
 
@@ -188,6 +195,7 @@ if __name__ == '__main__':
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--save_interval", default=1000, type=int)
     parser.add_argument("--hidden_dim", default=8, type=int)
+    parser.add_argument("--linear", action='store_true')
     parser.add_argument("--n_eps_per_eval", default=1, type=int)
 
     config = parser.parse_args()
