@@ -236,7 +236,7 @@ def run(args):
             last_train_ep = ep_i
 
         # Log
-        logger.add_scalar('agent0/mean_episode_rewards' %  
+        logger.add_scalar('agent0/mean_episode_rewards',
                             average_episode_rewards, ep_i)
         # # Save ep number
         # with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
