@@ -80,6 +80,7 @@ def save_model(model, path):
 def run(config):
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(config)
+    print("Saving model in dir", run_dir)
 
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
@@ -177,6 +178,7 @@ def run(config):
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
+    print("Model saved in dir", run_dir)
     
 
 if __name__ == '__main__':
