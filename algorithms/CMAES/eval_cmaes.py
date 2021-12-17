@@ -1,5 +1,6 @@
 import argparse
 import torch
+import time
 import json
 import sys
 import os
@@ -54,6 +55,7 @@ def run(config):
 
             episode_reward += sum(rewards) / sce_conf['nb_agents']
 
+            time.sleep(config.step_time)
             env.render()
 
             if dones[0]:
@@ -76,6 +78,8 @@ if __name__ == '__main__':
     parser.add_argument("--sce_conf_path", default=None, type=str,
                         help="Path to the scenario config file")
     parser.add_argument("--discrete_action", action='store_true')
+    # Render
+    parser.add_argument("--step_time", default=0.1, type=float)
 
     config = parser.parse_args()
 
