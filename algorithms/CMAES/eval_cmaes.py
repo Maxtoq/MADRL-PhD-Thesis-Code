@@ -11,14 +11,25 @@ from train_cmaes import PolicyNetwork
 
 def run(config):
     # Load model
-    if not os.path.exists(config.model_cp_path):
+    if config.model_dir is not None:
+        model_cp_path = os.path.join(config.model_dir, "model.pt")
+        sce_conf_path = os.path.join(config.model_dir, "sce_config.json")
+    elif config.model_cp_path is not None and config.sce_conf_path is not None:
+        model_cp_path = config.model_cp_path
+        sce_conf_path = config.sce_conf_path
+    else:
+        print("ERROR with model paths: you need to provide the path of either \
+               the model directory (--model_dir) or the model checkpoint and \
+               the scenario config (--model_cp_path and --sce_conf_path).")
+        exit(1)
+    if not os.path.exists(model_cp_path):
         sys.exit("Path to the model checkpoint %s does not exist" % 
-                    config.model_cp_path)
+                    model_cp_path)
 
     # Load scenario config
     sce_conf = {}
-    if config.sce_conf_path is not None:
-        with open(config.sce_conf_path) as cf:
+    if sce_conf_path is not None:
+        with open(sce_conf_path) as cf:
             sce_conf = json.load(cf)
             print('Special config for scenario:', config.env_path)
             print(sce_conf)
@@ -35,7 +46,7 @@ def run(config):
         num_out_pol = env.action_space[0].shape[0]
     policy = PolicyNetwork(num_in_pol, num_out_pol, config.hidden_dim,  
                            discrete_action=config.discrete_action)
-    policy.load_state_dict(torch.load(config.model_cp_path))
+    policy.load_state_dict(torch.load(model_cp_path))
     policy.eval()
 
     for ep_i in range(config.n_episodes):
@@ -69,7 +80,11 @@ def run(config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("env_path", help="Path to the environment")
-    parser.add_argument("model_cp_path", type=str,
+    # Model checkpoint
+    parser.add_argument("--model_dir", type=str, default=None,
+                        help="Path to directory containing model checkpoint \
+                             (model.pt) and scenario config (sce_conf.json)")
+    parser.add_argument("--model_cp_path", type=str,
                         help="Path to the model checkpoint")
     parser.add_argument("--seed",default=1, type=int, help="Random seed")
     parser.add_argument("--n_episodes", default=1, type=int)
