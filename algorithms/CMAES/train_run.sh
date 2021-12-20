@@ -7,8 +7,9 @@ n_episodes=500000
 n_eps_per_eval=8
 hidden_dim=8
 
-for n in {1..n_run}
+for n in {1..$n_run}
 do
+    printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
     comm="python algorithms/CMAES/train_cmaes.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --n_episodes ${n_episodes} --seed ${seed} --n_eps_per_eval ${n_eps_per_eval} --hidden_dim ${hidden_dim}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
