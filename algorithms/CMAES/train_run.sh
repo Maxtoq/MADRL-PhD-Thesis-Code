@@ -11,8 +11,8 @@ for n in {1..n_run}
 do
     seed=$RANDOM
     comm="python algorithms/CMAES/train_cmaes.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --n_episodes ${n_episodes} --seed ${seed} --n_eps_per_eval ${n_eps_per_eval} --hidden_dim ${hidden_dim}"
-    echo "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
+    printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     python algorithms/CMAES/train_cmaes.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --n_episodes ${n_episodes} --seed ${seed} --n_eps_per_eval ${n_eps_per_eval} --hidden_dim ${hidden_dim}
-    echo "DONE\n\n"
+    printf "DONE\n\n"
 done
 
