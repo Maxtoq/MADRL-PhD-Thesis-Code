@@ -111,10 +111,10 @@ def run(config):
                                             {'seed': config.seed})
     print('Pop_size =', es.popsize)
     
-    t = 0
-    for ep_i in tqdm(range(0, 
-                           config.n_episodes, 
-                           es.popsize * config.n_eps_per_eval)):
+    # for ep_i in tqdm(range(0, 
+    #                        config.n_episodes, 
+    #                        es.popsize * config.n_eps_per_eval)):
+    for ev_i in tqdm(range(0, config.n_eval)):
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
 
         # Ask for candidate solutions
@@ -164,17 +164,17 @@ def run(config):
         es.tell(solutions, tell_rewards)
 
         # Log rewards
-        logger.add_scalar('agent0/mean_episode_rewards', 
-                          -sum(tell_rewards) / es.popsize, ep_i)
+        logger.add_scalar('cmaes/mean_episode_rewards', 
+                          -sum(tell_rewards) / es.popsize, ev_i)
 
         # Save model
-        if ep_i % config.save_interval < es.popsize:
+        if ev_i % config.save_interval < es.popsize:
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             save_model(policy, run_dir / 'incremental' / 
-                                ('model_ep%i.pt' % (ep_i + 1)))
+                                ('model_ep%i.pt' % (ev_i + 1)))
             save_model(policy, model_cp_path)
 
-    save_model(policy, model_cp_path)
+    save_model(policy, model_cp_path)   
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
@@ -193,9 +193,10 @@ if __name__ == '__main__':
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")
-    parser.add_argument("--n_episodes", default=25000, type=int)
+    parser.add_argument("--n_evals", default=3500, type=int)
+    #parser.add_argument("--n_episodes", default=25000, type=int)
     parser.add_argument("--episode_length", default=100, type=int)
-    parser.add_argument("--save_interval", default=1000, type=int)
+    parser.add_argument("--save_interval", default=50, type=int)
     parser.add_argument("--hidden_dim", default=8, type=int)
     parser.add_argument("--linear", action='store_true')
     parser.add_argument("--n_eps_per_eval", default=1, type=int)
