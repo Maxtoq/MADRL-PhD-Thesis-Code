@@ -38,7 +38,7 @@ class PolicyNetwork(nn.Module):
             # Constrain between 0 and 1
             # initialize small to prevent saturation
             self.fc_out.weight.data.uniform_(-3e-3, 3e-3)
-            self.out_fn = F.tanh
+            self.out_fn = torch.tanh
         else:  # one hot argmax
             self.out_fn = lambda x: (x == x.max(1, keepdim=True)[0]).float()
 
@@ -114,7 +114,7 @@ def run(config):
     # for ep_i in tqdm(range(0, 
     #                        config.n_episodes, 
     #                        es.popsize * config.n_eps_per_eval)):
-    for ev_i in tqdm(range(0, config.n_eval)):
+    for ev_i in tqdm(range(0, config.n_evals)):
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
 
         # Ask for candidate solutions

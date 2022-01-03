@@ -5,7 +5,7 @@ model_name="cmaes_2a_fo_cont_abs_distrew"
 sce_conf_path="configs/2a_1o_fo_abs_distrew.json"
 n_evals=3500
 n_eps_per_eval=8
-hidden_dim=8
+hidden_dim=4
 
 for n in $(seq 1 $n_run)
 do
