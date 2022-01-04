@@ -1,6 +1,7 @@
 import argparse
 import torch
 import cma
+import sys
 import os
 import numpy as np
 import torch.nn as nn
@@ -81,6 +82,10 @@ def run(config):
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(config)
     print("Saving model in dir", run_dir)
+
+    # Save args in txt file
+    with open(os.path.join(run_dir, 'args.txt'), 'w') as f:
+        f.write(str(sys.argv))
 
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
