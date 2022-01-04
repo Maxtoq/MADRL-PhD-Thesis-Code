@@ -163,6 +163,9 @@ def run(config):
         # Update CMA-ES model
         es.tell(solutions, tell_rewards)
 
+        # Get id of best element in solutions
+        best_sol_i = np.argmin(tell_rewards)
+
         # Log rewards
         logger.add_scalar('cmaes/mean_episode_rewards', 
                           -sum(tell_rewards) / es.popsize, ev_i)
@@ -170,10 +173,14 @@ def run(config):
         # Save model
         if ev_i % config.save_interval < es.popsize:
             os.makedirs(run_dir / 'incremental', exist_ok=True)
+            # Load best solution in model
+            load_array_in_model(solutions[best_sol_i], policy)
             save_model(policy, run_dir / 'incremental' / 
                                 ('model_ep%i.pt' % (ev_i + 1)))
             save_model(policy, model_cp_path)
 
+    # Load best solution in model
+    load_array_in_model(solutions[best_sol_i], policy)
     save_model(policy, model_cp_path)   
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
