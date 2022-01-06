@@ -14,7 +14,7 @@ from utils.make_env import get_paths, load_scenario_config, make_env
 
 class PolicyNetwork(nn.Module):
     def __init__(self, input_dim, out_dim, hidden_dim=32, nb_hidden_layers=0, 
-                 linear=False, nonlin=F.relu, discrete_action=False):
+                 linear=False, nonlin=torch.tanh, discrete_action=False):
         """
         Inputs:
             input_dim (int): Number of dimensions in input
