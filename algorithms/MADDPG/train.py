@@ -1,5 +1,6 @@
 import argparse
 import torch
+import sys
 import os
 import numpy as np
 from tqdm import tqdm
@@ -17,6 +18,10 @@ def run(config):
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(config)
     print("Saving model in dir", run_dir)
+
+    # Save args in txt file
+    with open(os.path.join(run_dir, 'args.txt'), 'w') as f:
+        f.write(str(sys.argv))
 
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
@@ -49,7 +54,17 @@ def run(config):
         [acsp.shape[0] if isinstance(acsp, Box) else acsp.n
         for acsp in env.action_space]
     )
+
+    # Compute number of episodes per update
+    if config.n_updates is not None:
+        eps_per_update = int(config.n_episodes / config.n_updates)
+    else:
+        eps_per_update = config.eps_per_update
     
+    print(f"Starting training for {config.n_episodes}")
+    print(f"                  with {config.n_rollout_threads}")
+    print(f"                  updates every {eps_per_update} episodes")
+    print(f"                  with seed {config.seed}")
     t = 0
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
         #print("Episodes %i-%i of %i" % (ep_i + 1,
@@ -81,7 +96,7 @@ def run(config):
             obs = next_obs
             t += config.n_rollout_threads
             if (len(replay_buffer) >= config.batch_size and
-                (t % config.steps_per_update) < config.n_rollout_threads):
+                (t % eps_per_update) < config.n_rollout_threads):
                 if USE_CUDA:
                     maddpg.prep_training(device='gpu')
                 else:
@@ -121,9 +136,7 @@ if __name__ == '__main__':
     parser.add_argument("model_name",
                         help="Name of directory to store " +
                              "model/training contents")
-    parser.add_argument("--seed",
-                        default=1, type=int,
-                        help="Random seed")
+    parser.add_argument("--seed", default=1, type=int, help="Random seed")
     # Environment
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--discrete_action", action='store_true')
@@ -134,9 +147,9 @@ if __name__ == '__main__':
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--n_episodes", default=25000, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--steps_per_update", default=1000, type=int)
-    parser.add_argument("--batch_size",
-                        default=1024, type=int,
+    parser.add_argument("--eps_per_update", default=1000, type=int)
+    parser.add_argument("--n_updates", default=None, type=int)
+    parser.add_argument("--batch_size", default=1024, type=int,
                         help="Batch size for model training")
     parser.add_argument("--n_exploration_eps", default=25000, type=int)
     parser.add_argument("--init_noise_scale", default=0.3, type=float)
@@ -147,8 +160,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", default=0.01, type=float)
     parser.add_argument("--tau", default=0.01, type=float)
     parser.add_argument("--gamma", default=0.95, type=float)
-    parser.add_argument("--adversary_alg",
-                        default="MADDPG", type=str,
+    parser.add_argument("--adversary_alg", default="MADDPG", type=str,
                         choices=['MADDPG', 'DDPG'])
     parser.add_argument("--shared_params", action='store_true')
 

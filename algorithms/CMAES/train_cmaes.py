@@ -111,9 +111,13 @@ def run(config):
                            discrete_action=config.discrete_action)
     policy.eval()
 
+    # Initialise parameters
+    init_params = np.random.uniform(low=-1, high=1, size=get_num_params(policy))
+    sigma = 1 / 3
+
     # Create the CMA-ES trainer
-    es = cma.CMAEvolutionStrategy(np.zeros(get_num_params(policy)), 1, 
-                                            {'seed': config.seed})
+    es = cma.CMAEvolutionStrategy(init_params, sigma, 
+                                    {'seed': config.seed})
     print('Pop_size =', es.popsize)
     
     # for ep_i in tqdm(range(0, 

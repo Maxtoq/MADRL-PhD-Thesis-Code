@@ -13,7 +13,7 @@ do
     seed=$RANDOM
     comm="python algorithms/CMAES/train_cmaes.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --n_eval ${n_eval} --seed ${seed} --n_eps_per_eval ${n_eps_per_eval} --hidden_dim ${hidden_dim}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
-    python algorithms/CMAES/train_cmaes.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} --n_eps_per_eval ${n_eps_per_eval} --hidden_dim ${hidden_dim}
+    eval $comm
     printf "DONE\n\n"
 done
 
