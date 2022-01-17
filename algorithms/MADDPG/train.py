@@ -62,7 +62,7 @@ def run(config):
         eps_per_update = config.eps_per_update
     
     print(f"Starting training for {config.n_episodes}")
-    print(f"                  with {config.n_rollout_threads}")
+    print(f"                  with {config.n_rollout_threads} threads")
     print(f"                  updates every {eps_per_update} episodes")
     print(f"                  with seed {config.seed}")
     t = 0
@@ -78,6 +78,7 @@ def run(config):
         maddpg.scale_noise(config.final_noise_scale + (config.init_noise_scale - config.final_noise_scale) * explr_pct_remaining)
         maddpg.reset_noise()
 
+        # Rollout episode
         for et_i in range(config.episode_length):
             # rearrange observations to be per agent, and convert to torch Variable
             torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
@@ -91,23 +92,27 @@ def run(config):
             actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
             next_obs, rewards, dones, infos = env.step(actions)
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
-            if dones[0,0]:
+            if dones.sum(1).all():
                 break
             obs = next_obs
-            t += config.n_rollout_threads
-            if (len(replay_buffer) >= config.batch_size and
-                (t % eps_per_update) < config.n_rollout_threads):
-                if USE_CUDA:
-                    maddpg.prep_training(device='gpu')
-                else:
-                    maddpg.prep_training(device='cpu')
-                for u_i in range(config.n_rollout_threads):
-                    for a_i in range(maddpg.nagents):
-                        sample = replay_buffer.sample(config.batch_size,
-                                                      to_gpu=USE_CUDA)
-                        maddpg.update(sample, a_i, logger=logger)
-                    maddpg.update_all_targets()
-                maddpg.prep_rollouts(device='cpu')
+
+        # Training
+        t += config.n_rollout_threads
+        if (len(replay_buffer) >= config.batch_size and
+            (t % eps_per_update) < config.n_rollout_threads):
+            if USE_CUDA:
+                maddpg.prep_training(device='gpu')
+            else:
+                maddpg.prep_training(device='cpu')
+            for u_i in range(config.n_rollout_threads):
+                for a_i in range(maddpg.nagents):
+                    sample = replay_buffer.sample(config.batch_size,
+                                                    to_gpu=USE_CUDA)
+                    maddpg.update(sample, a_i, logger=logger)
+                maddpg.update_all_targets()
+            maddpg.prep_rollouts(device='cpu')
+
+        # Store reward
         ep_rews = replay_buffer.get_average_rewards(
             config.episode_length * config.n_rollout_threads
             ) 

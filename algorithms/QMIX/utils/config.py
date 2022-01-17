@@ -38,6 +38,7 @@ def get_config(args):
                         help="After how many critic updates actor should be updated")
     parser.add_argument('--train_interval_eps', type=int, default=1,
                         help="Number of episodes between updates to actor/critic")
+    parser.add_argument("--n_updates", default=None, type=int)
     parser.add_argument("--use_value_active_masks",
                         action='store_true', default=False)
 
