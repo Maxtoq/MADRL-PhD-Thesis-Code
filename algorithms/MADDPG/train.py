@@ -65,7 +65,7 @@ def run(config):
     print(f"                  with {config.n_rollout_threads} threads")
     print(f"                  updates every {eps_per_update} episodes")
     print(f"                  with seed {config.seed}")
-    t = 0
+    target_update_interval = 0
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
         #print("Episodes %i-%i of %i" % (ep_i + 1,
         #                                ep_i + 1 + config.n_rollout_threads,
@@ -97,19 +97,20 @@ def run(config):
             obs = next_obs
 
         # Training
-        t += config.n_rollout_threads
         if (len(replay_buffer) >= config.batch_size and
-            (t % eps_per_update) < config.n_rollout_threads):
+            (ep_i % eps_per_update) < config.n_rollout_threads):
             if USE_CUDA:
                 maddpg.prep_training(device='gpu')
             else:
                 maddpg.prep_training(device='cpu')
-            for u_i in range(config.n_rollout_threads):
-                for a_i in range(maddpg.nagents):
-                    sample = replay_buffer.sample(config.batch_size,
-                                                    to_gpu=USE_CUDA)
-                    maddpg.update(sample, a_i, logger=logger)
+            for a_i in range(maddpg.nagents):
+                sample = replay_buffer.sample(config.batch_size,
+                                                to_gpu=USE_CUDA)
+                maddpg.update(sample, a_i, logger=logger)
+            target_update_interval += 1
+            if (target_update_interval == config.hard_update_interval_episode):
                 maddpg.update_all_targets()
+                target_update_interval = 0
             maddpg.prep_rollouts(device='cpu')
 
         # Store reward
@@ -156,6 +157,8 @@ if __name__ == '__main__':
     parser.add_argument("--n_updates", default=None, type=int)
     parser.add_argument("--batch_size", default=1024, type=int,
                         help="Batch size for model training")
+    parser.add_argument("--hard_update_interval", type=int, default=2,
+                        help="After how many updates the target should be updated")
     parser.add_argument("--n_exploration_eps", default=25000, type=int)
     parser.add_argument("--init_noise_scale", default=0.3, type=float)
     parser.add_argument("--final_noise_scale", default=0.0, type=float)
