@@ -107,16 +107,19 @@ def run(args):
                    device=device, episode_length=parsed_args.episode_length)
     
     # Replay buffer
-    num_train_episodes = (parsed_args.n_episodes //
-                          parsed_args.train_interval_eps)
     buffer = RecReplayBuffer(policy_info,
                             policy_agents,
                             parsed_args.buffer_size,
                             parsed_args.episode_length,
                             False, False,
                             parsed_args.use_reward_normalization)
+
+    # Compute number of episodes per update
+    if config.n_updates is not None:
+        eps_per_update = int(parsed_args.n_episodes / config.n_updates)
+    else:
+        eps_per_update = parsed_args.train_interval_eps
     
-    last_train_ep = 0
     last_hard_update_ep = 0
     for ep_i in tqdm(range(0, parsed_args.n_episodes, 
                         parsed_args.n_rollout_threads)):
@@ -213,8 +216,8 @@ def run(args):
                                                  axis=0))
 
         # Training
-        if ep_i * parsed_args.episode_length >= parsed_args.batch_size and \
-            ep_i - last_train_ep >= parsed_args.train_interval_eps:
+        if (ep_i * parsed_args.episode_length >= parsed_args.batch_size and
+            (ep_i % eps_per_update) < parsed_args.n_rollout_threads):
             trainer.prep_training()
 
             for p_id in policy_ids:
@@ -233,7 +236,6 @@ def run(args):
                     parsed_args.hard_update_interval_episode):
                     trainer.hard_target_updates()
                     last_hard_update_ep = ep_i
-            last_train_ep = ep_i
 
         # Log
         logger.add_scalar('agent0/mean_episode_rewards',
