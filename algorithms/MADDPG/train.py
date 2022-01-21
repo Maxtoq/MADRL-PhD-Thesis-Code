@@ -61,7 +61,7 @@ def run(config):
     else:
         eps_per_update = config.eps_per_update
     
-    print(f"Starting training for {config.n_episodes}")
+    print(f"Starting training for {config.n_episodes} episodes")
     print(f"                  with {config.n_rollout_threads} threads")
     print(f"                  updates every {eps_per_update} episodes")
     print(f"                  with seed {config.seed}")

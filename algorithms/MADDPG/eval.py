@@ -60,7 +60,8 @@ def run(config):
             
             # Environment step
             next_obs, rewards, dones, infos = env.step(actions)
-            print(rewards)
+            print("Obs", next_obs)
+            print("Rewards", rewards)
             rew += rewards[0]
 
             time.sleep(config.step_time)
