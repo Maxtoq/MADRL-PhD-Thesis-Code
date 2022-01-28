@@ -31,7 +31,15 @@ def run(config):
 
     torch.manual_seed(config.seed)
     np.random.seed(config.seed)
-    if not USE_CUDA:
+
+    # Set training device
+    if USE_CUDA:
+        if config.cuda_device is None:
+            training_device = 'cuda'
+        else:
+            training_device = torch.device(config.cuda_device)
+    else:
+        training_device = 'cpu'
         torch.set_num_threads(config.n_training_threads)
 
     env = make_parallel_env(config.env_path, config.n_rollout_threads, 
@@ -99,13 +107,10 @@ def run(config):
         # Training
         if (len(replay_buffer) >= config.batch_size and
             (ep_i % eps_per_update) < config.n_rollout_threads):
-            if USE_CUDA:
-                maddpg.prep_training(device='gpu')
-            else:
-                maddpg.prep_training(device='cpu')
+            maddpg.prep_training(device=training_device)
             for a_i in range(maddpg.nagents):
                 sample = replay_buffer.sample(config.batch_size,
-                                                to_gpu=USE_CUDA)
+                                                cuda_device=training_device)
                 maddpg.update(sample, a_i, logger=logger)
             target_update_interval += 1
             if (target_update_interval == config.hard_update_interval):
@@ -171,6 +176,8 @@ if __name__ == '__main__':
     parser.add_argument("--adversary_alg", default="MADDPG", type=str,
                         choices=['MADDPG', 'DDPG'])
     parser.add_argument("--shared_params", action='store_true')
+    # Cuda
+    parser.add_argument("--cuda_device", default=None, type=str)
 
     config = parser.parse_args()
 

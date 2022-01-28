@@ -193,16 +193,15 @@ class MADDPG(object):
                 soft_update(a.target_policy, a.policy, self.tau)
         self.niter += 1
 
-    def prep_training(self, device='gpu'):
+    def prep_training(self, device='cpu'):
         for a in self.agents:
             a.policy.train()
             a.critic.train()
             a.target_policy.train()
             a.target_critic.train()
-        if device == 'gpu':
-            fn = lambda x: x.cuda()
-        else:
-            fn = lambda x: x.cpu()
+        if type(device) is str:
+            device = torch.device(device)
+        fn = lambda x: x.to(device)
         if not self.pol_dev == device:
             for a in self.agents:
                 a.policy = fn(a.policy)
@@ -223,10 +222,9 @@ class MADDPG(object):
     def prep_rollouts(self, device='cpu'):
         for a in self.agents:
             a.policy.eval()
-        if device == 'gpu':
-            fn = lambda x: x.cuda()
-        else:
-            fn = lambda x: x.cpu()
+        if type(device) is str:
+            device = torch.device(device)
+        fn = lambda x: x.to(device)
         # only need main policy for rollouts
         if not self.pol_dev == device:
             for a in self.agents:

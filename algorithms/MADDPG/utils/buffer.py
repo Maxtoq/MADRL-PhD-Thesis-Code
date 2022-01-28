@@ -68,11 +68,11 @@ class ReplayBuffer(object):
         if self.curr_i == self.max_steps:
             self.curr_i = 0
 
-    def sample(self, N, to_gpu=False, norm_rews=True):
+    def sample(self, N, cuda_device=None, norm_rews=True):
         inds = np.random.choice(np.arange(self.filled_i), size=N,
                                 replace=False)
-        if to_gpu:
-            cast = lambda x: Variable(Tensor(x), requires_grad=False).cuda()
+        if cuda_device is not None:
+            cast = lambda x: Variable(Tensor(x), requires_grad=False).to(cuda_device)
         else:
             cast = lambda x: Variable(Tensor(x), requires_grad=False)
         if norm_rews:
