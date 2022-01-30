@@ -25,6 +25,10 @@ def run(args):
     run_dir, model_cp_path, log_dir = get_paths(parsed_args)
     print("Saving model in dir", run_dir)
 
+    # Save args in txt file
+    with open(os.path.join(run_dir, 'args.txt'), 'w') as f:
+        f.write(str(sys.argv))
+
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
 
@@ -115,11 +119,15 @@ def run(args):
                             parsed_args.use_reward_normalization)
 
     # Compute number of episodes per update
-    if config.n_updates is not None:
-        eps_per_update = int(parsed_args.n_episodes / config.n_updates)
+    if parsed_args.n_updates is not None:
+        eps_per_update = int(parsed_args.n_episodes / parsed_args.n_updates)
     else:
         eps_per_update = parsed_args.train_interval_eps
     
+    print(f"Starting training for {parsed_args.n_episodes} episodes")
+    print(f"                  with {parsed_args.n_rollout_threads} threads")
+    print(f"                  updates every {eps_per_update} episodes")
+    print(f"                  with seed {parsed_args.seed}")
     last_hard_update_ep = 0
     for ep_i in tqdm(range(0, parsed_args.n_episodes, 
                         parsed_args.n_rollout_threads)):

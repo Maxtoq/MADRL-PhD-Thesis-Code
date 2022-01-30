@@ -1,14 +1,15 @@
 #!/bin/sh
 n_run=1
-env="coop_push_scenario/coop_push_scenario_sparse.py"
-model_name="2addpg_fo_abs_cont_sparse"
-sce_conf_path="configs/2a_1o_fo_abs.json"
-n_episodes=300000
-n_exploration_eps=300000
-n_updates=20000
+env="coop_push_scenario/coop_push_scenario_closed.py"
+model_name="2addpg_fo_abs_cont_distrew"
+sce_conf_path="configs/2a_1o_fo_abs_distrew.json"
+n_episodes=600000
+n_exploration_eps=600000
+n_updates=150000
 lr=0.005
 hidden_dim=64
-n_rollout_threads=15
+n_rollout_threads=4
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
@@ -16,7 +17,7 @@ do
     seed=$RANDOM
     comm="python algorithms/MADDPG/train.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} \
     --n_episodes ${n_episodes} --n_exploration_eps ${n_exploration_eps} --n_updates ${n_updates} \
-    --lr ${lr} --hidden_dim ${hidden_dim} --n_rollout_threads ${n_rollout_threads}"
+    --lr ${lr} --hidden_dim ${hidden_dim} --n_rollout_threads ${n_rollout_threads} --cuda_device ${cuda_device}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"
