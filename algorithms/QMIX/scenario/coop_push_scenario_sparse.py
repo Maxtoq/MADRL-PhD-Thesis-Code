@@ -45,7 +45,7 @@ class PushWorld(World):
         for i in range(self.nb_objects):
             self.init_object(i)
 
-    def init_object(self, obj_i, min_dist=0.9, max_dist=1.5):
+    def init_object(self, obj_i, min_dist=0.1, max_dist=1.5):
         # Random color for both entities
         color = np.random.uniform(0, 1, self.dim_color)
         # Object
@@ -76,6 +76,7 @@ class PushWorld(World):
         #if np.random.random() < self.obj_prob:
         #    self.add_object_and_landmark()
 
+    # Integrate state with walls blocking entities on each side
     def integrate_state(self, p_force):
         for i,entity in enumerate(self.entities):
             if not entity.movable: continue
@@ -112,7 +113,8 @@ class PushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
-                   collision_pen=10.0, relative_coord=True, dist_reward=False):
+                   collision_pen=10.0, relative_coord=True, 
+                   dist_reward=False, reward_done=50):
         world = PushWorld(nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -123,8 +125,8 @@ class Scenario(BaseScenario):
             agent.size = AGENT_SIZE
             agent.initial_mass = AGENT_MASS
             agent.color = np.array([0.0,0.0,0.0])
-            agent.color[i % 3] = 1.0        
-            # Objects and landmarks
+            agent.color[i % 3] = 1.0
+        # Objects and landmarks
         self.nb_objects = nb_objects
         # Scenario attributes
         self.obs_range = obs_range
@@ -134,6 +136,8 @@ class Scenario(BaseScenario):
         self.collision_pen = collision_pen
         # Flag for end of episode
         self._done_flag = False
+        # Reward for completing the task
+        self.reward_done = reward_done
         # make initial conditions
         self.reset_world(world)
         return world
@@ -163,35 +167,31 @@ class Scenario(BaseScenario):
                           squared=True)
                     for i, obj in enumerate(world.objects)]
         rew = -sum(dists)
-        # Check if done
+
+        # Reward if task complete
         self._done_flag = all(d <= LANDMARK_SIZE ** 2 for d in dists)
-
-
-        # Reward based on distance to object
-        if self.dist_reward:
-            mean_dist = sum([get_dist(agent.state.p_pos, world.objects[0].state.p_pos)
-                                for agent in world.agents]) / self.nb_agents
-            rew -= mean_dist
+        if self._done_flag:
+            rew += self.reward_done
 
         # Penalty for collision between agents
         if agent.collide:
             for other_agent in world.agents:
-                    if other_agent is agent: continue
-                    dist = get_dist(agent.state.p_pos, other_agent.state.p_pos)
-                    dist_min = agent.size + other_agent.size
-                    if dist <= dist_min:
-                        rew -= self.collision_pen
+                if other_agent is agent: continue
+                dist = get_dist(agent.state.p_pos, other_agent.state.p_pos)
+                dist_min = agent.size + other_agent.size
+                if dist <= dist_min:
+                    rew -= self.collision_pen
         return rew
 
     def observation(self, agent, world):
         # Observation:
         #  - Agent state: position, velocity
         #  - Other agents and objects:
-        #     - If in sight: [1, relative x, relative y, v_x, v_y]
-        #     - If not: [0, 0, 0, 0, 0]
+        #     - If in sight: [relative x, relative y, v_x, v_y]
+        #     - If not: [0, 0, 0, 0]
         #  - Landmarks:
-        #     - If in sight: [1, relative x, relative y]
-        #     - If not: [0, 0, 0]
+        #     - If in sight: [relative x, relative y]
+        #     - If not: [0, 0]
         # => Full observation dim = 2 + 2 + 5 x (nb_agents_objects - 1) + 3 x (nb_landmarks)
         # All distances are divided by max_distance to be in [0, 1]
         entity_obs = []
@@ -240,5 +240,6 @@ class Scenario(BaseScenario):
                 entity_obs.append(np.zeros(2))
 
         # Communication
+
 
         return np.concatenate([agent.state.p_pos, agent.state.p_vel] + entity_obs)

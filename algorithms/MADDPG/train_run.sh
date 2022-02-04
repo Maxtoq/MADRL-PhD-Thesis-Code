@@ -3,12 +3,12 @@ n_run=1
 env="coop_push_scenario/coop_push_scenario_closed.py"
 model_name="2addpg_fo_abs_cont_distrew"
 sce_conf_path="configs/2a_1o_fo_abs_distrew.json"
-n_episodes=600000
-n_exploration_eps=600000
+n_episodes=3750000
+n_exploration_eps=3750000
 n_updates=150000
 lr=0.005
 hidden_dim=64
-n_rollout_threads=4
+n_rollout_threads=25
 cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
