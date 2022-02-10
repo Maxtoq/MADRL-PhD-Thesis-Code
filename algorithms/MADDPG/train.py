@@ -108,10 +108,11 @@ def run(config):
         if (len(replay_buffer) >= config.batch_size and
             (ep_i % eps_per_update) < config.n_rollout_threads):
             maddpg.prep_training(device=training_device)
-            for a_i in range(maddpg.nagents):
-                sample = replay_buffer.sample(config.batch_size,
-                                                cuda_device=training_device)
-                maddpg.update(sample, a_i, logger=logger)
+            for _ in range(config.n_training_per_updates):
+                for a_i in range(maddpg.nagents):
+                    sample = replay_buffer.sample(config.batch_size,
+                                                    cuda_device=training_device)
+                    maddpg.update(sample, a_i, logger=logger)
             target_update_interval += 1
             if (target_update_interval == config.hard_update_interval):
                 maddpg.update_all_targets()
@@ -162,6 +163,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_updates", default=None, type=int)
     parser.add_argument("--batch_size", default=1024, type=int,
                         help="Batch size for model training")
+    parser.add_argument("--n_training_per_updates", default=1, type=int)
     parser.add_argument("--hard_update_interval", type=int, default=2,
                         help="After how many updates the target should be updated")
     parser.add_argument("--n_exploration_eps", default=25000, type=int)
