@@ -164,7 +164,7 @@ class Scenario(BaseScenario):
         dists = [get_dist(obj.state.p_pos, 
                           world.landmarks[i].state.p_pos)
                     for i, obj in enumerate(world.objects)]
-        rew = -sum(dists)
+        rew = -sum([pow(d * 10, 2) for d in dists])
 
         # Reward if task complete
         self._done_flag = all(d <= LANDMARK_SIZE for d in dists)

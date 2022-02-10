@@ -114,7 +114,7 @@ class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
                    collision_pen=10.0, relative_coord=True, 
-                   dist_reward=False, reward_done=50):
+                   dist_reward=False, reward_done=100):
         world = PushWorld(nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -163,13 +163,12 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Reward = -1 x squared distance between objects and corresponding landmarks
         dists = [get_dist(obj.state.p_pos, 
-                          world.landmarks[i].state.p_pos,
-                          squared=True)
+                          world.landmarks[i].state.p_pos)
                     for i, obj in enumerate(world.objects)]
-        rew = -sum(dists)
+        rew = -sum([pow(d * 10, 2) for d in dists])
 
         # Reward if task complete
-        self._done_flag = all(d <= LANDMARK_SIZE ** 2 for d in dists)
+        self._done_flag = all(d <= LANDMARK_SIZE for d in dists)
         if self._done_flag:
             rew += self.reward_done
 
