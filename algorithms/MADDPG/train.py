@@ -97,7 +97,10 @@ def run(config):
             # convert actions to numpy arrays
             agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
             # rearrange actions to be per environment
-            actions = [[ac[i] for ac in agent_actions] for i in range(config.n_rollout_threads)]
+            actions = [
+                [ac[i] for ac in agent_actions] 
+                for i in range(config.n_rollout_threads)
+            ]
             next_obs, rewards, dones, infos = env.step(actions)
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
             if dones.sum(1).all():
@@ -111,7 +114,7 @@ def run(config):
             for _ in range(config.n_training_per_updates):
                 for a_i in range(maddpg.nagents):
                     sample = replay_buffer.sample(config.batch_size,
-                                                    cuda_device=training_device)
+                                                  cuda_device=training_device)
                     maddpg.update(sample, a_i, logger=logger)
             target_update_interval += 1
             if (target_update_interval == config.hard_update_interval):
