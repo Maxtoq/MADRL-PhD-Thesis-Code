@@ -164,7 +164,7 @@ class Scenario(BaseScenario):
         dists = [get_dist(obj.state.p_pos, 
                           world.landmarks[i].state.p_pos)
                     for i, obj in enumerate(world.objects)]
-        rew = -sum([pow(d * 10, 2) for d in dists])
+        #rew = -sum([pow(d * 10, 2) for d in dists])
         rew = -sum(dists)
 
         # Reward if task complete
