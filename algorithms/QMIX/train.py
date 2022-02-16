@@ -7,13 +7,14 @@ from tqdm import tqdm
 from gym.spaces import Box
 from torch.autograd import Variable
 from tensorboardX import SummaryWriter
+
 from utils.make_env import get_paths, load_scenario_config, make_parallel_env
 from utils.config import get_config
 from algo.qmix import QMix
 from algo.QMixPolicy import QMixPolicy
 
-from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
-from offpolicy.utils.rec_buffer import RecReplayBuffer
+from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space, DecayThenFlatSchedule
+from offpolicy.utils.rec_buffer import RecReplayBuffer, PrioritizedRecReplayBuffer
 
 USE_CUDA = torch.cuda.is_available()
 
@@ -107,27 +108,51 @@ def run(args):
                         for p_id in policy_ids}
 
     # Trainer
-    trainer = QMix(parsed_args, num_agents, policies, policy_mapping_fn,
-                   device=device, episode_length=parsed_args.episode_length)
-    
-    # Replay buffer
-    buffer = RecReplayBuffer(policy_info,
-                            policy_agents,
-                            parsed_args.buffer_size,
-                            parsed_args.episode_length,
-                            False, False,
-                            parsed_args.use_reward_normalization)
+    trainer = QMix(
+        parsed_args, 
+        num_agents, 
+        policies, 
+        policy_mapping_fn,
+        device=device, 
+        episode_length=parsed_args.episode_length)
 
     # Compute number of episodes per update
     if parsed_args.n_updates is not None:
+        num_train_episodes = parsed_args.n_updates
         eps_per_update = int(parsed_args.n_episodes / parsed_args.n_updates)
     else:
+        num_train_episodes = int(
+            parsed_args.n_episodes / parsed_args.train_interval_eps)
         eps_per_update = parsed_args.train_interval_eps
+    
+    # Replay buffer
+    if parsed_args.use_per:
+        beta_anneal = DecayThenFlatSchedule(
+            parsed_args.per_beta_start, 
+            1.0, num_train_episodes, 
+            decay="linear")
+        buffer = PrioritizedRecReplayBuffer(
+            parsed_args.per_alpha,
+            policy_info,
+            policy_agents,
+            parsed_args.buffer_size,
+            parsed_args.episode_length,
+            False, False,
+            parsed_args.use_reward_normalization)
+    else:
+        buffer = RecReplayBuffer(
+            policy_info,
+            policy_agents,
+            parsed_args.buffer_size,
+            parsed_args.episode_length,
+            False, False,
+            parsed_args.use_reward_normalization)
     
     print(f"Starting training for {parsed_args.n_episodes} episodes")
     print(f"                  with {parsed_args.n_rollout_threads} threads")
     print(f"                  updates every {eps_per_update} episodes")
     print(f"                  with seed {parsed_args.seed}")
+    train_step = 0
     last_hard_update_ep = 0
     for ep_i in tqdm(range(0, parsed_args.n_episodes, 
                         parsed_args.n_rollout_threads)):
@@ -211,13 +236,13 @@ def run(args):
 
         # push all episodes collected in this rollout step to the buffer
         buffer.insert(parsed_args.n_rollout_threads,
-                        episode_obs,
-                        episode_share_obs,
-                        episode_acts,
-                        episode_rewards,
-                        episode_dones,
-                        episode_dones_env,
-                        episode_avail_acts)
+            episode_obs,
+            episode_share_obs,
+            episode_acts,
+            episode_rewards,
+            episode_dones,
+            episode_dones_env,
+            episode_avail_acts)
 
         # Save average rewards on this round of training
         average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], 
@@ -230,10 +255,18 @@ def run(args):
 
             for p_id in policy_ids:
                 # Sample batch of experience from replay buffer
-                sample = buffer.sample(parsed_args.batch_size)
+                if parsed_args.use_per:
+                    beta = beta_anneal.eval(train_step)
+                    sample = buffer.sample(parsed_args.batch_size, beta, p_id)
+                else:
+                    sample = buffer.sample(parsed_args.batch_size)
 
                 # Train on batch
-                train_info, _, _ = trainer.train_policy_on_batch(sample)
+                train_info, new_priorities, idxes = \
+                    trainer.train_policy_on_batch(sample)
+
+                if parsed_args.use_per:
+                    buffer.update_priorities(idxes, new_priorities, p_id)
 
             # Soft update parameters
             if parsed_args.use_soft_update:
@@ -244,6 +277,7 @@ def run(args):
                     parsed_args.hard_update_interval_episode):
                     trainer.hard_target_updates()
                     last_hard_update_ep = ep_i
+            train_step += 1
 
         # Log
         logger.add_scalar('agent0/mean_episode_rewards',
