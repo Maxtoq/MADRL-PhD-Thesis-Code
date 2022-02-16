@@ -235,7 +235,8 @@ def run(args):
         episode_share_obs[p_id][step_i + 1] = share_obs
 
         # push all episodes collected in this rollout step to the buffer
-        buffer.insert(parsed_args.n_rollout_threads,
+        buffer.insert(
+            parsed_args.n_rollout_threads,
             episode_obs,
             episode_share_obs,
             episode_acts,
