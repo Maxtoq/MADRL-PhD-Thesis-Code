@@ -82,13 +82,20 @@ def run(config):
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
         maddpg.prep_rollouts(device='cpu')
 
-        explr_pct_remaining = max(0, config.n_exploration_eps - ep_i) / config.n_exploration_eps
-        maddpg.scale_noise(config.final_noise_scale + (config.init_noise_scale - config.final_noise_scale) * explr_pct_remaining)
+        explr_pct_remaining = max(0, config.n_exploration_eps - ep_i) / \
+            config.n_exploration_eps
+        maddpg.scale_noise(config.final_noise_scale + \
+            (config.init_noise_scale - config.final_noise_scale) * \
+            explr_pct_remaining)
         maddpg.reset_noise()
 
         # Rollout episode
+        ep_rew = np.zeros(
+            (config.episode_length, 
+             config.n_rollout_threads, 
+             maddpg.nagents))
         for et_i in range(config.episode_length):
-            # rearrange observations to be per agent, and convert to torch Variable
+            # rearrange observations to be per agent, and Variable
             torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
                                   requires_grad=False)
                          for i in range(maddpg.nagents)]
@@ -103,9 +110,11 @@ def run(config):
             ]
             next_obs, rewards, dones, infos = env.step(actions)
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
+            ep_rew[et_i] = rewards
             if dones.sum(1).all():
                 break
             obs = next_obs
+        mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)
 
         # Training
         if (len(replay_buffer) >= config.batch_size and
@@ -122,11 +131,8 @@ def run(config):
                 target_update_interval = 0
             maddpg.prep_rollouts(device='cpu')
 
-        # Store reward
-        ep_rews = replay_buffer.get_average_rewards(
-            config.episode_length * config.n_rollout_threads
-            ) 
-        for a_i, a_ep_rew in enumerate(ep_rews):
+        # Log
+        for a_i, a_ep_rew in enumerate(mean_ep_rewards_per_agent):
             logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
                             a_ep_rew / config.n_rollout_threads, ep_i)
         # Save ep number
