@@ -115,7 +115,7 @@ def run(config):
                 break
             obs = next_obs
         mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)
-
+        
         # Training
         if (len(replay_buffer) >= config.batch_size and
             (ep_i % eps_per_update) < config.n_rollout_threads):
@@ -134,7 +134,7 @@ def run(config):
         # Log
         for a_i, a_ep_rew in enumerate(mean_ep_rewards_per_agent):
             logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
-                            a_ep_rew / config.n_rollout_threads, ep_i)
+                            a_ep_rew, ep_i)
         # Save ep number
         with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
             f.write(str(ep_i))
