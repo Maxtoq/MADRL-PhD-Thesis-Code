@@ -59,7 +59,7 @@ class PushWorld(World):
         self.landmarks[obj_i].size = LANDMARK_SIZE
         # Set initial positions
         self.objects[obj_i].state.p_pos = np.zeros(2)
-        self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0,5])
+        self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
         return
         if min_dist is not None:
             while True:
@@ -153,9 +153,11 @@ class Scenario(BaseScenario):
             np.random.seed(seed)
         world.reset()
         # set initial states
+        world.agents[0].state.p_pos = np.array([0.5, -0.5])
+        world.agents[1].state.p_pos = np.array([-0.5, 0.5])
         for agent in world.agents:
-            agent.state.p_pos = np.random.uniform(
-                -1 + agent.size, 1 - agent.size, world.dim_p)
+            # agent.state.p_pos = np.random.uniform(
+            #     -1 + agent.size, 1 - agent.size, world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         # Set initial velocity
         for entity in world.entities:
