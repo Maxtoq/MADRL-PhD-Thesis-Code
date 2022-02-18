@@ -58,6 +58,9 @@ class PushWorld(World):
         self.landmarks[obj_i].color = color
         self.landmarks[obj_i].size = LANDMARK_SIZE
         # Set initial positions
+        self.objects[obj_i].state.p_pos = np.zeros(2)
+        self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0,5])
+        return
         if min_dist is not None:
             while True:
                 self.objects[obj_i].state.p_pos = np.random.uniform(
