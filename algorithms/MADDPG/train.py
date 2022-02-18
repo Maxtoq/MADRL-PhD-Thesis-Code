@@ -114,7 +114,10 @@ def run(config):
             if dones.sum(1).all():
                 break
             obs = next_obs
-        mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)
+        # Mean reward over rollouts
+        # mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)
+        # Reward of one of the rollouts
+        mean_ep_rewards_per_agent = np.sum(ep_rew, axis=0)[0]
         
         # Training
         if (len(replay_buffer) >= config.batch_size and
@@ -134,7 +137,7 @@ def run(config):
         # Log
         for a_i, a_ep_rew in enumerate(mean_ep_rewards_per_agent):
             logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
-                            a_ep_rew, ep_i)
+                              a_ep_rew, ep_i)
         # Save ep number
         with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
             f.write(str(ep_i))
