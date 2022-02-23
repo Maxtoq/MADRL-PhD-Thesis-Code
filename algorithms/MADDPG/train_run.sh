@@ -9,7 +9,7 @@ n_updates=100000
 lr=0.005
 hidden_dim=64
 n_rollout_threads=5
-n_training_per_updates=5
+n_training_per_updates=10
 cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
