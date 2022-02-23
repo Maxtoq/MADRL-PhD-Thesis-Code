@@ -1,13 +1,16 @@
 import argparse
 
 
-def get_config(args):
-    parser = argparse.ArgumentParser(
-        description="QMIX", formatter_class=argparse.RawDescriptionHelpFormatter)
+def get_config(args, parser=None):
+    if parser is None:
+        parser = argparse.ArgumentParser(
+            description="QMIX", 
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # prepare parameters
     parser.add_argument("--algorithm_name", type=str, default="qmix", choices=[
-                        "rmatd3", "rmaddpg", "rmasac", "qmix", "vdn", "matd3", "maddpg", "masac", "mqmix", "mvdn"])
+                        "rmatd3", "rmaddpg", "rmasac", "qmix", "vdn", "matd3", 
+                        "maddpg", "masac", "mqmix", "mvdn"])
     parser.add_argument("--model_name", type=str,
                         help="Name of directory to store " +
                              "models/training contents")
@@ -28,25 +31,26 @@ def get_config(args):
                         default=True)    
 
     # Training parameters
-    parser.add_argument('--n_training_threads', type=int,
-                        default=1, help="Number of torch threads for training")
+    parser.add_argument('--n_training_threads', type=int, default=1, 
+                        help="Number of torch threads for training")
     parser.add_argument('--n_rollout_threads', type=int,  default=1,
                         help="Number of parallel envs for training rollout")
     parser.add_argument("--n_episodes", default=25000, type=int,
                         help="Number of episodes to train for")
     parser.add_argument('--actor_train_interval', type=int, default=2,
-                        help="After how many critic updates actor should be updated")
+                help="After how many critic updates actor should be updated")
     parser.add_argument('--train_interval_eps', type=int, default=1,
-                        help="Number of episodes between updates to actor/critic")
+                help="Number of episodes between updates to actor/critic")
     parser.add_argument("--n_updates", default=None, type=int)
     parser.add_argument("--use_value_active_masks",
                         action='store_true', default=False)
 
     # replay buffer parameters
     parser.add_argument('--buffer_size', type=int, default=100000,
-                        help="Max # of transitions that replay buffer can contain")
+                help="Max # of transitions that replay buffer can contain")
     parser.add_argument('--use_reward_normalization', action='store_true',
-                        default=False, help="Whether to normalize rewards in replay buffer")
+                        default=False, 
+                        help="Whether to normalize rewards in replay buffer")
     parser.add_argument('--use_popart', action='store_true', default=False,
                         help="Whether to use popart to normalize the target loss")
     parser.add_argument('--popart_update_interval_step', type=int, default=2,
@@ -56,29 +60,32 @@ def get_config(args):
     parser.add_argument('--use_per', action='store_true', default=False,
                         help="Whether to use prioritized experience replay")
     parser.add_argument('--per_nu', type=float, default=0.9,
-                        help="Weight of max TD error in formation of PER weights")
+                help="Weight of max TD error in formation of PER weights")
     parser.add_argument('--per_alpha', type=float, default=0.6,
                         help="Alpha term for prioritized experience replay")
     parser.add_argument('--per_eps', type=float, default=1e-6,
                         help="Eps term for prioritized experience replay")
     parser.add_argument('--per_beta_start', type=float, default=0.4,
-                        help="Starting beta term for prioritized experience replay")
+                help="Starting beta term for prioritized experience replay")
 
     # network parameters
     parser.add_argument("--use_centralized_Q", action='store_false',
-                        default=True, help="Whether to use centralized Q function")
+                        default=True, 
+                        help="Whether to use centralized Q function")
     parser.add_argument('--share_policy', action='store_false',
-                        default=True, help="Whether agents share the same policy")
+                        default=True, 
+                        help="Whether agents share the same policy")
     parser.add_argument('--hidden_size', type=int, default=64,
-                        help="Dimension of hidden layers for actor/critic networks")
+                help="Dimension of hidden layers for actor/critic networks")
     parser.add_argument('--layer_N', type=int, default=1,
                         help="Number of layers for actor/critic networks")
     parser.add_argument('--use_ReLU', action='store_false',
                         default=True, help="Whether to use ReLU")
     parser.add_argument('--use_feature_normalization', action='store_false',
-                        default=True, help="Whether to apply layernorm to the inputs")
+                        default=True, 
+                        help="Whether to apply layernorm to the inputs")
     parser.add_argument('--use_orthogonal', action='store_false', default=True,
-                        help="Whether to use Orthogonal initialization for weights and 0 initialization for biases")
+                help="Whether to use Orthogonal initialization for weights and 0 initialization for biases")
     parser.add_argument("--gain", type=float, default=0.01,
                         help="The gain # of last action layer")
     parser.add_argument("--use_conv1d", action='store_true',

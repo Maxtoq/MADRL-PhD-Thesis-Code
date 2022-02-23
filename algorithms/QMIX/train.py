@@ -91,12 +91,12 @@ def run(args):
     
     config = {
         "args": parsed_args,
-        "policy_info": policy_info,
-        "policy_mapping_fn": policy_mapping_fn,
-        "env": env,
-        "num_agents": num_agents,
+        #"policy_info": policy_info,
+        #"policy_mapping_fn": policy_mapping_fn,
+        #"env": env,
+        #"num_agents": num_agents,
         "device": device,
-        "run_dir": run_dir
+        #"run_dir": run_dir
     }
 
     # Policy for each agent

@@ -6,17 +6,20 @@ import json
 import sys
 import os
 from torch.autograd import Variable
-from maddpg import MADDPG
+
+from algo.QMixPolicy import QMixPolicy
 from utils.make_env import make_env
 
-def run(config):
+from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
+
+def run(args):
     # Load model
-    if config.model_dir is not None:
-        model_path = os.path.join(config.model_dir, "model.pt")
-        sce_conf_path = os.path.join(config.model_dir, "sce_config.json")
-    elif config.model_cp_path is not None and config.sce_conf_path is not None:
-        model_path = config.model_cp_path
-        sce_conf_path = config.sce_conf_path
+    if args.model_dir is not None:
+        model_path = os.path.join(args.model_dir, "model.pt")
+        sce_conf_path = os.path.join(args.model_dir, "sce_config.json")
+    elif args.model_cp_path is not None and args.sce_conf_path is not None:
+        model_path = args.model_cp_path
+        sce_conf_path = args.sce_conf_path
     else:
         print("ERROR with model paths: you need to provide the path of either \
                the model directory (--model_dir) or the model checkpoint and \
@@ -25,48 +28,74 @@ def run(config):
     if not os.path.exists(model_path):
         sys.exit("Path to the model checkpoint %s does not exist" % 
                     model_path)
-    maddpg = MADDPG.init_from_save(model_path)
-    maddpg.prep_rollouts(device='cpu')
 
     # Load scenario config
     sce_conf = {}
     if sce_conf_path is not None:
         with open(sce_conf_path) as cf:
             sce_conf = json.load(cf)
-            print('Special config for scenario:', config.env_path)
+            print('Special config for scenario:', args.env_path)
             print(sce_conf)
 
     # Seed env
-    seed = config.seed if config.seed is not None else np.random.randint(1e9)
+    seed = args.seed if args.seed is not None else np.random.randint(1e9)
     np.random.seed(seed)
     print("Creating environment with seed", seed)
 
     # Create environment
-    env = make_env(config.env_path, discrete_action=config.discrete_action, 
+    env = make_env(args.env_path, discrete_action=args.discrete_action, 
                            sce_conf=sce_conf)
 
-    for ep_i in range(config.n_episodes):
+    
+    # Create model
+    policy_config = {
+            "cent_obs_dim": get_dim_from_space(
+                                env.share_observation_space[0]),
+            "obs_space": env.observation_space[0],
+            "act_space": env.action_space[0]
+    }
+    config = {
+        "args": args,
+        "device": torch.device("cpu")
+    }
+    qmix_policy = QMixPolicy(config, policy_config, train=False)
+    qmix_policy.q_network.eval()
+
+    for ep_i in range(args.n_episodes):
+        rnn_states_batch = np.zeros(
+            (sce_conf["nb_agents"], qmix_policy.hidden_size), 
+            dtype=np.float32)
+        last_acts_batch = np.zeros(
+            (sce_conf["nb_agents"], qmix_policy.output_dim), 
+            dtype=np.float32)
+
         obs = env.reset()
         rew = 0
-        for step_i in range(config.episode_length):
-            # rearrange observations to be per agent
-            torch_obs = [Variable(torch.Tensor(obs[a]).unsqueeze(0),
-                                requires_grad=False)
-                        for a in range(maddpg.nagents)]
-            # get actions as torch Variables
-            torch_agent_actions = maddpg.step(torch_obs)
-            # convert actions to numpy arrays
-            actions = [ac.data.numpy().squeeze() for ac in torch_agent_actions]
+        for step_i in range(args.episode_length):
+            obs_batch = np.array(obs)
+            # get actions for all agents to step the env with exploration noise
+            acts_batch, rnn_states_batch, _ = qmix_policy.get_actions(
+                obs_batch,
+                last_acts_batch,
+                rnn_states_batch)
+            acts_batch = acts_batch if isinstance(acts_batch, np.ndarray) \
+                            else acts_batch.cpu().detach().numpy()
+            # update rnn hidden state
+            rnn_states_batch = rnn_states_batch \
+                if isinstance(rnn_states_batch, np.ndarray) \
+                else rnn_states_batch.cpu().detach().numpy()
+            last_acts_batch = acts_batch
             
             # Environment step
-            next_obs, rewards, dones, infos = env.step(actions)
-            print(rewards)
-            rew += rewards[0]
+            next_obs, rewards, dones, infos = env.step(acts_batch)
+            print("Obs", next_obs)
+            print("Rewards", rewards)
+            rew += rewards[0][0]
 
-            time.sleep(config.step_time)
-            env.render()
+            time.sleep(args.step_time)
+            env.render(close=False)
 
-            if dones[0]:
+            if dones[0][0]:
                 break
             obs = next_obs
         
@@ -90,10 +119,39 @@ if __name__ == '__main__':
     parser.add_argument("--seed",default=None, type=int, help="Random seed")
     parser.add_argument("--n_episodes", default=1, type=int)
     parser.add_argument("--episode_length", default=100, type=int)
-    parser.add_argument("--discrete_action", action='store_true')
+    parser.add_argument("--discrete_action", action='store_false') 
     # Render
     parser.add_argument("--step_time", default=0.1, type=float)
+    # recurrent parameters
+    parser.add_argument('--prev_act_inp', action='store_true', default=False,
+                        help="Whether the actor input takes in previous \
+                            actions as part of its input")
+    parser.add_argument("--use_rnn_layer", action='store_false',
+                        default=True, 
+                        help='Whether to use a recurrent policy')
+    parser.add_argument("--recurrent_N", type=int, default=1)
+    # network parameters
+    parser.add_argument('--use_orthogonal', action='store_false', 
+                        default=True,
+                        help="Whether to use Orthogonal initialization for \
+                            weights and\ 0 initialization for biases")
+    parser.add_argument("--gain", type=float, default=0.01,
+                        help="The gain # of last action layer")
+    parser.add_argument('--use_feature_normalization', action='store_false',
+                        default=True, 
+                        help="Whether to apply layernorm to the inputs")
+    parser.add_argument('--use_ReLU', action='store_false',
+                        default=True, help="Whether to use ReLU")
+    parser.add_argument("--use_conv1d", action='store_true',
+                        default=False, help="Whether to use conv1d")
+    parser.add_argument("--stacked_frames", type=int, default=1,
+                        help="Dimension of hidden layers for actor/critic \
+                            networks")
+    parser.add_argument('--hidden_size', type=int, default=64,
+                help="Dimension of hidden layers for actor/critic networks")
+    parser.add_argument('--layer_N', type=int, default=1,
+                        help="Number of layers for actor/critic networks")
 
-    config = parser.parse_args()
+    args = parser.parse_args()
 
-    run(config)
+    run(args)
