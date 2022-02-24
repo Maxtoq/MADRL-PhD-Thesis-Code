@@ -113,6 +113,7 @@ def run(config):
             ep_rew[et_i] = rewards
             if dones.sum(1).all():
                 break
+            env.render()
             obs = next_obs
         # Mean reward over rollouts
         # mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)

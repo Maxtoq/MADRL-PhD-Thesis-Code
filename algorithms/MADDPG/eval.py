@@ -43,7 +43,7 @@ def run(config):
 
     # Create environment
     env = make_env(config.env_path, discrete_action=config.discrete_action, 
-                           sce_conf=sce_conf)
+                    sce_conf=sce_conf)
 
     for ep_i in range(config.n_episodes):
         obs = env.reset()
@@ -51,7 +51,7 @@ def run(config):
         for step_i in range(config.episode_length):
             # rearrange observations to be per agent
             torch_obs = [Variable(torch.Tensor(obs[a]).unsqueeze(0),
-                                requires_grad=False)
+                                    requires_grad=False)
                         for a in range(maddpg.nagents)]
             # get actions as torch Variables
             torch_agent_actions = maddpg.step(torch_obs)
@@ -60,7 +60,7 @@ def run(config):
             
             # Environment step
             next_obs, rewards, dones, infos = env.step(actions)
-            print("Obs", next_obs)
+            # print("Obs", next_obs)
             print("Rewards", rewards)
             rew += rewards[0]
 

@@ -127,3 +127,6 @@ class DummyVecEnv(VecEnv):
 
     def close(self):
         return
+
+    def render(self):
+        self.envs[0].render()

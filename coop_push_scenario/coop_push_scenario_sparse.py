@@ -3,9 +3,9 @@ import numpy as np
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
-LANDMARK_SIZE = 0.05
-OBJECT_SIZE = 0.12
-OBJECT_MASS = 10.0
+LANDMARK_SIZE = 0.1
+OBJECT_SIZE = 0.15
+OBJECT_MASS = 6.0
 AGENT_SIZE = 0.04
 AGENT_MASS = 0.4
 
@@ -34,7 +34,12 @@ class PushWorld(World):
         # List of objects to push
         self.nb_objects = nb_objects
         self.objects = [Object() for _ in range(self.nb_objects)]
+        # Corresponding landmarks
         self.landmarks = [Landmark() for _ in range(self.nb_objects)]
+        # Distances between objects and their landmark
+        self.obj_lm_dists = np.zeros(self.nb_objects)
+        # Shaping reward based on distances between objects and lms
+        self.shaping_reward = 0.0
 
     @property
     def entities(self):
@@ -58,9 +63,10 @@ class PushWorld(World):
         self.landmarks[obj_i].color = color
         self.landmarks[obj_i].size = LANDMARK_SIZE
         # Set initial positions
-        self.objects[obj_i].state.p_pos = np.zeros(2)
-        self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
-        return
+        # # Fixed initial pos
+        # self.objects[obj_i].state.p_pos = np.zeros(2)
+        # self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
+        # return
         if min_dist is not None:
             while True:
                 self.objects[obj_i].state.p_pos = np.random.uniform(
@@ -71,12 +77,27 @@ class PushWorld(World):
                                 self.landmarks[obj_i].state.p_pos)
                 if dist > min_dist and dist < max_dist:
                     break
+        else:
+            dist = get_dist(self.objects[obj_i].state.p_pos, 
+                            self.landmarks[obj_i].state.p_pos)
+        # Set distances between objects and their landmark
+        self.obj_lm_dists[obj_i] = dist
 
     def step(self):
+        # s
+        last_obj_lm_dists = np.copy(self.obj_lm_dists)
         super().step()
-        # Randomly add an object
-        #if np.random.random() < self.obj_prob:
-        #    self.add_object_and_landmark()
+        # s'
+        # Compute shaping reward
+        self.shaping_reward = 0.0
+        for obj_i in range(self.nb_objects):
+            # Update dists
+            self.obj_lm_dists[obj_i] = get_dist(
+                self.objects[obj_i].state.p_pos,
+                self.landmarks[obj_i].state.p_pos)
+            # Compute reward
+            self.shaping_reward += last_obj_lm_dists[obj_i] \
+                                    - self.obj_lm_dists[obj_i]
 
     # Integrate state with walls blocking entities on each side
     def integrate_state(self, p_force):
@@ -86,7 +107,8 @@ class PushWorld(World):
             if (p_force[i] is not None):
                 entity.state.p_vel += (p_force[i] / entity.mass) * self.dt
             if entity.max_speed is not None:
-                speed = np.sqrt(np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
+                speed = np.sqrt(np.square(entity.state.p_vel[0]) \
+                        + np.square(entity.state.p_vel[1]))
                 if speed > entity.max_speed:
                     entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
                                                                   np.square(entity.state.p_vel[1])) * entity.max_speed
@@ -115,7 +137,7 @@ class PushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
-                   collision_pen=10.0, relative_coord=True, 
+                   collision_pen=5, relative_coord=True, 
                    dist_reward=False, reward_done=50):
         world = PushWorld(nb_objects)
         # add agent
@@ -153,11 +175,12 @@ class Scenario(BaseScenario):
             np.random.seed(seed)
         world.reset()
         # set initial states
-        world.agents[0].state.p_pos = np.array([0.5, -0.5])
-        world.agents[1].state.p_pos = np.array([-0.5, 0.5])
+        # # Fixed initial pos
+        # world.agents[0].state.p_pos = np.array([0.5, -0.5])
+        # world.agents[1].state.p_pos = np.array([-0.5, 0.5])
         for agent in world.agents:
-            # agent.state.p_pos = np.random.uniform(
-            #     -1 + agent.size, 1 - agent.size, world.dim_p)
+            agent.state.p_pos = np.random.uniform(
+                -1 + agent.size, 1 - agent.size, world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         # Set initial velocity
         for entity in world.entities:
@@ -169,9 +192,11 @@ class Scenario(BaseScenario):
         dists = [get_dist(obj.state.p_pos, 
                           world.landmarks[i].state.p_pos)
                     for i, obj in enumerate(world.objects)]
-        #rew = -sum([pow(d * 3, 2) for d in dists])
-        #rew = -sum(dists)
-        rew = -sum(np.exp(dists))
+        # rew = -sum([pow(d * 3, 2) for d in dists])
+        # rew = -sum(dists)
+        # rew = -sum(np.exp(dists))
+        # Shaped reward
+        rew = -0.1 + world.shaping_reward
 
         # Reward if task complete
         self._done_flag = all(d <= LANDMARK_SIZE for d in dists)
@@ -186,6 +211,10 @@ class Scenario(BaseScenario):
                 dist_min = agent.size + other_agent.size
                 if dist <= dist_min:
                     rew -= self.collision_pen
+        # Penalty for collision with wall
+        if (agent.state.p_pos - agent.size <= -1).any() or \
+           (agent.state.p_pos + agent.size >= 1).any():
+           rew -= self.collision_pen
         return rew
 
     def observation(self, agent, world):
