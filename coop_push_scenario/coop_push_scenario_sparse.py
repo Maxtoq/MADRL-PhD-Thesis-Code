@@ -49,7 +49,7 @@ class PushWorld(World):
         for i in range(self.nb_objects):
             self.init_object(i)
 
-    def init_object(self, obj_i, min_dist=0.1, max_dist=1.5):
+    def init_object(self, obj_i, min_dist=0.15, max_dist=1.5):
         # Random color for both entities
         color = np.random.uniform(0, 1, self.dim_color)
         # Object
@@ -196,7 +196,7 @@ class Scenario(BaseScenario):
         # rew = -sum(dists)
         # rew = -sum(np.exp(dists))
         # Shaped reward
-        rew = -0.1 + world.shaping_reward
+        rew = -0.1 + world.shaping_reward * 10
 
         # Reward if task complete
         self._done_flag = all(d <= LANDMARK_SIZE for d in dists)
@@ -212,9 +212,9 @@ class Scenario(BaseScenario):
                 if dist <= dist_min:
                     rew -= self.collision_pen
         # Penalty for collision with wall
-        if (agent.state.p_pos - agent.size <= -1).any() or \
-           (agent.state.p_pos + agent.size >= 1).any():
-           rew -= self.collision_pen
+        # if (agent.state.p_pos - agent.size <= -1).any() or \
+        #    (agent.state.p_pos + agent.size >= 1).any():
+        #    rew -= self.collision_pen
         return rew
 
     def observation(self, agent, world):
