@@ -76,6 +76,12 @@ def run(config):
     print(f"                  with seed {config.seed}")
     target_update_interval = 0
     list_mean_ep_rewards = []
+    train_data_dict = {
+        "Step": [],
+        "Mean episode reward": [],
+        "Success": [],
+        "Episode length": []
+    }
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
         #print("Episodes %i-%i of %i" % (ep_i + 1,
         #                                ep_i + 1 + config.n_rollout_threads,
@@ -96,7 +102,9 @@ def run(config):
             (config.episode_length, 
              config.n_rollout_threads, 
              maddpg.nagents))
-        for et_i in range(config.episode_length):
+        ep_dones = np.zeros(config.n_rollout_threads)
+        ep_length = np.ones(config.n_rollout_threads) * config.episode_length
+        for step_i in range(config.episode_length):
             # rearrange observations to be per agent, and Variable
             torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, i])),
                                   requires_grad=False)
@@ -112,7 +120,12 @@ def run(config):
             ]
             next_obs, rewards, dones, infos = env.step(actions)
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
-            ep_rew[et_i] = rewards
+            ep_rew[step_i] = rewards
+            # Check if each rollout is done, if yes note success and episode length
+            for r_i in range(dones.shape[0]):
+                if ep_dones[r_i] == 0 and dones[r_i][0]:
+                    ep_dones[r_i] = 1
+                    ep_length[r_i] = step_i
             if dones.sum(1).all():
                 break
             obs = next_obs
@@ -142,7 +155,11 @@ def run(config):
                 logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
                                 a_ep_rew, ep_i + r_i)
             # Log in list
-            list_mean_ep_rewards.append(np.mean(mean_eps_rewards[r_i]))
+            train_data_dict["Step"].append(ep_i + r_i)
+            train_data_dict["Mean episode reward"].append(np.mean(mean_eps_rewards[r_i]))
+            train_data_dict["Success"].append(ep_dones[r_i])
+            train_data_dict["Episode length"].append(ep_length[r_i])
+
         # Save ep number
         with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
             f.write(str(ep_i))
@@ -158,10 +175,7 @@ def run(config):
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
     # Log csv
-    rewards_df = pd.DataFrame({
-        'Step': np.arange(len(list_mean_ep_rewards)),
-        'Value': list_mean_ep_rewards
-    })
+    rewards_df = pd.DataFrame(train_data_dict)
     rewards_df.to_csv(str(run_dir / 'mean_episode_rewards.csv'))
     print("Model saved in dir", run_dir)
 
