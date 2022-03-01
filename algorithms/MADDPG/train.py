@@ -1,9 +1,9 @@
 import argparse
 import torch
-import time
 import sys
 import os
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from gym.spaces import Box
 from torch.autograd import Variable
@@ -75,6 +75,7 @@ def run(config):
     print(f"                  updates every {eps_per_update} episodes")
     print(f"                  with seed {config.seed}")
     target_update_interval = 0
+    list_mean_ep_rewards = []
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
         #print("Episodes %i-%i of %i" % (ep_i + 1,
         #                                ep_i + 1 + config.n_rollout_threads,
@@ -116,8 +117,6 @@ def run(config):
                 break
             obs = next_obs
             # env.render()
-        # Mean reward over rollouts
-        # mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)
         # Reward of one of the rollouts
         mean_eps_rewards = np.sum(ep_rew, axis=0)
         
@@ -138,10 +137,12 @@ def run(config):
 
         # Log
         for r_i in range(mean_eps_rewards.shape[0]):
+            # Log Tensorboard
             for a_i, a_ep_rew in enumerate(mean_eps_rewards[r_i]):
-                print(a_i, a_ep_rew, ep_i + r_i)
                 logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
                                 a_ep_rew, ep_i + r_i)
+            # Log in list
+            list_mean_ep_rewards.append(np.mean(mean_eps_rewards[r_i]))
         # Save ep number
         with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
             f.write(str(ep_i))
@@ -153,8 +154,15 @@ def run(config):
 
     maddpg.save(model_cp_path)
     env.close()
+    # Log Tensorboard
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
+    # Log csv
+    rewards_df = pd.DataFrame({
+        'Step': np.arange(len(list_mean_ep_rewards)),
+        'Value': list_mean_ep_rewards
+    })
+    rewards_df.to_csv(str(run_dir / 'mean_episode_rewards.csv'))
     print("Model saved in dir", run_dir)
 
 
