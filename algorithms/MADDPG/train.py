@@ -1,5 +1,6 @@
 import argparse
 import torch
+import time
 import sys
 import os
 import numpy as np
@@ -114,10 +115,11 @@ def run(config):
             if dones.sum(1).all():
                 break
             obs = next_obs
+            # env.render()
         # Mean reward over rollouts
         # mean_ep_rewards_per_agent = np.mean(np.sum(ep_rew, axis=0), axis=0)
         # Reward of one of the rollouts
-        mean_ep_rewards_per_agent = np.sum(ep_rew, axis=0)[0]
+        mean_eps_rewards = np.sum(ep_rew, axis=0)
         
         # Training
         if (len(replay_buffer) >= config.batch_size and
@@ -135,9 +137,11 @@ def run(config):
             maddpg.prep_rollouts(device='cpu')
 
         # Log
-        for a_i, a_ep_rew in enumerate(mean_ep_rewards_per_agent):
-            logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
-                              a_ep_rew, ep_i)
+        for r_i in range(mean_eps_rewards.shape[0]):
+            for a_i, a_ep_rew in enumerate(mean_eps_rewards[r_i]):
+                print(a_i, a_ep_rew, ep_i + r_i)
+                logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
+                                a_ep_rew, ep_i + r_i)
         # Save ep number
         with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
             f.write(str(ep_i))
