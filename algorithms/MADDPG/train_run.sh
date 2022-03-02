@@ -9,16 +9,16 @@ n_updates=100000
 lr=0.0007
 hidden_dim=64
 n_rollout_threads=5
-n_training_per_updates=5
-cuda_device="cuda:1"
+n_training_per_updates=1
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
     comm="python algorithms/MADDPG/train.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} \
-    --n_episodes ${n_episodes} --n_exploration_eps ${n_exploration_eps} --n_updates ${n_updates} \
-    --lr ${lr} --hidden_dim ${hidden_dim} --n_rollout_threads ${n_rollout_threads} --n_training_per_updates ${n_training_per_updates} \
+    --n_episodes ${n_episodes} --n_exploration_eps ${n_exploration_eps} --n_updates ${n_updates} --lr ${lr} \
+    --hidden_dim ${hidden_dim} --n_rollout_threads ${n_rollout_threads} --n_training_per_updates ${n_training_per_updates} \
     --cuda_device ${cuda_device}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
