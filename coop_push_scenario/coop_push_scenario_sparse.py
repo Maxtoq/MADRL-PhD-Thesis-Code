@@ -137,8 +137,8 @@ class PushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
-                   collision_pen=1, relative_coord=True, 
-                   dist_reward=False, reward_done=50):
+                   collision_pen=1, relative_coord=True, dist_reward=False, 
+                   reward_done=50, step_penalty=0.1):
         world = PushWorld(nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -162,6 +162,8 @@ class Scenario(BaseScenario):
         self._done_flag = False
         # Reward for completing the task
         self.reward_done = reward_done
+        # Penalty for step in the environment
+        self.step_penalty = step_penalty
         # make initial conditions
         self.reset_world(world)
         return world
@@ -196,7 +198,11 @@ class Scenario(BaseScenario):
         # rew = -sum(dists)
         # rew = -sum(np.exp(dists))
         # Shaped reward
-        rew = -0.1 + world.shaping_reward * 10
+        if world.shaping_reward > 0:
+            shaped = 100 * world.shaping_reward
+        else:
+            shaped = 10 * world.shaping_reward
+        rew = -self.step_penalty + shaped
 
         # Reward if task complete
         self._done_flag = all(d <= LANDMARK_SIZE for d in dists)
