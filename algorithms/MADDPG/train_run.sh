@@ -8,10 +8,11 @@ n_exploration_eps=500000
 n_updates=100000
 lr=0.0005
 gamma=0.99
-tau=0.005
+tau=0.01
 hidden_dim=64
 n_rollout_threads=5
 n_training_per_updates=5
+init_noise_scale=0.6
 cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
