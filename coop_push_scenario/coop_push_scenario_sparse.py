@@ -40,6 +40,8 @@ class PushWorld(World):
         self.obj_lm_dists = np.zeros(self.nb_objects)
         # Shaping reward based on distances between objects and lms
         self.shaping_reward = 0.0
+        # Control inertia
+        self.damping = 0.8
 
     @property
     def entities(self):
@@ -49,7 +51,7 @@ class PushWorld(World):
         for i in range(self.nb_objects):
             self.init_object(i)
 
-    def init_object(self, obj_i, min_dist=0.15, max_dist=1.5):
+    def init_object(self, obj_i, min_dist=0.2, max_dist=1.5):
         # Random color for both entities
         color = np.random.uniform(0, 1, self.dim_color)
         # Object
@@ -202,6 +204,7 @@ class Scenario(BaseScenario):
             shaped = 100 * world.shaping_reward
         else:
             shaped = 10 * world.shaping_reward
+            # shaped = 0
         rew = -self.step_penalty + shaped
 
         # Reward if task complete
