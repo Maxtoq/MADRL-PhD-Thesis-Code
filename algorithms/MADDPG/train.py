@@ -142,10 +142,10 @@ def run(config):
                     sample = replay_buffer.sample(config.batch_size,
                                                   cuda_device=training_device)
                     maddpg.update(sample, a_i, logger=logger)
-            target_update_interval += 1
-            if (target_update_interval == config.hard_update_interval):
-                maddpg.update_all_targets()
-                target_update_interval = 0
+            # target_update_interval += 1
+            # if (target_update_interval == config.hard_update_interval):
+            maddpg.update_all_targets()
+                # target_update_interval = 0
             maddpg.prep_rollouts(device='cpu')
 
         # Log
