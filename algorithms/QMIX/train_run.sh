@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
 env="algorithms/QMIX/scenario/coop_push_scenario_sparse.py"
-model_name="qmix_fo_abs_disc_sparse"
+model_name="qmix_fo_abs_disc_shaped_nocol"
 sce_conf_path="configs/2a_1o_fo_abs_nocol.json"
 n_episodes=500000
 n_exploration_eps=500000
