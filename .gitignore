@@ -100,3 +100,8 @@ models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run11/*
 !models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run11/incremental/
 models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run11/incremental/*
 !models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run11/incremental/model_ep385001.pt
+
+!models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run13
+models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run13/*
+!models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run13/model.pt
+!models/coop_push_scenario_sparse/2addpg_fo_abs_cont_shaped_nocol/run13/sce_config.json
