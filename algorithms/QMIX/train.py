@@ -212,6 +212,9 @@ def run(args):
             env_acts = np.split(acts_batch, parsed_args.n_rollout_threads)
             # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
+            print("obs", obs_batch)
+            print("actions", acts_batch)
+            print("rewards", rewards)
 
             dones_env = np.all(dones, axis=1)
             terminate_episodes = np.any(dones_env) or \
@@ -225,7 +228,7 @@ def run(args):
             episode_dones_env[p_id][step_i] = dones_env
 
             obs = next_obs
-
+            env.render()
             if terminate_episodes:
                 break
         
