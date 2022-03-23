@@ -3,9 +3,9 @@ import numpy as np
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
-LANDMARK_SIZE = 0.05
-OBJECT_SIZE = 0.12
-OBJECT_MASS = 10.0
+LANDMARK_SIZE = 0.1
+OBJECT_SIZE = 0.15
+OBJECT_MASS = 2.0
 AGENT_SIZE = 0.04
 AGENT_MASS = 0.4
 
@@ -164,6 +164,8 @@ class Scenario(BaseScenario):
         rew = -sum(dists)
         # Check if done
         self._done_flag = all(d <= LANDMARK_SIZE ** 2 for d in dists)
+        if self._done_flag:
+            rew += 100
 
 
         # Reward based on distance to object
