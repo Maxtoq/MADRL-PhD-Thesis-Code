@@ -228,7 +228,7 @@ def run(args):
             episode_dones_env[p_id][step_i] = dones_env[..., np.newaxis]
 
             obs = next_obs
-            env.render()
+            # env.render()
             if terminate_episodes:
                 break
         

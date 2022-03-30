@@ -3,12 +3,12 @@ n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="qmix_fo_abs_disc_shaped_nocol"
 sce_conf_path="configs/2a_1o_fo_abs_nocol.json"
-n_episodes=500000
-n_exploration_eps=500000
+n_episodes=100000
+n_exploration_eps=100000
 n_updates=100000
 hidden_dim=64
 n_rollout_threads=1
-batch_size=1024
+batch_size=512
 
 for n in $(seq 1 $n_run)
 do
