@@ -97,10 +97,10 @@ class QMixPolicy(RecurrentPolicy):
         q_values_out, new_rnn_states = self.get_q_values(obs, prev_actions, rnn_states)
         onehot_actions, greedy_Qs = self.actions_from_q(q_values_out, available_actions=available_actions, explore=explore, t_env=t_env)
         
-        print()
-        print("ACTIONS")
-        print(q_values_out,onehot_actions,greedy_Qs)
-        print()
+        # print()
+        # print("ACTIONS")
+        # print(q_values_out,onehot_actions,greedy_Qs)
+        # print()
 
         return onehot_actions, new_rnn_states, greedy_Qs
 
