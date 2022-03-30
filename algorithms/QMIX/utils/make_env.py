@@ -24,7 +24,7 @@ def make_env(scenario_path, sce_conf={}, discrete_action=False):
         .action_space       :   Returns the action space for each agent
         .n                  :   Returns the number of Agents
     '''
-    from offpolicy.envs.mpe.environment import MultiAgentEnv
+    from multiagent.environment import MultiAgentEnv
 
     # load scenario from script
     scenario = imp.load_source('', scenario_path).Scenario()

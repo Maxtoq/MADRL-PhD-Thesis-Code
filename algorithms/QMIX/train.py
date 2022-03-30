@@ -208,7 +208,7 @@ def run(args):
                 if isinstance(rnn_states_batch, np.ndarray) \
                 else rnn_states_batch.cpu().detach().numpy()
             last_acts_batch = acts_batch
-
+            print("ACTIONS 1", acts_batch)
             env_acts = np.split(acts_batch, parsed_args.n_rollout_threads)
             # env step and store the relevant episode information
             next_obs, rewards, dones, infos = env.step(env_acts)
@@ -223,9 +223,9 @@ def run(args):
             episode_obs[p_id][step_i] = obs
             episode_share_obs[p_id][step_i] = share_obs
             episode_acts[p_id][step_i] = np.stack(env_acts)
-            episode_rewards[p_id][step_i] = rewards
-            episode_dones[p_id][step_i] = dones
-            episode_dones_env[p_id][step_i] = dones_env
+            episode_rewards[p_id][step_i] = rewards[..., np.newaxis]
+            episode_dones[p_id][step_i] = dones[..., np.newaxis]
+            episode_dones_env[p_id][step_i] = dones_env[..., np.newaxis]
 
             obs = next_obs
             env.render()
@@ -251,6 +251,7 @@ def run(args):
         # Save average rewards on this round of training
         average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], 
                                                  axis=0))
+        print(average_episode_rewards)
 
         # Training
         if (ep_i * parsed_args.episode_length >= parsed_args.batch_size and
