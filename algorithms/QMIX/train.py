@@ -3,6 +3,7 @@ import torch
 import sys
 import os
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from gym.spaces import Box
 from torch.autograd import Variable
@@ -154,6 +155,12 @@ def run(args):
     print(f"                  with seed {parsed_args.seed}")
     train_step = 0
     last_hard_update_ep = 0
+    train_data_dict = {
+        "Step": [],
+        "Episode return": [],
+        "Success": [],
+        "Episode length": []
+    }
     for ep_i in tqdm(range(0, parsed_args.n_episodes, 
                         parsed_args.n_rollout_threads)):
         # TRAINING DONE WHEN SHARING POLICY,
@@ -186,7 +193,9 @@ def run(args):
         episode_dones = {p_id : np.ones((parsed_args.episode_length, parsed_args.n_rollout_threads, num_agents, 1), dtype=np.float32) for p_id in policy_ids}
         episode_dones_env = {p_id : np.ones((parsed_args.episode_length, parsed_args.n_rollout_threads, 1), dtype=np.float32) for p_id in policy_ids}
         episode_avail_acts = {p_id : None for p_id in policy_ids}
-
+        # Log info
+        ep_dones = np.zeros(parsed_args.n_rollout_threads)
+        ep_length = np.ones(parsed_args.n_rollout_threads) * parsed_args.episode_length
         for step_i in range(parsed_args.episode_length):
             share_obs = obs.reshape(parsed_args.n_rollout_threads, -1)
             # Copy over agent dim
@@ -227,6 +236,15 @@ def run(args):
             episode_dones[p_id][step_i] = dones[..., np.newaxis]
             episode_dones_env[p_id][step_i] = dones_env[..., np.newaxis]
 
+            # Check for dones in each rollout
+            for r_i in range(parsed_args.n_rollout_threads):
+                if ep_dones[r_i] == 0 and dones[r_i][0]:
+                    ep_dones[r_i] = 1
+                    ep_length[r_i] = step_i
+            if dones.sum(1).all():
+                print(f"Finished early! (step {ep_length}, reward {np.sum(episode_rewards[p_id], axis=0)})")
+                break
+
             obs = next_obs
             # env.render()
             if terminate_episodes:
@@ -236,6 +254,10 @@ def run(args):
         share_obs = obs.reshape(parsed_args.n_rollout_threads, -1)
         share_obs = np.repeat(share_obs[:, np.newaxis, :], num_agents, axis=1)
         episode_share_obs[p_id][step_i + 1] = share_obs
+
+        # Save returns on this round of rollouts
+        episode_return = np.sum(episode_rewards[p_id],axis=0)
+        # print(average_episode_rewards)
 
         # push all episodes collected in this rollout step to the buffer
         buffer.insert(
@@ -247,11 +269,6 @@ def run(args):
             episode_dones,
             episode_dones_env,
             episode_avail_acts)
-
-        # Save average rewards on this round of training
-        average_episode_rewards = np.mean(np.sum(episode_rewards[p_id], 
-                                                 axis=0))
-        # print(average_episode_rewards)
 
         # Training
         if (ep_i * parsed_args.episode_length >= parsed_args.batch_size and
@@ -285,8 +302,16 @@ def run(args):
             train_step += 1
 
         # Log
-        logger.add_scalar('agent0/mean_episode_rewards',
-                            average_episode_rewards, ep_i)
+        for r_i in range(parsed_args.n_rollout_threads):
+            # Log Tensorboard
+            logger.add_scalar('agent0/mean_episode_rewards',
+                            np.mean(episode_return[r_i]), ep_i + r_i)
+            # Log in list
+            train_data_dict["Step"].append(ep_i + r_i)
+            train_data_dict["Episode return"].append(np.mean(episode_return[r_i]))
+            train_data_dict["Success"].append(ep_dones[r_i])
+            train_data_dict["Episode length"].append(ep_length[r_i])
+        
         # # Save ep number
         # with open(str(log_dir / 'ep_nb.txt'), 'w') as f:
         #     f.write(str(ep_i))
@@ -304,6 +329,9 @@ def run(args):
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
+    # Log csv
+    rewards_df = pd.DataFrame(train_data_dict)
+    rewards_df.to_csv(str(run_dir / 'mean_episode_rewards.csv'))
     print("Model saved in dir", run_dir)
 
 

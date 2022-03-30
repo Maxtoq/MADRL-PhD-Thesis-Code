@@ -74,11 +74,9 @@ def run(config):
     print(f"                  with {config.n_rollout_threads} threads")
     print(f"                  updates every {eps_per_update} episodes")
     print(f"                  with seed {config.seed}")
-    target_update_interval = 0
-    list_mean_ep_rewards = []
     train_data_dict = {
         "Step": [],
-        "Mean episode reward": [],
+        "Episode return": [],
         "Success": [],
         "Episode length": []
     }
@@ -132,7 +130,7 @@ def run(config):
             obs = next_obs
             # env.render()
         # Reward of one of the rollouts
-        mean_eps_rewards = np.sum(ep_rew, axis=0)
+        eps_returns = np.sum(ep_rew, axis=0)
         
         # Training
         if (len(replay_buffer) >= config.batch_size and
@@ -150,14 +148,14 @@ def run(config):
             maddpg.prep_rollouts(device='cpu')
 
         # Log
-        for r_i in range(mean_eps_rewards.shape[0]):
+        for r_i in range(config.n_rollout_threads):
             # Log Tensorboard
-            for a_i, a_ep_rew in enumerate(mean_eps_rewards[r_i]):
+            for a_i, a_ep_rew in enumerate(eps_returns[r_i]):
                 logger.add_scalar('agent%i/mean_episode_rewards' % a_i, 
                                 a_ep_rew, ep_i + r_i)
             # Log in list
             train_data_dict["Step"].append(ep_i + r_i)
-            train_data_dict["Mean episode reward"].append(np.mean(mean_eps_rewards[r_i]))
+            train_data_dict["Episode return"].append(np.mean(eps_returns[r_i]))
             train_data_dict["Success"].append(ep_dones[r_i])
             train_data_dict["Episode length"].append(ep_length[r_i])
 
