@@ -205,7 +205,11 @@ class QMixPolicy(RecurrentPolicy):
     def parameters(self):
         """See parent class."""
         return self.q_network.parameters()
+    
+    def save_state(self, cp_path):
+        self.q_network.to(torch.device('cpu'))
+        torch.save(self.q_network.state_dict(), cp_path)
 
-    def load_state(self, source_policy):
-        """See parent class."""
-        self.q_network.load_state_dict(source_policy.q_network.state_dict())
+    def load_state(self, cp_path):
+        self.q_network.load_state_dict(torch.load(cp_path))
+        self.q_network.to(self.device)

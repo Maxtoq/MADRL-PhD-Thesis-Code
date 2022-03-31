@@ -59,6 +59,7 @@ def run(args):
         "device": torch.device("cpu")
     }
     qmix_policy = QMixPolicy(config, policy_config, train=False)
+    qmix_policy.load_state(model_path)
     qmix_policy.q_network.eval()
 
     for ep_i in range(args.n_episodes):
@@ -90,12 +91,12 @@ def run(args):
             next_obs, rewards, dones, infos = env.step(acts_batch)
             print("Obs", next_obs)
             print("Rewards", rewards)
-            rew += rewards[0][0]
+            rew += rewards[0]
 
             time.sleep(args.step_time)
-            env.render(close=False)
+            env.render()
 
-            if dones[0][0]:
+            if dones[0]:
                 break
             obs = next_obs
         

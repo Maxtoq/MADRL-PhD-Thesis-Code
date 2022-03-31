@@ -320,12 +320,13 @@ def run(args):
         if ep_i % parsed_args.save_interval < parsed_args.n_rollout_threads:
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             for p_id in policy_ids:
-                policy_Q = policies[p_id].q_network
                 p_save_path = run_dir / 'incremental' / \
                     f'model_ep{ep_i}_{str(p_id)}'
-                torch.save(policy_Q.state_dict(), p_save_path)
+                policies[p_id].save_state(p_save_path)
 
-    torch.save(policy_Q.state_dict(), model_cp_path)
+    # Save model
+    policies[p_id].save_state(model_cp_path)
+
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
