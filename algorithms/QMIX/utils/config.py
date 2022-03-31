@@ -171,8 +171,8 @@ def get_config(args, parser=None):
                         help="Ending value for epsilon, for eps-greedy exploration")
     parser.add_argument('--epsilon_anneal_time', type=int, default=25000,
                         help="Number of episodes until epsilon reaches epsilon_finish")
-    parser.add_argument('--act_noise_std', type=float,
-                        default=0.1, help="Action noise")
+    parser.add_argument('--act_noise_std', type=float, default=0.1, help="Action noise")
+    parser.add_argument('--epsilon_decay_fn', type=str, default="linear", help="Decay function of epsilon")
 
     # save parameters
     parser.add_argument('--save_interval', type=int, default=10000,
