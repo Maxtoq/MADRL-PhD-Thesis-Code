@@ -203,8 +203,8 @@ class Scenario(BaseScenario):
         if world.shaping_reward > 0:
             shaped = 100 * world.shaping_reward
         else:
-            # shaped = 10 * world.shaping_reward
-            shaped = 0
+            shaped = 10 * world.shaping_reward
+            # shaped = 0
         rew = -self.step_penalty + shaped
 
         # Reward if task complete

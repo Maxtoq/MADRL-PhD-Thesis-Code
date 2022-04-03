@@ -17,8 +17,6 @@ from algo.QMixPolicy import QMixPolicy
 from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space, DecayThenFlatSchedule
 from offpolicy.utils.rec_buffer import RecReplayBuffer, PrioritizedRecReplayBuffer
 
-USE_CUDA = torch.cuda.is_available()
-
 
 def run(args):
     parsed_args = get_config(args)
@@ -43,8 +41,11 @@ def run(args):
 
     # Set cuda and threads
     if parsed_args.cuda and torch.cuda.is_available():
-        print("Using GPU...")
-        device = torch.device("cuda:0")
+        if parsed_args.cuda_device is None:
+            device = torch.device("cuda:0")
+        else:
+            device = torch.device(parsed_args.cuda_device)
+        print("Using GPU, CUDA device", device)
         torch.set_num_threads(parsed_args.n_training_threads)
         if parsed_args.cuda_deterministic:
             torch.backends.cudnn.benchmark = False
