@@ -1,9 +1,9 @@
 #!/bin/sh
-n_run=1
+n_run=2
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="qmix_fo_abs_disc_shaped_nocol"
 sce_conf_path="configs/2a_1o_fo_abs_nocol.json"
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 n_episodes=100000
 n_exploration_eps=100000
 n_updates=100000
