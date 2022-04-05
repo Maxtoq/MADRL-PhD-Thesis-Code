@@ -99,7 +99,7 @@ class PushWorld(World):
                 self.landmarks[obj_i].state.p_pos)
             # Compute reward
             self.shaping_reward += last_obj_lm_dists[obj_i] \
-                                    - 0.99 * self.obj_lm_dists[obj_i]
+                                    - self.obj_lm_dists[obj_i]
 
     # Integrate state with walls blocking entities on each side
     def integrate_state(self, p_force):

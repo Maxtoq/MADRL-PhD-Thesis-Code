@@ -258,7 +258,7 @@ def run(args):
 
         # Save returns on this round of rollouts
         episode_return = np.sum(episode_rewards[p_id],axis=0)
-        # print(average_episode_rewards)
+        # print(episode_return)
 
         # push all episodes collected in this rollout step to the buffer
         buffer.insert(
