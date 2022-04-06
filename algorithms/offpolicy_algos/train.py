@@ -11,11 +11,8 @@ from tensorboardX import SummaryWriter
 
 from utils.make_env import get_paths, load_scenario_config, make_parallel_env
 from utils.config import get_config
-from algo.qmix import QMix
-from algo.QMixPolicy import QMixPolicy
 
 from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space, DecayThenFlatSchedule
-from offpolicy.utils.rec_buffer import RecReplayBuffer, PrioritizedRecReplayBuffer
 
 
 def run(args):
@@ -101,16 +98,27 @@ def run(args):
         #"run_dir": run_dir
     }
 
+    # Get wanted trainer and policy
+    if parsed_args.algorithm_name == "qmix":
+        from algo.qmix.QMixPolicy import QMixPolicy as Policy
+        from algo.qmix.qmix import QMix as TrainAlgo
+    elif parsed_args.algorithm_name == "maddpg":
+        from algo.maddpg.MADDPGPolicy import MADDPGPolicy as Policy
+        from algo.maddpg.maddpg import MADDPG as TrainAlgo
+    elif parsed_args.algorithm_name == "matd3":
+        from algo.maddpg.MADDPGPolicy import MATD3Policy as Policy
+        from algo.maddpg.maddpg import MATD3 as TrainAlgo
+
     # Policy for each agent
-    policies = {p_id: QMixPolicy(config, policy_info[p_id]) 
+    policies = {p_id: Policy(config, policy_info[p_id])
                     for p_id in policy_ids}
     # Agents ids for each policy
     policy_agents = {p_id: sorted([agent_id for agent_id in range(num_agents)
-                                    if policy_mapping_fn(agent_id) == p_id]) 
+                                    if policy_mapping_fn(agent_id) == p_id])
                         for p_id in policy_ids}
 
     # Trainer
-    trainer = QMix(
+    trainer = TrainAlgo(
         parsed_args, 
         num_agents, 
         policies, 
@@ -128,12 +136,18 @@ def run(args):
         eps_per_update = parsed_args.train_interval_eps
     
     # Replay buffer
+    if parsed_args.algorithm_name in ["qmix"]:
+        from utils.buffer.rec_buffer import RecReplayBuffer as ReplayBuffer
+        from utils.buffer.rec_buffer import PrioritizedRecReplayBuffer as PrioReplayBuffer
+    elif parsed_args.algorithm_name in ["maddpg", "matd3"]:
+        from utils.buffer.mlp_buffer import MlpReplayBuffer as ReplayBuffer
+        from utils.buffer.mlp_buffer import PrioritizedMlpReplayBuffer as PrioReplayBuffer
     if parsed_args.use_per:
         beta_anneal = DecayThenFlatSchedule(
             parsed_args.per_beta_start, 
             1.0, num_train_episodes, 
             decay="linear")
-        buffer = PrioritizedRecReplayBuffer(
+        buffer = PrioReplayBuffer(
             parsed_args.per_alpha,
             policy_info,
             policy_agents,
@@ -142,7 +156,7 @@ def run(args):
             False, False,
             parsed_args.use_reward_normalization)
     else:
-        buffer = RecReplayBuffer(
+        buffer = ReplayBuffer(
             policy_info,
             policy_agents,
             parsed_args.buffer_size,
@@ -243,7 +257,7 @@ def run(args):
                     ep_dones[r_i] = 1
                     ep_length[r_i] = step_i
             if dones.sum(1).all():
-                print(f"Finished early! (step {ep_length}, reward {np.sum(episode_rewards[p_id], axis=0)})")
+                # print(f"Finished early! (step {ep_length}, reward {np.sum(episode_rewards[p_id], axis=0)})")
                 break
 
             obs = next_obs
