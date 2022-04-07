@@ -195,7 +195,6 @@ class QMix(Trainer):
 
         return train_info, new_priorities, idxes
 
-
     def hard_target_updates(self):
         """Hard update the target networks."""
         print("hard update targets")

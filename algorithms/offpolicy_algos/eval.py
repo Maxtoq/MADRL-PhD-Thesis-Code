@@ -7,7 +7,7 @@ import sys
 import os
 from torch.autograd import Variable
 
-from algo.QMixPolicy import QMixPolicy
+from algo.qmix.QMixPolicy import QMixPolicy
 from utils.make_env import make_env
 
 from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
@@ -89,8 +89,10 @@ def run(args):
             
             # Environment step
             next_obs, rewards, dones, infos = env.step(acts_batch)
-            print("Obs", next_obs)
-            print("Rewards", rewards)
+            if args.verbose == 2:
+                print("Obs", next_obs)
+            if args.verbose >= 1:
+                print("Rewards", rewards)
             rew += rewards[0]
 
             time.sleep(args.step_time)
@@ -123,6 +125,8 @@ if __name__ == '__main__':
     parser.add_argument("--discrete_action", action='store_false') 
     # Render
     parser.add_argument("--step_time", default=0.1, type=float)
+    # Print
+    parser.add_argument("--verbose", type=int, default=1)
     # recurrent parameters
     parser.add_argument('--prev_act_inp', action='store_true', default=False,
                         help="Whether the actor input takes in previous \

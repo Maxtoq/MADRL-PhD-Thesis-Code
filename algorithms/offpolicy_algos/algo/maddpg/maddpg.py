@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import copy
 import itertools
-from offpolicy.utils.util import huber_loss, mse_loss, to_torch
+from offpolicy.utils.util import soft_update, huber_loss, mse_loss, to_torch
 from offpolicy.utils.popart import PopArt
 from offpolicy.algorithms.base.trainer import Trainer
 
@@ -80,7 +80,7 @@ class MADDPG(Trainer):
 
         return cent_act, replace_ind_start, cent_nact
 
-    def train_policy_on_batch(self, update_policy_id, batch):
+    def train_policy_on_batch(self, batch, update_policy_id):
         """See parent class."""
         obs_batch, cent_obs_batch, \
         act_batch, rew_batch, \
@@ -124,14 +124,14 @@ class MADDPG(Trainer):
         all_agent_valid_trans = to_torch(valid_trans).to(**self.tpdv).reshape(-1, 1)
         # critic update
         with torch.no_grad():
-            next_step_Q = update_policy.target_critic(all_agent_cent_nobs, all_agent_cent_nact).reshape(-1, 1)
+            next_step_Q = update_policy.target_critic(all_agent_cent_nobs, all_agent_cent_nact)[0].reshape(-1, 1)
         if self.use_popart:
             target_Qs = all_agent_rewards + self.args.gamma * (1 - all_env_dones) * \
                 self.value_normalizer[p_id].denormalize(next_step_Q)
             target_Qs = self.value_normalizer[p_id](target_Qs)
         else:
             target_Qs = all_agent_rewards + self.args.gamma * (1 - all_env_dones) * next_step_Q
-        predicted_Qs = update_policy.critic(all_agent_cent_obs, all_agent_cent_act_buffer).reshape(-1, 1)
+        predicted_Qs = update_policy.critic(all_agent_cent_obs, all_agent_cent_act_buffer)[0].reshape(-1, 1)
 
         error = target_Qs.detach() - predicted_Qs
         if self.use_per:
@@ -229,7 +229,7 @@ class MADDPG(Trainer):
 
             # combine the buffer cent acts with actor cent acts and pass into buffer
             actor_update_cent_acts = mask * actor_cent_acts + (1 - mask) * to_torch(all_agent_cent_act_buffer).to(**self.tpdv)
-            actor_Qs = update_policy.critic(all_agent_cent_obs, actor_update_cent_acts)
+            actor_Qs = update_policy.critic(all_agent_cent_obs, actor_update_cent_acts)[0]
             # actor_loss = -actor_Qs.mean()
             actor_Qs = actor_Qs * valid_trans_mask
             actor_loss = -(actor_Qs).sum() / (valid_trans_mask).sum()
@@ -249,6 +249,16 @@ class MADDPG(Trainer):
             train_info['actor_grad_norm'] = actor_grad_norm
 
         return train_info, new_priorities, idxes
+
+    def hard_target_updates(self):
+        """Hard update the target networks."""
+        for p_id in self.policy_ids:
+            self.policies[p_id].hard_target_updates()
+
+    def soft_target_updates(self):
+        """Soft update the target networks."""
+        for p_id in self.policy_ids:
+            self.policies[p_id].soft_target_updates()
 
     def prep_training(self):
         """See parent class."""

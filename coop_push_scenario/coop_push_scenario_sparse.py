@@ -220,6 +220,7 @@ class Scenario(BaseScenario):
                 dist = get_dist(agent.state.p_pos, other_agent.state.p_pos)
                 dist_min = agent.size + other_agent.size
                 if dist <= dist_min:
+                    # print("COLLISION")
                     rew -= self.collision_pen
         # Penalty for collision with wall
         # if (agent.state.p_pos - agent.size <= -1).any() or \

@@ -239,7 +239,7 @@ class MADDPGPolicy(MLPPolicy):
         return random_actions
 
     def soft_target_updates(self):
-        """Polyal update the target networks."""
+        """Polyak update the target networks."""
         # polyak updates to target networks
         soft_update(self.target_critic, self.critic, self.args.tau)
         soft_update(self.target_actor, self.actor, self.args.tau)
@@ -250,12 +250,12 @@ class MADDPGPolicy(MLPPolicy):
         hard_update(self.target_critic, self.critic)
         hard_update(self.target_actor, self.actor)
     
-    def save_actor_state(self, cp_path):
+    def save_state(self, cp_path):
         self.actor.to(torch.device('cpu'))
         torch.save(self.actor.state_dict(), cp_path)
         self.actor.to(self.device)
 
-    def load_actor_state(self, cp_path):
+    def load_state(self, cp_path):
         self.actor.load_state_dict(torch.load(cp_path))
         self.actor.to(self.device)
 
