@@ -148,3 +148,8 @@ models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped_nocol/run20/*
 models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run1/*
 !models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run1/model.pt
 !models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run1/sce_config.json
+
+!models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2
+models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2/*
+!models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2/model.pt
+!models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2/sce_config.json

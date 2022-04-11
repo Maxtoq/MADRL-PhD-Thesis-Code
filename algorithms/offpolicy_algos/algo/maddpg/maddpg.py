@@ -221,10 +221,10 @@ class MADDPG(Trainer):
             agent_actor_batches = pol_acts.split(split_size=batch_size, dim=0)
             # cat along final dim to formulate centralized action and stack copies of the batch
             cent_act = list(map(lambda arr: to_torch(arr).to(**self.tpdv), cent_act))
+
             actor_cent_acts = copy.deepcopy(cent_act)
             for i in range(num_update_agents):
-                actor_cent_acts[replace_ind_start + i] = agent_actor_batches[i]
-
+                actor_cent_acts[replace_ind_start + i] = agent_actor_batches[i].to(**self.tpdv)
             actor_cent_acts = torch.cat(actor_cent_acts, dim=-1).repeat((num_update_agents, 1))
 
             # combine the buffer cent acts with actor cent acts and pass into buffer
