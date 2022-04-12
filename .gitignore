@@ -22,6 +22,8 @@ models/coop_push_scenario_sparse/qmix_fo_abs_disc_sparse/*
 models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped_nocol/*
 !models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped
 models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/*
+!models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped
+models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/*
 
 !models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run9
 models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run9/*
@@ -153,3 +155,13 @@ models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run1/*
 models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2/*
 !models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2/model.pt
 !models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run2/sce_config.json
+
+!models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run3
+models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run3/*
+!models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run3/model.pt
+!models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/run3/sce_config.json
+
+!models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/run1
+models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/run1/*
+!models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/run1/model.pt
+!models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/run1/sce_config.json
