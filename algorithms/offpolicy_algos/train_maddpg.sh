@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
-algorithm_name="maddpg"
-model_name="maddpg_fo_abs_disc_shaped_nocol"
+algorithm_name="matd3"
+model_name="matd3_fo_abs_disc_shaped_nocol"
 sce_conf_path="configs/2a_1o_fo_abs_nocol.json"
 cuda_device="cuda:1"
 n_episodes=100000

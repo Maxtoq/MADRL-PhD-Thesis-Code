@@ -144,15 +144,16 @@ def get_config(args, parser=None):
     # hard update parameters
     parser.add_argument('--hard_update_interval_episode', type=int, default=200,
                         help="After how many episodes the lagging target should be updated")
-    # # rmatd3 parameters
-    # parser.add_argument("--target_action_noise_std", default=0.2, help="Target action smoothing noise for matd3")
-    # # rmasac parameters
-    # parser.add_argument('--alpha', type=float, default=1.0,
-    #                     help="Initial temperature")
-    # parser.add_argument('--target_entropy_coef', type=float,
-    #                     default=0.5, help="Initial temperature")
-    # parser.add_argument('--automatic_entropy_tune', action='store_false',
-    #                     default=True, help="Whether use a centralized critic")
+    # rmatd3 parameters
+    parser.add_argument("--target_action_noise_std", default=0.2, 
+                        help="Target action smoothing noise for matd3")
+    # rmasac parameters
+    parser.add_argument('--alpha', type=float, default=1.0,
+                        help="Initial temperature")
+    parser.add_argument('--target_entropy_coef', type=float,
+                        default=0.5, help="Initial temperature")
+    parser.add_argument('--automatic_entropy_tune', action='store_false',
+                        default=True, help="Whether use a centralized critic")
     # qmix parameters
     parser.add_argument('--use_double_q', action='store_false',
                         default=True, help="Whether to use double q learning")

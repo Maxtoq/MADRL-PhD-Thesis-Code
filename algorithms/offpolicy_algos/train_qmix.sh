@@ -1,8 +1,8 @@
 #!/bin/sh
-n_run=1
+n_run=3
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 algorithm_name="qmix"
-model_name="qmix_fo_abs_disc_shaped"
+model_name="qmix_po_abs_disc_shaped"
 sce_conf_path="configs/2a_1o_abs.json"
 cuda_device="cuda:0"
 n_episodes=100000
