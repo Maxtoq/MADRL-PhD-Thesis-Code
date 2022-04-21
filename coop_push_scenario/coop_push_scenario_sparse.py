@@ -258,11 +258,14 @@ class Scenario(BaseScenario):
                 # Pos: absolute
                 else:
                     entity_obs.append(np.concatenate((
-                        [1.0], entity.state.p_pos, entity.state.p_vel
-                        # entity.state.p_pos, entity.state.p_vel
+                        # [1.0], entity.state.p_pos, entity.state.p_vel
+                        entity.state.p_pos, entity.state.p_vel
                     )))
             else:
-                entity_obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+                if self.relative_coord:
+                    entity_obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+                else:
+                    entity_obs.append(np.zeros(4))
         for entity in world.landmarks:
             if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
                 # Pos: relative normalised
@@ -272,7 +275,8 @@ class Scenario(BaseScenario):
                 # Pos: relative
                 if self.relative_coord:
                     entity_obs.append(np.concatenate((
-                        [1.0], (entity.state.p_pos - agent.state.p_pos)
+                        [1.0], 
+                        (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                     )))
                     # entity_obs.append(
                     #     entity.state.p_pos - agent.state.p_pos
@@ -284,7 +288,10 @@ class Scenario(BaseScenario):
                     # )))
                     entity_obs.append(entity.state.p_pos)
             else:
-                entity_obs.append(np.array([0.0, 1.0, 1.0]))
+                if self.relative_coord:
+                    entity_obs.append(np.array([0.0, 1.0, 1.0]))
+                else:
+                    entity_obs.append(np.zeros(2))
 
         # Communication
 

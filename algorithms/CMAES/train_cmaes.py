@@ -119,11 +119,22 @@ def run(config):
     es = cma.CMAEvolutionStrategy(init_params, sigma, 
                                     {'seed': config.seed})
     print('Pop_size =', es.popsize)
+
+    # Get number of evaluation rounds we'll perform
+    n_evals = int(config.n_episodes / es.popsize) + 1
     
-    # for ep_i in tqdm(range(0, 
-    #                        config.n_episodes, 
-    #                        es.popsize * config.n_eps_per_eval)):
-    for ev_i in tqdm(range(0, config.n_evals)):
+    print(f"Starting training for {config.n_episodes} episodes,")
+    print(f"                  with {n_evals} evaluation rounds,")
+    print(f"                  with seed {config.seed}.")
+    print(f"    One evaluation is {config.n_eps_per_eval} episodes")
+    print(f"        for each of the {es.popsize} candidates in the population.")
+    train_data_dict = {
+        "Step": [],
+        "Episode return": [],
+        "Success": [],
+        "Episode length": []
+    }
+    for ev_i in tqdm(range(0, n_evals)):
         # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
 
         # Ask for candidate solutions
@@ -132,9 +143,14 @@ def run(config):
         # Initialize seed for this round of evaluations
         seed = np.random.randint(1e9)
 
-        # Perform one episode for each solution
+        # Perform one evaluation for each solution
         tell_rewards = []
-        for sol_i in range(len(solutions)):
+        eval_perfs = {
+            'returns': np.zeros((es.popsize, config.n_eps_per_eval)),
+            'success': np.zeros((es.popsize, config.n_eps_per_eval)),
+            'ep_length': np.zeros((es.popsize, config.n_eps_per_eval))
+        }
+        for sol_i in range(es.popsize):
             # Load solution in model
             load_array_in_model(solutions[sol_i], policy)
             
@@ -142,11 +158,12 @@ def run(config):
             np.random.seed(seed)
 
             # Perform n_eps_per_eval episodes and average the rewards
-            sol_rewards = []
             for eval_i in range(config.n_eps_per_eval):
                 # Reset env
                 obs = env.reset()
-                episode_reward = 0.0
+                ep_return = 0.0
+                ep_success = 0
+                ep_length = config.episode_length
                 for et_i in range(config.episode_length):
                     # Rearrange observations to fit in the model
                     torch_obs = Variable(torch.Tensor(np.vstack(obs)),
@@ -158,16 +175,22 @@ def run(config):
                     agent_actions = [ac.data.numpy() for ac in actions]
 
                     next_obs, rewards, dones, infos = env.step(agent_actions)
-
-                    episode_reward += sum(rewards) / nb_agents
-
+                    
+                    ep_return += sum(rewards) / nb_agents
+                    
                     if dones[0]:
+                        ep_success = 1
+                        ep_length = et_i + 1
                         break
-
+                    
                     obs = next_obs
-                sol_rewards.append(-episode_reward)
+                eval_perfs['returns'][sol_i, eval_i] = ep_return
+                eval_perfs['success'][sol_i, eval_i] = ep_success
+                eval_perfs['ep_length'][sol_i, eval_i] = ep_length
+
             # Store average rewards of current solution
-            tell_rewards.append(sum(sol_rewards) / config.n_eps_per_eval)
+            tell_rewards.append(-sum(eval_perfs['returns'][sol_i]) /
+                config.n_eps_per_eval)
 
         # Update CMA-ES model
         es.tell(solutions, tell_rewards)
@@ -178,6 +201,20 @@ def run(config):
         # Log rewards
         logger.add_scalar('cmaes/mean_episode_rewards', 
                           -sum(tell_rewards) / es.popsize, ev_i)
+        # Log in list
+        for ep_i in range(config.n_eps_per_eval):
+            train_data_dict["Step"].append((ev_i + 1) * es.popsize
+                * (ep_i + 1) * config.episode_length)
+            train_data_dict["Episode return"].append(
+                eval_perfs['returns'][best_sol_i, ep_i])
+            train_data_dict["Success"].append(
+                eval_perfs['success'][best_sol_i, ep_i])
+            train_data_dict["Episode length"].append(
+                eval_perfs['ep_length'][best_sol_i, ep_i])
+
+        # train_data_dict["Episode return"].append(np.mean(eps_returns[r_i]))
+        # train_data_dict["Success"].append(ep_dones[r_i])
+        # train_data_dict["Episode length"].append(ep_length[r_i])
 
         # Save model
         if ev_i % config.save_interval < es.popsize:
@@ -209,8 +246,8 @@ if __name__ == '__main__':
     parser.add_argument("--seed",
                         default=1, type=int,
                         help="Random seed")
-    parser.add_argument("--n_evals", default=3500, type=int)
-    #parser.add_argument("--n_episodes", default=25000, type=int)
+    # parser.add_argument("--n_evals", default=3500, type=int)
+    parser.add_argument("--n_episodes", default=25000, type=int)
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--save_interval", default=50, type=int)
     parser.add_argument("--hidden_dim", default=8, type=int)
