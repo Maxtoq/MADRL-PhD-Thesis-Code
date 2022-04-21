@@ -199,7 +199,7 @@ def run(config):
         best_sol_i = np.argmin(tell_rewards)
 
         # Log rewards
-        logger.add_scalar('cmaes/mean_episode_rewards', 
+        logger.add_scalar('agent0/mean_episode_rewards', 
                           -sum(tell_rewards) / es.popsize, ev_i)
         # Log in list
         for ep_i in range(config.n_eps_per_eval):
