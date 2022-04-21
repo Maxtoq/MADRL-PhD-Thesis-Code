@@ -20,7 +20,7 @@ for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
-    comm="python algorithms/offpolicy_algos/train2.py --env_path ${env} 
+    comm="python algorithms/offpolicy_algos/train.py --env_path ${env} 
 --algorithm_name ${algorithm_name} --model_name ${model_name} \
 --sce_conf_path ${sce_conf_path} --seed ${seed} --use_per --n_episodes ${n_episodes} \
 --epsilon_anneal_time ${n_exploration_eps} --n_updates ${n_updates} \

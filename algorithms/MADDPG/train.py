@@ -125,7 +125,6 @@ def run(config):
                     ep_dones[r_i] = 1
                     ep_length[r_i] = step_i
             if dones.sum(1).all():
-                print(f"Finished early! (step {step_i}, reward {sum(ep_rew)})")
                 break
             obs = next_obs
             # env.render()

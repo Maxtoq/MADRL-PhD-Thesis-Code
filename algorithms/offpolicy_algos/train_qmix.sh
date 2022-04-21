@@ -1,9 +1,9 @@
 #!/bin/sh
-n_run=3
+n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 algorithm_name="qmix"
-model_name="qmix_po_abs_disc_shaped"
-sce_conf_path="configs/2a_1o_abs.json"
+model_name="qmix_fo_rel_disc_shaped"
+sce_conf_path="configs/2a_1o_fo_rel.json"
 cuda_device="cuda:0"
 n_episodes=100000
 n_exploration_eps=100000
@@ -19,7 +19,7 @@ for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
-    comm="python algorithms/offpolicy_algos/train2.py --env_path ${env} 
+    comm="python algorithms/offpolicy_algos/train.py --env_path ${env} 
 --algorithm_name ${algorithm_name} --model_name ${model_name} \
 --sce_conf_path ${sce_conf_path} --seed ${seed} --use_per --n_episodes ${n_episodes} \
 --epsilon_anneal_time ${n_exploration_eps} --n_updates ${n_updates} \
