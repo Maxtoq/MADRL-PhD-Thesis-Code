@@ -224,14 +224,16 @@ def run(args):
 
         # Log
         for r_i in range(parsed_args.n_rollout_threads):
-            # Log Tensorboard
-            logger.add_scalar('agent0/mean_episode_rewards',
-                            np.mean(episode_return[r_i]), ep_i + r_i)
             # Log in list
-            train_data_dict["Step"].append(ep_i + r_i)
+            train_data_dict["Step"].append((ep_i + r_i) * parsed_args.episode_length)
             train_data_dict["Episode return"].append(np.mean(episode_return[r_i]))
             train_data_dict["Success"].append(ep_dones[r_i])
             train_data_dict["Episode length"].append(ep_length[r_i])
+            # Tensorboard
+            logger.add_scalar(
+                'agent0/episode_return', 
+                train_data_dict["Episode return"][-1], 
+                train_data_dict["Step"][-1])
         
         # # Save ep number
         # with open(str(log_dir / 'ep_nb.txt'), 'w') as f:

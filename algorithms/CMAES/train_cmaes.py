@@ -213,7 +213,7 @@ def run(config):
                 eval_perfs['ep_length'][best_sol_i, ep_i])
             # Tensorboard
             logger.add_scalar(
-                'agent0/mean_episode_rewards', 
+                'agent0/episode_return', 
                 train_data_dict["Episode return"][-1], 
                 train_data_dict["Step"][-1])
 
