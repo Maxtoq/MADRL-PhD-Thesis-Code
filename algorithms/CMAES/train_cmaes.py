@@ -182,8 +182,9 @@ def run(config):
                         ep_success = 1
                         ep_length = et_i + 1
                         break
-                    
+                    env.render()
                     obs = next_obs
+                print(ep_return)
                 eval_perfs['returns'][sol_i, eval_i] = ep_return
                 eval_perfs['success'][sol_i, eval_i] = ep_success
                 eval_perfs['ep_length'][sol_i, eval_i] = ep_length
@@ -198,10 +199,10 @@ def run(config):
         # Get id of best element in solutions
         best_sol_i = np.argmin(tell_rewards)
 
-        # Log rewards
-        logger.add_scalar('agent0/mean_episode_rewards', 
-                          -sum(tell_rewards) / es.popsize, ev_i)
-        # Log in list
+        # # Log rewards
+        # logger.add_scalar('agent0/mean_episode_rewards', 
+        #                   -sum(tell_rewards) / es.popsize, ev_i)
+        # Log
         for ep_i in range(config.n_eps_per_eval):
             train_data_dict["Step"].append((ev_i + 1) * es.popsize
                 * (ep_i + 1) * config.episode_length)
@@ -211,6 +212,12 @@ def run(config):
                 eval_perfs['success'][best_sol_i, ep_i])
             train_data_dict["Episode length"].append(
                 eval_perfs['ep_length'][best_sol_i, ep_i])
+            # Tensorboard
+            logger.add_scalar(
+                'agent0/mean_episode_rewards', 
+                train_data_dict["Episode return"][-1], 
+                train_data_dict["Step"][-1])
+        print(train_data_dict)
 
         # train_data_dict["Episode return"].append(np.mean(eps_returns[r_i]))
         # train_data_dict["Success"].append(ep_dones[r_i])
