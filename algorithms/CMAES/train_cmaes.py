@@ -121,7 +121,7 @@ def run(config):
     print('Pop_size =', es.popsize)
 
     # Get number of evaluation rounds we'll perform
-    n_evals = int(config.n_episodes / es.popsize) + 1
+    n_evals = int(config.n_episodes / (es.popsize * config.n_eps_per_eval)) + 1
     
     print(f"Starting training for {config.n_episodes} episodes,")
     print(f"                  with {n_evals} evaluation rounds,")
@@ -215,9 +215,6 @@ def run(config):
             # Tensorboard
             logger.add_scalar(
                 'agent0/episode_return', 
-                train_data_dict["Episode return"][-1], 
-                train_data_dict["Step"][-1])
-            print('agent0/episode_return', 
                 train_data_dict["Episode return"][-1], 
                 train_data_dict["Step"][-1])
 
