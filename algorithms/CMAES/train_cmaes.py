@@ -203,8 +203,9 @@ def run(config):
         #                   -sum(tell_rewards) / es.popsize, ev_i)
         # Log
         for ep_i in range(config.n_eps_per_eval):
-            train_data_dict["Step"].append((ev_i + 1) * es.popsize
-                * (ep_i + 1) * config.episode_length)
+            train_data_dict["Step"].append(
+                ev_i * es.popsize * config.n_eps_per_eval * config.episode_length 
+                + (ep_i + 1) * es.popsize * config.episode_length)
             train_data_dict["Episode return"].append(
                 eval_perfs['returns'][best_sol_i, ep_i])
             train_data_dict["Success"].append(
@@ -214,6 +215,9 @@ def run(config):
             # Tensorboard
             logger.add_scalar(
                 'agent0/episode_return', 
+                train_data_dict["Episode return"][-1], 
+                train_data_dict["Step"][-1])
+            print('agent0/episode_return', 
                 train_data_dict["Episode return"][-1], 
                 train_data_dict["Step"][-1])
 
