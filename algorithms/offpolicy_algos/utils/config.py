@@ -12,7 +12,7 @@ def get_config(args, parser=None):
                         "rmatd3", "rmaddpg", "rmasac", "qmix", "vdn", "matd3", 
                         "maddpg", "masac", "mqmix", "mvdn"])
     parser.add_argument("--model_name", type=str, help="Name of directory to store " +
-                            "models/training contents")
+                            "models/training contents", default="TEST")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
     parser.add_argument("--cuda", action='store_false', default=True)
     parser.add_argument("--cuda_deterministic", action='store_false', default=True)
