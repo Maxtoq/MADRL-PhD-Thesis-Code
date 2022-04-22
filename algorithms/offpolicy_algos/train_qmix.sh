@@ -2,9 +2,9 @@
 n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 algorithm_name="qmix"
-model_name="qmix_fo_rel_disc_shaped"
-sce_conf_path="configs/2a_1o_fo_rel.json"
-cuda_device="cuda:1"
+model_name="qmix_po_rel_disc_shaped"
+sce_conf_path="configs/2a_1o_po_rel.json"
+cuda_device="cuda:2"
 n_episodes=200000
 n_exploration_eps=200000
 n_updates=200000
