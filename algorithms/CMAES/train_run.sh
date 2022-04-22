@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=2
-env="coop_push_scenario/coop_push_scenario_closed.py"
+n_run=1
+env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="cmaes_2a_fo_rel_5eps_nocol"
 sce_conf_path="configs/2a_1o_fo_rel_nocol.json"
 n_episodes=100000
