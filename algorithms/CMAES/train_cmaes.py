@@ -4,6 +4,7 @@ import cma
 import sys
 import os
 import numpy as np
+import pandas as pd
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
@@ -112,8 +113,8 @@ def run(config):
     policy.eval()
 
     # Initialise parameters
-    init_params = np.random.uniform(low=-1, high=1, size=get_num_params(policy))
-    sigma = 1 / 3
+    init_params = np.random.uniform(low=-5, high=5, size=get_num_params(policy))
+    sigma = 5 / 3
 
     # Create the CMA-ES trainer
     es = cma.CMAEvolutionStrategy(init_params, sigma, 
@@ -237,6 +238,9 @@ def run(config):
     env.close()
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
+    # Log csv
+    rewards_df = pd.DataFrame(train_data_dict)
+    rewards_df.to_csv(str(run_dir / 'mean_episode_rewards.csv'))
     print("Model saved in dir", run_dir)
     
 

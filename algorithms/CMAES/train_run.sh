@@ -3,8 +3,8 @@ n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="cmaes_2a_fo_rel_5eps_nocol"
 sce_conf_path="configs/2a_1o_fo_rel_nocol.json"
-n_episodes=100000
-n_eps_per_eval=5
+n_episodes=200000
+n_eps_per_eval=15
 hidden_dim=8
 
 for n in $(seq 1 $n_run)

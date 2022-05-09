@@ -1,13 +1,13 @@
 #!/bin/sh
-n_run=1
+n_run=11
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 algorithm_name="qmix"
-model_name="qmix_po_rel_disc_shaped"
-sce_conf_path="configs/2a_1o_po_rel.json"
+model_name="qmix_fo_rel_disc_shaped_nocol"
+sce_conf_path="configs/2a_1o_fo_rel_nocol.json"
 cuda_device="cuda:2"
-n_episodes=200000
-n_exploration_eps=200000
-n_updates=200000
+n_episodes=100000
+n_exploration_eps=100000
+n_updates=100000
 hidden_dim=64
 n_rollout_threads=1
 batch_size=512
@@ -30,4 +30,3 @@ do
     eval $comm
     printf "DONE\n\n"
 done
-

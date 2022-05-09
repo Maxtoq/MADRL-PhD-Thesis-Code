@@ -1,7 +1,7 @@
 {
     "nb_agents": 1,
     "nb_objects": 1,
-    "obs_range": 10000.0,
+    "obs_range": 2.83,
     "collision_pen": 0.0,
     "relative_coord": false
 }
