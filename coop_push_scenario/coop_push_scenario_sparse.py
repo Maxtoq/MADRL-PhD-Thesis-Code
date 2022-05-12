@@ -29,8 +29,11 @@ class Object(Entity):
         self.movable = True
 
 class PushWorld(World):
-    def __init__(self, nb_objects):
+    def __init__(self, nb_agents, nb_objects):
         super(PushWorld, self).__init__()
+        # add agent
+        self.nb_agents = nb_agents
+        self.agents = [Agent() for i in range(self.nb_agents)]
         # List of objects to push
         self.nb_objects = nb_objects
         self.objects = [Object() for _ in range(self.nb_objects)]
@@ -140,11 +143,10 @@ class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
                    collision_pen=1, relative_coord=True, dist_reward=False, 
-                   reward_done=50, step_penalty=0.1):
-        world = PushWorld(nb_objects)
+                   reward_done=50, step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
+        world = PushWorld(nb_agents, nb_objects)
         # add agent
         self.nb_agents = nb_agents
-        world.agents = [Agent() for i in range(self.nb_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.silent = True
@@ -154,6 +156,19 @@ class Scenario(BaseScenario):
             agent.color[i % 3] = 1.0
         # Objects and landmarks
         self.nb_objects = nb_objects
+        for i, object in enumerate(world.objects):
+            # Random color for both entities
+            color = np.random.uniform(0, 1, world.dim_color)
+            object.name = 'object %d' % i
+            object.color = color
+            object.size = OBJECT_SIZE
+            object.initial_mass = OBJECT_MASS
+            # Corresponding Landmarks
+            world.landmarks[i].name = 'landmark %d' % i
+            world.landmarks[i].collide = False
+            world.landmarks[i].color = color
+            world.landmarks[i].size = LANDMARK_SIZE
+        self.obj_lm_dist_range = obj_lm_dist_range
         # Scenario attributes
         self.obs_range = obs_range
         self.relative_coord = relative_coord
@@ -177,8 +192,8 @@ class Scenario(BaseScenario):
     def reset_world(self, world, seed=None):
         if seed is not None:
             np.random.seed(seed)
-        world.reset()
-        # set initial states
+        # world.reset()
+        # Agents' initial pos
         # # Fixed initial pos
         # world.agents[0].state.p_pos = np.array([0.5, -0.5])
         # world.agents[1].state.p_pos = np.array([-0.5, 0.5])
@@ -186,6 +201,23 @@ class Scenario(BaseScenario):
             agent.state.p_pos = np.random.uniform(
                 -1 + agent.size, 1 - agent.size, world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
+        # Objects and landmarks' initial pos
+        for i, object in enumerate(world.objects):
+            if self.obj_lm_dist_range is not None:
+                while True:
+                    object.state.p_pos = np.random.uniform(
+                        -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
+                    world.landmarks[i].state.p_pos = np.random.uniform(
+                        -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
+                    dist = get_dist(object.state.p_pos, 
+                                    world.landmarks[i].state.p_pos)
+                    if dist > self.obj_lm_dist_range[0] and dist < self.obj_lm_dist_range[1]:
+                        break
+            else:
+                dist = get_dist(object.state.p_pos, 
+                                world.landmarks[i].state.p_pos)
+            # Set distances between objects and their landmark
+            world.obj_lm_dists[i] = dist
         # Set initial velocity
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
