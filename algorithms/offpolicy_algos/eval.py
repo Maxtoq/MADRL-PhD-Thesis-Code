@@ -42,11 +42,19 @@ def run(args):
     np.random.seed(seed)
     print("Creating environment with seed", seed)
 
+    # Load initial positions if given
+    if args.init_pos_file is not None:
+        with open(args.init_pos_file, 'r') as f:
+            init_pos_scenars = json.load(f)
+        n_episodes = len(init_pos_scenars)
+    else:
+        n_episodes = args.n_episodes
+        init_pos_scenars = [None] * n_episodes
+
     # Create environment
     env = make_env(args.env_path, discrete_action=args.discrete_action, 
                            sce_conf=sce_conf)
 
-    
     # Create model
     policy_config = {
             "cent_obs_dim": get_dim_from_space(
@@ -62,7 +70,7 @@ def run(args):
     qmix_policy.load_state(model_path)
     qmix_policy.q_network.eval()
 
-    for ep_i in range(args.n_episodes):
+    for ep_i in range(n_episodes):
         rnn_states_batch = np.zeros(
             (sce_conf["nb_agents"], qmix_policy.hidden_size), 
             dtype=np.float32)
@@ -70,7 +78,7 @@ def run(args):
             (sce_conf["nb_agents"], qmix_policy.output_dim), 
             dtype=np.float32)
 
-        obs = env.reset()
+        obs = env.reset(init_pos=init_pos_scenars[ep_i])
         rew = 0
         for step_i in range(args.episode_length):
             obs_batch = np.array(obs)
@@ -156,6 +164,10 @@ if __name__ == '__main__':
                 help="Dimension of hidden layers for actor/critic networks")
     parser.add_argument('--layer_N', type=int, default=1,
                         help="Number of layers for actor/critic networks")
+    # Evaluation scenario
+    parser.add_argument('--init_pos_file', default=None,
+                        help='JSON file containing initial positions of \
+                            entities')
 
     args = parser.parse_args()
 

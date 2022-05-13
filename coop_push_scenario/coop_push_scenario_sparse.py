@@ -189,21 +189,32 @@ class Scenario(BaseScenario):
         # Done if all objects are on their landmarks
         return self._done_flag
 
-    def reset_world(self, world, seed=None):
+    def reset_world(self, world, seed=None, init_pos=None):
         if seed is not None:
             np.random.seed(seed)
+        # Check if init positions are valid
+        if init_pos is not None:
+            if (len(init_pos["agents"]) != self.nb_agents or 
+                len(init_pos["objects"]) != self.nb_objects or
+                len(init_pos["landmarks"]) != self.nb_objects):
+                print("ERROR: The initial positions {} are not valid.".format(
+                    init_pos))
+                exit(1)
         # world.reset()
         # Agents' initial pos
         # # Fixed initial pos
         # world.agents[0].state.p_pos = np.array([0.5, -0.5])
         # world.agents[1].state.p_pos = np.array([-0.5, 0.5])
-        for agent in world.agents:
-            agent.state.p_pos = np.random.uniform(
-                -1 + agent.size, 1 - agent.size, world.dim_p)
+        for i, agent in enumerate(world.agents):
+            if init_pos is None:
+                agent.state.p_pos = np.random.uniform(
+                    -1 + agent.size, 1 - agent.size, world.dim_p)
+            else:
+                agent.state.p_pos = np.array(init_pos["agents"][i])
             agent.state.c = np.zeros(world.dim_c)
         # Objects and landmarks' initial pos
         for i, object in enumerate(world.objects):
-            if self.obj_lm_dist_range is not None:
+            if init_pos is None:
                 while True:
                     object.state.p_pos = np.random.uniform(
                         -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
@@ -211,9 +222,13 @@ class Scenario(BaseScenario):
                         -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
                     dist = get_dist(object.state.p_pos, 
                                     world.landmarks[i].state.p_pos)
-                    if dist > self.obj_lm_dist_range[0] and dist < self.obj_lm_dist_range[1]:
+                    if (self.obj_lm_dist_range is None  or 
+                        (dist > self.obj_lm_dist_range[0] and 
+                         dist < self.obj_lm_dist_range[1])):
                         break
             else:
+                object.state.p_pos = np.array(init_pos["objects"][i])
+                world.landmarks[i].state.p_pos = np.array(init_pos["landmarks"][i])
                 dist = get_dist(object.state.p_pos, 
                                 world.landmarks[i].state.p_pos)
             # Set distances between objects and their landmark
