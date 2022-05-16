@@ -224,7 +224,7 @@ def run(config):
         # train_data_dict["Episode length"].append(ep_length[r_i])
 
         # Save model
-        if ev_i % config.save_interval < es.popsize:
+        if ev_i % config.save_interval == 0:
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             # Load best solution in model
             load_array_in_model(solutions[best_sol_i], policy)
@@ -259,7 +259,7 @@ if __name__ == '__main__':
     # parser.add_argument("--n_evals", default=3500, type=int)
     parser.add_argument("--n_episodes", default=25000, type=int)
     parser.add_argument("--episode_length", default=100, type=int)
-    parser.add_argument("--save_interval", default=50, type=int)
+    parser.add_argument("--save_interval", default=100, type=int)
     parser.add_argument("--hidden_dim", default=8, type=int)
     parser.add_argument("--linear", action='store_true')
     parser.add_argument("--n_eps_per_eval", default=1, type=int)

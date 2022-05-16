@@ -26,6 +26,10 @@ models/coop_push_scenario_sparse/qmix_fo_abs_disc_shaped/*
 models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/*
 !models/coop_push_scenario_sparse/qmix_fo_rel_disc_shaped
 models/coop_push_scenario_sparse/qmix_fo_rel_disc_shaped/*
+!models/coop_push_scenario_sparse/qmix_po_rel_disc_shaped
+models/coop_push_scenario_sparse/qmix_po_rel_disc_shaped/*
+!models/coop_push_scenario_sparse/qmix_poshort_rel_disc_shaped
+models/coop_push_scenario_sparse/qmix_poshort_rel_disc_shaped/*
 
 !models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run9
 models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/run9/*
@@ -174,3 +178,15 @@ models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/run4/*
 !models/coop_push_scenario_sparse/qmix_po_abs_disc_shaped/run4/sce_config.json
 
 !models/coop_push_scenario_sparse/qmix_fo_rel_disc_shaped/runs_data/
+!models/coop_push_scenario_sparse/qmix_fo_rel_disc_shaped/eval_perfs.csv
+
+!models/coop_push_scenario_sparse/qmix_po_rel_disc_shaped/runs_data/
+!models/coop_push_scenario_sparse/qmix_po_rel_disc_shaped/eval_perfs.csv
+
+!models/coop_push_scenario_sparse/qmix_poshort_rel_disc_shaped/runs_data/
+!models/coop_push_scenario_sparse/qmix_poshort_rel_disc_shaped/eval_perfs.csv
+
+!models/coop_push_scenario_sparse/2addpg_fo_rel_disc
+models/coop_push_scenario_sparse/2addpg_fo_rel_disc/*
+!models/coop_push_scenario_sparse/2addpg_fo_rel_disc/runs_data/
+!models/coop_push_scenario_sparse/2addpg_fo_rel_disc/eval_perfs.csv
