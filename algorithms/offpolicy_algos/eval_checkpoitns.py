@@ -4,7 +4,6 @@ import json
 import os
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 
 from algo.qmix.QMixPolicy import QMixPolicy
 from utils.make_env import make_env

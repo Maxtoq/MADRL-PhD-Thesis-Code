@@ -240,6 +240,11 @@ class MADDPG(object):
                      'agent_params': [a.get_params() for a in self.agents]}
         torch.save(save_dict, filename)
 
+    def load_cp(self, cp_path):
+        save_dict = torch.load(cp_path, map_location=torch.device('cpu'))
+        for a, params in zip(self.agents, save_dict['agent_params']):
+            a.load_params(params)
+
     @classmethod
     def init_from_env(cls, env, agent_alg="MADDPG", adversary_alg="MADDPG",
                       gamma=0.95, tau=0.01, lr=0.01, hidden_dim=64,
