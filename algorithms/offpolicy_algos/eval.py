@@ -5,12 +5,11 @@ import time
 import json
 import sys
 import os
-from torch.autograd import Variable
 
 from algo.qmix.QMixPolicy import QMixPolicy
 from utils.make_env import make_env
 
-from offpolicy.utils.util import get_cent_act_dim, get_dim_from_space
+from offpolicy.utils.util import get_dim_from_space
 
 def run(args):
     # Load model
@@ -79,6 +78,7 @@ def run(args):
             dtype=np.float32)
 
         obs = env.reset(init_pos=init_pos_scenars[ep_i])
+        env.render()
         rew = 0
         for step_i in range(args.episode_length):
             obs_batch = np.array(obs)

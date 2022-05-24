@@ -58,13 +58,9 @@ class MLPRunner(Runner):
                                 explore=True)
             acts_batch = acts_batch if isinstance(acts_batch, np.ndarray) else\
                             acts_batch.cpu().detach().numpy()
-            # print("ACTIONS 1", acts_batch)
             env_acts = np.split(acts_batch, self.args.n_rollout_threads)
             # env step and store the relevant episode information
             next_obs, rewards, dones, infos = self.env.step(env_acts)
-            # print("obs", obs_batch)
-            # print("actions", acts_batch)
-            # print("rewards", rewards)
             episode_rewards.append(rewards)
             dones_env = np.all(dones, axis=1)
             terminate_episodes = np.any(dones_env) or \

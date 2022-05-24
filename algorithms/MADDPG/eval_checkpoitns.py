@@ -1,15 +1,11 @@
 import argparse
-import torch
 import json
 import os
-import numpy as np
 import pandas as pd
-from torch.autograd import Variable
 
 from maddpg import MADDPG
 from utils.make_env import make_env
-
-from offpolicy.utils.util import get_dim_from_space
+from utils.eval import perform_eval_scenar
 
 
 def run(args):
@@ -56,7 +52,8 @@ def run(args):
         for i in range(len(cp_list)):
             if i not in [0, 1, 12, 23, 34, 45, 56, 67, 78, 89, 101]:
                 continue
-            checkpoints_paths.append(os.path.join(run_dir, "incremental", cp_list[i]))
+            checkpoints_paths.append(
+                os.path.join(run_dir, "incremental", cp_list[i]))
         checkpoints_paths.append(os.path.join(run_dir, "model.pt"))
         
         # Evaluate each checkpoint
@@ -66,38 +63,15 @@ def run(args):
             maddpg.prep_rollouts(device='cpu')
 
             # Execute all episodes
-            tot_return = 0.0
-            n_success = 0.0
-            tot_ep_length = 0.0
-            for ep_i in range(len(init_pos_scenars)):
-                # Reset environment with initial positions
-                obs = env.reset(init_pos=init_pos_scenars[ep_i])
-                for step_i in range(args.episode_length):
-                    # rearrange observations to be per agent
-                    torch_obs = [Variable(torch.Tensor(obs[a]).unsqueeze(0),
-                                            requires_grad=False)
-                                for a in range(maddpg.nagents)]
-                    # get actions as torch Variables
-                    torch_agent_actions = maddpg.step(torch_obs)
-                    # convert actions to numpy arrays
-                    actions = [ac.data.numpy().squeeze() for ac in torch_agent_actions]
-                    
-                    # Environment step
-                    next_obs, rewards, dones, infos = env.step(actions)
-                    tot_return += rewards[0]
-
-                    if dones[0]:
-                        n_success += 1
-                        break
-                    obs = next_obs
-                tot_ep_length += step_i + 1
+            mean_return, success_rate, mean_ep_length = perform_eval_scenar(
+                env, maddpg, init_pos_scenars, args.episode_length)
 
             # Save evaluation performance
             eval_perfs = {
                 "Training Eps": cp_i * 10000,
-                "Mean Return": tot_return / len(init_pos_scenars), 
-                "Success rate": n_success / len(init_pos_scenars),
-                "Mean Ep Length": tot_ep_length / len(init_pos_scenars), 
+                "Mean Return": mean_return, 
+                "Success rate": success_rate,
+                "Mean Ep Length": mean_ep_length, 
                 "Name": args.model_dir.split('/')[-1]
             }
             eval_perfs_df = eval_perfs_df.append(eval_perfs, ignore_index=True)

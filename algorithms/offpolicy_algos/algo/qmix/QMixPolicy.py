@@ -101,8 +101,11 @@ class QMixPolicy(RecurrentPolicy):
         self.q_network = AgentQFunction(self.args, self.q_network_input_dim, self.act_dim, self.device)
 
         if train:
-            self.exploration = DecayThenFlatSchedule(self.args.epsilon_start, self.args.epsilon_finish, self.args.epsilon_anneal_time,
-                                                  decay=self.args.epsilon_decay_fn)
+            self.exploration = DecayThenFlatSchedule(
+                self.args.epsilon_start, 
+                self.args.epsilon_finish, 
+                self.args.epsilon_anneal_time,
+                decay=self.args.epsilon_decay_fn)
 
     def get_q_values(self, obs_batch, prev_action_batch, rnn_states, action_batch=None):
         """

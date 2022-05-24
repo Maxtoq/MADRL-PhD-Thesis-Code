@@ -1,13 +1,12 @@
 import numpy as np
 import argparse
-import torch
-import time
 import json
 import sys
 import os
-from torch.autograd import Variable
+
 from maddpg import MADDPG
 from utils.make_env import make_env
+from utils.eval import eval_episode
 
 def run(config):
     # Load model
@@ -36,6 +35,15 @@ def run(config):
             print('Special config for scenario:', config.env_path)
             print(sce_conf)
 
+    # Load initial positions if given
+    if config.init_pos_file is not None:
+        with open(config.init_pos_file, 'r') as f:
+            init_pos_scenars = json.load(f)
+        n_episodes = len(init_pos_scenars)
+    else:
+        n_episodes = config.n_episodes
+        init_pos_scenars = [None] * n_episodes
+
     # Seed env
     seed = config.seed if config.seed is not None else np.random.randint(1e9)
     np.random.seed(seed)
@@ -45,35 +53,18 @@ def run(config):
     env = make_env(config.env_path, discrete_action=config.discrete_action, 
                     sce_conf=sce_conf)
 
-    for ep_i in range(config.n_episodes):
-        obs = env.reset()
-        rew = 0
-        for step_i in range(config.episode_length):
-            # rearrange observations to be per agent
-            torch_obs = [Variable(torch.Tensor(obs[a]).unsqueeze(0),
-                                    requires_grad=False)
-                        for a in range(maddpg.nagents)]
-            # get actions as torch Variables
-            torch_agent_actions = maddpg.step(torch_obs)
-            # convert actions to numpy arrays
-            actions = [ac.data.numpy().squeeze() for ac in torch_agent_actions]
-            
-            # Environment step
-            next_obs, rewards, dones, infos = env.step(actions)
-            print("Obs", obs)
-            print("Action", actions)
-            print("Rewards", rewards)
-            rew += rewards[0]
-
-            time.sleep(config.step_time)
-            env.render()
-
-            if dones[0]:
-                break
-            obs = next_obs
+    for ep_i in range(n_episodes):
+        ep_return, ep_length, ep_success = eval_episode(
+            env, 
+            maddpg, 
+            config.episode_length,
+            init_pos_scenars[ep_i],
+            render=True,
+            step_time=config.step_time,
+            verbose=True)
         
-        print(f'Episode {ep_i + 1} finished after {step_i + 1} steps with \
-                return {rew}.')
+        print(f'Episode {ep_i + 1} finished after {ep_length} steps with \
+                return {ep_return}.')
     print("SEED was", seed)
 
 
@@ -95,6 +86,10 @@ if __name__ == '__main__':
     parser.add_argument("--discrete_action", action='store_true')
     # Render
     parser.add_argument("--step_time", default=0.1, type=float)
+    # Evaluation scenario
+    parser.add_argument('--init_pos_file', default=None,
+                        help='JSON file containing initial positions of \
+                            entities')
 
     config = parser.parse_args()
 

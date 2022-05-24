@@ -81,11 +81,7 @@ def run(config):
         "Episode length": []
     }
     for ep_i in tqdm(range(0, config.n_episodes, config.n_rollout_threads)):
-        #print("Episodes %i-%i of %i" % (ep_i + 1,
-        #                                ep_i + 1 + config.n_rollout_threads,
-        #                                config.n_episodes))
         obs = env.reset()
-        # obs.shape = (n_rollout_threads, nagent)(nobs), nobs differs per agent so not tensor
         maddpg.prep_rollouts(device='cpu')
 
         explr_pct_remaining = max(0, config.n_exploration_eps - ep_i) / \
