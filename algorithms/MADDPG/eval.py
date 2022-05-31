@@ -6,7 +6,7 @@ import os
 
 from maddpg import MADDPG
 from utils.make_env import make_env
-from utils.eval import eval_episode
+from algorithms.MADDPG.utils.rollouts import eval_episode
 
 def run(config):
     # Load model

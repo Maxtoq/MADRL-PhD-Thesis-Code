@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import time
 
@@ -58,3 +59,37 @@ def eval_episode(env, model, max_episode_length, init_pos=None, render=False,
         obs = next_obs
 
     return ep_return, ep_length, ep_success
+
+def train_episode(env, model, replay_buffer, max_episode_length):
+    ep_returns = 0.0
+    ep_length = max_episode_length
+    ep_success = False
+    # Reset environment with initial positions
+    obs = env.reset()
+    for step_i in range(max_episode_length):
+        # rearrange observations to be per agent
+        torch_obs = [Variable(torch.Tensor(np.vstack(obs[:, a])),
+                                  requires_grad=False)
+                    for a in range(model.nagents)]
+        # get actions as torch Variables
+        torch_agent_actions = model.step(torch_obs, explore=True)
+        # convert actions to numpy arrays
+        agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
+        # convert actions to numpy arrays
+        actions = [
+            [ac[0] for ac in agent_actions]
+        ]
+        
+        # Environment step
+        next_obs, rewards, dones, infos = env.step(actions)
+        replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
+
+
+        ep_returns += rewards[0]
+        if dones[0].any():
+            ep_length = step_i + 1
+            ep_success = True
+            break
+        obs = next_obs
+
+    return ep_returns, ep_length, ep_success

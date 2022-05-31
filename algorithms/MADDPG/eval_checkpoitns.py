@@ -5,7 +5,7 @@ import pandas as pd
 
 from maddpg import MADDPG
 from utils.make_env import make_env
-from utils.eval import perform_eval_scenar
+from algorithms.MADDPG.utils.rollouts import perform_eval_scenar
 
 
 def run(args):

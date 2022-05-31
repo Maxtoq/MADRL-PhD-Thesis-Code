@@ -11,7 +11,8 @@ class MADDPG(object):
     """
     def __init__(self, agent_init_params, alg_types,
                  gamma=0.95, tau=0.01, lr=0.01, hidden_dim=64,
-                 discrete_action=False, shared_params=False):
+                 discrete_action=False, shared_params=False,
+                 init_exploration=0.3):
         """
         Inputs:
             agent_init_params (list of dict): List of dicts with parameters to
@@ -32,12 +33,15 @@ class MADDPG(object):
         self.shared_params = shared_params
         if not shared_params:
             self.agents = [DDPGAgent(lr=lr, discrete_action=discrete_action,
-                                    hidden_dim=hidden_dim,
+                                    hidden_dim=hidden_dim, 
+                                    init_exploration=init_exploration,
                                     **params)
-                        for params in agent_init_params]
+                            for params in agent_init_params]
         else:
             model = DDPGAgent(lr=lr, discrete_action=discrete_action,
-                            hidden_dim=hidden_dim, **agent_init_params[0])
+                              hidden_dim=hidden_dim, 
+                              init_exploration=init_exploration,
+                              **agent_init_params[0])
             self.agents = [model for _ in agent_init_params]
         self.agent_init_params = agent_init_params
         self.gamma = gamma
@@ -248,7 +252,7 @@ class MADDPG(object):
     @classmethod
     def init_from_env(cls, env, agent_alg="MADDPG", adversary_alg="MADDPG",
                       gamma=0.95, tau=0.01, lr=0.01, hidden_dim=64,
-                      shared_params=False):
+                      shared_params=False, init_exploration=0.3):
         """
         Instantiate instance of this class from multi-agent environment
         """
@@ -281,7 +285,8 @@ class MADDPG(object):
                      'alg_types': alg_types,
                      'agent_init_params': agent_init_params,
                      'discrete_action': discrete_action, 
-                     'shared_params': shared_params}
+                     'shared_params': shared_params,
+                     'init_exploration': init_exploration}
         instance = cls(**init_dict)
         instance.init_dict = init_dict
         return instance

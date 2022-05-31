@@ -112,6 +112,7 @@ def run(config):
                 [ac[i] for ac in agent_actions] 
                 for i in range(config.n_rollout_threads)
             ]
+
             next_obs, rewards, dones, infos = env.step(actions)
             replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
             ep_rew[step_i] = rewards

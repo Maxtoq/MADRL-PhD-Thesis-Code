@@ -13,7 +13,7 @@ class DDPGAgent(object):
     critic, exploration noise)
     """
     def __init__(self, num_in_pol, num_out_pol, num_in_critic, hidden_dim=64,
-                 lr=0.01, discrete_action=True):
+                 lr=0.01, discrete_action=True, init_exploration=0.3):
         """
         Inputs:
             num_in_pol (int): number of dimensions for policy input
@@ -41,7 +41,7 @@ class DDPGAgent(object):
         if not discrete_action:
             self.exploration = OUNoise(num_out_pol)
         else:
-            self.exploration = 0.3  # epsilon for eps-greedy
+            self.exploration = init_exploration  # epsilon for eps-greedy
         self.discrete_action = discrete_action
 
     def reset_noise(self):
