@@ -136,6 +136,8 @@ def run(config):
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             maddpg.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
             maddpg.save(model_cp_path)
+    
+    pb.print_end()
 
     maddpg.save(model_cp_path)
     env.close()
@@ -161,7 +163,6 @@ if __name__ == '__main__':
     parser.add_argument("--sce_conf_path", default=None, type=str,
                         help="Path to the scenario config file")
     # Training
-    parser.add_argument("--n_rollout_threads", default=1, type=int)
     parser.add_argument("--n_training_threads", default=6, type=int)
     parser.add_argument("--n_frames", default=25000, type=int)
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
