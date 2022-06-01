@@ -240,7 +240,7 @@ def run(config):
     logger.close()
     # Log csv
     rewards_df = pd.DataFrame(train_data_dict)
-    rewards_df.to_csv(str(run_dir / 'mean_episode_rewards.csv'))
+    rewards_df.to_csv(str(run_dir / 'train_data.csv'))
     print("Model saved in dir", run_dir)
     
 
