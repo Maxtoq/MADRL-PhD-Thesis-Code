@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=10
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="2addpg_fo_rel_disc_frames"
 sce_conf_path="configs/2a_1o_fo_rel.json"
