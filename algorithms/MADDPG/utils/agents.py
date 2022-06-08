@@ -1,4 +1,7 @@
+import random
 import torch
+
+import numpy as np
 
 from torch import Tensor
 from torch.autograd import Variable
@@ -13,12 +16,22 @@ class DDPGAgent(object):
     critic, exploration noise)
     """
     def __init__(self, num_in_pol, num_out_pol, num_in_critic, hidden_dim=64,
-                 lr=0.01, discrete_action=True, init_exploration=0.3):
+                 lr=0.01, discrete_action=True, init_exploration=0.3,
+                 exploration_strategy='e_greedy'):
         """
         Inputs:
             num_in_pol (int): number of dimensions for policy input
             num_out_pol (int): number of dimensions for policy output
             num_in_critic (int): number of dimensions for critic input
+            hidden_dim (int): number of neurons in the hidden layer of the
+                policy and critic
+            lr (float): learning rate
+            discrete_action (boolean): if True, the model should output 
+                discrete actions
+            init_exploration (float): initial exploration rate (or noise if
+                actions are continuous)
+            exploration_strategy (str): if actions are discrete, stratefy for
+                choosing actions when exploring, either 'sample' or 'e_greedy'
         """
         self.policy = MLPNetwork(num_in_pol, num_out_pol,
                                  hidden_dim=hidden_dim,
@@ -43,6 +56,11 @@ class DDPGAgent(object):
         else:
             self.exploration = init_exploration  # epsilon for eps-greedy
         self.discrete_action = discrete_action
+        if exploration_strategy not in ['sample', 'e_greedy']:
+            print('ERROR: Bad exploration strategy with', exploration_strategy,
+                'given')
+            exit(0)
+        self.exploration_strategy = exploration_strategy
 
     def reset_noise(self):
         if not self.discrete_action:
@@ -66,11 +84,28 @@ class DDPGAgent(object):
         action = self.policy(obs)
         if self.discrete_action:
             if explore:
-                action = gumbel_softmax(action, hard=True)
+                if self.exploration_strategy == 'sample':
+                    # Sample from probabilities given by the policy
+                    action = gumbel_softmax(action, hard=True)
+                elif self.exploration_strategy == 'e_greedy':
+                    # Sample random number
+                    r = random.uniform(0, 1)
+                    # Exploration
+                    if r <= self.exploration:
+                        # Take random action (random one-hot vector)
+                        action_dim = action.shape[1]
+                        action = np.eye(action_dim)[random.randint(
+                            0, action_dim - 1)]
+                    # Exploitation
+                    else:
+                        # Take most probable action
+                        action = onehot_from_logits(action)
             else:
+                # Take most probable action
                 action = onehot_from_logits(action)
         else:  # continuous action
             if explore:
+                # Add noise to model's action
                 action += Variable(Tensor(self.exploration.noise()),
                                    requires_grad=False)
             action = action.clamp(-1, 1)
