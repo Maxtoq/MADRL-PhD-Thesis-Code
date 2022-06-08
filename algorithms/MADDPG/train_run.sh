@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=11
 env="coop_push_scenario/coop_push_scenario_sparse.py"
-model_name="2addpg_poshort_rel_disc"
+model_name="2addpg_fo_rel_disc_egreedy"
 sce_conf_path="configs/2a_1o_poshort_rel.json"
 n_episodes=100000
 n_exploration_eps=100000

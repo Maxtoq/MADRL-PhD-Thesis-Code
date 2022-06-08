@@ -96,6 +96,8 @@ class DDPGAgent(object):
                         action_dim = action.shape[1]
                         action = np.eye(action_dim)[random.randint(
                             0, action_dim - 1)]
+                        action = Variable(Tensor(action).unsqueeze(0),
+                            requires_grad=False)
                     # Exploitation
                     else:
                         # Take most probable action
