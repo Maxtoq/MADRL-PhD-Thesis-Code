@@ -55,7 +55,8 @@ class MLPRunner(Runner):
             acts_batch, _ = self.policy.get_actions(
                                 obs_batch,
                                 t_env=ep_i,
-                                explore=True)
+                                explore=True,
+                                use_gumbel=True)
             acts_batch = acts_batch if isinstance(acts_batch, np.ndarray) else\
                             acts_batch.cpu().detach().numpy()
             env_acts = np.split(acts_batch, self.args.n_rollout_threads)
