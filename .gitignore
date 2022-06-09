@@ -221,3 +221,9 @@ models/coop_push_scenario_sparse/2addpg_fo_rel_disc_frames/*
 !models/coop_push_scenario_sparse/2addpg_fo_rel_disc_frames/run1
 models/coop_push_scenario_sparse/2addpg_fo_rel_disc_frames/run1/*
 !models/coop_push_scenario_sparse/2addpg_fo_rel_disc_frames/run1/mean_episode_rewards.csv
+
+!models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel
+models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/*
+!models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/run1
+models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/run1/*
+!models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/run1/train_data.csv
