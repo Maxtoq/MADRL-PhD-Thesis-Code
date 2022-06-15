@@ -1,8 +1,8 @@
 #!/bin/sh
-n_run=11
+n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="2addpg_fo_rel_disc_egreedy"
-sce_conf_path="configs/2a_1o_poshort_rel.json"
+sce_conf_path="configs/2a_1o_fo_rel.json"
 n_episodes=100000
 n_exploration_eps=100000
 n_updates=100000
@@ -15,7 +15,7 @@ batch_size=512
 n_rollout_threads=1
 n_training_per_updates=1
 init_noise_scale=1.0
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do

@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=5
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 algorithm_name="maddpg"
 model_name="maddpg_fo_rel_disc_gumbel"
