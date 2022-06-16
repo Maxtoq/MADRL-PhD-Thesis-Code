@@ -2,6 +2,8 @@ import torch
 
 from torch import nn
 
+from modules.lnoveld import LNovelD
+
 
 class ObservationEncoder(nn.Module):
 
@@ -27,31 +29,6 @@ class CommunicationPolicy(nn.Module):
 
     def __init__(self, context_dim):
         super(CommunicationPolicy, self).__init__()
-
-class LNovelD(nn.Module):
-    """
-    Class implementing the Language-augmented version of NovelD from Mu et al. 
-    (2022).
-    :param obs_in_dim (int): Dimension of the observation input
-    :param lang_in_dim (int): Dimension of the language encoding input
-    :param hidden_dim (int): Dimension of the hidden layers in MLPs
-    :param scale_fac (float): Scaling factor for computing the reward, noted 
-        alpha in the paper, controls how novel we want the states to be to 
-        generate some reward (in [0,1])
-    :param trade_off (float): Parameter for controlling the weight of the 
-        language novelty in the final reward, noted lambda_l in the paper (in 
-        [0, +inf])
-    """
-    def __init__(self, 
-            obs_in_dim, 
-            lang_in_dim, 
-            hidden_dim=64, 
-            scale_fac=0.5, 
-            trade_off=1):
-        super(LNovelD, self).__init__()
-        # Fixed random target embedding network
-        
-
 
 class MALNovelD:
     """
