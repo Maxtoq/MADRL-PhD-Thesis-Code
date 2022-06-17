@@ -3,22 +3,13 @@ import torch
 from torch import nn
 
 from modules.lnoveld import LNovelD
+from modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
 
 
 class ObservationEncoder(nn.Module):
 
     def __init__(self, obs_dim, embedding_dim, hidden_dim):
         super(ObservationEncoder, self).__init__()
-
-class GRULanguageEncoder(nn.Module):
-
-    def __init__(self, vocab, context_dim):
-        super(GRULanguageEncoder, self).__init__()
-
-class GRUDecoder(nn.Module):
-
-    def __init__(self, vocab, context_dim):
-        super(GRUDecoder, self).__init__()
 
 class Policy(nn.Module):
 
@@ -46,8 +37,9 @@ class MALNovelD:
             noveld_scale=0.5,
             noveld_trade_off=1):
         self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
-        self.lang_encoder = GRULanguageEncoder(vocab, context_dim)
-        self.decoder = GRUDecoder(vocab, context_dim)
+        self.word_encoder = OneHotEncoder(vocab)
+        self.sentence_encoder = GRUEncoder(context_dim, self.word_encoder)
+        self.decoder = GRUDecoder(context_dim, self.word_encoder)
         self.policy = Policy(context_dim, act_dim)
         self.comm_policy = CommunicationPolicy(context_dim)
         self.lnoveld = LNovelD(
