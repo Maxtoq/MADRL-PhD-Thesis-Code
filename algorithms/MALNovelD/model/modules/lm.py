@@ -95,5 +95,16 @@ class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, word_encoder):
+    def __init__(self, context_dim, word_encoder, n_layers=1):
         super(GRUDecoder, self).__init__()
+        self.word_encoder = word_encoder
+        self.gru = nn.GRU(
+            self.word_encoder.get_encoding_dim(), 
+            context_dim, 
+            n_layers,
+            batch_first=True)
+        # Output layer
+        self.out = nn.Sequential(
+            nn.Linear(context_dim, self.word_encoder.get_encoding_dim()),
+            nn.Softmax()
+        )
