@@ -17,7 +17,7 @@ class DDPGAgent(object):
     """
     def __init__(self, num_in_pol, num_out_pol, num_in_critic, hidden_dim=64,
                  lr=0.01, discrete_action=True, init_exploration=0.3,
-                 exploration_strategy='e_greedy'):
+                 exploration_strategy='sample'):
         """
         Inputs:
             num_in_pol (int): number of dimensions for policy input

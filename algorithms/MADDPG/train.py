@@ -53,7 +53,9 @@ def run(config):
         tau=config.tau,
         lr=config.lr,
         hidden_dim=config.hidden_dim,
-        shared_params=config.shared_params
+        shared_params=config.shared_params,
+        init_exploration=config.init_noise_scale,
+        exploration_strategy=config.exploration_strategy,
     )
 
     replay_buffer = ReplayBuffer(
@@ -205,6 +207,7 @@ if __name__ == '__main__':
     parser.add_argument("--hard_update_interval", type=int, default=2,
                         help="After how many updates the target should be updated")
     parser.add_argument("--n_exploration_eps", default=25000, type=int)
+    parser.add_argument("--exploration_strategy", default="sample", type=str)
     parser.add_argument("--init_noise_scale", default=0.3, type=float)
     parser.add_argument("--final_noise_scale", default=0.0, type=float)
     parser.add_argument("--save_interval", default=1000, type=int)
