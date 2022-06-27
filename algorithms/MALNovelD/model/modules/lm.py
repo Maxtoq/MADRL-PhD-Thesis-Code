@@ -13,8 +13,8 @@ class OneHotEncoder:
         Inputs:
             :param vocab (list): List of tokens that can appear in the language
         """
-        self.token_indexes = ["<SOS>", "<EOS>"] + vocab
-        self.enc_dim = len(self.token_indexes)
+        self.tokens = ["<SOS>", "<EOS>"] + vocab
+        self.enc_dim = len(self.tokens)
         self.token_encodings = np.eye(self.enc_dim)
 
         self.SOS_ENC = self.token_encodings[0]
@@ -31,7 +31,7 @@ class OneHotEncoder:
         Outputs:
             :param token (str)
         """
-        return self.token_indexes[index]
+        return self.tokens[index]
 
     def get_onehots(self, sentence):
         """
@@ -42,23 +42,42 @@ class OneHotEncoder:
             :param onehots (list): List of one-hot encodings
         """
         onehots = [
-            self.token_encodings[self.token_indexes.index(t)] 
+            self.token_encodings[self.tokens.index(t)] 
             for t in sentence
         ]
         return onehots
 
-    def encode_batch(self, sentence_batch):
+    def encode_batch(self, sentence_batch, append_EOS=True):
         """
         Encodes all sentences in the given batch
         Inputs:
             :param sentence_batch (list): List of sentences (lists of tokens)
+            :param append_EOS (bool): Whether to append the End of Sentence 
+                token to the sentence or not.
         Outputs: 
             :param encoded_batch (list): List of encoded sentences as Torch 
                 tensors
         """
-        encoded_batch = [torch.Tensor(
-            np.array(self.get_onehots(s))) for s in sentence_batch]
+        encoded_batch = []
+        for s in sentence_batch:
+            encoded = self.get_onehots(s)
+            if append_EOS:
+                encoded.append(self.EOS_ENC)
+            encoded_batch.append(torch.Tensor(np.array(encoded)))
         return encoded_batch
+
+    def decode_batch(self, onehots_batch):
+        """
+        Decode batch of encoded sentences
+        Inputs:
+            :param onehots_batch (list): List of encoded sentences (list of 
+                one-hots).
+        Outputs:
+            :param decoded_batch (list): List of sentences.
+        """
+        decoded_batch = []
+        for s in onehots_batch:
+            sentence = []
 
 class GRUEncoder(nn.Module):
     """
@@ -76,9 +95,10 @@ class GRUEncoder(nn.Module):
         super(GRUEncoder, self).__init__()
         self.device = device
         self.word_encoder = word_encoder
+        self.hidden_dim = context_dim
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 
-            context_dim, 
+            self.hidden_dim, 
             n_layers,
             batch_first=True)
 
@@ -86,10 +106,11 @@ class GRUEncoder(nn.Module):
         """
         Transforms sentences into embeddings
         Inputs:
-            :param sentence_batch (list): Batch of sentences (lists of tokens)
+            :param sentence_batch (list): Batch of sentences (lists of words).
         Outputs:
             :param unsorted_hstates (torch.Tensor): Final hidden states
-                corresponding to each given sentence
+                corresponding to each given sentence, dim=(1, batch_size, 
+                hidden_dim)
         """
         # Get one-hot encodings
         enc = self.word_encoder.encode_batch(sentence_batch)
@@ -109,8 +130,12 @@ class GRUEncoder(nn.Module):
         packed = nn.utils.rnn.pack_padded_sequence(
             padded, lens, batch_first=True).to(self.device)
 
+        # Initial hidden state
+        hidden = torch.zeros(1, len(sentence_batch), self.hidden_dim, 
+                        device=self.device)
+
         # Pass sentences into GRU model
-        _, hidden_states = self.gru(packed)
+        _, hidden_states = self.gru(packed, hidden)
 
         # Re-order hidden states
         unsorted_hstates = torch.zeros_like(hidden_states)
@@ -193,8 +218,6 @@ class GRUDecoder(nn.Module):
         greedy_preds = []
         # For each input sentence in batch
         for b_i in range(batch_size):
-            print("Batch #", b_i)
-
             # Initial hidden state
             hidden = context_batch[b_i].view(1, 1, -1)
 
@@ -211,33 +234,31 @@ class GRUDecoder(nn.Module):
             generated_tokens = []
             # For each token to generate
             for t_i in range(max_l):
-                print("Token #", t_i)
                 # Get prediction
-                print(decoder_input.shape)
-                print(decoder_input)
-                print(hidden.shape)
-                print(hidden)
                 output, hidden = self.forward_step(decoder_input, hidden)
+                # print("OUTPUT", output)
 
                 # Add output to list
-                log_probs.append(output)
+                log_probs.append(output.squeeze())
 
                 # Teacher forcing
                 if teacher_forcing:
                     # Set next decoder input
                     decoder_input = target_encs[b_i][t_i].view(1, 1, -1)
+                    # print("DECODER", decoder_input)
                 else:
                     # Decode output and add to generated sentence
                     # Sample from probabilities
                     _, topi = output.topk(1)
+                    # Stop if EOS token generated
+                    if topi.item() == self.word_encoder.EOS_ID:
+                        break
+                    # Save generated token
                     token = self.word_encoder.token_encodings[topi.item()]
                     generated_tokens.append(token)
                     # Set next decoder input
                     decoder_input = torch.Tensor(
                         np.array([[token]]), device=self.device)
-                    # Stop if EOS token generated
-                    if topi.item() == self.word_encoder.EOS_ID:
-                        break
             decoder_outputs.append(torch.stack(log_probs))
             greedy_preds.append(generated_tokens)
         
