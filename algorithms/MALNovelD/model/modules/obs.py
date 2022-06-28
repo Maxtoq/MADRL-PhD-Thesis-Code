@@ -1,5 +1,3 @@
-import torch
-
 from torch import nn
 
 from .networks import MLPNetwork
