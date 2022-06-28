@@ -25,13 +25,23 @@ class OneHotEncoder:
 
     def index2token(self, index):
         """
-        Return the token corresponding to the given index in the vocabulary
+        Returns the token corresponding to the given index in the vocabulary
         Inputs:
             :param index (int)
         Outputs:
             :param token (str)
         """
         return self.tokens[index]
+
+    def enc2token(self, encoding):
+        """
+        Returns the token corresponding to the given one-hot encoding.
+        Inputs:
+            :param encoding (numpy.array): One-hot encoding.
+        Outputs:
+            :param token (str): Corresponding token.
+        """
+        return self.tokens[np.argmax(encoding)]
 
     def get_onehots(self, sentence):
         """
@@ -76,8 +86,10 @@ class OneHotEncoder:
             :param decoded_batch (list): List of sentences.
         """
         decoded_batch = []
-        for s in onehots_batch:
-            sentence = []
+        for enc_sentence in onehots_batch:
+            decoded_batch.append(
+                [self.enc2token(enc) for enc in enc_sentence])
+        return decoded_batch
 
 class GRUEncoder(nn.Module):
     """

@@ -4,12 +4,10 @@ from torch import nn
 
 from modules.lnoveld import LNovelD
 from modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
+from modules.obs import ObservationEncoder
 
 
-class ObservationEncoder(nn.Module):
 
-    def __init__(self, obs_dim, embedding_dim, hidden_dim):
-        super(ObservationEncoder, self).__init__()
 
 class Policy(nn.Module):
 
