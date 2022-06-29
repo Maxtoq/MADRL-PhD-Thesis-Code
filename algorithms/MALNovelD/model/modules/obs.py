@@ -7,7 +7,7 @@ class ObservationEncoder(nn.Module):
     """
     Network that encodes an observation into a context embedding.
     """
-    def __init__(self, obs_dim, embedding_dim, hidden_dim, n_hidden_layers=1):
+    def __init__(self, obs_dim, embedding_dim, hidden_dim=64, n_hidden_layers=1):
         """
         Inputs:
             :param obs_dim (int): Dimension of the input observation.
