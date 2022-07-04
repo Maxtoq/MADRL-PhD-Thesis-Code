@@ -5,19 +5,13 @@ from torch import nn
 from modules.lnoveld import LNovelD
 from modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
 from modules.obs import ObservationEncoder
-
-
+from modules.comm import CommunicationPolicy
 
 
 class Policy(nn.Module):
 
     def __init__(self, context_dim, act_dim):
         super(Policy, self).__init__()
-
-class CommunicationPolicy(nn.Module):
-
-    def __init__(self, context_dim):
-        super(CommunicationPolicy, self).__init__()
 
 class MALNovelD:
     """
