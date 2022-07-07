@@ -257,7 +257,6 @@ class GRUDecoder(nn.Module):
                 if teacher_forcing:
                     # Set next decoder input
                     decoder_input = target_encs[b_i][t_i].view(1, 1, -1)
-                    # print("DECODER", decoder_input)
                 else:
                     # Decode output and add to generated sentence
                     # Sample from probabilities
