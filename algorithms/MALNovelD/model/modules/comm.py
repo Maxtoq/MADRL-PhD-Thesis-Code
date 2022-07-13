@@ -22,9 +22,11 @@ class CommunicationPolicy(nn.Module):
             nn.Linear(hidden_dim, context_dim)
         )
 
-    def forward(self, internal_context, external_context, hidden_state=None):
+    def forward(self, obs_context, lang_context, hidden_state=None):
+        if obs_context.dim() == 2:
+            obs_context = obs_context.unsqueeze(1)
         if self.merge_fn == 'concat':
-            model_input = torch.cat((internal_context, external_context), dim=1)
+            model_input = torch.cat((obs_context, lang_context), dim=2)
         output, hidden = self.gru(model_input, hidden_state)
-        output = self.out(output)
+        output = self.out(output.squeeze(1))
         return output, hidden
