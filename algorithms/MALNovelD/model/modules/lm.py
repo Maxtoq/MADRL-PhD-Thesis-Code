@@ -113,6 +113,7 @@ class GRUEncoder(nn.Module):
             self.hidden_dim, 
             n_layers,
             batch_first=True)
+        self.out = nn.Linear(self.hidden_dim, context_dim)
 
     def forward(self, sentence_batch):
         """
@@ -153,7 +154,7 @@ class GRUEncoder(nn.Module):
         unsorted_hstates = torch.zeros_like(hidden_states)
         unsorted_hstates[0,ids,:] = hidden_states[0,:,:]
 
-        return unsorted_hstates
+        return self.out(unsorted_hstates)
 
 class GRUDecoder(nn.Module):
     """
