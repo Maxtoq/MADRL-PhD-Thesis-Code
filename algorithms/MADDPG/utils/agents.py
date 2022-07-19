@@ -49,8 +49,11 @@ class DDPGAgent(object):
                                         constrain_out=False)
         hard_update(self.target_policy, self.policy)
         hard_update(self.target_critic, self.critic)
-        self.policy_optimizer = Adam(self.policy.parameters(), lr=lr)
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=lr)
+        self.optimizer = Adam(
+            list(self.policy.parameters()) + list(self.critic.parameters()),
+            lr=lr)
+        # self.policy_optimizer = Adam(self.policy.parameters(), lr=lr)
+        # self.critic_optimizer = Adam(self.critic.parameters(), lr=lr)
         if not discrete_action:
             self.exploration = OUNoise(num_out_pol)
         else:
@@ -117,36 +120,15 @@ class DDPGAgent(object):
         return {'policy': self.policy.state_dict(),
                 'critic': self.critic.state_dict(),
                 'target_policy': self.target_policy.state_dict(),
-                'target_critic': self.target_critic.state_dict(),
-                'policy_optimizer': self.policy_optimizer.state_dict(),
-                'critic_optimizer': self.critic_optimizer.state_dict()}
+                'target_critic': self.target_critic.state_dict()}
+                # 'policy_optimizer': self.policy_optimizer.state_dict(),
+                # 'critic_optimizer': self.critic_optimizer.state_dict()}
 
     def load_params(self, params):
         self.policy.load_state_dict(params['policy'])
         self.critic.load_state_dict(params['critic'])
         self.target_policy.load_state_dict(params['target_policy'])
         self.target_critic.load_state_dict(params['target_critic'])
-        self.policy_optimizer.load_state_dict(params['policy_optimizer'])
-        self.critic_optimizer.load_state_dict(params['critic_optimizer'])
-
-
-class DDPGCommAgent(object):
-
-    def __init__(self, dim_obs, dim_act, dim_in_critic, 
-                 dim_com, hidden_dim=64,
-                 lr=0.01, discrete_action=True):
-        """
-        Inputs:
-            dim_obs (int): dimension of observations
-            dim_act (int): dimension of actions
-            dim_in_critic (int): dimension of critic input
-            dim_com (int): dimension of communication act
-        """
-        # Action 
-        self.ddpg = DDPGAgent(dim_obs, dim_act, dim_in_critic, hidden_dim, 
-                              lr, discrete_action)
-        # Memory
-        self.mem = torch.nn.LSTM(dim_obs, hidden_dim)
-        # Comm 
-        self.comm = torch.nn.LSTM(hidden_dim + dim_act, dim_com)
+        # self.policy_optimizer.load_state_dict(params['policy_optimizer'])
+        # self.critic_optimizer.load_state_dict(params['critic_optimizer'])
         

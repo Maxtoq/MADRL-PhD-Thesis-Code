@@ -104,9 +104,9 @@ class MADDPG(object):
         """
         obs, acs, rews, next_obs, dones = sample
         curr_agent = self.agents[agent_i]
-
+        curr_agent.optimizer.zero_grad()
         # Critic Update
-        curr_agent.critic_optimizer.zero_grad()
+        # curr_agent.critic_optimizer.zero_grad()
         # Compute Target Value
         if self.alg_types[agent_i] == 'MADDPG':
             if self.discrete_action: # one-hot encode action
@@ -142,9 +142,9 @@ class MADDPG(object):
         if parallel:
             average_gradients(curr_agent.critic)
         torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5)
-        curr_agent.critic_optimizer.step()
+        # curr_agent.critic_optimizer.step()
 
-        curr_agent.policy_optimizer.zero_grad()
+        # curr_agent.policy_optimizer.zero_grad()
         # Policy Update
         # Get Action
         if self.discrete_action:
@@ -178,7 +178,8 @@ class MADDPG(object):
         if parallel:
             average_gradients(curr_agent.policy)
         torch.nn.utils.clip_grad_norm_(curr_agent.policy.parameters(), 0.5)
-        curr_agent.policy_optimizer.step()
+        # curr_agent.policy_optimizer.step()
+        curr_agent.optimizer.step()
         if logger is not None:
             logger.add_scalars('agent%i/losses' % agent_i,
                                {'vf_loss': vf_loss,
