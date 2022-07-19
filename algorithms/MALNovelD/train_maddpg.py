@@ -5,6 +5,7 @@ import torch
 import numpy as np
 
 from tensorboardX import SummaryWriter
+from tqdm import tqdm
 
 from model.modules.maddpg import MADDPG
 from utils.buffer import ReplayBuffer
@@ -38,9 +39,6 @@ def run(cfg):
     else:
         training_device = 'cpu'
 
-    if cfg.n_exploration_frames is None:
-        cfg.n_exploration_frames = cfg.n_frames
-
     env = make_env(cfg.env_path, sce_conf, cfg.discrete_action)
 
     n_agents = sce_conf["nb_agents"]
@@ -61,6 +59,9 @@ def run(cfg):
             for acsp in env.action_space]
     )
 
+    if cfg.n_explo_frames is None:
+        cfg.n_explo_frames = cfg.n_frames
+
     print(f"Starting training for {cfg.n_frames} frames")
     print(f"                  updates every {cfg.frames_per_update} frames")
     print(f"                  with seed {cfg.seed}")
@@ -70,7 +71,62 @@ def run(cfg):
         "Success": [],
         "Episode length": []
     }
-    
+    # Reset episode data and environment
+    ep_returns = np.zeros(n_agents)
+    ep_length = 0
+    ep_success = False
+    obs = env.reset()
+    for step_i in tqdm(range(cfg.n_frames)):
+        # Compute and set exploration rate
+        explo_pct_remaining = \
+            max(0, cfg.n_explo_frames - step_i) / cfg.n_explo_frames
+        maddpg.scale_noise(cfg.final_explo_rate + 
+            (cfg.init_explo_rate - cfg.final_explo_rate) * explo_pct_remaining)
+        maddpg.reset_noise()
+
+        # Perform step
+        obs = np.array(obs)
+        torch_obs = torch.Tensor(obs)
+        actions = maddpg.step(torch_obs, explore=True)
+        actions = [a.squeeze().data.numpy() for a in actions]
+        next_obs, rewards, dones, _ = env.step(actions)
+
+        # Store experience in replay buffer
+        replay_buffer.push(
+            obs, 
+            np.array(actions), 
+            np.array([rewards]), 
+            np.array(next_obs), 
+            np.array([dones]))
+        
+        # Store step data
+        ep_returns += rewards
+        ep_length += 1
+        if any(dones):
+            ep_success = True
+
+        # If episode is finished
+        if any(dones) or ep_length == cfg.episode_length:
+            # Log episode data
+            train_data_dict["Step"].append(step_i)
+            train_data_dict["Episode return"].append(np.mean(ep_returns))
+            train_data_dict["Success"].append(int(ep_success))
+            train_data_dict["Episode length"].append(ep_length)
+            # Reset the environment
+            ep_returns = np.zeros(n_agents)
+            ep_length = 0
+            ep_success = False
+            obs = env.reset()
+        else:
+            obs = next_obs
+
+        # Training
+        if ((step_i + 1) % cfg.frames_per_update == 0 and
+            len(replay_buffer) >= cfg.batch_size):
+            pass
+            
+
+        # 
 
 
 
@@ -96,11 +152,11 @@ if __name__ == '__main__':
     parser.add_argument("--frames_per_update", default=100, type=int)
     parser.add_argument("--batch_size", default=512, type=int,
                         help="Batch size for model training")
-    parser.add_argument("--n_exploration_frames", default=None, type=int,
+    parser.add_argument("--n_explo_frames", default=None, type=int,
                         help="Number of frames where agents explore, if None then equal to n_frames")
     parser.add_argument("--explo_strat", default="sample", type=str)
     parser.add_argument("--init_explo_rate", default=1.0, type=float)
-    parser.add_argument("--final_noise_scale", default=0.0, type=float)
+    parser.add_argument("--final_explo_rate", default=0.0, type=float)
     parser.add_argument("--save_interval", default=100000, type=int)
     # Model hyperparameters
     parser.add_argument("--hidden_dim", default=64, type=int)

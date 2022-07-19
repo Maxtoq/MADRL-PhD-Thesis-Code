@@ -135,7 +135,7 @@ class MADDPG:
         else:
             self.agents = [DDPGAgent(
                 input_dim, act_dim, critic_input_dim, 
-                hidden_dim, discrete_action, 
+                lr, hidden_dim, discrete_action, 
                 init_explo_rate, explo_strat)]
 
     @property
@@ -205,7 +205,8 @@ class MADDPG:
             actions = list(actions_tensor)
         else:
             actions = [
-                self.agents[a_i].step(observations[a_i], explore=explore)
+                self.agents[a_i].step(observations[a_i].unsqueeze(0), 
+                    explore=explore)
                 for a_i in range(self.n_agents)]
         return actions
 
