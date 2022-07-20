@@ -7,6 +7,8 @@ from torch.optim import Adam
 from .networks import MLPNetwork
 from .utils import hard_update, OUNoise, gumbel_softmax, onehot_from_logits, soft_update
 
+MSELoss = torch.nn.MSELoss()
+
 
 class DDPGAgent:
 
@@ -93,9 +95,7 @@ class DDPGAgent:
         else:  # continuous action
             if explore:
                 # Add noise to model's action
-                action += torch.Variable(
-                    torch.Tensor(self.exploration.noise()),
-                    requires_grad=False)
+                action += torch.Tensor(self.exploration.noise())
             action = action.clamp(-1, 1)
         return action
 
@@ -103,13 +103,15 @@ class DDPGAgent:
         return {'policy': self.policy.state_dict(),
                 'critic': self.critic.state_dict(),
                 'target_policy': self.target_policy.state_dict(),
-                'target_critic': self.target_critic.state_dict()}
+                'target_critic': self.target_critic.state_dict(),
+                'optimizer': self.optimizer.state_dict()}
 
     def load_params(self, params):
         self.policy.load_state_dict(params['policy'])
         self.critic.load_state_dict(params['critic'])
         self.target_policy.load_state_dict(params['target_policy'])
         self.target_critic.load_state_dict(params['target_critic'])
+        self.optimizer.load_state_dict(params['optimizer'])
 
 
 class MADDPG:
@@ -119,10 +121,15 @@ class MADDPG:
                  shared_params=False, init_explo_rate=1.0, 
                  explo_strat="sample"):
         self.n_agents = n_agents
+        self.input_dim = input_dim
+        self.act_dim = act_dim
         self.gamma = gamma
         self.tau = tau
+        self.hidden_dim = hidden_dim
         self.shared_params = shared_params
         self.discrete_action = discrete_action
+        self.init_explo_rate = init_explo_rate
+        self.explo_strat = explo_strat
 
         # Create agent models
         critic_input_dim = n_agents * input_dim + n_agents * act_dim
@@ -141,14 +148,14 @@ class MADDPG:
     @property
     def policies(self):
         if self.shared_params:
-            return [self.agents[0].policy for _ in self.n_agents]
+            return [self.agents[0].policy for _ in range(self.n_agents)]
         else:
             return [a.policy for a in self.agents]
 
     @property
     def target_policies(self):
         if self.shared_params:
-            return [self.agents[0].target_policy for _ in self.n_agents]
+            return [self.agents[0].target_policy for _ in range(self.n_agents)]
         else:
             return [a.target_policy for a in self.agents]
 
@@ -170,25 +177,20 @@ class MADDPG:
             device = torch.device(device)
         for a in self.agents:
             a.policy.train()
-            if not a.policy.device == device:
-                a.policy = a.policy.to(device)
+            a.policy = a.policy.to(device)
             a.critic.train()
-            if not a.critic.device == device:
-                a.critic = a.critic.to(device)
+            a.critic = a.critic.to(device)
             a.target_policy.train()
-            if not a.target_policy.device == device:
-                a.target_policy = a.target_policy.to(device)
+            a.target_policy = a.target_policy.to(device)
             a.target_critic.train()
-            if not a.target_critic.device == device:
-                a.target_critic = a.target_critic.to(device)
+            a.target_critic = a.target_critic.to(device)
 
     def prep_rollouts(self, device='cpu'):
         if type(device) is str:
             device = torch.device(device)
         for a in self.agents:
             a.policy.eval()
-            if not a.policy.device == device:
-                a.policy = a.policy.to(device)
+            a.policy = a.policy.to(device)
 
     def step(self, observations, explore=False):
         """
@@ -240,7 +242,7 @@ class MADDPG:
         vf_in = torch.cat((*obs, *acs), dim=1)
         actual_value = curr_agent.critic(vf_in)
         # Value loss = minimise TD error (difference between target and value)
-        vf_loss = torch.nn.MSELoss(actual_value, target_value.detach())
+        vf_loss = MSELoss(actual_value, target_value.detach())
 
         # Policy Update
         # Get Action
@@ -284,3 +286,27 @@ class MADDPG:
             for a in self.agents:
                 soft_update(a.target_critic, a.critic, self.tau)
                 soft_update(a.target_policy, a.policy, self.tau)
+
+    def save(self, filename):
+        """
+        Save trained parameters of all agents into one file
+        """
+        self.prep_training(device='cpu')  # move parameters to CPU before saving
+        save_dict = {
+            'n_agents': self.n_agents,
+            'input_dim': self.input_dim,
+            'act_dim': self.act_dim,
+            'gamma': self.gamma,
+            'tau': self.tau,
+            'hidden_dim': self.hidden_dim,
+            'shared_params': self.shared_params,
+            'discrete_action': self.discrete_action,
+            'init_explo_rate': self.init_explo_rate,
+            'explo_strat': self.explo_strat,
+            'agent_params': [a.get_params() for a in self.agents]}
+        torch.save(save_dict, filename)
+
+    def load_cp(self, cp_path):
+        save_dict = torch.load(cp_path, map_location=torch.device('cpu'))
+        for a, params in zip(self.agents, save_dict['agent_params']):
+            a.load_params(params)

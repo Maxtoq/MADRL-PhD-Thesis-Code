@@ -71,13 +71,13 @@ class ReplayBuffer(object):
         inds = np.random.choice(np.arange(self.filled_i), size=N,
                                 replace=False)
         if cuda_device is not None:
-            cast = lambda x: Tensor(x, requires_grad=False).to(cuda_device)
+            cast = lambda x: Tensor(x, device=cuda_device)
         else:
-            cast = lambda x: Tensor(x, requires_grad=False)
+            cast = lambda x: Tensor(x)
         if norm_rews:
             ret_rews = [cast((self.rew_buffs[i][inds] -
                               self.rew_buffs[i][:self.filled_i].mean()) /
-                             self.rew_buffs[i][:self.filled_i].std())
+                              self.rew_buffs[i][:self.filled_i].std())
                         for i in range(self.num_agents)]
         else:
             ret_rews = [cast(self.rew_buffs[i][inds]) for i in range(self.num_agents)]

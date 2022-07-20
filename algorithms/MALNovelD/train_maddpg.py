@@ -1,8 +1,10 @@
 import argparse
 import os
-import sys 
+import sys
+import json
 import torch
 import numpy as np
+import pandas as pd
 
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
@@ -10,6 +12,7 @@ from tqdm import tqdm
 from model.modules.maddpg import MADDPG
 from utils.buffer import ReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env
+from utils.eval import perform_eval_scenar
 
 
 def run(cfg):
@@ -33,14 +36,16 @@ def run(cfg):
     # Set training device
     if torch.cuda.is_available():
         if config.cuda_device is None:
-            training_device = 'cuda'
+            device = 'cuda'
         else:
-            training_device = torch.device(config.cuda_device)
+            device = torch.device(config.cuda_device)
     else:
-        training_device = 'cpu'
+        device = 'cpu'
 
+    # Create environment
     env = make_env(cfg.env_path, sce_conf, cfg.discrete_action)
 
+    # Create model
     n_agents = sce_conf["nb_agents"]
     input_dim = env.observation_space[0].shape[0]
     if cfg.discrete_action:
@@ -50,7 +55,9 @@ def run(cfg):
     maddpg = MADDPG(n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau,
                     cfg.hidden_dim, cfg.discrete_action, cfg.shared_params, 
                     cfg.init_explo_rate, cfg.explo_strat)
+    maddpg.prep_rollouts(device='cpu')
     
+    # Create replay buffer
     replay_buffer = ReplayBuffer(
         cfg.buffer_length, 
         n_agents,
@@ -59,9 +66,27 @@ def run(cfg):
             for acsp in env.action_space]
     )
 
+    # Get number of exploration steps
     if cfg.n_explo_frames is None:
         cfg.n_explo_frames = cfg.n_frames
 
+    # Set-up evaluation scenario
+    if cfg.eval_every is not None:
+        if cfg.eval_scenar_file is None:
+            print("ERROR: Evaluation scenario file must be provided with --eval_scenar_file argument")
+            exit()
+        else:
+            # Load evaluation scenario
+            with open(cfg.eval_scenar_file, 'r') as f:
+                eval_scenar = json.load(f)
+            eval_data_dict = {
+                "Step": [],
+                "Mean return": [],
+                "Success rate": [],
+                "Mean episode length": []
+            }
+
+    # Start training
     print(f"Starting training for {cfg.n_frames} frames")
     print(f"                  updates every {cfg.frames_per_update} frames")
     print(f"                  with seed {cfg.seed}")
@@ -112,6 +137,11 @@ def run(cfg):
             train_data_dict["Episode return"].append(np.mean(ep_returns))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_length)
+            # Tensorboard
+            logger.add_scalar(
+                'agent0/episode_return', 
+                train_data_dict["Episode return"][-1], 
+                train_data_dict["Step"][-1])
             # Reset the environment
             ep_returns = np.zeros(n_agents)
             ep_length = 0
@@ -122,11 +152,44 @@ def run(cfg):
 
         # Training
         if ((step_i + 1) % cfg.frames_per_update == 0 and
-            len(replay_buffer) >= cfg.batch_size):
-            pass
-            
+                len(replay_buffer) >= cfg.batch_size):
+            maddpg.prep_training(device=device)
+            for a_i in range(n_agents):
+                sample = replay_buffer.sample(
+                    config.batch_size, cuda_device=device)
+                agent_index = 0 if cfg.shared_params else a_i
+                maddpg.update(sample, agent_index)
+            maddpg.update_all_targets()
+            maddpg.prep_rollouts(device='cpu')
 
-        # 
+        # Evalutation
+        if cfg.eval_every is not None and step_i % cfg.eval_every == 0:
+            eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
+                env, maddpg, eval_scenar, cfg.episode_length)
+            eval_data_dict["Step"].append(step_i)
+            eval_data_dict["Mean return"].append(eval_return)
+            eval_data_dict["Success rate"].append(eval_success_rate)
+            eval_data_dict["Mean episode length"].append(eval_ep_len)
+
+        # Save model
+        if (step_i + 1) % cfg.save_interval == 0:
+            os.makedirs(run_dir / 'incremental', exist_ok=True)
+            maddpg.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
+            maddpg.save(model_cp_path)
+    
+    env.close()
+    # Save model
+    maddpg.save(model_cp_path)
+    # Log Tensorboard
+    logger.export_scalars_to_json(str(log_dir / 'summary.json'))
+    logger.close()
+    # Save training and eval data
+    train_df = pd.DataFrame(train_data_dict)
+    train_df.to_csv(str(run_dir / 'training_data.csv'))
+    if cfg.eval_every is not None:
+        eval_df = pd.DataFrame(eval_data_dict)
+        eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
+    print("Model saved in dir", run_dir)
 
 
 
@@ -145,8 +208,7 @@ if __name__ == '__main__':
                         default="configs/2a_1o_fo_rel.json",
                         help="Path to the scenario config file")
     # Training
-    parser.add_argument("--n_rollout_threads", default=1, type=int)
-    parser.add_argument("--n_frames", default=100000, type=int,
+    parser.add_argument("--n_frames", default=25000, type=int,
                         help="Number of training frames to perform")
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
     parser.add_argument("--frames_per_update", default=100, type=int)
@@ -158,6 +220,9 @@ if __name__ == '__main__':
     parser.add_argument("--init_explo_rate", default=1.0, type=float)
     parser.add_argument("--final_explo_rate", default=0.0, type=float)
     parser.add_argument("--save_interval", default=100000, type=int)
+    # Evalutation
+    parser.add_argument("--eval_every", type=int, default=None)
+    parser.add_argument("--eval_scenar_file", type=str, default=None)
     # Model hyperparameters
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--lr", default=0.0007, type=float)
