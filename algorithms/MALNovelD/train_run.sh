@@ -8,7 +8,7 @@ buffer_length=1000000
 lr=0.0007
 gamma=0.99
 tau=0.01
-init_exploration=1.0
+init_explo_rate=1.0
 eval_every=100000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 cuda_device="cuda:0"
@@ -19,7 +19,7 @@ do
     seed=$RANDOM
     comm="python algorithms/MALNovelD/train_maddpg.py ${env} ${model_name} --sce_conf_path ${sce_conf_path} \
 --seed ${seed} --n_frames ${n_frames} --lr ${lr} --cuda_device ${cuda_device} --gamma ${gamma} \
---tau ${tau} --init_exploration ${init_exploration} --buffer_length ${buffer_length} \
+--tau ${tau} --init_explo_rate ${init_explo_rate} --buffer_length ${buffer_length} \
 --eval_every ${eval_every} --eval_scenar_file ${eval_scenar_file} --discrete_action"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
