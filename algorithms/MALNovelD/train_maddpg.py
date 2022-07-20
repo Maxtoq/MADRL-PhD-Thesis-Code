@@ -22,7 +22,7 @@ def run(cfg):
 
     # Save args in txt file
     with open(os.path.join(run_dir, 'args.txt'), 'w') as f:
-        f.write(str(sys.argv))
+        f.write(str(vars(cfg)))
 
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
