@@ -4,10 +4,64 @@ import numpy as np
 
 from torch.optim import Adam
 
-from .networks import MLPNetwork
+#from .networks import MLPNetwork
 from .utils import hard_update, OUNoise, gumbel_softmax, onehot_from_logits, soft_update
 
 MSELoss = torch.nn.MSELoss()
+
+
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+class MLPNetwork(nn.Module):
+    """
+    MLP network (can be used as value or policy)
+    """
+    def __init__(self, input_dim, out_dim, hidden_dim=64, nonlin=F.relu,
+                 constrain_out=False, norm_in=True, discrete_action=True):
+        """
+        Inputs:
+            input_dim (int): Number of dimensions in input
+            out_dim (int): Number of dimensions in output
+            hidden_dim (int): Number of hidden dimensions
+            nonlin (PyTorch function): Nonlinearity to apply to hidden layers
+        """
+        super(MLPNetwork, self).__init__()
+
+        if norm_in:  # normalize inputs
+            self.in_fn = nn.BatchNorm1d(input_dim)
+            self.in_fn.weight.data.fill_(1)
+            self.in_fn.bias.data.fill_(0)
+        else:
+            self.in_fn = lambda x: x
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc3 = nn.Linear(hidden_dim, out_dim)
+        self.nonlin = nonlin
+        if constrain_out and not discrete_action:
+            # initialize small to prevent saturation
+            self.fc3.weight.data.uniform_(-3e-3, 3e-3)
+            self.out_fn = torch.tanh
+        else:  # logits for discrete action (will softmax later)
+            self.out_fn = lambda x: x
+
+    def forward(self, X):
+        """
+        Inputs:
+            X (PyTorch Matrix): Batch of observations
+        Outputs:
+            out (PyTorch Matrix): Output of network (actions, values, etc)
+        """
+        h1 = self.nonlin(self.fc1(self.in_fn(X)))
+        h2 = self.nonlin(self.fc2(h1))
+        out = self.out_fn(self.fc3(h2))
+        return out
+
+
+
+
+
 
 
 class DDPGAgent:
@@ -24,16 +78,24 @@ class DDPGAgent:
 
         # Networks
         self.policy = MLPNetwork(policy_in_dim, policy_out_dim,
-                                 hidden_dim=hidden_dim)
-        self.critic = MLPNetwork(critic_in_dim, 1, hidden_dim=hidden_dim)
+                                 hidden_dim=hidden_dim, 
+                                 discrete_action=discrete_action,
+                                 constrain_out=True)
+        self.critic = MLPNetwork(critic_in_dim, 1, hidden_dim=hidden_dim,
+                                 constrain_out=False)
         # Target networks
         self.target_policy = MLPNetwork(policy_in_dim, policy_out_dim,
-                                        hidden_dim=hidden_dim)
+                                        hidden_dim=hidden_dim, 
+                                        discrete_action=discrete_action,
+                                        constrain_out=True)
         self.target_critic = MLPNetwork(critic_in_dim, 1, 
-                                        hidden_dim=hidden_dim)
+                                        hidden_dim=hidden_dim,
+                                        constrain_out=False)
         # Copy parameters in targets
         hard_update(self.target_policy, self.policy)
         hard_update(self.target_critic, self.critic)
+        self.policy_optimizer = Adam(self.policy.parameters(), lr=lr)
+        self.critic_optimizer = Adam(self.critic.parameters(), lr=lr)
 
         # Optimizer
         self.optimizer = Adam(
@@ -82,9 +144,7 @@ class DDPGAgent:
                         action_dim = action.shape[1]
                         action = np.eye(action_dim)[random.randint(
                             0, action_dim - 1)]
-                        action = torch.Variable(
-                            torch.Tensor(action).unsqueeze(0),
-                            requires_grad=False)
+                        action = torch.Tensor(action).unsqueeze(0)
                     # Exploitation
                     else:
                         # Take most probable action
@@ -224,8 +284,9 @@ class MADDPG:
         """
         obs, acs, rews, next_obs, dones = sample
         curr_agent = self.agents[agent_i]
-        curr_agent.optimizer.zero_grad()
-        # Critic Loss
+        # curr_agent.optimizer.zero_grad()
+        # Critic Update
+        curr_agent.critic_optimizer.zero_grad()
         # Compute Target Value
         if self.discrete_action: # one-hot encode action
             all_trgt_acs = [onehot_from_logits(pi(nobs)) 
@@ -243,8 +304,12 @@ class MADDPG:
         actual_value = curr_agent.critic(vf_in)
         # Value loss = minimise TD error (difference between target and value)
         vf_loss = MSELoss(actual_value, target_value.detach())
+        vf_loss.backward()
+        torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5)
+        curr_agent.critic_optimizer.step()
 
         # Policy Update
+        curr_agent.policy_optimizer.zero_grad()
         # Get Action
         curr_pol_out = curr_agent.policy(obs[agent_i])
         if self.discrete_action:
@@ -264,13 +329,13 @@ class MADDPG:
         pol_loss = -curr_agent.critic(vf_in).mean()
         pol_loss += (curr_pol_out**2).mean() * 1e-3
 
-        vf_loss.backward()
+        # vf_loss.backward()
         pol_loss.backward()
-
-        torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5)
+        # torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5)
         torch.nn.utils.clip_grad_norm_(curr_agent.policy.parameters(), 0.5)
-        # curr_agent.policy_optimizer.step()
-        curr_agent.optimizer.step()
+        curr_agent.policy_optimizer.step()
+
+        # curr_agent.optimizer.step()
 
         return vf_loss, pol_loss
 

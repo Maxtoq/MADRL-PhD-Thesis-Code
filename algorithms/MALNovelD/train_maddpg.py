@@ -176,6 +176,7 @@ def run(cfg):
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             maddpg.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
             maddpg.save(model_cp_path)
+            maddpg.prep_rollouts(device='cpu')
     
     env.close()
     # Save model

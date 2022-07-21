@@ -21,6 +21,7 @@ def perform_eval_scenar(env, model, init_pos_list, max_episode_length):
     mean_ep_length = tot_ep_length / len(init_pos_list)
     return mean_return, success_rate, mean_ep_length
 
+@torch.no_grad()
 def eval_episode(env, model, max_episode_length, init_pos=None, render=False, 
                  step_time=0, verbose=False):
     ep_return = 0.0

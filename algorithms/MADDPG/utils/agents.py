@@ -51,6 +51,9 @@ class DDPGAgent(object):
         hard_update(self.target_critic, self.critic)
         self.policy_optimizer = Adam(self.policy.parameters(), lr=lr)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=lr)
+        # self.optimizer = Adam(
+        #     list(self.policy.parameters()) + list(self.critic.parameters()),
+        #     lr=lr)
         if not discrete_action:
             self.exploration = OUNoise(num_out_pol)
         else:

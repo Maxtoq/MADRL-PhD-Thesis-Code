@@ -71,7 +71,7 @@ class ReplayBuffer(object):
         inds = np.random.choice(np.arange(self.filled_i), size=N,
                                 replace=False)
         if cuda_device is not None:
-            cast = lambda x: Tensor(x, device=cuda_device)
+            cast = lambda x: Tensor(x).to(cuda_device) # , device=cuda_device)
         else:
             cast = lambda x: Tensor(x)
         if norm_rews:
