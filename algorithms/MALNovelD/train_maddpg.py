@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 import json
 import torch
 import numpy as np
@@ -107,7 +106,6 @@ def run(cfg):
             max(0, cfg.n_explo_frames - step_i) / cfg.n_explo_frames
         maddpg.scale_noise(cfg.final_explo_rate + 
             (cfg.init_explo_rate - cfg.final_explo_rate) * explo_pct_remaining)
-        maddpg.reset_noise()
 
         # Perform step
         obs = np.array(obs)
@@ -147,6 +145,7 @@ def run(cfg):
             ep_length = 0
             ep_success = False
             obs = env.reset()
+            maddpg.reset_noise()
         else:
             obs = next_obs
 
