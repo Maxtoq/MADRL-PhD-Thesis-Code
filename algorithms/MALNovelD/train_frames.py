@@ -214,7 +214,7 @@ class ProgressBar:
 
         percentage_done = 100 * current_number / self.max_number
         
-        print(f"Step {current_number}/{self.max_number} ({percentage_done}%), for {elapsed_time}, left {time_left}.", 
+        print(f"Step {current_number}/{self.max_number} ({percentage_done:0.2f}%), for {elapsed_time}, left {time_left}.", 
                 end='\r')
 
         self.last_time = current_time
@@ -234,25 +234,36 @@ def train_episode(env, model, replay_buffer, max_episode_length):
     # Reset environment with initial positions
     obs = env.reset()
     for step_i in range(max_episode_length):
-        # rearrange observations to be per agent
-        torch_obs = [torch.Tensor(np.vstack(obs[:, a]))
-                     for a in range(model.n_agents)]
-        # get actions as torch Variables
-        torch_agent_actions = model.step(torch_obs, explore=True)
-        # convert actions to numpy arrays
-        agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
-        # convert actions to numpy arrays
-        actions = [
-            [ac[0] for ac in agent_actions]
-        ]
-        
-        # Environment step
-        next_obs, rewards, dones, infos = env.step(actions)
-        replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
-
+        # Perform step
+        obs = np.array(obs)
+        torch_obs = torch.Tensor(obs)
+        actions = model.step(torch_obs, explore=True)
+        actions = [a.squeeze().data.numpy() for a in actions]
+        next_obs, rewards, dones, _ = env.step(actions)
+        # Store experience in replay buffer
+        replay_buffer.push(
+            np.array([obs]), 
+            np.array([np.expand_dims(a, axis=0) for a in actions]), 
+            np.array([rewards]), 
+            np.array([next_obs]), 
+            np.array([dones]))
+        # # rearrange observations to be per agent
+        # torch_obs = [torch.Tensor(np.vstack(obs[:, a]))
+        #              for a in range(model.n_agents)]
+        # # get actions as torch Variables
+        # torch_agent_actions = model.step(torch_obs, explore=True)
+        # # convert actions to numpy arrays
+        # agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
+        # # convert actions to numpy arrays
+        # actions = [
+        #     [ac[0] for ac in agent_actions]
+        # ]
+        # # Environment step
+        # next_obs, rewards, dones, infos = env.step(actions)
+        # replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
 
         ep_returns += rewards[0]
-        if dones[0].any():
+        if any(dones): # dones[0].any():
             ep_length = step_i + 1
             ep_success = True
             break
@@ -289,13 +300,13 @@ def run(config):
         training_device = 'cpu'
         torch.set_num_threads(config.n_training_threads)
 
-    env = make_parallel_env(config.env_path, 1, config.seed, 
-                            config.discrete_action, sce_conf)
+    # env = make_parallel_env(config.env_path, 1, config.seed, 
+    #                         config.discrete_action, sce_conf)
+    env = make_env(config.env_path, sce_conf, config.discrete_action)
 
     maddpg = MADDPG(
-        2, 17, 5, config.lr, config.gamma, config.tau,
-        config.hidden_dim, config.discrete_action, config.shared_params, 
-        config.init_exploration
+        2, 17, 5, config.lr, config.gamma, config.tau, config.hidden_dim, 
+        config.discrete_action, config.shared_params, config.init_exploration
     )
 
     replay_buffer = ReplayBuffer(

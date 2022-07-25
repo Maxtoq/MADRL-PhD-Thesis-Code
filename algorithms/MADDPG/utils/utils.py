@@ -25,7 +25,7 @@ class ProgressBar:
 
         percentage_done = 100 * current_number / self.max_number
         
-        print(f"Step {current_number}/{self.max_number} ({percentage_done}%), for {elapsed_time}, left {time_left}.", 
+        print(f"Step {current_number}/{self.max_number} ({percentage_done:0.2f}%), for {elapsed_time}, left {time_left}.", 
                 end='\r')
 
         self.last_time = current_time

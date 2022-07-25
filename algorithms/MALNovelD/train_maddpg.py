@@ -116,10 +116,10 @@ def run(cfg):
 
         # Store experience in replay buffer
         replay_buffer.push(
-            obs, 
-            np.array(actions), 
+            np.array([obs]), 
+            np.array([np.expand_dims(a, axis=0) for a in actions]), 
             np.array([rewards]), 
-            np.array(next_obs), 
+            np.array([next_obs]), 
             np.array([dones]))
         
         # Store step data

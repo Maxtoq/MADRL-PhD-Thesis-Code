@@ -84,7 +84,6 @@ def train_episode(env, model, replay_buffer, max_episode_length):
         next_obs, rewards, dones, infos = env.step(actions)
         replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
 
-
         ep_returns += rewards[0]
         if dones[0].any():
             ep_length = step_i + 1
