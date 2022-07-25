@@ -235,44 +235,44 @@ def train_episode(env, model, replay_buffer, max_episode_length):
     obs = env.reset()
     for step_i in range(max_episode_length):
         # print("\nStep", step_i)
-        # Perform step
+        # # Perform step
         # print("Obs", obs)
-        obs = np.array(obs)
-        torch_obs = torch.Tensor(obs)
-        actions = model.step(torch_obs, explore=True)
-        actions = [a.squeeze().data.numpy() for a in actions]
+        # obs = np.array(obs)
+        # torch_obs = torch.Tensor(obs)
+        # actions = model.step(torch_obs, explore=True)
+        # actions = [a.squeeze().data.numpy() for a in actions]
         # print("Actions", actions)
-        next_obs, rewards, dones, _ = env.step(actions)
+        # next_obs, rewards, dones, _ = env.step(actions)
         # print("Next obs", next_obs)
         # print("Rewards", rewards)
-        # Store experience in replay buffer
-        replay_buffer.push(
-            np.array([obs]), 
-            np.array([np.expand_dims(a, axis=0) for a in actions]), 
-            np.array([rewards]), 
-            np.array([next_obs]), 
-            np.array([dones]))
-        # # rearrange observations to be per agent
+        # # Store experience in replay buffer
+        # replay_buffer.push(
+        #     np.array([obs]), 
+        #     np.array([np.expand_dims(a, axis=0) for a in actions]), 
+        #     np.array([rewards]), 
+        #     np.array([next_obs]), 
+        #     np.array([dones]))
+        # rearrange observations to be per agent
         # print("Obs", obs)
-        # torch_obs = [torch.Tensor(np.vstack(obs[:, a]))
-        #              for a in range(model.n_agents)]
-        # # get actions as torch Variables
-        # torch_agent_actions = model.step(torch_obs, explore=True)
-        # # convert actions to numpy arrays
-        # agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
+        torch_obs = [torch.Tensor(np.vstack(obs[:, a]))
+                     for a in range(model.n_agents)]
+        # get actions as torch Variables
+        torch_agent_actions = model.step(torch_obs, explore=True)
+        # convert actions to numpy arrays
+        agent_actions = [ac.data.numpy() for ac in torch_agent_actions]
         # print("Actions", agent_actions)
-        # # convert actions to numpy arrays
-        # actions = [
-        #     [ac[0] for ac in agent_actions]
-        # ]
-        # # Environment step
-        # next_obs, rewards, dones, infos = env.step(actions)
+        # convert actions to numpy arrays
+        actions = [
+            [ac[0] for ac in agent_actions]
+        ]
+        # Environment step
+        next_obs, rewards, dones, infos = env.step(actions)
         # print("Next obs", next_obs)
         # print("Rewards", rewards)
-        # replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
+        replay_buffer.push(obs, agent_actions, rewards, next_obs, dones)
 
         ep_returns += rewards[0]
-        if any(dones): 
+        if dones[0].any():
             ep_length = step_i + 1
             ep_success = True
             break
@@ -308,9 +308,9 @@ def run(config):
         training_device = 'cpu'
         torch.set_num_threads(config.n_training_threads)
 
-    # env = make_parallel_env(config.env_path, 1, config.seed, 
-    #                         config.discrete_action, sce_conf)
-    env = make_env(config.env_path, sce_conf, config.discrete_action)
+    env = make_parallel_env(config.env_path, 1, config.seed, 
+                            config.discrete_action, sce_conf)
+    # env = make_env(config.env_path, sce_conf, config.discrete_action)
 
     maddpg = MADDPG(
         2, 17, 5, config.lr, config.gamma, config.tau, config.hidden_dim, 

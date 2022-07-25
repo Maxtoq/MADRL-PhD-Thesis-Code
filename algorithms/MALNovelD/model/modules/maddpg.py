@@ -130,6 +130,7 @@ class DDPGAgent:
             action (PyTorch Variable): Actions for this agent
         """
         action = self.policy(obs)
+        print("Policy ouptut", action)
         if self.discrete_action:
             if explore:
                 if self.explo_strat == 'sample':
