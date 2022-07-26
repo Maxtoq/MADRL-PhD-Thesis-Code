@@ -1,37 +1,45 @@
 import torch
 
 from torch import nn
+from torch.optim import Adam
 
 from .networks import MLPNetwork
 
 
-class NovelD(nn.Module):
+class NovelD:
     """
     Class implementing NovelD, from "NovelD: A Simple yet Effective Exploration
-    Criterion" (Zhang et al., 2021)
+    Criterion" (Zhang et al., 2021).
     """
-    def __init__(self, state_dim, embed_dim, hidden_dim, scale_fac):
+    def __init__(self, state_dim, embed_dim, hidden_dim, 
+                 lr=1e-4, scale_fac=0.5):
         """
         Inputs:
-            :param state_dim (int): Dimension of the input
-            :param embed_dim (int): Dimension of the output of RND networks
-            :param hidden_dim (int): Dimension of the hidden layers in MLPs
+            :param state_dim (int): Dimension of the input.
+            :param embed_dim (int): Dimension of the output of RND networks.
+            :param hidden_dim (int): Dimension of the hidden layers in MLPs.
+            :param lr (float): Learning rate for training the predictor
+                (default=0.0001).
             :param scale_fac (float): Scaling factor for computing the reward, 
                 noted alpha in the paper, controls how novel we want the states
-                to be to generate some reward (in [0,1])
+                to be to generate some reward (in [0,1]) (default=0.5).
         """
-        super(NovelD, self).__init__()
         # Random Network Distillation network
         # Fixed target embedding network
         self.target = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_layers=3)
+            state_dim, embed_dim, hidden_dim, n_layers=3, norm_in=False)
         # Predictor embedding network
         self.predictor = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_layers=3)
+            state_dim, embed_dim, hidden_dim, n_layers=3, norm_in=False)
 
         # Fix weights of target
         for param in self.target.parameters():
             param.requires_grad = False
+
+        # Training objects
+        self.lr = lr
+        self.predictor_loss = nn.MSELoss()
+        self.predictor_optim = Adam(self.predictor.parameters(), lr=lr)
         
         # Scaling facor
         self.scale_fac = scale_fac
@@ -42,17 +50,31 @@ class NovelD(nn.Module):
         # Save count of states encountered during each episode
         self.episode_states_count = {}
 
-    def forward(self, X):
+    def init_new_episode(self):
+        self.last_nov = None
+        self.episode_states_count = {}
+
+    def is_empty(self):
+        return True if len(self.episode_states_count) == 0 else False
+
+    def train_predictor(self, pred_batch, target_batch):
+        self.predictor_optim.zero_grad()
+        loss = self.predictor_loss(pred_batch, target_batch)
+        loss.backward()
+        self.predictor_optim.step()
+        return float(loss)
+
+    def get_reward(self, state):
         # Increment count of current state
-        state_key = tuple(X.squeeze().tolist())
+        state_key = tuple(state.squeeze().tolist())
         if state_key in self.episode_states_count:
             self.episode_states_count[state_key] += 1
         else:
             self.episode_states_count[state_key] = 1
 
         # Compute embeddings
-        target = self.target(X)
-        pred = self.predictor(X)
+        target = self.target(state)
+        pred = self.predictor(state)
 
         # Compute novelty
         nov = torch.norm(pred.detach() - target.detach(), dim=1, p=2)
@@ -67,7 +89,10 @@ class NovelD(nn.Module):
 
         self.last_nov = nov
 
-        return target, pred, intrinsic_reward
+        # Train the predictor with the predictions
+        loss = self.train_predictor(pred, target)
+
+        return intrinsic_reward, loss
 
 
 
@@ -80,34 +105,42 @@ class LNovelD(nn.Module):
             obs_in_dim, 
             lang_in_dim,
             embed_dim,
-            hidden_dim=64, 
+            hidden_dim=64,
+            lr=1e-4, 
             scale_fac=0.5, 
             trade_off=1):
         """
         Inputs:
-            :param obs_in_dim (int): Dimension of the observation input
-            :param lang_in_dim (int): Dimension of the language encoding input
-            :param embed_dim (int): Dimension of the output of RND networks
-            :param hidden_dim (int): Dimension of the hidden layers in MLPs
+            :param obs_in_dim (int): Dimension of the observation input.
+            :param lang_in_dim (int): Dimension of the language encoding input.
+            :param embed_dim (int): Dimension of the output of RND networks.
+            :param hidden_dim (int): Dimension of the hidden layers in MLPs.
+            :param lr (float): Learning rates for training NovelD predictors.
             :param scale_fac (float): Scaling factor for computing the reward, 
                 noted alpha in the paper, controls how novel we want the states
-                to be to generate some reward (in [0,1])
+                to be to generate some reward (in [0,1]).
             :param trade_off (float): Parameter for controlling the weight of 
                 the language novelty in the final reward, noted lambda_l in the
-                paper (in [0, +inf])
+                paper (in [0, +inf]).
         """
         super(LNovelD, self).__init__()
         # Observatio-based NovelD
-        self.obs_noveld = NovelD(obs_in_dim, embed_dim, hidden_dim, scale_fac)
+        self.obs_noveld = NovelD(
+            obs_in_dim, embed_dim, hidden_dim, lr, scale_fac)
         # Language-based NovelD
-        self.lang_noveld = NovelD(lang_in_dim, embed_dim, hidden_dim, scale_fac)
+        self.lang_noveld = NovelD(
+            lang_in_dim, embed_dim, hidden_dim, lr, scale_fac)
 
         self.trade_off = trade_off
 
+    def init_new_episode(self):
+        self.obs_noveld.init_new_episode()
+        self.lang_noveld.init_new_episode()
+
     def forward(self, obs_in, lang_in):
-        obs_target, obs_pred, obs_int_reward = self.obs_noveld(obs_in)
-        lang_target, lang_pred, lang_int_reward = self.lang_noveld(lang_in)
+        obs_int_reward, obs_pred_loss = self.obs_noveld.get_reward(obs_in)
+        lang_int_reward, lang_pred_loss = self.lang_noveld.get_reward(lang_in)
 
         intrinsic_reward = obs_int_reward + self.trade_off * lang_int_reward
 
-        return (obs_target, obs_pred), (lang_target, lang_pred), intrinsic_reward
+        return intrinsic_reward, obs_pred_loss, lang_pred_loss
