@@ -19,7 +19,8 @@ class MLPNetwork(nn.Module):
             hidden_dim=64, 
             n_layers=1, 
             activation_fn='relu',
-            out_activation_fn=None):
+            out_activation_fn=None,
+            norm_in=True):
         """
         Inputs:
             :param input_dim (int): Dimension of the input
@@ -30,9 +31,18 @@ class MLPNetwork(nn.Module):
                 must be in ['relu', 'tanh']
             :param out_activation_fn (str): Activation function of the output
                 layer, must be in [None, 'tanh']
+            :param norm_in (bool): Whether to perform BatchNorm on model input
         """
         super(MLPNetwork, self).__init__()
         self.n_layers = n_layers
+
+        # Normalisation of inputs
+        if norm_in:
+            self.in_fn = nn.BatchNorm1d(input_dim)
+            self.in_fn.weight.data.fill_(1)
+            self.in_fn.bias.data.fill_(0)
+        else:
+            self.in_fn = lambda x: x
 
         # Choice for activation function
         if activation_fn not in ['tanh', 'relu']:
@@ -71,7 +81,7 @@ class MLPNetwork(nn.Module):
                 ) for _ in range(self.n_layers)],
             nn.Linear(hidden_dim, out_dim)
         )
-        self.mlp.apply(init_)
+        # self.mlp.apply(init_)
 
     def forward(self, X):
         """
@@ -83,5 +93,5 @@ class MLPNetwork(nn.Module):
             out (PyTorch Tensor): Batch of outputs,
                 dim=(batch_size, output_dim)
         """
-        out = self.mlp(X)
+        out = self.mlp(self.in_fn(X))
         return self.out_activ_fn(out)

@@ -113,7 +113,7 @@ def run(cfg):
         actions = maddpg.step(torch_obs, explore=True)
         actions = [a.squeeze().data.numpy() for a in actions]
         next_obs, rewards, dones, _ = env.step(actions)
-
+        
         # Store experience in replay buffer
         replay_buffer.push(
             np.array([obs]), 

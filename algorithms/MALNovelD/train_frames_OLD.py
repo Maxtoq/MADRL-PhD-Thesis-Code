@@ -345,8 +345,8 @@ def run(config):
     last_train_i = 0
     last_save_i = 0
     while step_i < config.n_frames:
-        if step_i == 30000:
-            exit()
+        # if step_i == 700:
+        #     exit()
         # Print progess
         pb.print_progress(step_i)
 
