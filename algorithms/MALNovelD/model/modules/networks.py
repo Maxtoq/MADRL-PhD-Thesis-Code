@@ -69,8 +69,8 @@ class MLPNetwork(nn.Module):
         init_method = nn.init.orthogonal_
         gain = nn.init.calculate_gain(activation_fn)
         def init_(m):
-            return init(m, init_method, lambda x: nn.init.constant_(x, 0), 
-                gain=gain)
+            return init(
+                m, init_method, lambda x: nn.init.constant_(x, 0), gain=gain)
 
         self.mlp = nn.Sequential(
             nn.Linear(input_dim, hidden_dim), 
@@ -81,7 +81,7 @@ class MLPNetwork(nn.Module):
                 ) for _ in range(self.n_layers)],
             nn.Linear(hidden_dim, out_dim)
         )
-        # self.mlp.apply(init_)
+        self.mlp.apply(init_)
 
     def forward(self, X):
         """
