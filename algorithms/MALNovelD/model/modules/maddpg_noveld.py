@@ -24,8 +24,11 @@ class DDPG_NovelD(DDPGAgent):
         return super().step(obs, explore)
 
     def get_intrinsic_reward(self, next_obs):
-        intr_reward, _ = self.noveld.get_reward(next_obs)
+        intr_reward = self.noveld.get_reward(next_obs)
         return intr_reward
+    
+    def train_noveld(self):
+        return self.noveld.train_predictor()
 
 
 class MADDPG_PANovelD(MADDPG):
@@ -71,4 +74,12 @@ class MADDPG_PANovelD(MADDPG):
                 torch.Tensor(next_obs).unsqueeze(0))
             int_rewards.append(int_reward)
         return int_rewards
+
+    def update(self, sample, agent_i):
+        vf_loss, pol_loss = super().update(sample, agent_i)
+
+        # NovelD update
+        nd_loss = self.agents[agent_i].train_noveld()
+
+        return vf_loss, pol_loss, nd_loss
 

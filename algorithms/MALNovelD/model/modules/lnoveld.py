@@ -50,18 +50,37 @@ class NovelD:
         # Save count of states encountered during each episode
         self.episode_states_count = {}
 
+        # Stored predictions for future training
+        self.stored_preds = torch.Tensor()
+        self.stored_targets = torch.Tensor()
+
     def init_new_episode(self):
         self.last_nov = None
         self.episode_states_count = {}
 
     def is_empty(self):
         return True if len(self.episode_states_count) == 0 else False
+    
+    def store_pred(self, pred, target):
+        self.stored_preds = torch.cat((self.stored_preds, pred))
+        self.stored_targets = torch.cat((self.stored_targets, target))
 
-    def train_predictor(self, pred_batch, target_batch):
+    # def train_predictor(self, pred_batch, target_batch):
+    #     self.predictor_optim.zero_grad()
+    #     loss = self.predictor_loss(pred_batch, target_batch)
+    #     loss.backward()
+    #     self.predictor_optim.step()
+    #     return float(loss)
+
+    def train_predictor(self):
         self.predictor_optim.zero_grad()
-        loss = self.predictor_loss(pred_batch, target_batch)
+        loss = self.predictor_loss(self.stored_preds, self.stored_targets)
         loss.backward()
         self.predictor_optim.step()
+
+        self.stored_preds = torch.Tensor()
+        self.stored_targets = torch.Tensor()
+        
         return float(loss)
 
     def get_reward(self, state):
@@ -89,14 +108,17 @@ class NovelD:
 
         self.last_nov = nov
 
-        # Train the predictor with the predictions
-        loss = self.train_predictor(pred, target)
+        # # Train the predictor with the predictions
+        # pred_loss = self.train_predictor(pred, target)
+        # Store predictions
+        self.store_pred(pred, target)
 
-        return intrinsic_reward, loss
+        # return intrinsic_reward, pred_loss
+        return intrinsic_reward
 
 
 
-class LNovelD(nn.Module):
+class LNovelD:
     """
     Class implementing the Language-augmented version of NovelD from "Improving
     Intrinsic Exploration with Language Abstractions" (Mu et al., 2022).
@@ -123,7 +145,6 @@ class LNovelD(nn.Module):
                 the language novelty in the final reward, noted lambda_l in the
                 paper (in [0, +inf]).
         """
-        super(LNovelD, self).__init__()
         # Observatio-based NovelD
         self.obs_noveld = NovelD(
             obs_in_dim, embed_dim, hidden_dim, lr, scale_fac)
@@ -137,7 +158,7 @@ class LNovelD(nn.Module):
         self.obs_noveld.init_new_episode()
         self.lang_noveld.init_new_episode()
 
-    def forward(self, obs_in, lang_in):
+    def get_reward(self, obs_in, lang_in):
         obs_int_reward, obs_pred_loss = self.obs_noveld.get_reward(obs_in)
         lang_int_reward, lang_pred_loss = self.lang_noveld.get_reward(lang_in)
 

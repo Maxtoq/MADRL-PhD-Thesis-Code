@@ -93,11 +93,13 @@ def run(cfg):
     train_data_dict = {
         "Step": [],
         "Episode return": [],
+        "Episode intrinsic return": [],
         "Success": [],
         "Episode length": []
     }
     # Reset episode data and environment
     ep_returns = np.zeros(n_agents)
+    ep_int_returns = np.zeros(n_agents)
     ep_length = 0
     ep_success = False
     obs = env.reset()
@@ -119,7 +121,6 @@ def run(cfg):
         int_rewards = maddpg.get_intrinsic_rewards(next_obs)
         rewards = np.array([ext_rewards]) + \
                   cfg.int_reward_coeff * np.array([int_rewards])
-
         
         # Store experience in replay buffer
         replay_buffer.push(
@@ -131,6 +132,7 @@ def run(cfg):
         
         # Store step data
         ep_returns += rewards[0]
+        ep_int_returns += int_rewards
         ep_length += 1
         if any(dones):
             ep_success = True
@@ -140,6 +142,8 @@ def run(cfg):
             # Log episode data
             train_data_dict["Step"].append(step_i)
             train_data_dict["Episode return"].append(np.mean(ep_returns))
+            train_data_dict["Episode intrinsic return"].append(
+                np.mean(ep_int_returns))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_length)
             # Tensorboard
@@ -164,7 +168,14 @@ def run(cfg):
                 sample = replay_buffer.sample(
                     config.batch_size, cuda_device=device)
                 agent_index = 0 if cfg.shared_params else a_i
-                maddpg.update(sample, agent_index)
+                vf_loss, pol_loss, nd_loss = maddpg.update(sample, agent_index)
+                # Log
+                logger.add_scalars(
+                    'agent%i/losses' % a_i, 
+                    {'vf_loss': vf_loss,
+                     'pol_loss': pol_loss,
+                     'nd_loss': nd_loss},
+                    step_i)
             maddpg.update_all_targets()
             maddpg.prep_rollouts(device='cpu')
 
