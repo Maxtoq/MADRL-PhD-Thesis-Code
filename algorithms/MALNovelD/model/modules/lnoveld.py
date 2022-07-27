@@ -80,10 +80,18 @@ class NovelD:
 
         self.stored_preds = torch.Tensor()
         self.stored_targets = torch.Tensor()
-        
+
         return float(loss)
 
     def get_reward(self, state):
+        """
+        Get intrinsic reward for this new state.
+        Inputs:
+            state (torch.Tensor): State from which to generate the reward,
+                dim=(1, state_dim).
+        Outputs:
+            intrinsic_reward (float): Intrinsic reward for the input state.
+        """
         # Increment count of current state
         state_key = tuple(state.squeeze().tolist())
         if state_key in self.episode_states_count:

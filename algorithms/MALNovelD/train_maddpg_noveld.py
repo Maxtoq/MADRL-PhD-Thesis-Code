@@ -8,7 +8,7 @@ import pandas as pd
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from model.modules.maddpg_noveld import MADDPG_PANovelD
+from model.modules.maddpg_noveld import MADDPG_PANovelD, MADDPG_MANovelD
 from utils.buffer import ReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env
 from utils.eval import perform_eval_scenar
@@ -51,7 +51,7 @@ def run(cfg):
         act_dim = env.action_space[0].n
     else:
         act_dim = env.action_space[0].shape[0]
-    maddpg = MADDPG_PANovelD(
+    maddpg = MADDPG_MANovelD(
         n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
         cfg.tau, cfg.hidden_dim, cfg.embed_dim, cfg.discrete_action, 
         cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat)
@@ -165,17 +165,17 @@ def run(cfg):
         if ((step_i + 1) % cfg.frames_per_update == 0 and
                 len(replay_buffer) >= cfg.batch_size):
             maddpg.prep_training(device=device)
+            samples = [replay_buffer.sample(
+                            config.batch_size, cuda_device=device)
+                       for _ in range(n_agents)]
+            vf_loss, pol_loss, nd_loss = maddpg.update(samples)
+            # Log
             for a_i in range(n_agents):
-                sample = replay_buffer.sample(
-                    config.batch_size, cuda_device=device)
-                agent_index = 0 if cfg.shared_params else a_i
-                vf_loss, pol_loss, nd_loss = maddpg.update(sample, agent_index)
-                # Log
                 logger.add_scalars(
                     'agent%i/losses' % a_i, 
-                    {'vf_loss': vf_loss,
-                     'pol_loss': pol_loss,
-                     'nd_loss': nd_loss},
+                    {'vf_loss': vf_loss[a_i],
+                        'pol_loss': pol_loss[a_i],
+                        'nd_loss': nd_loss[a_i]},
                     step_i)
             maddpg.update_all_targets()
             maddpg.prep_rollouts(device='cpu')

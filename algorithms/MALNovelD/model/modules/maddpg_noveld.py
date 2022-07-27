@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from .maddpg import DDPGAgent, MADDPG
 from .lnoveld import NovelD
@@ -78,13 +79,21 @@ class MADDPG_PANovelD(MADDPG):
             int_rewards.append(int_reward)
         return int_rewards
 
-    def update(self, sample, agent_i):
-        vf_loss, pol_loss = super().update(sample, agent_i)
+    def update(self, samples):
+        vf_losses = []
+        pol_losses = []
+        nd_losses = []
+        for a_i, sample in enumerate(samples):
+            a_i = 0 if self.shared_params else a_i
+            # Agent update
+            vf_loss, pol_loss = super().update(sample, a_i)
+            # NovelD update
+            nd_loss = self.agents[a_i].train_noveld()
+            vf_losses.append(vf_loss)
+            pol_losses.append(pol_loss)
+            nd_losses.append(nd_losses)
 
-        # NovelD update
-        nd_loss = self.agents[agent_i].train_noveld()
-
-        return vf_loss, pol_loss, nd_loss
+        return vf_losses, pol_losses, nd_losses
 
     def reset_noveld(self):
         for a_i in range(self.n_agents):
@@ -110,6 +119,13 @@ class MADDPG_MANovelD(MADDPG):
         self.ma_noveld = NovelD(
             n_agents * input_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
 
+    def step(self, observations, explore=False):
+        # If we are starting a new episode, compute novelty for first observation
+        if self.noveld.is_empty():
+            self.noveld.get_reward(observations)
+
+        return super().step(observations, explore)
+
     def get_intrinsic_rewards(self, next_obs_list):
         """
         Get intrinsic reward of the multi-agent system.
@@ -119,19 +135,40 @@ class MADDPG_MANovelD(MADDPG):
         Outputs:
             int_rewards (list): List of agents' intrinsic rewards.
         """
-        int_rewards = []
-        for a_i, next_obs in enumerate(next_obs_list):
-            a_i = 0 if self.shared_params else a_i
-            int_reward = self.agents[a_i].get_intrinsic_reward(
-                torch.Tensor(next_obs).unsqueeze(0))
-            int_rewards.append(int_reward)
+        # int_rewards = []
+        # for a_i, next_obs in enumerate(next_obs_list):
+        #     a_i = 0 if self.shared_params else a_i
+        #     int_reward = self.agents[a_i].get_intrinsic_reward(
+        #         torch.Tensor(next_obs).unsqueeze(0))
+        #     int_rewards.append(int_reward)
+        # Concatenate observations
+        cat_obs = torch.Tensor(np.concatenate(next_obs_list)).unsqueeze(0)
+        # Get reward
+        int_reward = self.ma_noveld.get_reward(cat_obs)
+        int_rewards = [int_reward] * self.n_agents
         return int_rewards
 
-    def update(self, sample, agent_i):
-        vf_loss, pol_loss = super().update(sample, agent_i)
+    def update(self, samples):
+        """
+        Update all agents and NovelD model.
+        Inputs:
+            samples (list): List of batches for the agents to train on (one 
+                for each agent).
+            logger (tensorboardX.SummaryWriter): Tensorboad logger.
+        """
+        vf_losses = []
+        pol_losses = []
+        for a_i, sample in enumerate(samples):
+            a_i = 0 if self.shared_params else a_i
+            vf_loss, pol_loss = super().update(sample, a_i)
+            vf_losses.append(vf_loss)
+            pol_losses.append(pol_loss)
 
         # NovelD update
-        nd_loss = self.agents[agent_i].train_noveld()
+        nd_losses = [self.ma_noveld.train_predictor()] * self.n_agents
 
-        return vf_loss, pol_loss, nd_loss
+        return vf_losses, pol_losses, nd_losses
+
+    def reset_noveld(self):
+        self.ma_noveld.init_new_episode()
 
