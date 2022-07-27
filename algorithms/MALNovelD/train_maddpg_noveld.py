@@ -157,6 +157,7 @@ def run(cfg):
             ep_success = False
             obs = env.reset()
             maddpg.reset_noise()
+            maddpg.reset_noveld()
         else:
             obs = next_obs
 

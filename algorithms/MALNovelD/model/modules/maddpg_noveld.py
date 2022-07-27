@@ -30,6 +30,9 @@ class DDPG_NovelD(DDPGAgent):
     def train_noveld(self):
         return self.noveld.train_predictor()
 
+    def reset_noveld(self):
+        self.noveld.init_new_episode()
+
 
 class MADDPG_PANovelD(MADDPG):
     """ 
@@ -61,6 +64,55 @@ class MADDPG_PANovelD(MADDPG):
     def get_intrinsic_rewards(self, next_obs_list):
         """
         Get intrinsic rewards for all agents.
+        Inputs:
+            next_obs_list (list): List of agents' observations at next 
+                step.
+        Outputs:
+            int_rewards (list): List of agents' intrinsic rewards.
+        """
+        int_rewards = []
+        for a_i, next_obs in enumerate(next_obs_list):
+            a_i = 0 if self.shared_params else a_i
+            int_reward = self.agents[a_i].get_intrinsic_reward(
+                torch.Tensor(next_obs).unsqueeze(0))
+            int_rewards.append(int_reward)
+        return int_rewards
+
+    def update(self, sample, agent_i):
+        vf_loss, pol_loss = super().update(sample, agent_i)
+
+        # NovelD update
+        nd_loss = self.agents[agent_i].train_noveld()
+
+        return vf_loss, pol_loss, nd_loss
+
+    def reset_noveld(self):
+        for a_i in range(self.n_agents):
+            a_i = 0 if self.shared_params else a_i
+            self.agents[a_i].reset_noveld()
+
+
+class MADDPG_MANovelD(MADDPG):
+    """ 
+    Class impelementing MADDPG with Per Agent NovelD (MADDPG_PANovelD),
+    meaning that each agent has its own local NovelD model to compute a
+    personal intrinsic reward.
+    """
+    def __init__(self, n_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
+                 tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
+                 shared_params=False, init_explo_rate=1.0, explo_strat="sample",
+                 nd_lr=1e-4, nd_scale_fac=0.5):
+        super(MADDPG_PANovelD, self).__init__(
+            n_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
+            discrete_action, shared_params, init_explo_rate, explo_strat)
+
+        # Init NovelD model for the multi-agent system
+        self.ma_noveld = NovelD(
+            n_agents * input_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
+
+    def get_intrinsic_rewards(self, next_obs_list):
+        """
+        Get intrinsic reward of the multi-agent system.
         Inputs:
             next_obs_list (list): List of agents' observations at next 
                 step.
