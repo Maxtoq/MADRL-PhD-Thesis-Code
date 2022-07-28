@@ -65,13 +65,6 @@ class NovelD:
         self.stored_preds = torch.cat((self.stored_preds, pred))
         self.stored_targets = torch.cat((self.stored_targets, target))
 
-    # def train_predictor(self, pred_batch, target_batch):
-    #     self.predictor_optim.zero_grad()
-    #     loss = self.predictor_loss(pred_batch, target_batch)
-    #     loss.backward()
-    #     self.predictor_optim.step()
-    #     return float(loss)
-
     def train_predictor(self):
         self.predictor_optim.zero_grad()
         loss = self.predictor_loss(self.stored_preds, self.stored_targets)
@@ -116,12 +109,9 @@ class NovelD:
 
         self.last_nov = nov
 
-        # # Train the predictor with the predictions
-        # pred_loss = self.train_predictor(pred, target)
         # Store predictions
         self.store_pred(pred, target)
 
-        # return intrinsic_reward, pred_loss
         return intrinsic_reward
 
 

@@ -153,6 +153,7 @@ def run(cfg):
                 train_data_dict["Step"][-1])
             # Reset the environment
             ep_returns = np.zeros(n_agents)
+            ep_int_returns = np.zeros(n_agents)
             ep_length = 0
             ep_success = False
             obs = env.reset()
