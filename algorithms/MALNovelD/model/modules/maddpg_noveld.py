@@ -91,7 +91,7 @@ class MADDPG_PANovelD(MADDPG):
             nd_loss = self.agents[a_i].train_noveld()
             vf_losses.append(vf_loss)
             pol_losses.append(pol_loss)
-            nd_losses.append(nd_losses)
+            nd_losses.append(nd_loss)
 
         return vf_losses, pol_losses, nd_losses
 

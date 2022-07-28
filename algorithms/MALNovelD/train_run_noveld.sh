@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
-model_name="mymaddpg_manoveld_fo_rel_disc"
-sce_conf_path="configs/2a_1o_fo_rel.json"
+model_name="mymaddpg_panoveld_po_rel_disc"
+sce_conf_path="configs/2a_1o_po_rel.json"
 n_frames=10000000
 buffer_length=1000000
 lr=0.0007
@@ -12,7 +12,7 @@ init_explo_rate=1.0
 frames_per_update=100
 eval_every=100000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-cuda_device="cuda:0"
+cuda_device="cuda:2"
 
 for n in $(seq 1 $n_run)
 do
