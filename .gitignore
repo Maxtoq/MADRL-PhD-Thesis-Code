@@ -227,3 +227,15 @@ models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/*
 !models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/run1
 models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/run1/*
 !models/coop_push_scenario_sparse/maddpg_fo_rel_disc_gumbel/run1/train_data.csv
+
+!models/coop_push_scenario_sparse/mymaddpg_panoveld_fo_rel_disc
+models/coop_push_scenario_sparse/mymaddpg_panoveld_fo_rel_disc/*
+!models/coop_push_scenario_sparse/mymaddpg_panoveld_fo_rel_disc/run3
+models/coop_push_scenario_sparse/mymaddpg_panoveld_fo_rel_disc/run3/*
+!models/coop_push_scenario_sparse/mymaddpg_panoveld_fo_rel_disc/run3/training_data.csv
+
+!models/coop_push_scenario_sparse/mymaddpg_manoveld_fo_rel_disc
+models/coop_push_scenario_sparse/mymaddpg_manoveld_fo_rel_disc/*
+!models/coop_push_scenario_sparse/mymaddpg_manoveld_fo_rel_disc/run1
+models/coop_push_scenario_sparse/mymaddpg_manoveld_fo_rel_disc/run1/*
+!models/coop_push_scenario_sparse/mymaddpg_manoveld_fo_rel_disc/run1/training_data.csv

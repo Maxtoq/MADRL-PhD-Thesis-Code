@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
 env="coop_push_scenario/coop_push_scenario_sparse.py"
-model_name="mymaddpg_panoveld_fo_rel_disc"
+model_name="mymaddpg_manoveld_fo_rel_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000
 buffer_length=1000000

@@ -111,7 +111,7 @@ class MADDPG_MANovelD(MADDPG):
                  tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
                  shared_params=False, init_explo_rate=1.0, explo_strat="sample",
                  nd_lr=1e-4, nd_scale_fac=0.5):
-        super(MADDPG_PANovelD, self).__init__(
+        super(MADDPG_MANovelD, self).__init__(
             n_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
             discrete_action, shared_params, init_explo_rate, explo_strat)
 
@@ -121,8 +121,8 @@ class MADDPG_MANovelD(MADDPG):
 
     def step(self, observations, explore=False):
         # If we are starting a new episode, compute novelty for first observation
-        if self.noveld.is_empty():
-            self.noveld.get_reward(observations)
+        if self.ma_noveld.is_empty():
+            self.ma_noveld.get_reward(observations.view(1, -1))
 
         return super().step(observations, explore)
 
