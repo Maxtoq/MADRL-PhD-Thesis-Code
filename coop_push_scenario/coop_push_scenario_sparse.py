@@ -289,56 +289,27 @@ class Scenario(BaseScenario):
         entity_obs = []
         for entity in world.agents + world.objects:
             if entity is agent: continue
-            if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
-                # Pos: relative normalised
-                #entity_obs.append(np.concatenate((
-                #    [1.0], (entity.state.p_pos - agent.state.p_pos) / self.obs_range, entity.state.p_vel
-                #)))
-                # Pos: relative
-                if self.relative_coord:
-                    entity_obs.append(np.concatenate((
-                        [1.0], # Bit saying entity is observed
-                        (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
-                        entity.state.p_vel # Velocity
-                        # (entity.state.p_pos - agent.state.p_pos), entity.state.p_vel
-                    )))
-                # Pos: absolute
-                else:
-                    entity_obs.append(np.concatenate((
-                        # [1.0], entity.state.p_pos, entity.state.p_vel
-                        entity.state.p_pos, entity.state.p_vel
-                    )))
+            if (entity in world.agents or 
+                get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range):
+                
+                max_dist = self.obs_range if entity in world.objects else 2.772
+                
+                entity_obs.append(np.concatenate((
+                    [1.0], # Bit saying entity is observed
+                    (entity.state.p_pos - agent.state.p_pos) / max_dist, # Relative position normailised into [0, 1]
+                    entity.state.p_vel # Velocity
+                    # (entity.state.p_pos - agent.state.p_pos), entity.state.p_vel
+                )))
             else:
-                if self.relative_coord:
-                    entity_obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-                else:
-                    entity_obs.append(np.zeros(4))
+                entity_obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for entity in world.landmarks:
             if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
-                # Pos: relative normalised
-                #entity_obs.append(np.concatenate((
-                #    [1.0], (entity.state.p_pos - agent.state.p_pos) / self.obs_range
-                #)))
-                # Pos: relative
-                if self.relative_coord:
-                    entity_obs.append(np.concatenate((
-                        [1.0], 
-                        (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
-                    )))
-                    # entity_obs.append(
-                    #     entity.state.p_pos - agent.state.p_pos
-                    # )
-                # Pos: absolute
-                else:
-                    # entity_obs.append(np.concatenate((
-                    #     [1.0], entity.state.p_pos
-                    # )))
-                    entity_obs.append(entity.state.p_pos)
+                entity_obs.append(np.concatenate((
+                    [1.0], 
+                    (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                )))
             else:
-                if self.relative_coord:
-                    entity_obs.append(np.array([0.0, 1.0, 1.0]))
-                else:
-                    entity_obs.append(np.zeros(2))
+                entity_obs.append(np.array([0.0, 1.0, 1.0]))
 
         # Communication
 

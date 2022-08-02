@@ -51,7 +51,7 @@ def run(cfg):
         act_dim = env.action_space[0].n
     else:
         act_dim = env.action_space[0].shape[0]
-    maddpg = MADDPG_PANovelD(
+    maddpg = MADDPG_MANovelD(
         n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
         cfg.tau, cfg.hidden_dim, cfg.embed_dim, cfg.discrete_action, 
         cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat)
@@ -93,12 +93,14 @@ def run(cfg):
     train_data_dict = {
         "Step": [],
         "Episode return": [],
+        "Episode extrinsic return": [],
         "Episode intrinsic return": [],
         "Success": [],
         "Episode length": []
     }
     # Reset episode data and environment
     ep_returns = np.zeros(n_agents)
+    ep_ext_returns = np.zeros(n_agents)
     ep_int_returns = np.zeros(n_agents)
     ep_length = 0
     ep_success = False
@@ -120,7 +122,7 @@ def run(cfg):
         # Compute intrinsic rewards
         int_rewards = maddpg.get_intrinsic_rewards(next_obs)
         rewards = np.array([ext_rewards]) + \
-                  cfg.int_reward_coeff * np.array([int_rewards])
+                  explo_pct_remaining * np.array([int_rewards])
         
         # Store experience in replay buffer
         replay_buffer.push(
@@ -132,6 +134,7 @@ def run(cfg):
         
         # Store step data
         ep_returns += rewards[0]
+        ep_ext_returns += ext_rewards
         ep_int_returns += int_rewards
         ep_length += 1
         if any(dones):
@@ -142,6 +145,8 @@ def run(cfg):
             # Log episode data
             train_data_dict["Step"].append(step_i)
             train_data_dict["Episode return"].append(np.mean(ep_returns))
+            train_data_dict["Episode extrinsic return"].append(
+                np.mean(ep_ext_returns))
             train_data_dict["Episode intrinsic return"].append(
                 np.mean(ep_int_returns))
             train_data_dict["Success"].append(int(ep_success))
@@ -151,8 +156,17 @@ def run(cfg):
                 'agent0/episode_return', 
                 train_data_dict["Episode return"][-1], 
                 train_data_dict["Step"][-1])
+            logger.add_scalar(
+                'agent0/episode_ext_return', 
+                train_data_dict["Episode extrinsic return"][-1], 
+                train_data_dict["Step"][-1])
+            logger.add_scalar(
+                'agent0/episode_int_return', 
+                train_data_dict["Episode intrinsic return"][-1], 
+                train_data_dict["Step"][-1])
             # Reset the environment
             ep_returns = np.zeros(n_agents)
+            ep_ext_returns = np.zeros(n_agents)
             ep_int_returns = np.zeros(n_agents)
             ep_length = 0
             ep_success = False
@@ -175,8 +189,8 @@ def run(cfg):
                 logger.add_scalars(
                     'agent%i/losses' % a_i, 
                     {'vf_loss': vf_loss[a_i],
-                        'pol_loss': pol_loss[a_i],
-                        'nd_loss': nd_loss[a_i]},
+                     'pol_loss': pol_loss[a_i],
+                     'nd_loss': nd_loss[a_i]},
                     step_i)
             maddpg.update_all_targets()
             maddpg.prep_rollouts(device='cpu')
