@@ -103,9 +103,9 @@ class MADDPG_PANovelD(MADDPG):
 
 class MADDPG_MANovelD(MADDPG):
     """ 
-    Class impelementing MADDPG with Per Agent NovelD (MADDPG_PANovelD),
-    meaning that each agent has its own local NovelD model to compute a
-    personal intrinsic reward.
+    Class impelementing MADDPG with Multi-Agent NovelD (MADDPG_MANovelD),
+    meaning that we use a single NovelD model to compute the intrinsic reward
+    of the multi-agent system.
     """
     def __init__(self, n_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
                  tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
@@ -135,12 +135,6 @@ class MADDPG_MANovelD(MADDPG):
         Outputs:
             int_rewards (list): List of agents' intrinsic rewards.
         """
-        # int_rewards = []
-        # for a_i, next_obs in enumerate(next_obs_list):
-        #     a_i = 0 if self.shared_params else a_i
-        #     int_reward = self.agents[a_i].get_intrinsic_reward(
-        #         torch.Tensor(next_obs).unsqueeze(0))
-        #     int_rewards.append(int_reward)
         # Concatenate observations
         cat_obs = torch.Tensor(np.concatenate(next_obs_list)).unsqueeze(0)
         # Get reward
@@ -171,4 +165,3 @@ class MADDPG_MANovelD(MADDPG):
 
     def reset_noveld(self):
         self.ma_noveld.init_new_episode()
-

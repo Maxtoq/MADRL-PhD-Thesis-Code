@@ -4,6 +4,7 @@ from torch import nn
 from torch.optim import Adam
 
 from .networks import MLPNetwork
+from .lm import GRUEncoder
 
 
 class NovelD:
@@ -125,6 +126,7 @@ class LNovelD:
             obs_in_dim, 
             lang_in_dim,
             embed_dim,
+            lang_encoder,
             hidden_dim=64,
             lr=1e-4, 
             scale_fac=0.5, 
@@ -134,6 +136,8 @@ class LNovelD:
             :param obs_in_dim (int): Dimension of the observation input.
             :param lang_in_dim (int): Dimension of the language encoding input.
             :param embed_dim (int): Dimension of the output of RND networks.
+            :param lang_encoder (.lm.GRUEncoder): Network for encoding input
+                sentences.
             :param hidden_dim (int): Dimension of the hidden layers in MLPs.
             :param lr (float): Learning rates for training NovelD predictors.
             :param scale_fac (float): Scaling factor for computing the reward, 
@@ -150,9 +154,15 @@ class LNovelD:
         self.lang_noveld = NovelD(
             lang_in_dim, embed_dim, hidden_dim, lr, scale_fac)
 
+        # Language encoder network
+        self.lang_encoder = lang_encoder
+
         self.trade_off = trade_off
 
-    def init_new_episode(self):
+    def is_empty(self):
+        return self.obs_noveld.is_empty() or self.lang_noveld.is_empty()
+
+    def reset(self):
         self.obs_noveld.init_new_episode()
         self.lang_noveld.init_new_episode()
 
