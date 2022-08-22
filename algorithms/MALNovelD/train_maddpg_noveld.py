@@ -122,7 +122,8 @@ def run(cfg):
         # Compute intrinsic rewards
         int_rewards = maddpg.get_intrinsic_rewards(next_obs)
         rewards = np.array([ext_rewards]) + \
-                  explo_pct_remaining * np.array([int_rewards])
+                  cfg.int_reward_coeff * np.array([int_rewards])
+                #   explo_pct_remaining * np.array([int_rewards])
         
         # Store experience in replay buffer
         replay_buffer.push(

@@ -3,7 +3,7 @@ n_run=11
 env="coop_push_scenario/coop_push_scenario_sparse.py"
 model_name="maddpg_po_disc"
 sce_conf_path="configs/2a_1o_po_rel.json"
-n_frames=10000000
+n_frames=20000000
 buffer_length=1000000
 lr=0.0007
 gamma=0.99
@@ -11,7 +11,7 @@ tau=0.01
 explo_strat="sample"
 init_explo_rate=1.0
 frames_per_update=100
-eval_every=100000
+eval_every=200000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 cuda_device="cuda:3"
 
