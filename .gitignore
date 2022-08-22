@@ -1,5 +1,6 @@
 venv/*
 models/*
+old_models/*
 !models/coop_push_scenario_closed
 models/coop_push_scenario_closed/*
 !models/coop_push_scenario_sparse
