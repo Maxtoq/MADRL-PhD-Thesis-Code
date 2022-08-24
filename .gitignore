@@ -244,6 +244,7 @@ models/coop_push_scenario_sparse/mymaddpg_manoveld_fo_rel_disc/run1/*
 !models/coop_push_scenario_sparse/maddpg_manoveld_po_disc
 models/coop_push_scenario_sparse/maddpg_manoveld_po_disc/*
 !models/coop_push_scenario_sparse/maddpg_manoveld_po_disc/to_plot
+!models/coop_push_scenario_sparse/maddpg_manoveld_po_disc/to_plot_01
 
 !models/coop_push_scenario_sparse/maddpg_po_disc
 models/coop_push_scenario_sparse/maddpg_po_disc/*

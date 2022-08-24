@@ -40,7 +40,7 @@ if __name__ == '__main__':
                 print("WARNING:", run_path, "does not exist.")
     
     # Create data dir
-    data_dir = os.path.join(model_dir, "to_plot")
+    data_dir = os.path.join(model_dir, "to_plot_01")
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
