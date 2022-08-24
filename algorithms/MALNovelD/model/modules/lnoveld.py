@@ -68,6 +68,7 @@ class NovelD:
 
     def train_predictor(self):
         self.predictor_optim.zero_grad()
+        torch.autograd.set_detect_anomaly(True)
         loss = self.predictor_loss(self.stored_preds, self.stored_targets)
         loss.backward()
         self.predictor_optim.step()
@@ -126,7 +127,6 @@ class LNovelD:
             obs_in_dim, 
             lang_in_dim,
             embed_dim,
-            lang_encoder,
             hidden_dim=64,
             lr=1e-4, 
             scale_fac=0.5, 
@@ -154,9 +154,6 @@ class LNovelD:
         self.lang_noveld = NovelD(
             lang_in_dim, embed_dim, hidden_dim, lr, scale_fac)
 
-        # Language encoder network
-        self.lang_encoder = lang_encoder
-
         self.trade_off = trade_off
 
     def is_empty(self):
@@ -167,9 +164,14 @@ class LNovelD:
         self.lang_noveld.init_new_episode()
 
     def get_reward(self, obs_in, lang_in):
-        obs_int_reward, obs_pred_loss = self.obs_noveld.get_reward(obs_in)
-        lang_int_reward, lang_pred_loss = self.lang_noveld.get_reward(lang_in)
+        obs_int_reward = self.obs_noveld.get_reward(obs_in)
+        lang_int_reward = self.lang_noveld.get_reward(lang_in)
 
         intrinsic_reward = obs_int_reward + self.trade_off * lang_int_reward
 
-        return intrinsic_reward, obs_pred_loss, lang_pred_loss
+        return intrinsic_reward
+
+    def train(self):
+        obs_loss = self.obs_noveld.train_predictor()
+        lang_loss = self.lang_noveld.train_predictor()
+        return obs_loss, lang_loss
