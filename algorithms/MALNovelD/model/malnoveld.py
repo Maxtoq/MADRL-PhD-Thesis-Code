@@ -3,11 +3,11 @@ import numpy as np
 
 from torch import nn
 
-from modules.lnoveld import LNovelD
-from modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
-from modules.obs import ObservationEncoder
-from modules.comm import CommunicationPolicy
-from modules.maddpg import MADDPG
+from .modules.lnoveld import LNovelD
+from .modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
+from .modules.obs import ObservationEncoder
+from .modules.comm import CommunicationPolicy
+from .modules.maddpg import MADDPG
 
 
 class MALNovelD:
@@ -27,22 +27,22 @@ class MALNovelD:
             temp=1.0,
             hidden_dim=64, 
             init_explo_rate=1.0,
-            context_dim=64,
+            context_dim=16,
             noveld_lr=1e-4,
             noveld_scale=0.5,
             noveld_trade_off=1,
             discrete_action=False,
             shared_params=False,
             pol_algo="maddpg"):
-        self.n_agents =n_agents
+        self.n_agents = n_agents
         self.temp = temp
         
         # Modules
         self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
         self.word_encoder = OneHotEncoder(vocab)
         self.sentence_encoder = GRUEncoder(context_dim, self.word_encoder)
-        # self.decoder = GRUDecoder(context_dim, self.word_encoder)
-        # self.comm_policy = CommunicationPolicy(context_dim)
+        self.decoder = GRUDecoder(context_dim, self.word_encoder)
+        self.comm_policy = CommunicationPolicy(context_dim, hidden_dim)
         self.lnoveld = LNovelD(
             n_agents * obs_dim, n_agents * context_dim, 
             embed_dim, hidden_dim, noveld_lr,
@@ -66,8 +66,63 @@ class MALNovelD:
             list(self.sentence_encoder.parameters()), 
             lr=lr)
 
-    def update_policy_exploration(self, epsilon):
+    def update_exploration_rate(self, epsilon):
         self.policy.scale_noise(epsilon)
+
+    def update_all_targets(self):
+        self.policy.update_all_targets()
+
+    def reset(self):
+        self.lnoveld.reset()
+        self.policy.reset_noise()
+
+    def prep_training(self, device='cpu'):
+        if type(device) is str:
+            device = torch.device(device)
+        self.policy.prep_training(device)
+        self.obs_encoder.train()
+        self.obs_encoder = self.obs_encoder.to(device)
+        self.sentence_encoder.train()
+        self.sentence_encoder = self.sentence_encoder.to(device)
+        self.decoder.train()
+        self.decoder = self.decoder.to(device)
+        self.comm_policy.train()
+        self.comm_policy = self.comm_policy.to(device)
+
+    def prep_rollouts(self, device='cpu'):
+        if type(device) is str:
+            device = torch.device(device)
+        self.policy.prep_rollouts(device)
+        self.obs_encoder.eval()
+        self.obs_encoder = self.obs_encoder.to(device)
+        self.sentence_encoder.eval()
+        self.sentence_encoder = self.sentence_encoder.to(device)
+        self.decoder.eval()
+        self.decoder = self.decoder.to(device)
+        self.comm_policy.eval()
+        self.comm_policy = self.comm_policy.to(device)
+
+    def get_intrinsic_rewards(self, observations, descriptions):
+        """
+        Get intrinsic reward of the multi-agent system.
+        Inputs:
+            observations (list(numpy.ndarray)): List of observations, one for 
+                each agent.
+            descriptions (list(list(str))): List of sentences describing 
+                observations, one for each agent.
+        Outputs:
+            int_rewards (list): List of agents' intrinsic rewards.
+        """
+        # Concatenate observations
+        cat_obs = torch.Tensor(np.concatenate(observations)).unsqueeze(0)
+
+        # Encode descriptions
+        encoded_descr = self.sentence_encoder(descriptions)
+        cat_descr = encoded_descr.view(1, -1)
+
+        # Get reward
+        int_reward = self.lnoveld.get_reward(cat_obs, cat_descr)
+        return [int_reward] * self.n_agents
 
     def step(self, observations, descriptions, explore=False):
         """
@@ -78,6 +133,9 @@ class MALNovelD:
             descriptions (list(list(str))): List of sentences describing 
                 observations, one for each agent.
             explore (bool): Whether or not to perform exploration.
+        Outputs:
+            actions (list(torch.Tensor)): List of actions, one tensor of dim 
+                (1, action_dim) for each agent.
         """
         # Encode observations
         torch_obs = torch.Tensor(np.array(observations))
@@ -86,11 +144,11 @@ class MALNovelD:
         # If the LNovelD netword is empty (first step of new episode)
         if self.lnoveld.is_empty():
             # Encode descriptions
-            encoded_sentences = self.sentence_encoder(descriptions)
+            encoded_descr = self.sentence_encoder(descriptions)
             # Send the concatenated contexts and sentences encodings to lnoveld
             self.lnoveld.get_reward(
-                internal_contexts.view(-1, 1),
-                encoded_sentences.view(-1, 1)
+                torch_obs.view(1, -1),
+                encoded_descr.view(1, -1)
             )
 
         # Get actions
@@ -98,19 +156,44 @@ class MALNovelD:
         return actions
 
     def update(self, agents_batch, language_batch):
-        # Agents update
+        """
+        Perform a learning step on all modules of the model.
+        Inputs:
+            agents_batch (list(tuple(torch.Tensor))): List of (observation, 
+                action, reward, next observation, and episode end bool) tuples
+                (one for each agent).
+            language_batch (tuple(list)): Tuple containing a batch of 
+                observations (list of numpy arrays) and a batch of corresponding
+                language descriptions (list of lists of words).
+        Outputs:
+            vf_loss (list(float)): Value losses (one for each agent).
+            pol_loss (list(float)): Policy losses (one for each agent).
+            clip_loss (float): Loss of observation and description learning.
+            lnd_obs_loss (float): Loss of the observation prediction in the
+                L-NovelD network.
+            lnd_lang_loss (float): Loss of the language prediction in the
+                L-NovelD network.
+        """
+        # POLICY LEARNING
         for a_i in range(self.n_agents):
-            self.maddpg.update(agents_batch[a_i], a_i)
+            obs, acs, rews, next_obs, dones = agents_batch[a_i]
+            with torch.no_grad():
+                self.obs_encoder.eval()
+                enc_obs = [self.obs_encoder(o) for o in obs]
+                enc_next_obs = [self.obs_encoder(n_o) for n_o in next_obs]
+                self.obs_encoder.train()
+            agent_batch = (enc_obs, acs, rews, enc_next_obs, dones)
+            vf_loss, pol_loss = self.policy.update(agent_batch, a_i)
             
-        # Language learning
+        # LANGUAGE LEARNING
         self.language_optimizer.zero_grad()
         obs_batch, sent_batch = language_batch
 
         # Encode observations
-        obs_tensor = torch.Tensor(obs_batch)
+        obs_tensor = torch.Tensor(np.array(obs_batch))
         context_batch = self.obs_encoder(obs_tensor)
         # Encode sentences
-        lang_context_batch = self.lang_encoder(lang_context_batch)
+        lang_context_batch = self.sentence_encoder(sent_batch)
         lang_context_batch = lang_context_batch.squeeze()
 
         # CLIP loss
@@ -130,3 +213,8 @@ class MALNovelD:
         # Step
         clip_loss.backward()
         self.language_optimizer.step()
+
+        # LNOVELD LEARNING
+        lnd_obs_loss, lnd_lang_loss = self.lnoveld.train()
+
+        return vf_loss, pol_loss, float(clip_loss), lnd_obs_loss, lnd_lang_loss
