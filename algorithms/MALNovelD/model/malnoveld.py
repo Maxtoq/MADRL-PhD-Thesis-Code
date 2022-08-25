@@ -82,6 +82,8 @@ class MALNovelD:
             list(self.sentence_encoder.parameters()), 
             lr=lr)
 
+        self.device = 'cpu'
+
     def update_exploration_rate(self, epsilon):
         self.policy.scale_noise(epsilon)
 
@@ -100,10 +102,13 @@ class MALNovelD:
         self.obs_encoder = self.obs_encoder.to(device)
         self.sentence_encoder.train()
         self.sentence_encoder = self.sentence_encoder.to(device)
+        self.sentence_encoder.device = device
         self.decoder.train()
         self.decoder = self.decoder.to(device)
+        self.decoder.device = device
         self.comm_policy.train()
         self.comm_policy = self.comm_policy.to(device)
+        self.device = device
 
     def prep_rollouts(self, device='cpu'):
         if type(device) is str:
@@ -111,12 +116,15 @@ class MALNovelD:
         self.policy.prep_rollouts(device)
         self.obs_encoder.eval()
         self.obs_encoder = self.obs_encoder.to(device)
-        # self.sentence_encoder.eval()
-        # self.sentence_encoder = self.sentence_encoder.to(device)
+        self.sentence_encoder.eval()
+        self.sentence_encoder = self.sentence_encoder.to(device)
+        self.sentence_encoder.device = device
         self.decoder.eval()
         self.decoder = self.decoder.to(device)
+        self.decoder.device = device
         self.comm_policy.eval()
         self.comm_policy = self.comm_policy.to(device)
+        self.device = device
 
     def save(self, filename):
         """
@@ -167,7 +175,7 @@ class MALNovelD:
         cat_obs = torch.Tensor(np.concatenate(observations)).unsqueeze(0)
 
         # Encode descriptions
-        encoded_descr = self.sentence_encoder(descriptions)
+        encoded_descr = self.sentence_encoder(descriptions).detach()
         cat_descr = encoded_descr.view(1, -1)
 
         # Get reward
@@ -194,7 +202,7 @@ class MALNovelD:
         # If the LNovelD network is empty (first step of new episode)
         if descriptions is not None and self.lnoveld.is_empty():
             # Encode descriptions
-            encoded_descr = self.sentence_encoder(descriptions)
+            encoded_descr = self.sentence_encoder(descriptions).detach()
             # Send the concatenated contexts and sentences encodings to lnoveld
             self.lnoveld.get_reward(
                 torch_obs.view(1, -1),
@@ -247,7 +255,7 @@ class MALNovelD:
         obs_batch, sent_batch = language_batch
 
         # Encode observations
-        obs_tensor = torch.Tensor(np.array(obs_batch))
+        obs_tensor = torch.Tensor(np.array(obs_batch)).to(self.device)
         context_batch = self.obs_encoder(obs_tensor)
         # Encode sentences
         lang_context_batch = self.sentence_encoder(sent_batch)
@@ -262,7 +270,7 @@ class MALNovelD:
         sim = norm_context_batch @ lang_context_batch.t() * self.temp
         # mean_sim = sim.diag().mean()
         # Compute loss
-        labels = torch.arange(len(obs_batch))
+        labels = torch.arange(len(obs_batch)).to(self.device)
         loss_o = self.clip_loss(sim, labels)
         loss_l = self.clip_loss(sim.t(), labels)
         clip_loss = (loss_o + loss_l) / 2

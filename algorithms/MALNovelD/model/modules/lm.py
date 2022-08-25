@@ -151,7 +151,7 @@ class GRUEncoder(nn.Module):
         _, hidden_states = self.gru(packed, hidden)
 
         # Re-order hidden states
-        unsorted_hstates = torch.zeros_like(hidden_states)
+        unsorted_hstates = torch.zeros_like(hidden_states).to(self.device)
         unsorted_hstates[0,ids,:] = hidden_states[0,:,:]
 
         return self.out(unsorted_hstates)
