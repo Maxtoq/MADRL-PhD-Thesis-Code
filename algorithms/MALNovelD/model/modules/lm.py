@@ -119,11 +119,11 @@ class GRUEncoder(nn.Module):
         """
         Transforms sentences into embeddings
         Inputs:
-            :param sentence_batch (list): Batch of sentences (lists of words).
+            :param sentence_batch (list(list(str))): Batch of sentences.
         Outputs:
             :param unsorted_hstates (torch.Tensor): Final hidden states
                 corresponding to each given sentence, dim=(1, batch_size, 
-                hidden_dim)
+                context_dim)
         """
         # Get one-hot encodings
         enc = self.word_encoder.encode_batch(sentence_batch)

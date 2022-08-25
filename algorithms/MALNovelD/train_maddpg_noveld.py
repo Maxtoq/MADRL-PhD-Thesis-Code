@@ -197,10 +197,10 @@ def run(cfg):
             maddpg.prep_rollouts(device='cpu')
 
         # Evalutation
-        if cfg.eval_every is not None and step_i % cfg.eval_every == 0:
+        if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
             eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
                 env, maddpg, eval_scenar, cfg.episode_length)
-            eval_data_dict["Step"].append(step_i)
+            eval_data_dict["Step"].append(step_i + 1)
             eval_data_dict["Mean return"].append(eval_return)
             eval_data_dict["Success rate"].append(eval_success_rate)
             eval_data_dict["Mean episode length"].append(eval_ep_len)

@@ -26,16 +26,32 @@ class MALNovelD:
             tau=0.01,
             temp=1.0,
             hidden_dim=64, 
-            init_explo_rate=1.0,
             context_dim=16,
+            init_explo_rate=1.0,
             noveld_lr=1e-4,
             noveld_scale=0.5,
             noveld_trade_off=1,
             discrete_action=False,
             shared_params=False,
             pol_algo="maddpg"):
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+        self.embed_dim = embed_dim
         self.n_agents = n_agents
+        self.vocab = vocab
+        self.lr = lr
+        self.gamma = gamma
+        self.tau = tau
         self.temp = temp
+        self.hidden_dim = hidden_dim
+        self.context_dim = context_dim
+        self.init_explo_rate = init_explo_rate
+        self.noveld_lr = noveld_lr
+        self.noveld_scale = noveld_scale
+        self.noveld_trade_off = noveld_trade_off
+        self.discrete_action = discrete_action
+        self.shared_params = shared_params
+        self.pol_algo = pol_algo
         
         # Modules
         self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
@@ -95,12 +111,46 @@ class MALNovelD:
         self.policy.prep_rollouts(device)
         self.obs_encoder.eval()
         self.obs_encoder = self.obs_encoder.to(device)
-        self.sentence_encoder.eval()
-        self.sentence_encoder = self.sentence_encoder.to(device)
+        # self.sentence_encoder.eval()
+        # self.sentence_encoder = self.sentence_encoder.to(device)
         self.decoder.eval()
         self.decoder = self.decoder.to(device)
         self.comm_policy.eval()
         self.comm_policy = self.comm_policy.to(device)
+
+    def save(self, filename):
+        """
+        Save trained parameters of all agents into one file
+        """
+        self.prep_training(device='cpu')  # move parameters to CPU before saving
+        save_dict = {
+            'obs_dim': self.obs_dim,
+            'act_dim': self.act_dim,
+            'ambed_dim': self.ambed_dim,
+            'n_agents': self.n_agents,
+            'vocab': self.vocab,
+            'lr': self.lr,
+            'gamma': self.gamma,
+            'tau': self.tau,
+            'temp': self.temp,
+            'hidden_dim': self.hidden_dim,
+            'context_dim': self.context_dim,
+            'init_explo_rate': self.init_explo_rate,
+            'noveld_lr': self.noveld_lr,
+            'noveld_scale': self.noveld_scale,
+            'noveld_trade_off': self.noveld_trade_off,
+            'discrete_action': self.discrete_action,
+            'shared_params': self.shared_params,
+            'pol_ago': self.pol_ago,
+            'obs_encoder_params': self.obs_encoder.get_params(),
+            'word_encoder': self.word_encoder,
+            'sentence_encoder_params': self.sentence_encoder.get_params(),
+            'decoder_params': self.decoder.get_params(),
+            'comm_policy_params': self.comm_policy.get_params(),
+            'obs_noveld_params': self.lnoveld.obs_noveld.get_params(),
+            'lang_noveld_params': self.lnoveld.lang_noveld.get_params(),
+            'agent_params': [a.get_params() for a in self.agents]}
+        torch.save(save_dict, filename)
 
     def get_intrinsic_rewards(self, observations, descriptions):
         """
@@ -124,14 +174,14 @@ class MALNovelD:
         int_reward = self.lnoveld.get_reward(cat_obs, cat_descr)
         return [int_reward] * self.n_agents
 
-    def step(self, observations, descriptions, explore=False):
+    def step(self, observations, descriptions=None, explore=False):
         """
         Perform a step, calling all modules.
         Inputs:
             observations (list(numpy.ndarray)): List of observations, one for 
                 each agent.
             descriptions (list(list(str))): List of sentences describing 
-                observations, one for each agent.
+                observations, one for each agent, if None evaluation step.
             explore (bool): Whether or not to perform exploration.
         Outputs:
             actions (list(torch.Tensor)): List of actions, one tensor of dim 
@@ -141,8 +191,8 @@ class MALNovelD:
         torch_obs = torch.Tensor(np.array(observations))
         internal_contexts = self.obs_encoder(torch_obs)
 
-        # If the LNovelD netword is empty (first step of new episode)
-        if self.lnoveld.is_empty():
+        # If the LNovelD network is empty (first step of new episode)
+        if descriptions is not None and self.lnoveld.is_empty():
             # Encode descriptions
             encoded_descr = self.sentence_encoder(descriptions)
             # Send the concatenated contexts and sentences encodings to lnoveld
@@ -166,8 +216,8 @@ class MALNovelD:
                 observations (list of numpy arrays) and a batch of corresponding
                 language descriptions (list of lists of words).
         Outputs:
-            vf_loss (list(float)): Value losses (one for each agent).
-            pol_loss (list(float)): Policy losses (one for each agent).
+            vf_losses (list(float)): Value losses (one for each agent).
+            pol_losses (list(float)): Policy losses (one for each agent).
             clip_loss (float): Loss of observation and description learning.
             lnd_obs_loss (float): Loss of the observation prediction in the
                 L-NovelD network.
@@ -175,6 +225,8 @@ class MALNovelD:
                 L-NovelD network.
         """
         # POLICY LEARNING
+        vf_losses = []
+        pol_losses = []
         for a_i in range(self.n_agents):
             obs, acs, rews, next_obs, dones = agents_batch[a_i]
             with torch.no_grad():
@@ -184,6 +236,11 @@ class MALNovelD:
                 self.obs_encoder.train()
             agent_batch = (enc_obs, acs, rews, enc_next_obs, dones)
             vf_loss, pol_loss = self.policy.update(agent_batch, a_i)
+            vf_losses.append(vf_loss.item())
+            pol_losses.append(pol_loss.item())
+
+        # LNOVELD LEARNING
+        lnd_obs_loss, lnd_lang_loss = self.lnoveld.train()
             
         # LANGUAGE LEARNING
         self.language_optimizer.zero_grad()
@@ -214,7 +271,4 @@ class MALNovelD:
         clip_loss.backward()
         self.language_optimizer.step()
 
-        # LNOVELD LEARNING
-        lnd_obs_loss, lnd_lang_loss = self.lnoveld.train()
-
-        return vf_loss, pol_loss, float(clip_loss), lnd_obs_loss, lnd_lang_loss
+        return vf_losses, pol_losses, float(clip_loss), lnd_obs_loss, lnd_lang_loss

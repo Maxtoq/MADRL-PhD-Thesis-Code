@@ -16,6 +16,7 @@ from model.malnoveld import MALNovelD
 
 
 def run(cfg):
+    torch.autograd.set_detect_anomaly(True)
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(config)
     print("Saving model in dir", run_dir)
@@ -54,8 +55,8 @@ def run(cfg):
         act_dim = env.action_space[0].shape[0]
     model = MALNovelD(
         input_dim, act_dim, cfg.embed_dim, n_agents, parser.vocab, cfg.lr,
-        cfg.gamma, cfg.tau, cfg.temp, cfg.hidden_dim, cfg.init_explo_rate,
-        cfg.context_dim
+        cfg.gamma, cfg.tau, cfg.temp, cfg.hidden_dim, cfg.context_dim, 
+        cfg.init_explo_rate
     )
     model.prep_rollouts(device='cpu')
 
@@ -216,9 +217,37 @@ def run(cfg):
                     step_i)
             model.update_all_targets()
             model.prep_rollouts(device='cpu')
-            return
-        # if step_i == 1:
-        #     return
+        
+        # Evalutation
+        if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
+            eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
+                env, model, eval_scenar, cfg.episode_length)
+            eval_data_dict["Step"].append(step_i + 1)
+            eval_data_dict["Mean return"].append(eval_return)
+            eval_data_dict["Success rate"].append(eval_success_rate)
+            eval_data_dict["Mean episode length"].append(eval_ep_len)
+        
+        # Save model
+        if (step_i + 1) % cfg.save_interval == 0:
+            os.makedirs(run_dir / 'incremental', exist_ok=True)
+            model.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
+            model.save(model_cp_path)
+            model.prep_rollouts(device='cpu')
+
+    env.close()
+    # Save model
+    model.save(model_cp_path)
+    # Log Tensorboard
+    logger.export_scalars_to_json(str(log_dir / 'summary.json'))
+    logger.close()
+    # Save training and eval data
+    train_df = pd.DataFrame(train_data_dict)
+    train_df.to_csv(str(run_dir / 'training_data.csv'))
+    if cfg.eval_every is not None:
+        eval_df = pd.DataFrame(eval_data_dict)
+        eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
+    print("Model saved in dir", run_dir)
+
 
 
 if __name__ == '__main__':

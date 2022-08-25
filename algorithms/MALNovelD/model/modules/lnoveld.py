@@ -68,7 +68,6 @@ class NovelD:
 
     def train_predictor(self):
         self.predictor_optim.zero_grad()
-        torch.autograd.set_detect_anomaly(True)
         loss = self.predictor_loss(self.stored_preds, self.stored_targets)
         loss.backward()
         self.predictor_optim.step()
