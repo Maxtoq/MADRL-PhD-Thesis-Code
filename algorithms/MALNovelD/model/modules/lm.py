@@ -156,6 +156,10 @@ class GRUEncoder(nn.Module):
 
         return self.out(unsorted_hstates)
 
+    def get_params(self):
+        return {'gru': self.gru.state_dict(),
+                'out': self.out.state_dict()}
+
 class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
@@ -275,4 +279,8 @@ class GRUDecoder(nn.Module):
             greedy_preds.append(generated_tokens)
         
         return decoder_outputs, greedy_preds
+
+    def get_params(self):
+        return {'gru': self.gru.state_dict(),
+                'out': self.out.state_dict()}
                     

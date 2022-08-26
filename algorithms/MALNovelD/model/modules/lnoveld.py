@@ -115,6 +115,11 @@ class NovelD:
 
         return intrinsic_reward
 
+    def get_params(self):
+        return {'target': self.target.state_dict(),
+                'predictor': self.predictor.state_dict(),
+                'predictor_optim': self.predictor_optim.state_dict()}
+
 
 
 class LNovelD:

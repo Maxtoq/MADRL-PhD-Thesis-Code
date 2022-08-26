@@ -34,3 +34,6 @@ class ObservationEncoder(nn.Module):
                 embeddings, dim=(batch_size, embedding_dim).
         """
         return self.mlp(obs_batch)
+
+    def get_params(self):
+        return self.mlp.state_dict()

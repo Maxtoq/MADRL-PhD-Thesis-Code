@@ -30,3 +30,7 @@ class CommunicationPolicy(nn.Module):
         output, hidden = self.gru(model_input, hidden_state)
         output = self.out(output.squeeze(1))
         return output, hidden
+
+    def get_params(self):
+        return {'gru': self.gru.state_dict(),
+                'out': self.out.state_dict()}

@@ -134,7 +134,7 @@ class MALNovelD:
         save_dict = {
             'obs_dim': self.obs_dim,
             'act_dim': self.act_dim,
-            'ambed_dim': self.ambed_dim,
+            'embed_dim': self.embed_dim,
             'n_agents': self.n_agents,
             'vocab': self.vocab,
             'lr': self.lr,
@@ -149,7 +149,7 @@ class MALNovelD:
             'noveld_trade_off': self.noveld_trade_off,
             'discrete_action': self.discrete_action,
             'shared_params': self.shared_params,
-            'pol_ago': self.pol_ago,
+            'pol_algo': self.pol_algo,
             'obs_encoder_params': self.obs_encoder.get_params(),
             'word_encoder': self.word_encoder,
             'sentence_encoder_params': self.sentence_encoder.get_params(),
@@ -157,7 +157,7 @@ class MALNovelD:
             'comm_policy_params': self.comm_policy.get_params(),
             'obs_noveld_params': self.lnoveld.obs_noveld.get_params(),
             'lang_noveld_params': self.lnoveld.lang_noveld.get_params(),
-            'agent_params': [a.get_params() for a in self.agents]}
+            'agent_params': [a.get_params() for a in self.policy.agents]}
         torch.save(save_dict, filename)
 
     def get_intrinsic_rewards(self, observations, descriptions):
