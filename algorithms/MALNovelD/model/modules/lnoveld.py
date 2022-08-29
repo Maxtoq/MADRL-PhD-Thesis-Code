@@ -33,6 +33,8 @@ class NovelD:
         self.predictor = MLPNetwork(
             state_dim, embed_dim, hidden_dim, n_layers=3, norm_in=False)
 
+        self.device = None
+
         # Fix weights of target
         for param in self.target.parameters():
             param.requires_grad = False
@@ -59,12 +61,32 @@ class NovelD:
         self.last_nov = None
         self.episode_states_count = {}
 
+    def set_train(self, device):
+        self.target.train()
+        self.target = self.target.to(device)
+        self.predictor.train()
+        self.predictor = self.predictor.to(device)
+        self.stored_preds = self.stored_preds.to(device)
+        self.stored_targets = self.stored_targets.to(device)
+        self.device = device
+
+    def set_eval(self, device):
+        self.target.eval()
+        self.target = self.target.to(device)
+        self.predictor.eval()
+        self.predictor = self.predictor.to(device)
+        self.stored_preds = self.stored_preds.to(device)
+        self.stored_targets = self.stored_targets.to(device)
+        self.device = device
+
     def is_empty(self):
         return True if len(self.episode_states_count) == 0 else False
     
     def store_pred(self, pred, target):
-        self.stored_preds = torch.cat((self.stored_preds, pred))
-        self.stored_targets = torch.cat((self.stored_targets, target))
+        self.stored_preds = torch.cat((self.stored_preds, pred)).to(
+            self.device)
+        self.stored_targets = torch.cat((self.stored_targets, target)).to(
+            self.device)
 
     def train_predictor(self):
         self.predictor_optim.zero_grad()
@@ -72,8 +94,8 @@ class NovelD:
         loss.backward()
         self.predictor_optim.step()
 
-        self.stored_preds = torch.Tensor()
-        self.stored_targets = torch.Tensor()
+        self.stored_preds = torch.Tensor().to(self.device)
+        self.stored_targets = torch.Tensor().to(self.device)
 
         return float(loss)
 
@@ -166,6 +188,14 @@ class LNovelD:
     def reset(self):
         self.obs_noveld.init_new_episode()
         self.lang_noveld.init_new_episode()
+
+    def set_train(self, device):
+        self.obs_noveld.set_train(device)
+        self.lang_noveld.set_train(device)
+
+    def set_eval(self, device):
+        self.obs_noveld.set_eval(device)
+        self.lang_noveld.set_eval(device)
 
     def get_reward(self, obs_in, lang_in):
         obs_int_reward = self.obs_noveld.get_reward(obs_in)

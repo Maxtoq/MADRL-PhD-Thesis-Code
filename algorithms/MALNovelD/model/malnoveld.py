@@ -108,6 +108,7 @@ class MALNovelD:
         self.decoder.device = device
         self.comm_policy.train()
         self.comm_policy = self.comm_policy.to(device)
+        self.lnoveld.set_train(device)
         self.device = device
 
     def prep_rollouts(self, device='cpu'):
@@ -124,6 +125,7 @@ class MALNovelD:
         self.decoder.device = device
         self.comm_policy.eval()
         self.comm_policy = self.comm_policy.to(device)
+        self.lnoveld.set_eval(device)
         self.device = device
 
     def save(self, filename):
@@ -172,7 +174,8 @@ class MALNovelD:
             int_rewards (list): List of agents' intrinsic rewards.
         """
         # Concatenate observations
-        cat_obs = torch.Tensor(np.concatenate(observations)).unsqueeze(0)
+        cat_obs = torch.Tensor(np.concatenate(observations)).unsqueeze(0).to(
+            self.device)
 
         # Encode descriptions
         encoded_descr = self.sentence_encoder(descriptions).detach()
@@ -196,13 +199,13 @@ class MALNovelD:
                 (1, action_dim) for each agent.
         """
         # Encode observations
-        torch_obs = torch.Tensor(np.array(observations))
+        torch_obs = torch.Tensor(np.array(observations)).to(self.device)
         internal_contexts = self.obs_encoder(torch_obs)
 
         # If the LNovelD network is empty (first step of new episode)
         if descriptions is not None and self.lnoveld.is_empty():
             # Encode descriptions
-            encoded_descr = self.sentence_encoder(descriptions).detach()
+            encoded_descr = self.sentence_encoder(descriptions).to(self.device).detach()
             # Send the concatenated contexts and sentences encodings to lnoveld
             self.lnoveld.get_reward(
                 torch_obs.view(1, -1),

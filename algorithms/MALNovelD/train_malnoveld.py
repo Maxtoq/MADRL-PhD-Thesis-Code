@@ -56,9 +56,10 @@ def run(cfg):
     model = MALNovelD(
         input_dim, act_dim, cfg.embed_dim, n_agents, parser.vocab, cfg.lr,
         cfg.gamma, cfg.tau, cfg.temp, cfg.hidden_dim, cfg.context_dim, 
-        cfg.init_explo_rate
+        cfg.init_explo_rate, discrete_action=cfg.discrete_action
     )
-    model.prep_rollouts(device='cpu')
+    # model.prep_rollouts(device="cpu")
+    model.prep_rollouts(device=device)
 
     # Create data buffers
     replay_buffer = ReplayBuffer(
@@ -125,7 +126,7 @@ def run(cfg):
         # Get actions
         actions = model.step(obs, descr, explore=True)
         # print(actions)
-        actions = [a.squeeze().data.numpy() for a in actions]
+        actions = [a.squeeze().cpu().data.numpy() for a in actions]
         # print(actions)
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
@@ -216,7 +217,8 @@ def run(cfg):
                      'nd_loss': lnd_lang_loss},
                     step_i)
             model.update_all_targets()
-            model.prep_rollouts(device='cpu')
+            # model.prep_rollouts(device="cpu")
+            model.prep_rollouts(device=device)
         
         # Evalutation
         if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
@@ -232,7 +234,8 @@ def run(cfg):
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             model.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
             model.save(model_cp_path)
-            model.prep_rollouts(device='cpu')
+            # model.prep_rollouts(device="cpu")
+            model.prep_rollouts(device=device)
 
     env.close()
     # Save model

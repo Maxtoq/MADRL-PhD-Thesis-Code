@@ -55,7 +55,7 @@ class DDPGAgent:
         else:
             self.exploration.scale = scale
         
-    def step(self, obs, explore=False):
+    def step(self, obs, explore=False, device="cpu"):
         """
         Take a step forward in environment for a minibatch of observations
         Inputs:
@@ -90,7 +90,7 @@ class DDPGAgent:
         else:  # continuous action
             if explore:
                 # Add noise to model's action
-                action += torch.Tensor(self.exploration.noise())
+                action += torch.Tensor(self.exploration.noise()).to(device)
             action = action.clamp(-1, 1)
         return action
 
@@ -142,6 +142,8 @@ class MADDPG:
                 lr, hidden_dim, discrete_action, 
                 init_explo_rate, explo_strat)]
 
+        self.device = "cpu"
+
     @property
     def policies(self):
         if self.shared_params:
@@ -181,6 +183,7 @@ class MADDPG:
             a.target_policy = a.target_policy.to(device)
             a.target_critic.train()
             a.target_critic = a.target_critic.to(device)
+        self.device = device
 
     def prep_rollouts(self, device='cpu'):
         if type(device) is str:
@@ -188,6 +191,7 @@ class MADDPG:
         for a in self.agents:
             a.policy.eval()
             a.policy = a.policy.to(device)
+        self.device = device
 
     def step(self, observations, explore=False):
         """
@@ -205,7 +209,7 @@ class MADDPG:
         else:
             actions = [
                 self.agents[a_i].step(observations[a_i].unsqueeze(0), 
-                    explore=explore)
+                    explore=explore, device=self.device)
                 for a_i in range(self.n_agents)]
         return actions
 
