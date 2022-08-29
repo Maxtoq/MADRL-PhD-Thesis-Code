@@ -121,25 +121,18 @@ def run(cfg):
             (cfg.init_explo_rate - cfg.final_explo_rate) * explo_pct_remaining)
 
         # PERFORM STEP
-        # print(obs)
-        # print(descr)
         # Get actions
         actions = model.step(obs, descr, explore=True)
-        # print(actions)
         actions = [a.squeeze().cpu().data.numpy() for a in actions]
-        # print(actions)
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
         # Compute intrinsic rewards
         next_descr = parser.get_descriptions(next_obs, sce_conf)
         int_rewards = model.get_intrinsic_rewards(next_obs, next_descr)
-        # print(int_rewards)
 
         # Compute final reward
         rewards = np.array([ext_rewards]) + \
                   cfg.int_reward_coeff * np.array([int_rewards])
-
-        # print(rewards)
 
         # Store experience in buffers
         replay_buffer.push(
@@ -149,8 +142,6 @@ def run(cfg):
             np.array([next_obs]), 
             np.array([dones]))
         language_buffer.store(obs, descr)
-        # print(language_buffer.obs_buffer)
-        # print(language_buffer.sent_buffer)
 
         # Store step data
         ep_returns += rewards[0]

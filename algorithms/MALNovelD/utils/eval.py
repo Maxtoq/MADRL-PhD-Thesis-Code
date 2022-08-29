@@ -33,7 +33,7 @@ def eval_episode(env, model, max_episode_length, init_pos=None, render=False,
         # rearrange observations to be per agent
         torch_obs = torch.Tensor(np.array(obs))
         actions = model.step(torch_obs)
-        actions = [a.squeeze().data.numpy() for a in actions]
+        actions = [a.squeeze().cpu().data.numpy() for a in actions]
         next_obs, rewards, dones, _ = env.step(actions)
         if verbose:
             print("Obs", obs)
