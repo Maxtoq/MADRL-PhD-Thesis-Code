@@ -24,13 +24,13 @@ class DDPGAgent:
 
         # Networks
         self.policy = MLPNetwork(policy_in_dim, policy_out_dim,
-                                 hidden_dim=hidden_dim)
-        self.critic = MLPNetwork(critic_in_dim, 1, hidden_dim=hidden_dim)
+                                 hidden_dim=hidden_dim) # , n_layers=0)
+        self.critic = MLPNetwork(critic_in_dim, 1, hidden_dim=hidden_dim) # , n_layers=0)
         # Target networks
         self.target_policy = MLPNetwork(policy_in_dim, policy_out_dim,
-                                        hidden_dim=hidden_dim)
+                                        hidden_dim=hidden_dim) # , n_layers=0)
         self.target_critic = MLPNetwork(critic_in_dim, 1, 
-                                        hidden_dim=hidden_dim)
+                                        hidden_dim=hidden_dim) # , n_layers=0)
         # Copy parameters in targets
         hard_update(self.target_policy, self.policy)
         hard_update(self.target_critic, self.critic)

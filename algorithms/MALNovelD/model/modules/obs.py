@@ -19,8 +19,8 @@ class ObservationEncoder(nn.Module):
         self.mlp = MLPNetwork(
             obs_dim, 
             embedding_dim, 
-            hidden_dim, 
-            n_layers=n_hidden_layers)
+            hidden_dim) 
+            # n_layers=0)
             #out_activation_fn='tanh')
 
     def forward(self, obs_batch):

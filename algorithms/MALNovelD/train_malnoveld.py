@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from tensorboardX import SummaryWriter
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from utils.buffer import ReplayBuffer, LanguageBuffer
 from utils.make_env import get_paths, load_scenario_config
@@ -56,9 +56,10 @@ def run(cfg):
     model = MALNovelD(
         input_dim, act_dim, cfg.embed_dim, n_agents, parser.vocab, cfg.lr,
         cfg.gamma, cfg.tau, cfg.temp, cfg.hidden_dim, cfg.context_dim, 
-        cfg.init_explo_rate, discrete_action=cfg.discrete_action
+        cfg.init_explo_rate, cfg.noveld_lr, cfg.noveld_scale, 
+        cfg.noveld_trade_off, cfg.discrete_action, cfg.shared_params,
+        cfg.policy_algo
     )
-    # model.prep_rollouts(device="cpu")
     model.prep_rollouts(device=device)
 
     # Create data buffers
@@ -93,8 +94,10 @@ def run(cfg):
 
     # Start training
     print(f"Starting training for {cfg.n_frames} frames")
-    print(f"                  updates every {cfg.frames_per_update} frames")
-    print(f"                  with seed {cfg.seed}")
+    print(f"    policy updates every {cfg.frames_per_policy_update} frames")
+    print(f"    lnoveld updates every {cfg.frames_per_lnoveld_update} frames")
+    print(f"    language updates every {cfg.frames_per_language_update} frames")
+    print(f"    with seed {cfg.seed}")
     train_data_dict = {
         "Step": [],
         "Episode return": [],
@@ -113,7 +116,7 @@ def run(cfg):
     obs = env.reset()
     # Get first descriptions
     descr = parser.get_descriptions(obs, sce_conf)
-    for step_i in tqdm(range(cfg.n_frames)):
+    for step_i in trange(cfg.n_frames):
         # Compute and set exploration rate
         explo_pct_remaining = \
             max(0, cfg.n_explo_frames - step_i) / cfg.n_explo_frames
@@ -188,27 +191,47 @@ def run(cfg):
             descr = next_descr
 
         # Training
-        if ((step_i + 1) % cfg.frames_per_update == 0 and
+        if ((step_i + 1) % cfg.frames_per_policy_update == 0 and
                 len(replay_buffer) >= cfg.batch_size):
             model.prep_training(device=device)
+            # Policy training
             exp_samples = [replay_buffer.sample(
                                 cfg.batch_size, cuda_device=device)
                            for _ in range(n_agents)]
-            lang_sample = language_buffer.sample(cfg.batch_size)
-            vf_loss, pol_loss, clip_loss, lnd_obs_loss, lnd_lang_loss = \
-                model.update(exp_samples, lang_sample)
+            vf_losses, pol_losses = model.update_policy(exp_samples)
+            log_dict = {
+                "vf_loss": vf_losses[0],
+                "pol_loss": pol_losses[0]
+            }
+            # L-NovelD training
+            if (step_i + 1) % cfg.frames_per_lnoveld_update == 0:
+                lnd_obs_loss, lnd_lang_loss = model.update_lnoveld()
+                log_dict["lnd_obs_loss"] = lnd_obs_loss
+                log_dict["lnd_lang_loss"] = lnd_lang_loss
+            # Language learning
+            if (step_i + 1) % cfg.frames_per_language_update == 0:
+                lang_sample = language_buffer.sample(cfg.batch_size)
+                clip_loss = model.update_language_modules(lang_sample)
+                log_dict["clip_loss"] = clip_loss
             # Log
-            for a_i in range(n_agents):
-                logger.add_scalars(
-                    'agent%i/losses' % a_i, 
-                    {'vf_loss': vf_loss[a_i],
-                     'pol_loss': pol_loss[a_i],
-                     'nd_loss': clip_loss,
-                     'nd_loss': lnd_obs_loss,
-                     'nd_loss': lnd_lang_loss},
-                    step_i)
+            logger.add_scalars(
+                'agent0/losses', 
+                log_dict,
+                step_i)
+            # lang_sample = language_buffer.sample(cfg.batch_size)
+            # vf_loss, pol_loss, clip_loss, lnd_obs_loss, lnd_lang_loss = \
+            #     model.update(exp_samples, lang_sample)
+            # # Log
+            # for a_i in range(n_agents):
+            #     logger.add_scalars(
+            #         'agent%i/losses' % a_i, 
+            #         {'vf_loss': vf_loss[a_i],
+            #          'pol_loss': pol_loss[a_i],
+            #          'nd_loss': clip_loss,
+            #          'nd_loss': lnd_obs_loss,
+            #          'nd_loss': lnd_lang_loss},
+            #         step_i)
             model.update_all_targets()
-            # model.prep_rollouts(device="cpu")
             model.prep_rollouts(device=device)
         
         # Evalutation
@@ -225,7 +248,6 @@ def run(cfg):
             os.makedirs(run_dir / 'incremental', exist_ok=True)
             model.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
             model.save(model_cp_path)
-            # model.prep_rollouts(device="cpu")
             model.prep_rollouts(device=device)
 
     env.close()
@@ -261,7 +283,12 @@ if __name__ == '__main__':
     parser.add_argument("--n_frames", default=25000, type=int,
                         help="Number of training frames to perform")
     parser.add_argument("--buffer_length", default=int(1e6), type=int)
-    parser.add_argument("--frames_per_update", default=100, type=int)
+    parser.add_argument("--frames_per_policy_update", 
+                        default=100, type=int)
+    parser.add_argument("--frames_per_lnoveld_update", 
+                        default=1000, type=int)
+    parser.add_argument("--frames_per_language_update", 
+                        default=1000, type=int)
     parser.add_argument("--batch_size", default=512, type=int,
                         help="Batch size for model training")
     parser.add_argument("--n_explo_frames", default=None, type=int,
