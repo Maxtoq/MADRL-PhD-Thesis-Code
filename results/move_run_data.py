@@ -5,7 +5,7 @@ import re
 
 """
 Must be called as:
-python move_run_data.py *path_to_model_dir* *run_names*
+$ python move_run_data.py *path_to_model_dir* *run_names*
 *run_names* being a list of either single runs (e.g. 'run12'), or 
 sequences of runs noted as 'runN-runM' which corresponds to all runs 
 between N and M.
@@ -40,7 +40,7 @@ if __name__ == '__main__':
                 print("WARNING:", run_path, "does not exist.")
     
     # Create data dir
-    data_dir = os.path.join(model_dir, "to_plot_01")
+    data_dir = os.path.join(model_dir, "to_plot")
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 

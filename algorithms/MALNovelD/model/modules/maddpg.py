@@ -213,7 +213,7 @@ class MADDPG:
                 for a_i in range(self.n_agents)]
         return actions
 
-    def update(self, sample, agent_i):
+    def update(self, sample, agent_i): # , obs_encoder, language_optim=None):
         """
         Update parameters of agent model based on sample from replay buffer
         Inputs:
@@ -225,8 +225,13 @@ class MADDPG:
         """
         obs, acs, rews, next_obs, dones = sample
         curr_agent = self.agents[agent_i]
+
         # Critic Update
         curr_agent.critic_optimizer.zero_grad()
+        # if language_optim is not None:
+        #     language_optim.zero_grad()
+        # enc_obs = [obs_encoder(o) for o in obs]
+        # enc_next_obs = [obs_encoder(n_o) for n_o in next_obs]
         # Compute Target Value
         if self.discrete_action: # one-hot encode action
             all_trgt_acs = [onehot_from_logits(pi(nobs)) 
@@ -247,9 +252,14 @@ class MADDPG:
         vf_loss.backward()
         torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5)
         curr_agent.critic_optimizer.step()
+        # if language_optim is not None:
+        #     language_optim.step()
 
         # Policy Update
         curr_agent.policy_optimizer.zero_grad()
+        # if language_optim is not None:
+        #     language_optim.zero_grad()
+        # enc_obs = [obs_encoder(o) for o in obs]
         # Get Action
         curr_pol_out = curr_agent.policy(obs[agent_i])
         if self.discrete_action:
@@ -272,6 +282,8 @@ class MADDPG:
         pol_loss.backward()
         torch.nn.utils.clip_grad_norm_(curr_agent.policy.parameters(), 0.5)
         curr_agent.policy_optimizer.step()
+        # if language_optim is not None:
+        #     language_optim.step()
 
         return vf_loss, pol_loss
 

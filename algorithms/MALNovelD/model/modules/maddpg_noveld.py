@@ -17,12 +17,12 @@ class DDPG_NovelD(DDPGAgent):
         self.noveld = NovelD(
             policy_in_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
 
-    def step(self, obs, explore):
+    def step(self, obs, explore, device="cpu"):
         # If we are starting a new episode, compute novelty for first observation
         if self.noveld.is_empty():
             self.noveld.get_reward(obs)
 
-        return super().step(obs, explore)
+        return super().step(obs, explore, device)
 
     def get_intrinsic_reward(self, next_obs):
         intr_reward = self.noveld.get_reward(next_obs)

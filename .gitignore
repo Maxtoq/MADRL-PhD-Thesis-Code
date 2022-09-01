@@ -253,3 +253,11 @@ models/coop_push_scenario_sparse/maddpg_po_disc/*
 !models/coop_push_scenario_sparse/maddpg_manoveld_po_epsexp_disc
 models/coop_push_scenario_sparse/maddpg_manoveld_po_epsexp_disc/*
 !models/coop_push_scenario_sparse/maddpg_manoveld_po_epsexp_disc/to_plot
+
+!models/coop_push_scenario_sparse/maddpg_manoveld_fo_disc
+models/coop_push_scenario_sparse/maddpg_manoveld_fo_disc/*
+!models/coop_push_scenario_sparse/maddpg_manoveld_fo_disc/to_plot
+
+!models/coop_push_scenario_sparse/mymaddpg_fo_rel_disc
+models/coop_push_scenario_sparse/mymaddpg_fo_rel_disc/*
+!models/coop_push_scenario_sparse/mymaddpg_fo_rel_disc/to_plot

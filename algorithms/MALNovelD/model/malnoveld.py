@@ -223,17 +223,13 @@ class MALNovelD:
         vf_losses = []
         pol_losses = []
         for a_i in range(self.n_agents):
-            # self.language_optimizer.zero_grad()
             obs, acs, rews, next_obs, dones = agents_batch[a_i]
-            # with torch.no_grad():
-            #     self.obs_encoder.eval()
-            #     enc_obs = [self.obs_encoder(o) for o in obs]
-            #     enc_next_obs = [self.obs_encoder(n_o) for n_o in next_obs]
-            #     self.obs_encoder.train()
+            # enc_obs = [self.obs_encoder(o) for o in obs]
+            # enc_next_obs = [self.obs_encoder(n_o) for n_o in next_obs]
             # agent_batch = (enc_obs, acs, rews, enc_next_obs, dones)
             agent_batch = (obs, acs, rews, next_obs, dones)
-            vf_loss, pol_loss = self.policy.update(agent_batch, a_i)
-            # self.language_optimizer.step()
+            vf_loss, pol_loss = self.policy.update(
+                agent_batch, a_i)
             vf_losses.append(vf_loss.item())
             pol_losses.append(pol_loss.item())
 

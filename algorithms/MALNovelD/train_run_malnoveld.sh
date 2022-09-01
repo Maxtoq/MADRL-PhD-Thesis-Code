@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
 env="algorithms/MALNovelD/scenarios/coop_push_scenario_parse.py"
-model_name="malnoveld_fo_maddpg_disc_delayedupdates"
-sce_conf_path="configs/2a_1o_fo_rel.json"
+model_name="malnoveld_po_maddpg_disc"
+sce_conf_path="configs/2a_1o_po_rel.json"
 n_frames=10000000
 buffer_length=1000000
 lr=0.0007
@@ -14,7 +14,7 @@ frames_per_policy_update=100
 int_reward_coeff=1.0
 eval_every=200000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
