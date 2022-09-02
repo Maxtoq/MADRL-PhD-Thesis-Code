@@ -12,6 +12,7 @@ from utils.buffer import ReplayBuffer, LanguageBuffer
 from utils.make_env import get_paths, load_scenario_config
 from utils.make_env_parser import make_env
 from utils.eval import perform_eval_scenar
+from utils.decay import EpsilonDecay
 from model.malnoveld import MALNovelD
 
 
@@ -75,6 +76,10 @@ def run(cfg):
     # Get number of exploration steps
     if cfg.n_explo_frames is None:
         cfg.n_explo_frames = cfg.n_frames
+    # Set epsilon decay function
+    eps_decay = EpsilonDecay(
+        cfg.init_explo_rate, cfg.final_explo_rate, 
+        cfg.n_explo_frames, cfg.epsilon_decay_fn)
 
     # Set-up evaluation scenario
     if cfg.eval_every is not None:
@@ -118,10 +123,7 @@ def run(cfg):
     descr = parser.get_descriptions(obs, sce_conf)
     for step_i in trange(cfg.n_frames):
         # Compute and set exploration rate
-        explo_pct_remaining = \
-            max(0, cfg.n_explo_frames - step_i) / cfg.n_explo_frames
-        model.update_exploration_rate(cfg.final_explo_rate + 
-            (cfg.init_explo_rate - cfg.final_explo_rate) * explo_pct_remaining)
+        model.update_exploration_rate(eps_decay.get_explo_rate(step_i))
 
         # PERFORM STEP
         # Get actions
@@ -296,6 +298,7 @@ if __name__ == '__main__':
     parser.add_argument("--explo_strat", default="sample", type=str)
     parser.add_argument("--init_explo_rate", default=1.0, type=float)
     parser.add_argument("--final_explo_rate", default=0.0, type=float)
+    parser.add_argument("--epsilon_decay_fn", default="linear", type=str)
     parser.add_argument("--save_interval", default=100000, type=int)
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     # Evalutation
