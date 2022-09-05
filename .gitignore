@@ -5,6 +5,8 @@ old_models/*
 models/coop_push_scenario_closed/*
 !models/coop_push_scenario_sparse
 models/coop_push_scenario_sparse/*
+!models/coop_push_scenario_parse
+models/coop_push_scenario_parse/*
 !models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew
 models/coop_push_scenario_closed/2addpg_fo_abs_disc_distrew/*
 !models/coop_push_scenario_closed/cmaes_2a_fo_cont_abs_distrew
