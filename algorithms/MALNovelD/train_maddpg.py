@@ -91,7 +91,7 @@ def run(cfg):
     print(f"                  with seed {cfg.seed}")
     train_data_dict = {
         "Step": [],
-        "Episode return": [],
+        "Episode extrinsic return": [],
         "Success": [],
         "Episode length": []
     }
@@ -132,13 +132,14 @@ def run(cfg):
         if any(dones) or ep_length == cfg.episode_length:
             # Log episode data
             train_data_dict["Step"].append(step_i)
-            train_data_dict["Episode return"].append(np.mean(ep_returns))
+            train_data_dict["Episode extrinsic return"].append(
+                np.mean(ep_returns))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_length)
             # Tensorboard
             logger.add_scalar(
-                'agent0/episode_return', 
-                train_data_dict["Episode return"][-1], 
+                'agent0/episode_ext_return', 
+                train_data_dict["Episode extrinsic return"][-1], 
                 train_data_dict["Step"][-1])
             # Reset the environment
             ep_returns = np.zeros(n_agents)

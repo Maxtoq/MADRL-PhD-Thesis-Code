@@ -13,6 +13,7 @@ MSELoss = torch.nn.MSELoss()
 class DDPGAgent:
 
     def __init__(self, policy_in_dim, policy_out_dim, critic_in_dim, 
+                 observation_encoder, lr,
                  hidden_dim=64, discrete_action=False, init_explo=1.0,
                  explo_strat='sample'):
         self.discrete_action = discrete_action
@@ -22,18 +23,30 @@ class DDPGAgent:
             exit(0)
         self.explo_strat = explo_strat
 
+        self.observation_encoder = observation_encoder
+
         # Networks
+
         self.policy = MLPNetwork(policy_in_dim, policy_out_dim,
-                                 hidden_dim=hidden_dim) # , n_layers=0)
-        self.critic = MLPNetwork(critic_in_dim, 1, hidden_dim=hidden_dim) # , n_layers=0)
+                                 hidden_dim=hidden_dim, n_layers=0)
+        self.critic = MLPNetwork(critic_in_dim, 1, hidden_dim=hidden_dim, 
+                                 n_layers=0)
         # Target networks
         self.target_policy = MLPNetwork(policy_in_dim, policy_out_dim,
-                                        hidden_dim=hidden_dim) # , n_layers=0)
+                                        hidden_dim=hidden_dim, n_layers=0)
         self.target_critic = MLPNetwork(critic_in_dim, 1, 
-                                        hidden_dim=hidden_dim) # , n_layers=0)
+                                        hidden_dim=hidden_dim, n_layers=0)
         # Copy parameters in targets
         hard_update(self.target_policy, self.policy)
         hard_update(self.target_critic, self.critic)
+        self.policy_optimizer = Adam(
+            list(self.policy.parameters()) + 
+            list(self.observation_encoder.parameters()), 
+            lr=lr)
+        self.critic_optimizer = Adam(
+            list(self.critic.parameters()) + 
+            list(self.observation_encoder.parameters()), 
+            lr=lr)
 
         # Exploration
         if not discrete_action:
@@ -96,21 +109,25 @@ class DDPGAgent:
         return {'policy': self.policy.state_dict(),
                 'critic': self.critic.state_dict(),
                 'target_policy': self.target_policy.state_dict(),
-                'target_critic': self.target_critic.state_dict()}
+                'target_critic': self.target_critic.state_dict(),
+                'policy_optimizer': self.policy_optimizer.state_dict(),
+                'critic_optimizer': self.critic_optimizer.state_dict()}
 
     def load_params(self, params):
         self.policy.load_state_dict(params['policy'])
         self.critic.load_state_dict(params['critic'])
         self.target_policy.load_state_dict(params['target_policy'])
         self.target_critic.load_state_dict(params['target_critic'])
+        self.policy_optimizer.load_state_dict(params['policy_optimizer'])
+        self.critic_optimizer.load_state_dict(params['critic_optimizer'])
 
 
 class MADDPG:
 
-    def __init__(self, n_agents, input_dim, act_dim, gamma=0.95,
-                 tau=0.01, hidden_dim=64, discrete_action=False, 
-                 shared_params=False, init_explo_rate=1.0, 
-                 explo_strat="sample"):
+    def __init__(self, n_agents, input_dim, act_dim, observation_encoder,
+                 lr=0.0007, gamma=0.95, tau=0.01, hidden_dim=64, 
+                 discrete_action=False, shared_params=False, 
+                 init_explo_rate=1.0, explo_strat="sample"):
         self.n_agents = n_agents
         self.input_dim = input_dim
         self.act_dim = act_dim
@@ -122,17 +139,21 @@ class MADDPG:
         self.init_explo_rate = init_explo_rate
         self.explo_strat = explo_strat
 
+        self.observation_encoder = observation_encoder
+
         # Create agent models
         critic_input_dim = n_agents * input_dim + n_agents * act_dim
         if not shared_params:
             self.agents = [DDPGAgent(
                     input_dim, act_dim, critic_input_dim, 
+                    observation_encoder, lr,
                     hidden_dim, discrete_action, 
                     init_explo_rate, explo_strat)
                 for _ in range(n_agents)]
         else:
             self.agents = [DDPGAgent(
                 input_dim, act_dim, critic_input_dim, 
+                observation_encoder, lr,
                 hidden_dim, discrete_action, 
                 init_explo_rate, explo_strat)]
 
@@ -197,64 +218,65 @@ class MADDPG:
         Outputs:
             actions (list(torch.Tensor)): List of actions for each agent
         """
+        contexts = self.observation_encoder(observations)
         if self.shared_params:
-            actions_tensor = self.agents[0].step(observations, explore=explore)
+            actions_tensor = self.agents[0].step(contexts, explore=explore)
             actions = list(actions_tensor)
         else:
             actions = [
-                self.agents[a_i].step(observations[a_i].unsqueeze(0), 
+                self.agents[a_i].step(contexts[a_i].unsqueeze(0), 
                     explore=explore, device=self.device)
                 for a_i in range(self.n_agents)]
         return actions
 
-    def compute_critic_loss(self, sample, agent_i):
-        obs, acs, rews, next_obs, dones = sample
-        curr_agent = self.agents[agent_i]
+    # def compute_critic_loss(self, sample, agent_i):
+    #     obs, acs, rews, next_obs, dones = sample
+    #     curr_agent = self.agents[agent_i]
         
-        # Compute Target Value
-        if self.discrete_action: # one-hot encode action
-            all_trgt_acs = [onehot_from_logits(pi(nobs)) 
-                for pi, nobs in zip(self.target_policies, next_obs)]
-        else:
-            all_trgt_acs = [pi(nobs) 
-                for pi, nobs in zip(self.target_policies, next_obs)]
-        trgt_vf_in = torch.cat((*next_obs, *all_trgt_acs), dim=1)
+    #     # Compute Target Value
+    #     if self.discrete_action: # one-hot encode action
+    #         all_trgt_acs = [onehot_from_logits(pi(nobs)) 
+    #             for pi, nobs in zip(self.target_policies, next_obs)]
+    #     else:
+    #         all_trgt_acs = [pi(nobs) 
+    #             for pi, nobs in zip(self.target_policies, next_obs)]
+    #     trgt_vf_in = torch.cat((*next_obs, *all_trgt_acs), dim=1)
         
-        target_value = (rews[agent_i].view(-1, 1) + self.gamma *
-                        curr_agent.target_critic(trgt_vf_in) *
-                        (1 - dones[agent_i].view(-1, 1)))
-        # Compute Value
-        vf_in = torch.cat((*obs, *acs), dim=1)
-        actual_value = curr_agent.critic(vf_in)
-        # Value loss = minimise TD error (difference between target and value)
-        vf_loss = MSELoss(actual_value, target_value.detach())
+    #     target_value = (rews[agent_i].view(-1, 1) + self.gamma *
+    #                     curr_agent.target_critic(trgt_vf_in) *
+    #                     (1 - dones[agent_i].view(-1, 1)))
+    #     # Compute Value
+    #     vf_in = torch.cat((*obs, *acs), dim=1)
+    #     actual_value = curr_agent.critic(vf_in)
+    #     # Value loss = minimise TD error (difference between target and value)
+    #     vf_loss = MSELoss(actual_value, target_value.detach())
 
-        return vf_loss
+    #     return vf_loss
 
-    def compute_policy_loss(self, sample, agent_i):
-        obs, acs, rews, next_obs, dones = sample
-        curr_agent = self.agents[agent_i]
+    # def compute_policy_loss(self, sample, agent_i):
+    #     obs, acs, rews, next_obs, dones = sample
+    #     curr_agent = self.agents[agent_i]
         
-        # Get Action
-        curr_pol_out = curr_agent.policy(obs[agent_i])
-        if self.discrete_action:
-            curr_pol_vf_in = gumbel_softmax(curr_pol_out, hard=True)
-        else:
-            curr_pol_vf_in = curr_pol_out
-        all_pol_acs = []
-        for i, pi, ob in zip(range(self.n_agents), self.policies, obs):
-            if i == agent_i:
-                all_pol_acs.append(curr_pol_vf_in)
-            elif self.discrete_action:
-                all_pol_acs.append(onehot_from_logits(pi(ob)))
-            else:
-                all_pol_acs.append(pi(ob).detach())
-        vf_in = torch.cat((*obs, *all_pol_acs), dim=1)
-        # Policy loss = maximise value of our actions
-        pol_loss = -curr_agent.critic(vf_in).mean()
-        pol_loss += (curr_pol_out**2).mean() * 1e-3
+    #     # Get Action
+    #     curr_pol_out = curr_agent.policy(obs[agent_i])
+    #     if self.discrete_action:
+    #         curr_pol_vf_in = gumbel_softmax(curr_pol_out, hard=True)
+    #     else:
+    #         curr_pol_vf_in = curr_pol_out
+    #     all_pol_acs = []
+    #     for i, pi, ob in zip(range(self.n_agents), self.policies, obs):
+    #         if i == agent_i:
+    #             all_pol_acs.append(curr_pol_vf_in)
+    #         elif self.discrete_action:
+    #             all_pol_acs.append(onehot_from_logits(pi(ob)))
+    #         else:
+    #             all_pol_acs.append(pi(ob).detach())
+    #     vf_in = torch.cat((*obs, *all_pol_acs), dim=1)
+    #     # Policy loss = maximise value of our actions
+    #     pol_loss = -curr_agent.critic(vf_in).mean()
+    #     pol_loss += (curr_pol_out**2).mean() * 1e-3
 
-        return pol_loss
+    #     return pol_loss
 
     def update(self, sample, agent_i):
         """
@@ -268,46 +290,50 @@ class MADDPG:
         """
         obs, acs, rews, next_obs, dones = sample
         curr_agent = self.agents[agent_i]
+
         # Critic Update
         curr_agent.critic_optimizer.zero_grad()
+        enc_obs = [self.observation_encoder(o) for o in obs]
+        enc_next_obs = [self.observation_encoder(n_o) for n_o in next_obs]
         # Compute Target Value
         if self.discrete_action: # one-hot encode action
             all_trgt_acs = [onehot_from_logits(pi(nobs)) 
-                for pi, nobs in zip(self.target_policies, next_obs)]
+                for pi, nobs in zip(self.target_policies, enc_next_obs)]
         else:
             all_trgt_acs = [pi(nobs) 
-                for pi, nobs in zip(self.target_policies, next_obs)]
-        trgt_vf_in = torch.cat((*next_obs, *all_trgt_acs), dim=1)
+                for pi, nobs in zip(self.target_policies, enc_next_obs)]
+        trgt_vf_in = torch.cat((*enc_next_obs, *all_trgt_acs), dim=1)
         
         target_value = (rews[agent_i].view(-1, 1) + self.gamma *
                         curr_agent.target_critic(trgt_vf_in) *
                         (1 - dones[agent_i].view(-1, 1)))
         # Compute Value
-        vf_in = torch.cat((*obs, *acs), dim=1)
+        vf_in = torch.cat((*enc_obs, *acs), dim=1)
         actual_value = curr_agent.critic(vf_in)
         # Value loss = minimise TD error (difference between target and value)
         vf_loss = MSELoss(actual_value, target_value.detach())
-        vf_loss.backward()
+        vf_loss.backward(retain_graph=True)
         torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5)
         curr_agent.critic_optimizer.step()
 
         # Policy Update
         curr_agent.policy_optimizer.zero_grad()
+        enc_obs = [self.observation_encoder(o) for o in obs]
         # Get Action
-        curr_pol_out = curr_agent.policy(obs[agent_i])
+        curr_pol_out = curr_agent.policy(enc_obs[agent_i])
         if self.discrete_action:
             curr_pol_vf_in = gumbel_softmax(curr_pol_out, hard=True)
         else:
             curr_pol_vf_in = curr_pol_out
         all_pol_acs = []
-        for i, pi, ob in zip(range(self.n_agents), self.policies, obs):
+        for i, pi, ob in zip(range(self.n_agents), self.policies, enc_obs):
             if i == agent_i:
                 all_pol_acs.append(curr_pol_vf_in)
             elif self.discrete_action:
                 all_pol_acs.append(onehot_from_logits(pi(ob)))
             else:
                 all_pol_acs.append(pi(ob).detach())
-        vf_in = torch.cat((*obs, *all_pol_acs), dim=1)
+        vf_in = torch.cat((*enc_obs, *all_pol_acs), dim=1)
         # Policy loss = maximise value of our actions
         pol_loss = -curr_agent.critic(vf_in).mean()
         pol_loss += (curr_pol_out**2).mean() * 1e-3

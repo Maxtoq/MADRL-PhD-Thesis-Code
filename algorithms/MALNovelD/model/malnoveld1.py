@@ -54,7 +54,8 @@ class MALNovelD:
         self.pol_algo = pol_algo
         
         # Modules
-        self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
+        self.obs_encoder = ObservationEncoder(
+            obs_dim, context_dim, hidden_dim, n_hidden_layers=0)
         self.word_encoder = OneHotEncoder(vocab)
         self.sentence_encoder = GRUEncoder(context_dim, self.word_encoder)
         self.decoder = GRUDecoder(context_dim, self.word_encoder)
@@ -67,14 +68,13 @@ class MALNovelD:
         # Policy module
         if pol_algo == "maddpg":
             self.policy = MADDPG(
-                # n_agents, context_dim, act_dim, lr, gamma, tau, hidden_dim,
-                n_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim,
+                n_agents, context_dim, act_dim, self.obs_encoder,
+                lr, gamma, tau, hidden_dim,
+                # n_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim,
                 discrete_action, shared_params, init_explo_rate)
         else:
             print("Wrong algorithm name for the policy, must be in [maddpg]")
             exit()
-
-        # Policy optimizers
 
         # Language losses
         self.clip_loss = nn.CrossEntropyLoss()
@@ -203,7 +203,6 @@ class MALNovelD:
         """
         # Encode observations
         torch_obs = torch.Tensor(np.array(observations)).to(self.device)
-        # internal_contexts = self.obs_encoder(torch_obs).detach()
 
         # If the LNovelD network is empty (first step of new episode)
         if descriptions is not None and self.lnoveld.is_empty():
@@ -217,25 +216,16 @@ class MALNovelD:
             )
 
         # Get actions
-        # actions = self.policy.step(internal_contexts, explore)
         actions = self.policy.step(torch_obs, explore)
+        # actions = self.policy.step(torch_obs, explore)
         return actions
 
     def update_policy(self, agents_batch):
         vf_losses = []
         pol_losses = []
         for a_i in range(self.n_agents):
-            # self.language_optimizer.zero_grad()
-            obs, acs, rews, next_obs, dones = agents_batch[a_i]
-            # with torch.no_grad():
-            #     self.obs_encoder.eval()
-            #     enc_obs = [self.obs_encoder(o) for o in obs]
-            #     enc_next_obs = [self.obs_encoder(n_o) for n_o in next_obs]
-            #     self.obs_encoder.train()
-            # agent_batch = (enc_obs, acs, rews, enc_next_obs, dones)
-            agent_batch = (obs, acs, rews, next_obs, dones)
-            vf_loss, pol_loss = self.policy.update(agent_batch, a_i)
-            # self.language_optimizer.step()
+            vf_loss, pol_loss = self.policy.update(
+                agents_batch[a_i], a_i)
             vf_losses.append(vf_loss.item())
             pol_losses.append(pol_loss.item())
 
