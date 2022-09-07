@@ -20,7 +20,7 @@ class ObservationEncoder(nn.Module):
             obs_dim, 
             embedding_dim, 
             hidden_dim,
-            n_layers=n_hidden_layers)
+            n_hidden_layers=n_hidden_layers)
             #out_activation_fn='tanh')
 
     def forward(self, obs_batch):

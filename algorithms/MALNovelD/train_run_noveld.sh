@@ -1,9 +1,9 @@
 #!/bin/sh
 n_run=1
-env="coop_push_scenario/coop_push_scenario_sparse.py"
-model_name="maddpg_mpanoveld_fo_disc"
+env="algorithms/MALNovelD/scenarios/coop_push_scenario_sparse_harder.py"
+model_name="maddpg_manoveld_fo_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=20000000
+n_frames=10000000
 buffer_length=1000000
 lr=0.0007
 gamma=0.99

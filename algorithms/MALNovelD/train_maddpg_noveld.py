@@ -51,7 +51,7 @@ def run(cfg):
         act_dim = env.action_space[0].n
     else:
         act_dim = env.action_space[0].shape[0]
-    maddpg = MADDPG_MPANovelD(
+    maddpg = MADDPG_MANovelD(
         n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
         cfg.tau, cfg.hidden_dim, cfg.embed_dim, cfg.discrete_action, 
         cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat)
@@ -122,8 +122,7 @@ def run(cfg):
         # Compute intrinsic rewards
         int_rewards = maddpg.get_intrinsic_rewards(next_obs)
         rewards = np.array([ext_rewards]) + \
-                  cfg.int_reward_coeff * int_rewards
-                #   cfg.int_reward_coeff * np.array([int_rewards])
+                  cfg.int_reward_coeff * np.array([int_rewards])
                 #   explo_pct_remaining * np.array([int_rewards])
         
         # Store experience in replay buffer
@@ -185,7 +184,7 @@ def run(cfg):
             samples = [replay_buffer.sample(
                             config.batch_size, cuda_device=device)
                        for _ in range(n_agents)]
-            vf_loss, pol_loss, nd_loss, mand_loss = maddpg.update(samples)
+            vf_loss, pol_loss, nd_loss = maddpg.update(samples)
             # Log
             for a_i in range(n_agents):
                 logger.add_scalars(

@@ -8,6 +8,12 @@ def init(module, weight_init, bias_init, gain=1):
         bias_init(module.bias.data)
     return module
 
+def get_init_linear(input_dim, output_dim):
+    init_method = nn.init.orthogonal_
+    def init_(m):
+        return init(m, init_method, lambda x: nn.init.constant_(x, 0))
+    return init_(nn.Linear(input_dim, output_dim))
+
 
 class MLPNetwork(nn.Module):
     """
@@ -17,7 +23,7 @@ class MLPNetwork(nn.Module):
             input_dim, 
             out_dim, 
             hidden_dim=64, 
-            n_layers=1, 
+            n_hidden_layers=1, 
             activation_fn='relu',
             out_activation_fn=None,
             norm_in=True):
@@ -26,7 +32,7 @@ class MLPNetwork(nn.Module):
             :param input_dim (int): Dimension of the input
             :param out_dim (int): Dimension of the output
             :param hidden_dim (int): Dimension of the hidden layer
-            :param n_layers (int): Number of hidden layers
+            :param n_hidden_layers (int): Number of hidden layers
             :param activation_fn (str): Activation function after each layer,
                 must be in ['relu', 'tanh']
             :param out_activation_fn (str): Activation function of the output
@@ -34,7 +40,7 @@ class MLPNetwork(nn.Module):
             :param norm_in (bool): Whether to perform BatchNorm on model input
         """
         super(MLPNetwork, self).__init__()
-        self.n_layers = n_layers
+        self.n_hidden_layers = n_hidden_layers
 
         # Normalisation of inputs
         if norm_in:
@@ -78,7 +84,7 @@ class MLPNetwork(nn.Module):
             *[nn.Sequential(
                     nn.Linear(hidden_dim, hidden_dim),
                     activ_fn
-                ) for _ in range(self.n_layers)],
+                ) for _ in range(self.n_hidden_layers)],
             nn.Linear(hidden_dim, out_dim)
         )
         self.mlp.apply(init_)
