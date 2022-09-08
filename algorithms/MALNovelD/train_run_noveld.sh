@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=3
 env="algorithms/MALNovelD/scenarios/coop_push_scenario_sparse_harder.py"
 model_name="maddpg_manoveld_fo_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"

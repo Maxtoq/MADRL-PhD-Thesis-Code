@@ -28,10 +28,10 @@ class NovelD:
         # Random Network Distillation network
         # Fixed target embedding network
         self.target = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_layers=3, norm_in=False)
+            state_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
         # Predictor embedding network
         self.predictor = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_layers=3, norm_in=False)
+            state_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
 
         self.device = None
 
