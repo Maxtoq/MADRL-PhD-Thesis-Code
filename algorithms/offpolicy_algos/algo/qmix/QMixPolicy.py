@@ -47,6 +47,11 @@ class AgentQFunction(nn.Module):
         obs = to_torch(obs).to(**self.tpdv)
         rnn_states = to_torch(rnn_states).to(**self.tpdv)
 
+        print("\nObs")
+        print(obs.shape)
+        print("\nRnn states")
+        print(rnn_states.shape)
+
         no_sequence = False
         if len(obs.shape) == 2:
             # this means we're just getting one output (no sequence)
@@ -67,6 +72,11 @@ class AgentQFunction(nn.Module):
 
         # pass outputs through linear layer
         q_outs = self.q(rnn_outs, no_sequence)
+        print("\nQ out")
+        print(q_outs.shape)
+        print("\nh_final")
+        print(h_final.shape)
+        exit()
 
         return q_outs, h_final
 

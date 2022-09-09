@@ -1,7 +1,35 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .networks import MLPNetwork, get_init_linear
+
+
+class DRQNetwork(nn.Module):
+
+    def __init__(self, input_dim, output_dim, hidden_dim=64):
+        super(DRQNetwork, self).__init__()
+        
+        self.mlp_in = get_init_linear(input_dim, hidden_dim)
+
+        self.rnn = nn.GRU(hidden_dim, hidden_dim)
+
+        self.mlp_out = get_init_linear(hidden_dim, output_dim)
+
+    def forward(self, obs, rnn_states):
+        """
+        Compute q values for every action given observations and rnn states.
+        Inputs:
+            obs (torch.Tensor): Observations from which to compute q-values,
+                dim=(batch_size, obs_dim).
+            rnn_states (torch.Tensor): Hidden states with which to initialise
+                the RNN, dim=(batch_size, hidden_dim).
+        Outputs:
+            q_outs (torch.Tensor): Q-values for every action, 
+                dim=(batch_size, act_dim).
+            h_final (torch.Tensor): Final hidden states of the RNN, 
+                dim=(batch_size, hidden_dim).
+        """
 
 
 class QMixer(nn.Module):
@@ -16,16 +44,52 @@ class QMixer(nn.Module):
         self.hypernet_hidden_dim = hypernet_hidden_dim
 
         # Hypernets
-        self.hypernet_weights1 = MLPNetwork(
-            cent_obs_dim, n_agents * mixer_hidden_dim, hypernet_hidden_dim, 0)
+        # self.hypernet_weights1 = MLPNetwork(
+        #     cent_obs_dim, n_agents * mixer_hidden_dim, hypernet_hidden_dim, 0)
+        self.hypernet_weights1 = get_init_linear(
+            cent_obs_dim, n_agents * mixer_hidden_dim)
         self.hypernet_bias1 = get_init_linear(cent_obs_dim, mixer_hidden_dim)
-        self.hypernet_weights2 = MLPNetwork(
-            cent_obs_dim, mixer_hidden_dim, hypernet_hidden_dim, 0)
+        # self.hypernet_weights2 = MLPNetwork(
+        #     cent_obs_dim, mixer_hidden_dim, hypernet_hidden_dim, 0)
+        self.hypernet_weights2 = get_init_linear(
+            cent_obs_dim, mixer_hidden_dim)
         self.hypernet_bias2 = MLPNetwork(
             cent_obs_dim, 1, hypernet_hidden_dim, 0)
 
     def forward(self, local_qs, obs):
-        pass
+        """
+        Computes Q_tot using local agent q-values and global observation.
+        Inputs:
+            local_qs (torch.Tensor): Local agent q-values, dim=(episode_length, 
+                batch_size, n_agents).
+            obs (torch.Tensor): Global observation, i.e. concatenated local 
+                observations, dimension=(episode_lenght, batch_size, 
+                n_agents * obs_dim)
+        Outputs:
+            Q_tot (torch.Tensor): Global Q-value computed by the mixer, 
+                dim=(episode_length, batch_size, 1, 1).
+        """
+        batch_size = local_qs.size(1)
+        obs = obs.view(-1, batch_size, self.cent_obs_dim).float()
+        local_qs = local_qs.view(-1, batch_size, 1, self.num_mixer_q_inps)
+
+        # First layer forward pass
+        w1 = torch.abs(self.hypernet_weights1(obs))
+        b1 = self.hypernet_bias1(obs)
+        w1 = w1.view(-1, batch_size, self.n_agents, self.mixer_hidden_dim)
+        b1 = b1.view(-1, batch_size, 1, self.mixer_hidden_dim)
+        hidden_layer = F.elu(torch.matmul(local_qs, w1) + b1)
+
+        # Second layer forward pass
+        w2 = torch.abs(self.hyper_w2(obs))
+        b2 = self.hyper_b2(obs)
+        w2 = w2.view(-1, batch_size, self.mixer_hidden_dim, 1)
+        b2 = b2.view(-1, batch_size, 1, 1)
+        out = torch.matmul(hidden_layer, w2) + b2
+        q_tot = out.view(-1, batch_size, 1, 1)
+
+        return q_tot
+
 
 class QMIXAgent:
 
@@ -40,7 +104,8 @@ class QMIXAgent:
             exit(0)
         self.explo_strat = explo_strat
 
-        # Networks
+        # Q function
+        self.q_network = DRQNetwork()
 
     def step(self, obs, explore=False, device="cpu"):
         pass
