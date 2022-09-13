@@ -1,5 +1,4 @@
-import random
-from math import sqrt
+import numpy as np
 
 from abc import ABC, abstractmethod
 
@@ -63,39 +62,47 @@ class ColorParser(Parser):
     def get_color(self, color):
         # Red
         if color == 1:
-            return "Red"
+            color = "Red"
         # Blue
         elif color == 2:
-            return "Bleu"
+            color = "Bleu"
         # Green
         elif color == 3:
-            return "Green"
-        # Yellow
-        elif color == 4:
-            return "Yellow"
-        # Purple
-        elif color == 5:
-            return "Purple"
-        #Black
-        elif color == 6:
-            return "Black"
-        else:
-            return None
-        
-        
-class ColorShapeParser(ColorParser):
-    """ Abstract Parser """
-    # Get the shape based on the number
-    def get_shape(self, shape):
-        #Black
-        if shape == 1:
-            return "Circle"
+            color = "Green"
+
+        return color
+
+    # Get the color based on its array
+    def array_to_color(self, array):
+        # Get the color based on the array
+        idx = np.where(array == 1)[0]
+        color = None
         # Red
-        elif shape == 2:
-            return "Square"
+        if idx == 0:
+            color = "Red"
         # Blue
-        elif shape == 3:
-            return "Triangle"
-        else:
-            return None
+        elif idx == 1:
+            color = "Blue"
+        # Green
+        elif idx == 2:
+            color = "Green"
+
+        return color
+
+    # Get the color number based on its array
+    def array_to_num(self, array):
+        # Get the color based on the array
+        idx = np.where(array == 1)[0]
+        color = 0
+        # Red
+        if idx == 0:
+            color = 1
+        # Blue
+        elif idx == 1:
+            color = 2
+        # Green
+        elif idx == 2:
+            color = 3
+
+        return color
 

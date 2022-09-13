@@ -2,13 +2,17 @@ import copy
 
 class Mapper:
 
-    def __init__(self, args, sce_conf):
-        self.args = args
+    def __init__(self, sce_conf):
+        """
+        Mapper, set maps to track the agents and get what he sees
+        :param sce_conf: (dict) parameters of the exercise
+        """
+        self.sce_conf = sce_conf
 
         # Initialization of the world map
         # To track the agent
         self.world = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(6):
                 newLine = []
@@ -22,7 +26,7 @@ class Mapper:
         # Each 0 is an area (North, South, West, East)
         # That has not been fully discovered
         self.area = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -34,7 +38,7 @@ class Mapper:
         # Initialization of the area map with objects
         # Each 0 is the number of objects found in the area
         self.area_obj = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -45,6 +49,14 @@ class Mapper:
 
     # Update the value of the world map
     def update_world(self, posX, posY, nb_agent):
+        '''
+        Update the world array depending on the position of the agent
+
+        Input:  
+            posX: (float) between -1 and 1, position of the agent
+            posY: (float) between -1 and 1, position of the agent
+            nb_agent: (int) Number of the agent
+        '''
 
         #Check the position of the agent
         # To update the value of the world
@@ -53,28 +65,35 @@ class Mapper:
         # Can be in a corner
         if posY >= 0.66 :
             self.update_world_section(nb_agent,0,posX,corner = True)
-        if posY >= 0.33 and posY <= 0.66 :
+        elif posY >= 0.33 and posY <= 0.66 :
             self.update_world_section(nb_agent,1,posX,corner = True)
 
         # Center
         if posY >= 0 and posY <= 0.33 :
             self.update_world_section(nb_agent,2,posX,corner = False)
-        if posY >= -0.33 and posY <= 0 :
+        elif posY >= -0.33 and posY <= 0 :
             self.update_world_section(nb_agent,3,posX,corner = False)
 
         # South 
         # Can be in a corner
         if posY >= -0.66 and posY <= -0.33 :
             self.update_world_section(nb_agent,4,posX,corner = True)
-        if posY <= -0.66:
+        elif posY <= -0.66:
             self.update_world_section(nb_agent,5,posX,corner = True)
-
-        """# To see what the agent saw
-        for l in range(6) :   
-            print(self.world[nb_agent][l])"""
 
     # Update a section of the world map
     def update_world_section(self, nb_agent, num_array, posX, corner):
+        '''
+        Update a section of the world array depending on the position of the agent
+        The areas not discovered =0, =1 when discovered and =2 when discovered and
+        in a corner
+
+        Input: 
+            nb_agent: (int) Number of the agent 
+            num_array: (int) number of the array we need to modify
+            posX: (float) between -1 and 1, position of the agent
+            corner: (bool) if True the agent is in a corner
+        '''
         # 0 means not discovered
         # 1 means discovered
         # 2 means discovered in corners
@@ -83,38 +102,45 @@ class Mapper:
             # In a corner so = 2 (for the two possible areas)
             if posX <= -0.66:
                 self.world[nb_agent][num_array][0] = 2
-            if posX >= -0.66 and posX <= -0.33:
+            elif posX >= -0.66 and posX <= -0.33:
                 self.world[nb_agent][num_array][1] = 2
-            if posX >= -0.33 and posX <= 0:
+            elif posX >= -0.33 and posX <= 0:
                 self.world[nb_agent][num_array][2] = 1
-            if posX >= 0 and posX <= 0.33:
+            elif posX >= 0 and posX <= 0.33:
                 self.world[nb_agent][num_array][3] = 1
-            if posX >= 0.33 and posX <= 0.66:
+            elif posX >= 0.33 and posX <= 0.66:
                 self.world[nb_agent][num_array][4] = 2
-            if posX >= 0.66:
+            elif posX >= 0.66:
                 self.world[nb_agent][num_array][5] = 2
         else:
             if posX <= -0.66:
                 self.world[nb_agent][num_array][0] = 1
-            if posX >= -0.66 and posX <= -0.33:
+            elif posX >= -0.66 and posX <= -0.33:
                 self.world[nb_agent][num_array][1] = 1
-            if posX >= -0.33 and posX <= 0:
+            elif posX >= -0.33 and posX <= 0:
                 self.world[nb_agent][num_array][2] = 1
-            if posX >= 0 and posX <= 0.33:
+            elif posX >= 0 and posX <= 0.33:
                 self.world[nb_agent][num_array][3] = 1
-            if posX >= 0.33 and posX <= 0.66:
+            elif posX >= 0.33 and posX <= 0.66:
                 self.world[nb_agent][num_array][4] = 1
-            if posX >= 0.66:
+            elif posX >= 0.66:
                 self.world[nb_agent][num_array][5] = 1
 
     # Update the array of objects
     def update_area_obj(self, agent_x, agent_y, object_nb, nb_agent):
-        # object_nb : 2 if object
-        #       3 if landmark
-        #       4 if both
-        """print("OBJECT FOUND: " + str(object_nb))
-        print(self.area)
-        print(self.area_obj[nb_agent])"""
+        '''
+        Update the object array of the agent depending on what it sees and where
+        
+        object_nb : 2 if object
+                    3 if landmark
+                    5 if both
+
+        Input: 
+            agent_x: (float) Position x of the agent 
+            agent_y: (float) Position y of the agent
+            object_nb: (int) each object has a different number
+            nb_agent: (int) number of the agent
+        '''
         
         # If an object is discovered, we modify the area_obj array
         
@@ -195,6 +221,20 @@ class Mapper:
 
     # Check if an area is fully dicovered
     def count_discovered(self, nb_agent, world_array_posx, world_array_posy):
+        '''
+        Check an area to see if it has been fully discovered
+        by counting the number of cells the agent went through
+
+        Input: 
+            nb_agent: (int) number of the agent
+            world_array_posx:   list(int) list of the different array 
+                                number we have to check 
+            world_array_posy:   list(int) list of the different array 
+                                number we have to check
+
+        Output:
+            (bool) True if the area is fully discovered
+        '''
         max_count = 0
         count = 0
 
@@ -217,6 +257,20 @@ class Mapper:
 
     # Check in a corner area is fully discovered
     def count_discovered_corner(self, nb_agent, world_array_posx, world_array_posy):
+        '''
+        Check an area in a corner to see if it has been fully discovered
+        by counting the number of cells the agent went through
+
+        Input: 
+            nb_agent: (int) number of the agent
+            world_array_posx:   list(int) list of the different array 
+                                number we have to check 
+            world_array_posy:   list(int) list of the different array 
+                                number we have to check
+
+        Output:
+            (bool) True if the area is fully discovered
+        '''
         max_count = 0
         count = 0
 
@@ -238,9 +292,26 @@ class Mapper:
             return False
 
     # Update the area map
-    def update_area(self, nb_agent):
+    def update_area(self, nb_agent):     
+        '''
+        Update the area array of the agent depending on what it sees
+        If an area is fully discovered we need to generate a not_sentence
+        If it's the case, we return the informations on the array 
+        (its position and the number of the agent)
+        If the area is in a corner we set its value to 2 instead of 1 
+        so we can generate not_sentence twice for the corner
+        
+        Input: 
+            nb_agent: (int) number of the agent
+                    
+        Output:
+            list(
+                (int) Number of the area
+                (int) Number of the area
+                (int) Number of the agent
+                )
+        '''
         # Check the world to see if some area were fully discovered
-        #print(self.area[nb_agent])
         # If North is not fully discovered
         if (self.area[nb_agent][0][0] < 1 or 
             self.area[nb_agent][0][1] < 1 or 
@@ -250,7 +321,6 @@ class Mapper:
                 if self.count_discovered_corner(nb_agent,[0,2],[0,2]):
                         self.area[nb_agent][0][0] = 2
                         # Generate a not sentence
-                        #return self.not_sentence(0,0, nb_agent)
                         return 0, 0, nb_agent
             # North Center
             if self.area[nb_agent][0][1] != 1:
@@ -262,10 +332,8 @@ class Mapper:
                 if self.count_discovered_corner(nb_agent,[0,2],[4,6]):
                         self.area[nb_agent][0][2] = 2
                         # Generate a not sentence
-                        #return self.not_sentence(0,2, nb_agent)
                         return 0, 2, nb_agent
         else:
-            #return self.not_sentence(0,1, nb_agent)
             return 0, 1, nb_agent
 
         # If Center not fully discovered
@@ -282,7 +350,6 @@ class Mapper:
                 if self.count_discovered(nb_agent,[2,4],[2,4]):
                     if self.area[nb_agent][1][1] == 0:
                         self.area[nb_agent][1][1] = 1
-                    #return self.not_sentence(1,1, nb_agent)
                     return 1, 1, nb_agent
             # Center East
             if self.area[nb_agent][1][2] != 1:
@@ -298,7 +365,6 @@ class Mapper:
             if self.area[nb_agent][2][0] < 2:
                 if self.count_discovered_corner(nb_agent,[4,6],[0,2]):
                         self.area[nb_agent][2][0] = 2
-                        #return self.not_sentence(2,0, nb_agent)
                         return 2, 0, nb_agent
             # South Center
             if self.area[nb_agent][2][1] != 1:
@@ -309,10 +375,8 @@ class Mapper:
             if self.area[nb_agent][2][2] < 2:
                 if self.count_discovered_corner(nb_agent,[4,6],[4,6]):
                         self.area[nb_agent][2][2] = 2
-                        #return self.not_sentence(2,2, nb_agent)
                         return 2, 2, nb_agent
         else:
-            #return self.not_sentence(2,1, nb_agent)
             return 2, 1, nb_agent
 
         # West and East
@@ -321,27 +385,38 @@ class Mapper:
             self.area[nb_agent][1][0] >= 1 and
             self.area[nb_agent][2][0] >= 1):
             # Generate the not_sentence
-            #return self.not_sentence(1,0, nb_agent)
             return 1, 0, nb_agent
         if (self.area[nb_agent][0][2] >= 1 and 
             self.area[nb_agent][1][2] >= 1 and
             self.area[nb_agent][2][2] >= 1):
-            #return self.not_sentence(1,2, nb_agent)
             return 1, 2, nb_agent
 
     # Reset the area map
     def reset_area(self, nb_agent, direction, area_pos):
+        '''
+        Reset the area and set its value to 0 (or 1 if it was a corner == 2)
+        Also reset the object array by setting its value to 2 or diving it by 2
+        if it was a corner
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            direction:  (int) number of the direction. 
+                        0 is horizontal
+                        1 if vertical 
+            area_pos: (int) position of the area in the array
+        '''
         # If direction is left to right (North or South)
         if direction == 0:
             for i in range(3):
                 # Reset the area by doing -1
                 self.area[nb_agent][area_pos][i] -= 1
                 # If the agent saw an object (and in a corner)
-                if self.area_obj[nb_agent][area_pos][i] >= 4:
+                if (self.area_obj[nb_agent][area_pos][i] >= 4 and \
+                    self.area_obj[nb_agent][area_pos][i] != 5):
                     # Devide it by 2
                     self.area_obj[nb_agent][area_pos][i] = \
                         self.area_obj[nb_agent][area_pos][i]//2
-                else:
+                elif self.area[nb_agent][area_pos][i] == 0:
                     # Or = 0
                     self.area_obj[nb_agent][area_pos][i] = 0
 
@@ -349,14 +424,25 @@ class Mapper:
         elif direction == 1:
             for i in range(3):
                 self.area[nb_agent][i][area_pos] -= 1
-                if self.area_obj[nb_agent][i][area_pos] >= 4:
+                if (self.area_obj[nb_agent][i][area_pos] >= 4 and \
+                    self.area_obj[nb_agent][i][area_pos] != 5):
                     self.area_obj[nb_agent][i][area_pos] = \
                         self.area_obj[nb_agent][i][area_pos]//2
-                else:
+                elif self.area[nb_agent][i][area_pos] == 0:
                     self.area_obj[nb_agent][i][area_pos] = 0
 
     # Reset the world map
     def reset_world(self, nb_agent, world_array_posx, world_array_posy):
+        '''
+        Reset the world array and set all its value to 0
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            world_array_posx:   list(int) list of the different array 
+                                number we have to check 
+            world_array_posy:   list(int) list of the different array 
+                                number we have to check
+        '''
         # Reset the world map depending on the array position
         for i in range(world_array_posx[0],world_array_posx[1]) :
                 for j in range(world_array_posy[0],world_array_posy[1]):
@@ -364,6 +450,13 @@ class Mapper:
 
     # Reset all the maps
     def reset_areas(self, area_nb, nb_agent):
+        '''
+        Reset the values of the areas
+        
+        Input: 
+            area_nb: (int) number of the area to reset
+            nb_agent: (int) number of the agent
+        '''
 
         # If North
         if area_nb == 0:
@@ -372,20 +465,20 @@ class Mapper:
             self.reset_area(nb_agent,0,0)
             self.reset_world(nb_agent,[0,2],[0,6])
         # If South
-        if area_nb == 1:
+        elif area_nb == 1:
             self.reset_area(nb_agent,0,2)
             self.reset_world(nb_agent,[4,6],[0,6])
         # if West
-        if area_nb == 2:
+        elif area_nb == 2:
             self.reset_area(nb_agent,1,0)
             self.reset_world(nb_agent,[0,6],[0,2])
         # If East
-        if area_nb == 3:
+        elif area_nb == 3:
             self.reset_area(nb_agent,1,2)
             self.reset_world(nb_agent,[0,6],[4,6])
         
         # If Center
-        if area_nb == 4:
+        elif area_nb == 4:
             # Reset the area (1,1)
             self.area[nb_agent][1][1] -= 1
             if self.area_obj[nb_agent][1][1] >= 4:
@@ -398,7 +491,21 @@ class Mapper:
 
     # Check an area to see if there is an object
     def check_area(self, nb_agent, direction, area_pos, obj):
+        '''
+        Check an selected area to see if there is 1 type of object or 2
+        if obj == 2: there is an object
+        if obj == 3: there is a landmark
+        if obj == 5: both objects are in the same area
         
+        Input: 
+            nb_agent: (int) number of the agent
+            direction: (int) direction of the area 
+            area_pos: (int) position of the area 
+            obj: (int) value describing the type of object in the area
+
+        Output:
+            obj: (int) return the value describing the type of object in the area
+        '''
         # If North or South
         if direction == 0:
             for x in range(3) :
@@ -415,7 +522,7 @@ class Mapper:
                     elif obj_i != 0 :
                         # Else, it means that two different objects
                         # Are in the same area, obj = 4
-                        obj = 4
+                        obj = 5
         # If West or East
         elif direction == 1:
             for x in range(3) :
@@ -427,15 +534,19 @@ class Mapper:
                     (obj == 3 or obj == 6 or obj == 0)):
                         obj = 3
                     elif obj_i != 0 :
-                        obj = 4
+                        obj = 5
 
         return obj
 
-    def reset(self, sce_conf):
+    # Reset all the maps
+    def reset(self):
+        '''
+        Reset all the arrays
+        '''
         # Initialization of the world map
         # To track the agent
         self.world = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(6):
                 newLine = []
@@ -449,7 +560,7 @@ class Mapper:
         # Each 0 is an area (North, South, West, East)
         # That has not been fully discovered
         self.area = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -461,7 +572,7 @@ class Mapper:
         # Initialization of the area map with objects
         # Each 0 is the number of objects found in the area
         self.area_obj = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -473,13 +584,17 @@ class Mapper:
 
 class ColorMapper(Mapper):
 
-    def __init__(self, args, sce_conf):
-        self.args = args
+    def __init__(self, sce_conf):
+        """
+        Mapper, set maps to track the agents and see what he sees
+        :param sce_conf: (dict) parameters of the exercise
+        """
+        self.sce_conf = sce_conf
 
         # Initialization of the world map
         # To track the agent
         self.world = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(6):
                 newLine = []
@@ -493,7 +608,7 @@ class ColorMapper(Mapper):
         # Each 0 is an area (North, South, West, East)
         # That has not been fully discovered
         self.area = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -503,7 +618,7 @@ class ColorMapper(Mapper):
             self.area.append(newAgent)
 
         self.area_object = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -515,9 +630,19 @@ class ColorMapper(Mapper):
 
     # Update the array of objects
     def update_area_obj(self, agent_x, agent_y, object_nb, object_color, nb_agent):
-        # object_nb : 2 if object
-        #       3 if landmark
-        #       4 if both
+        '''
+        Update the object array of the agent depending on what it sees and where
+        
+        object_nb : 2 if object
+                    3 if landmark
+
+        Input: 
+            agent_x: (float) Position x of the agent 
+            agent_y: (float) Position y of the agent
+            object_nb: (int) each object has a different number
+            object_color: (int) color of the object
+            nb_agent: (int) number of the agent
+        '''
         # If an object is discovered, we modify the area_obj array
 
         object = [object_nb,object_color]
@@ -585,7 +710,18 @@ class ColorMapper(Mapper):
 
     # Reset the area map
     def reset_area(self, nb_agent, direction, area_pos):
-
+        '''
+        Reset the area and set its value to 0 (or 1 if it was a corner == 2)
+        Also reset the object array by setting its value to 2 or diving it by 2
+        if it was a corner
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            direction:  (int) number of the direction. 
+                        0 is horizontal
+                        1 if vertical 
+            area_pos: (int) position of the area in the array
+        '''
         # If direction is left to right (North or South)
         if direction == 0:
             for i in range(3):
@@ -612,7 +748,13 @@ class ColorMapper(Mapper):
 
     # Reset all the maps
     def reset_areas(self, area_nb, nb_agent):
-
+        '''
+        Reset the values of the areas
+        
+        Input: 
+            area_nb: (int) number of the area to reset
+            nb_agent: (int) number of the agent
+        '''
         # If North
         if area_nb == 0:
             # Reset the area and the world map
@@ -620,20 +762,20 @@ class ColorMapper(Mapper):
             self.reset_area(nb_agent,0,0)
             self.reset_world(nb_agent,[0,2],[0,6])
         # If South
-        if area_nb == 1:
+        elif area_nb == 1:
             self.reset_area(nb_agent,0,2)
             self.reset_world(nb_agent,[4,6],[0,6])
         # if West
-        if area_nb == 2:
+        elif area_nb == 2:
             self.reset_area(nb_agent,1,0)
             self.reset_world(nb_agent,[0,6],[0,2])
         # If East
-        if area_nb == 3:
+        elif area_nb == 3:
             self.reset_area(nb_agent,1,2)
             self.reset_world(nb_agent,[0,6],[4,6])
 
         # If Center
-        if area_nb == 4:
+        elif area_nb == 4:
             # Reset the area (1,1)
             self.area[nb_agent][1][1] -= 1
             if self.area_object[nb_agent][1][1][0] == 2:
@@ -645,6 +787,20 @@ class ColorMapper(Mapper):
 
     # Check an area to see if there is an object
     def check_area(self, nb_agent, direction, area_pos, all_colors):
+        '''
+        Check an selected area and return the list of object not in the area
+        if obj == 2: there is an object
+        if obj == 3: there is a landmark
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            direction: (int) direction of the area 
+            area_pos: (int) position of the area 
+            all_colors: list(int) all the colors possible in the exercise
+
+        Output:
+            list_all_object: list(list(int)) return a list of object that are not in the area 
+        '''
         objects = []
         list_all_obj = []
         for c in all_colors:
@@ -671,11 +827,24 @@ class ColorMapper(Mapper):
 
     # Return list of object not visible
     def find_missing(self, nb_agent, posx, posy, all_colors):
+        '''
+        Check an selected area and return the list of object not in the area
+        if obj == 2: there is an object
+        if obj == 3: there is a landmark
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            posx: (int) position in the array
+            posy: (int) position in the array 
+            all_colors: list(int) all the colors possible in the exercise
+
+        Output:
+            list_all_object: list(list(int)) return a list of object that are not in the area 
+        '''
         list_obj = []
         list_all_obj = []
         objects_not_visible = []
-        print("COLORS AVAILABLE")
-        print(all_colors)
+
         # Create a list with all the possible objects
         # Each color has an object and a landmark
         for c in all_colors:
@@ -690,11 +859,15 @@ class ColorMapper(Mapper):
                 objects_not_visible.append(obj)
         return objects_not_visible
         
-    def reset(self, sce_conf):
+    # Reset all the maps
+    def reset(self):
+        '''
+        Reset all the arrays
+        '''
         # Initialization of the world map
         # To track the agent
         self.world = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(6):
                 newLine = []
@@ -708,7 +881,7 @@ class ColorMapper(Mapper):
         # Each 0 is an area (North, South, West, East)
         # That has not been fully discovered
         self.area = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -719,7 +892,7 @@ class ColorMapper(Mapper):
 
         # Initialization of the area map with objects
         self.area_object = []
-        for nb_agent in range(sce_conf['nb_agents']):
+        for nb_agent in range(self.sce_conf['nb_agents']):
             newAgent = []
             for line in range(3):
                 newLine = []
@@ -732,11 +905,29 @@ class ColorMapper(Mapper):
 
 class ColorShapeMapper(ColorMapper):
 
-    def __init__(self, args, sce_conf):
-        super().__init__(args,sce_conf)
+    def __init__(self, sce_conf):
+        """
+        Mapper, set maps to track the agents and see what he sees
+        :param sce_conf: (dict) parameters of the exercise
+        """
+        super().__init__(sce_conf)
 
     # Update the array of objects
     def update_area_obj(self, agent_x, agent_y, object_nb, object_color, object_shape, nb_agent):
+        '''
+        Update the object array of the agent depending on what it sees and where
+        
+        object_nb : 2 if object
+                    3 if landmark
+
+        Input: 
+            agent_x: (float) Position x of the agent 
+            agent_y: (float) Position y of the agent
+            object_nb: (int) each object has a different number
+            object_color: (int) color of the object
+            object_shape: (int) shape of the object
+            nb_agent: (int) number of the agent
+        '''
 
         object = [object_nb,object_color,object_shape]
         # North
@@ -803,12 +994,27 @@ class ColorShapeMapper(ColorMapper):
 
     # Check an area to see if there is an object
     def check_area(self, nb_agent, direction, area_pos, all_colors, all_shapes):
+        '''
+        Check an selected area and return the list of object not in the area
+        if obj == 2: there is an object
+        if obj == 3: there is a landmark
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            direction: (int) direction of the area 
+            area_pos: (int) position of the area 
+            all_colors: list(int) all the colors possible in the exercise
+            all_shapes: list(int) all the shapes possible in the exercise
+
+        Output:
+            list_all_object: list(list(int)) return a list of object that are not in the area 
+        '''
         objects = []
         list_all_obj = []
-        for c in all_colors:
-            if [2,c] not in list_all_obj and [3,c] not in list_all_obj:
-                list_all_obj.append([2,c])
-                list_all_obj.append([3,c])
+        for c in range(len(all_colors)):
+            if [2,all_colors[c]] not in list_all_obj and [3,all_colors[c]] not in list_all_obj:
+                list_all_obj.append([2,all_colors[c],all_shapes[c]])
+                list_all_obj.append([3,all_colors[c],all_shapes[c]])
         # If North or South
         if direction == 0:
             for x in range(3) :
@@ -826,3 +1032,38 @@ class ColorShapeMapper(ColorMapper):
                         list_all_obj.remove(obj)
 
         return list_all_obj
+
+    # Return list of object not visible
+    def find_missing(self, nb_agent, posx, posy, all_colors, all_shapes):
+        '''
+        Check an selected area and return the list of object not in the area
+        if obj == 2: there is an object
+        if obj == 3: there is a landmark
+        
+        Input: 
+            nb_agent: (int) number of the agent
+            posx: (int) position in the array
+            posy: (int) position in the array 
+            all_colors: list(int) all the colors possible in the exercise
+            all_shapes: list(int) all the shapes possible in the exercise
+
+        Output:
+            list_all_object: list(list(int)) return a list of object that are not in the area 
+        '''
+        list_obj = []
+        list_all_obj = []
+        objects_not_visible = []
+
+        # Create a list with all the possible objects
+        # Each color has an object and a landmark
+        for c in range(len(all_colors)):
+            if [2,all_colors[c]] not in list_all_obj and [3,all_colors[c]] not in list_all_obj:
+                list_all_obj.append([2,all_colors[c],all_shapes[c]])
+                list_all_obj.append([3,all_colors[c],all_shapes[c]])
+        
+        list_obj = copy.copy(self.area_object[nb_agent][posx][posy])
+        list_obj.pop(0)
+        for obj in list_all_obj:
+            if obj not in list_obj and obj not in objects_not_visible:
+                objects_not_visible.append(obj)
+        return objects_not_visible
