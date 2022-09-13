@@ -278,40 +278,38 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # Observation:
         #  - Agent state: position, velocity
+        #  - Other agents: [distance x, distance y, v_x, v_y]
         #  - Other agents and objects:
-        #     - If in sight: [relative x, relative y, v_x, v_y]
-        #     - If not: [0, 0, 0, 0]
+        #     - If in sight: [1, distance x, distance y, v_x, v_y]
+        #     - If not: [0, 0, 0, 0, 0]
         #  - Landmarks:
-        #     - If in sight: [relative x, relative y]
-        #     - If not: [0, 0]
-        # => Full observation dim = 2 + 2 + 5 x (nb_agents_objects - 1) + 3 x (nb_landmarks)
+        #     - If in sight: [1, distance x, distance y]
+        #     - If not: [0, 0, 0]
+        # => Full observation dim = 2 + 2 + 4 x (nb_agents - 1) + 5 x (nb_objects - 1) + 3 x (nb_landmarks)
         # All distances are divided by max_distance to be in [0, 1]
-        entity_obs = []
-        for entity in world.agents + world.objects:
-            if entity is agent: continue
-            if (entity in world.agents or 
-                get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range):
-                
-                max_dist = self.obs_range if entity in world.objects else 2.772
-                
-                entity_obs.append(np.concatenate((
+        obs = [agent.state.p_pos, agent.state.p_vel]
+        for ag in world.agents:
+            if ag is agent: continue
+            obs.append(np.concatenate((
+                (obj.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
+                obj.state.p_vel # Velocity
+            )))
+        for obj in world.objects:
+            if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
                     [1.0], # Bit saying entity is observed
-                    (entity.state.p_pos - agent.state.p_pos) / max_dist, # Relative position normailised into [0, 1]
-                    entity.state.p_vel # Velocity
-                    # (entity.state.p_pos - agent.state.p_pos), entity.state.p_vel
+                    (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
+                    obj.state.p_vel # Velocity
                 )))
             else:
-                entity_obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+                obj.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for entity in world.landmarks:
             if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
-                entity_obs.append(np.concatenate((
+                obs.append(np.concatenate((
                     [1.0], 
                     (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                 )))
             else:
-                entity_obs.append(np.array([0.0, 1.0, 1.0]))
+                obs.append(np.array([0.0, 1.0, 1.0]))
 
-        # Communication
-
-
-        return np.concatenate([agent.state.p_pos, agent.state.p_vel] + entity_obs)
+        return np.concatenate(obs)

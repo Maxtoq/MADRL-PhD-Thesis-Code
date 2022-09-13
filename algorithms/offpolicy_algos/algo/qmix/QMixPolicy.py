@@ -61,6 +61,10 @@ class AgentQFunction(nn.Module):
         if len(rnn_states.shape) == 2:
             # hiddens should be of shape (1, batch_size, dim)
             rnn_states = rnn_states[None]
+        print("\nobs")
+        print(obs.shape)
+        print("\rnn_states")
+        print(rnn_states.shape)
 
         inp = obs
 
@@ -72,10 +76,6 @@ class AgentQFunction(nn.Module):
 
         # pass outputs through linear layer
         q_outs = self.q(rnn_outs, no_sequence)
-        print("\nQ out")
-        print(q_outs.shape)
-        print("\nh_final")
-        print(h_final.shape)
         exit()
 
         return q_outs, h_final
