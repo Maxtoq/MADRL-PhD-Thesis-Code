@@ -50,44 +50,6 @@ class PushWorld(World):
     def entities(self):
         return self.agents + self.objects + self.landmarks
 
-    def reset(self):
-        for i in range(self.nb_objects):
-            self.init_object(i)
-
-    def init_object(self, obj_i, min_dist=0.2, max_dist=1.5):
-        # Random color for both entities
-        color = np.random.uniform(0, 1, self.dim_color)
-        # Object
-        self.objects[obj_i].name = 'object %d' % len(self.objects)
-        self.objects[obj_i].color = color
-        self.objects[obj_i].size = OBJECT_SIZE
-        self.objects[obj_i].initial_mass = OBJECT_MASS
-        # Landmark
-        self.landmarks[obj_i].name = 'landmark %d' % len(self.landmarks)
-        self.landmarks[obj_i].collide = False
-        self.landmarks[obj_i].color = color
-        self.landmarks[obj_i].size = LANDMARK_SIZE
-        # Set initial positions
-        # # Fixed initial pos
-        # self.objects[obj_i].state.p_pos = np.zeros(2)
-        # self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
-        # return
-        if min_dist is not None:
-            while True:
-                self.objects[obj_i].state.p_pos = np.random.uniform(
-                    -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, self.dim_p)
-                self.landmarks[obj_i].state.p_pos = np.random.uniform(
-                    -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, self.dim_p)
-                dist = get_dist(self.objects[obj_i].state.p_pos, 
-                                self.landmarks[obj_i].state.p_pos)
-                if dist > min_dist and dist < max_dist:
-                    break
-        else:
-            dist = get_dist(self.objects[obj_i].state.p_pos, 
-                            self.landmarks[obj_i].state.p_pos)
-        # Set distances between objects and their landmark
-        self.obj_lm_dists[obj_i] = dist
-
     def step(self):
         # s
         last_obj_lm_dists = np.copy(self.obj_lm_dists)
@@ -200,11 +162,8 @@ class Scenario(BaseScenario):
                 print("ERROR: The initial positions {} are not valid.".format(
                     init_pos))
                 exit(1)
-        # world.reset()
+
         # Agents' initial pos
-        # # Fixed initial pos
-        # world.agents[0].state.p_pos = np.array([0.5, -0.5])
-        # world.agents[1].state.p_pos = np.array([-0.5, 0.5])
         for i, agent in enumerate(world.agents):
             if init_pos is None:
                 agent.state.p_pos = np.random.uniform(

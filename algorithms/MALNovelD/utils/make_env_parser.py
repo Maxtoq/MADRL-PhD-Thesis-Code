@@ -1,9 +1,5 @@
-import numpy as np
 import json
 import imp
-import os
-import re
-from pathlib import Path
 from shutil import copyfile
 
 def make_env(args, sce_conf={}, discrete_action=False):
@@ -21,22 +17,12 @@ def make_env(args, sce_conf={}, discrete_action=False):
                         done_callback=scenario.done if hasattr(scenario, "done")
                         else None, discrete_action=discrete_action)
 
-    # If world has an attribut objects
-    colors = []
-    shapes = []
-    if hasattr(env.world, 'objects'):
-        # Get the color and the shape
-        for object in env.world.objects :
-                colors.append(object.num_color)
-                shapes.append(object.num_shape)
-    else:
-        print('No objects')
-
-    # Get parser
-    if args.parser == "basic":
-        parser = scenar_lib.ObservationParser(args, colors, shapes)
-    if args.parser == 'strat':
-        parser = scenar_lib.ObservationParserStrat(args, sce_conf, colors, shapes)
+    # Create parser
+    parser_args = [
+        sce_conf['nb_agents'], 
+        sce_conf['nb_objects'], 
+        args.chance_not_sent]
+    parser = scenar_lib.ObservationParser(*parser_args)
 
     return env, parser
 

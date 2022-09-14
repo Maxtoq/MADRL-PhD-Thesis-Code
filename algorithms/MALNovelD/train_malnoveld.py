@@ -120,7 +120,7 @@ def run(cfg):
     # Reset environment and get first observations
     obs = env.reset()
     # Get first descriptions
-    descr = parser.get_descriptions(obs, sce_conf)
+    descr = parser.get_descriptions(obs)
     for step_i in trange(cfg.n_frames):
         # Compute and set exploration rate
         model.update_exploration_rate(eps_decay.get_explo_rate(step_i))
@@ -132,7 +132,7 @@ def run(cfg):
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
         # Compute intrinsic rewards
-        next_descr = parser.get_descriptions(next_obs, sce_conf)
+        next_descr = parser.get_descriptions(next_obs)
         int_rewards = model.get_intrinsic_rewards(next_obs, next_descr)
 
         # Compute final reward
