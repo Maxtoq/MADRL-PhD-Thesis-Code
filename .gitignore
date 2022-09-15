@@ -271,3 +271,8 @@ models/coop_push_scenario_sparse_HARDER/*
 models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/*
 !models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/train_data
 !models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/eval_data
+
+!models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_fo_disc
+models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_fo_disc/*
+!models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_fo_disc/train_data_10
+!models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_fo_disc/eval_data_10
