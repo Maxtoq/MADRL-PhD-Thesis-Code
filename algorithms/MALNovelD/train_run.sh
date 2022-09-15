@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=11
 env="algorithms/MALNovelD/scenarios/coop_push_scenario_sparse_harder.py"
-model_name="maddpg_fo_disc"
-sce_conf_path="configs/2a_1o_fo_rel.json"
+model_name="maddpg_polarge_disc"
+sce_conf_path="configs/2a_1o_polarge_rel.json"
 n_frames=10000000
 buffer_length=1000000
 lr=0.0007

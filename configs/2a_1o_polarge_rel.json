@@ -1,0 +1,8 @@
+{
+    "nb_agents": 2,
+    "nb_objects": 1,
+    "obs_range": 0.6,
+    "collision_pen": 3.0,
+    "relative_coord": true,
+    "dist_reward": false
+}
