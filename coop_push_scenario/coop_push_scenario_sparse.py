@@ -250,8 +250,8 @@ class Scenario(BaseScenario):
         for ag in world.agents:
             if ag is agent: continue
             obs.append(np.concatenate((
-                (obj.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
-                obj.state.p_vel # Velocity
+                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
+                ag.state.p_vel # Velocity
             )))
         for obj in world.objects:
             if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
@@ -262,11 +262,11 @@ class Scenario(BaseScenario):
                 )))
             else:
                 obj.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-        for entity in world.landmarks:
-            if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
+        for lm in world.landmarks:
+            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0], 
-                    (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                 )))
             else:
                 obs.append(np.array([0.0, 1.0, 1.0]))

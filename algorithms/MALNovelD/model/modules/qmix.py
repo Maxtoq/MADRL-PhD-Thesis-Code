@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch.distributions import Categorical
+
 from .networks import MLPNetwork, get_init_linear
 
 
@@ -21,15 +23,22 @@ class DRQNetwork(nn.Module):
         Compute q values for every action given observations and rnn states.
         Inputs:
             obs (torch.Tensor): Observations from which to compute q-values,
-                dim=(batch_size, obs_dim).
+                dim=(seq_len, batch_size, obs_dim).
             rnn_states (torch.Tensor): Hidden states with which to initialise
-                the RNN, dim=(batch_size, hidden_dim).
+                the RNN, dim=(1, batch_size, hidden_dim).
         Outputs:
             q_outs (torch.Tensor): Q-values for every action, 
-                dim=(batch_size, act_dim).
-            h_final (torch.Tensor): Final hidden states of the RNN, 
-                dim=(batch_size, hidden_dim).
+                dim=(seq_len, batch_size, act_dim).
+            new_rnn_states (torch.Tensor): Final hidden states of the RNN, 
+                dim=(1, batch_size, hidden_dim).
         """
+        rnn_in = self.mlp_in(obs)
+
+        rnn_outs, new_rnn_states = self.rnn(rnn_in, rnn_states)
+
+        q_outs = self.mlp_out(rnn_outs)
+
+        return q_outs, new_rnn_states
 
 
 class QMixer(nn.Module):
@@ -93,22 +102,77 @@ class QMixer(nn.Module):
 
 class QMIXAgent:
 
-    def __init__(self, pol_in_dim, pol_out_dim, lr, 
-                 hidden_dim=64, discrete_action=False,
-                 init_explo=1.0, explo_strat='sample'):
-        self.discrete_action = discrete_action
-
-        if explo_strat not in ['sample', 'e_greedy']:
-            print('ERROR: Bad exploration strategy with', explo_strat,
-                  'given')
-            exit(0)
-        self.explo_strat = explo_strat
+    def __init__(self, q_in_dim, q_out_dim, lr, 
+                 hidden_dim=64, init_explo=1.0):
+        self.epsilon = init_explo
+        self.q_out_dim = q_out_dim
 
         # Q function
-        self.q_network = DRQNetwork()
+        self.q_network = DRQNetwork(q_in_dim, q_out_dim, hidden_dim)
 
-    def step(self, obs, explore=False, device="cpu"):
-        pass
+    def set_explo_rate(self, explo_rate):
+        self.epsilon = explo_rate
+
+    def get_q_values(self, obs, last_acts, qnet_rnn_states):
+        """
+        Returns Q-values computes from given inputs.
+        Inputs:
+            obs (torch.Tensor): Agent's observation batch, dim=([seq_len], 
+                batch_size, obs_dim).
+            last_acts (torch.Tensor): Agent's last action batch, 
+                dim=([seq_len], batch_size, act_dim).
+            qnet_rnn_states (torch.Tensor): Agents' Q-network hidden states
+                batch, dim=(1, batch_size, hidden_dim).
+        Output:
+            q_values (torch.Tensor): Q_values, dim=([seq_len], batch_size, act_dim).
+            new_qnet_rnn_states (torch.Tensor): New hidden states of the 
+                Q-network, dim=(1, batch_size, hidden_dim).
+        """
+        # Concatenate observation and last actions
+        qnet_input = torch.cat((obs, last_acts), dim=-1)
+
+        # Get Q-values
+        q_values, new_qnet_rnn_states = self.q_network(
+            qnet_input, qnet_rnn_states)
+
+        return q_values, new_qnet_rnn_states
+
+    def get_actions(self, obs, last_acts, qnet_rnn_states, explore=False):
+        """
+        Returns an action chosen using the Q-network.
+        Inputs:
+            obs (torch.Tensor): Agent's observation batch, dim=([seq_len], 
+                batch_size, obs_dim).
+            last_acts (torch.Tensor): Agent's last action batch, 
+                dim=([seq_len], batch_size, act_dim).
+            qnet_rnn_states (torch.Tensor): Agents' Q-network hidden states
+                batch, dim=(1, batch_size, hidden_dim).
+            explore (bool): Whether to perform exploration or exploitation.
+        Output:
+            actions (torch.Tensor): Chosen actions, dim=([seq_len], batch_size,
+                act_dim).
+        """
+        # Compute Q-values
+        q_values = self.get_q_values(obs, last_acts, qnet_rnn_states)
+
+        batch_size = obs.shape[-2]
+        # Choose actions
+        greedy_Qs, greedy_actions = q_values.max(dim=-1)
+        if explore:
+            # Sample random number for each action
+            rands = torch.rand(batch_size)
+            take_random = (rands < self.epsilon).int()
+            # Get random actions
+            rand_actions = Categorical(
+                logits=torch.ones(batch_size, self.q_out_dim)).sample()
+            # Choose actions
+            actions = (1 - take_random) * greedy_actions + \
+                      take_random * rand_actions
+            onehot_actions = torch.eye(self.q_out_dim)[actions]
+        else:
+            onehot_actions = torch.eye(self.q_out_dim)[greedy_actions]
+        
+        return onehot_actions, greedy_Qs
 
     def get_params(self):
         pass
@@ -119,47 +183,51 @@ class QMIXAgent:
 
 class QMIX:
 
-    def __init__(self, n_agents, input_dim, act_dim, lr, 
-                 gamma=0.99, tau=0.01, hidden_dim=64, discrete_action=False,
-                 shared_params=False, init_explo_rate=1.0, 
-                 explo_strat="sample"):
+    def __init__(self, n_agents, obs_dim, act_dim, lr, 
+                 gamma=0.99, tau=0.01, hidden_dim=64,
+                 shared_params=False, init_explo_rate=1.0):
         self.n_agents = n_agents
-        self.input_dim = input_dim
+        self.input_dim = obs_dim
         self.act_dim = act_dim
         self.lr = lr
         self.gamma = gamma
         self.tau = tau
         self.hidden_dim = hidden_dim
-        self.discrete_action = discrete_action
         self.shared_params = shared_params
         self.init_explo_rate = init_explo_rate
-        self.explo_strat = explo_strat
 
         # Create agent policies
         if not shared_params:
             self.agents = [QMIXAgent(
-                    input_dim, act_dim, lr, hidden_dim, discrete_action, 
-                    init_explo_rate, explo_strat)
+                    obs_dim, act_dim, lr, hidden_dim, init_explo_rate)
                 for _ in range(n_agents)]
         else:
             self.agents = [QMIXAgent(
-                    input_dim, act_dim, lr, hidden_dim, discrete_action, 
-                    init_explo_rate, explo_strat)]
+                    obs_dim, act_dim, lr, hidden_dim, init_explo_rate)]
 
         self.device = "cpu"
 
-    def scale_noise(self, scale):
+    def set_explo_rate(self, explo_rate):
         """
-        Scale noise for each agent
+        Set exploration rate for each agent
         Inputs:
-            scale (float): scale of noise
+            explo_rate (float): New exploration rate.
         """
         for a in self.agents:
-            a.scale_noise(scale)
+            a.set_explo_rate(explo_rate)
 
-    def reset_noise(self):
-        for a in self.agents:
-            a.reset_noise()
+    def get_actions(self, obs_list, explore=False):
+        """
+        Returns each agent's action given their observation.
+        Inputs:
+            obs_list (list(numpy.ndarray)): List of agent observations.
+            explore (bool): Whether to explore or not.
+        Outputs:
+            actions (list(torch.Tensor)): Each agent's chosen action.
+        """
+        if self.shared_params:
+            obs = torch.Tensor(np.array(obs_list)).to(self.device)
+            actions = [self.agents[0].get_actions(obs_list)]
 
     def prep_training(self, device='cpu'):
         pass

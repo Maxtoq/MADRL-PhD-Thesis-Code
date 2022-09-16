@@ -47,11 +47,6 @@ class AgentQFunction(nn.Module):
         obs = to_torch(obs).to(**self.tpdv)
         rnn_states = to_torch(rnn_states).to(**self.tpdv)
 
-        print("\nObs")
-        print(obs.shape)
-        print("\nRnn states")
-        print(rnn_states.shape)
-
         no_sequence = False
         if len(obs.shape) == 2:
             # this means we're just getting one output (no sequence)
@@ -61,10 +56,6 @@ class AgentQFunction(nn.Module):
         if len(rnn_states.shape) == 2:
             # hiddens should be of shape (1, batch_size, dim)
             rnn_states = rnn_states[None]
-        print("\nobs")
-        print(obs.shape)
-        print("\rnn_states")
-        print(rnn_states.shape)
 
         inp = obs
 
@@ -76,7 +67,6 @@ class AgentQFunction(nn.Module):
 
         # pass outputs through linear layer
         q_outs = self.q(rnn_outs, no_sequence)
-        exit()
 
         return q_outs, h_final
 
@@ -174,11 +164,6 @@ class QMixPolicy(RecurrentPolicy):
         """See parent class."""
         q_values_out, new_rnn_states = self.get_q_values(obs, prev_actions, rnn_states)
         onehot_actions, greedy_Qs = self.actions_from_q(q_values_out, available_actions=available_actions, explore=explore, t_env=t_env)
-        
-        # print()
-        # print("ACTIONS")
-        # print(q_values_out,onehot_actions,greedy_Qs)
-        # print()
 
         return onehot_actions, new_rnn_states, greedy_Qs
 

@@ -192,6 +192,7 @@ class Scenario(BaseScenario):
     def reset_world(self, world, seed=None, init_pos=None):
         if seed is not None:
             np.random.seed(seed)
+
         # Check if init positions are valid
         if init_pos is not None:
             if (len(init_pos["agents"]) != self.nb_agents or 
@@ -200,11 +201,8 @@ class Scenario(BaseScenario):
                 print("ERROR: The initial positions {} are not valid.".format(
                     init_pos))
                 exit(1)
-        # world.reset()
+
         # Agents' initial pos
-        # # Fixed initial pos
-        # world.agents[0].state.p_pos = np.array([0.5, -0.5])
-        # world.agents[1].state.p_pos = np.array([-0.5, 0.5])
         for i, agent in enumerate(world.agents):
             if init_pos is None:
                 agent.state.p_pos = np.random.uniform(
@@ -243,16 +241,9 @@ class Scenario(BaseScenario):
         dists = [get_dist(obj.state.p_pos, 
                           world.landmarks[i].state.p_pos)
                     for i, obj in enumerate(world.objects)]
-        # rew = -sum([pow(d * 3, 2) for d in dists])
-        # rew = -sum(dists)
-        # rew = -sum(np.exp(dists))
+
         # Shaped reward
         shaped = 100 * world.shaping_reward
-        # if world.shaping_reward > 0:
-        #     shaped = 100 * world.shaping_reward
-        # else:
-        #     shaped = 10 * world.shaping_reward
-            # shaped = 0
         rew = -self.step_penalty + shaped
 
         # Reward if task complete
@@ -267,51 +258,47 @@ class Scenario(BaseScenario):
                 dist = get_dist(agent.state.p_pos, other_agent.state.p_pos)
                 dist_min = agent.size + other_agent.size
                 if dist <= dist_min:
-                    # print("COLLISION")
                     rew -= self.collision_pen
-        # Penalty for collision with wall
-        # if (agent.state.p_pos - agent.size <= -1).any() or \
-        #    (agent.state.p_pos + agent.size >= 1).any():
-        #    rew -= self.collision_pen
+
         return rew
-
+        
     def observation(self, agent, world):
-        # Observation:
-        #  - Agent state: position, velocity
-        #  - Other agents and objects:
-        #     - If in sight: [relative x, relative y, v_x, v_y]
-        #     - If not: [0, 0, 0, 0]
-        #  - Landmarks:
-        #     - If in sight: [relative x, relative y]
-        #     - If not: [0, 0]
-        # => Full observation dim = 2 + 2 + 5 x (nb_agents_objects - 1) + 3 x (nb_landmarks)
-        # All distances are divided by max_distance to be in [0, 1]
-        entity_obs = []
-        for entity in world.agents + world.objects:
-            if entity is agent: continue
-            if (entity in world.agents or 
-                get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range):
-                
-                max_dist = self.obs_range if entity in world.objects else 2.772
-                
-                entity_obs.append(np.concatenate((
+        """
+        Observation:
+         - Agent state: position, velocity
+         - Other agents: [distance x, distance y, v_x, v_y]
+         - Other agents and objects:
+            - If in sight: [1, distance x, distance y, v_x, v_y]
+            - If not: [0, 0, 0, 0, 0]
+         - Landmarks:
+            - If in sight: [1, distance x, distance y]
+            - If not: [0, 0, 0]
+        => Full observation dim = 2 + 2 + 4 x (nb_agents - 1) + 5 x (nb_objects - 1) + 3 x (nb_landmarks)
+        All distances are divided by max_distance to be in [0, 1]
+        """
+        obs = [agent.state.p_pos, agent.state.p_vel]
+        for ag in world.agents:
+            if ag is agent: continue
+            obs.append(np.concatenate((
+                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
+                ag.state.p_vel # Velocity
+            )))
+        for obj in world.objects:
+            if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
                     [1.0], # Bit saying entity is observed
-                    (entity.state.p_pos - agent.state.p_pos) / max_dist, # Relative position normailised into [0, 1]
-                    entity.state.p_vel # Velocity
-                    # (entity.state.p_pos - agent.state.p_pos), entity.state.p_vel
+                    (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
+                    obj.state.p_vel # Velocity
                 )))
             else:
-                entity_obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-        for entity in world.landmarks:
-            if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
-                entity_obs.append(np.concatenate((
+                obj.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+        for lm in world.landmarks:
+            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
                     [1.0], 
-                    (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                 )))
             else:
-                entity_obs.append(np.array([0.0, 1.0, 1.0]))
+                obs.append(np.array([0.0, 1.0, 1.0]))
 
-        # Communication
-
-
-        return np.concatenate([agent.state.p_pos, agent.state.p_vel] + entity_obs)
+        return np.concatenate(obs)

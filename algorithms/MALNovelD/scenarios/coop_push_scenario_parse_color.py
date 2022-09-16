@@ -33,17 +33,16 @@ class ObservationParser(ColorParser):
     
     vocab = ['Located', 'Object', 'Landmark', 'North', 'South', 'East', 'West', 'Center', 'Not', "Red", "Blue", "Green"]
     
-    def __init__(self, nb_agents, nb_objects, chance_not_sent):
+    def __init__(self, scenar, chance_not_sent):
         """
         ObservationParser, generate descriptions of the agents' observations.
         Inputs:
-            nb_agents (int): Number of agents.
-            nb_objects (int): Number of objects.
+            scenar (Scenario): Scenario currently running.
             chance_not_sent (float): Chance of generating a not sentence.
         """
-        super(ObservationParser, self).__init__()
-        self.nb_agents = nb_agents
-        self.nb_objects = nb_objects
+        super(ObservationParser, self).__init__(scenar)
+        self.nb_agents = scenar.nb_agents
+        self.nb_objects = scenar.nb_objects
         self.chance_not_sent = chance_not_sent
 
     # Generate a sentence for the object
@@ -138,8 +137,8 @@ class ObservationParser(ColorParser):
 
         Input:  
             position: (list(float)) The position of the agent
-            not_vis_obj: (list(int)) List of objects number not visible
-            not_vis_land: (list(int)) List of landmarks number not visible
+            not_vis_obj: (list(int)) List of objects ids not visible
+            not_vis_land: (list(int)) List of landmarks ids not visible
 
         Output: list(str) A sentence based on what it doesn't see
         '''
@@ -159,17 +158,18 @@ class ObservationParser(ColorParser):
             if not_sentence in [1, 3] and len(not_vis_obj) != 0:
                 # Object not sentence
                 # Pick a random object
-                obj = random.choice(not_vis_obj)
+                obj_i = random.choice(not_vis_obj)
+                obj = self.scenar.world
                 sentence.extend(
-                    [obj.color_name, "Object", "Not"])
+                    [obj_i.color_name, "Object", "Not"])
                 for word in position:
                     sentence.append(word)
             if not_sentence in [2, 3] and len(not_vis_land) != 0:
                 # Landmark not sentence
                 # Pick a random object
-                land = random.choice(not_vis_land)
+                land_i = random.choice(not_vis_land)
                 sentence.extend(
-                    [land.color_name, "Landmark", "Not"])
+                    [land_i.color_name, "Landmark", "Not"])
                 for word in position:
                     sentence.append(word)
 
@@ -221,14 +221,14 @@ class ObservationParser(ColorParser):
         """
         objects_sentence = []
         not_visible_obj = []
-        for object in range(self.nb_objects):
+        for obj_i in range(self.nb_objects):
             object_sentence = []
             object_sentence.extend(self.object_sentence(obs[place:place+8]))
             place += 8
             # If we don't see the object
             if len(object_sentence) == 0:
                 # Get the number of the object
-                not_visible_obj.append(object)
+                not_visible_obj.append(obj_i)
             # Else we append the sentence
             else:
                 objects_sentence.extend(object_sentence)
@@ -243,7 +243,7 @@ class ObservationParser(ColorParser):
         """
         landmarks_sentence = []
         not_visible_land = []
-        for landmark in range(self.nb_objects):
+        for lm_i in range(self.nb_objects):
             landmark_sentence = []
             landmark_sentence.extend(
                 self.landmark_sentence(obs[place:place + 6]))
@@ -251,7 +251,7 @@ class ObservationParser(ColorParser):
             # If we don't see the object
             if len(landmark_sentence) == 0:
                 # Get the number of the object
-                not_visible_land.append(landmark)
+                not_visible_land.append(lm_i)
             # Else we append the sentence
             else:
                 landmarks_sentence.extend(landmark_sentence)
@@ -330,45 +330,6 @@ class PushWorld(World):
     @property
     def entities(self):
         return self.agents + self.objects + self.landmarks
-
-    def reset(self):
-        for i in range(self.nb_objects):
-            self.init_object(i)
-
-    def init_object(self, obj_i, min_dist=0.2, max_dist=1.5):
-        # Random color for both entities
-        color = np.random.uniform(0, 1, self.dim_color)
-        #color = self.pick_color()
-        # Object
-        self.objects[obj_i].name = 'object %d' % len(self.objects)
-        self.objects[obj_i].color = color
-        self.objects[obj_i].size = OBJECT_SIZE
-        self.objects[obj_i].initial_mass = OBJECT_MASS
-        # Landmark
-        self.landmarks[obj_i].name = 'landmark %d' % len(self.landmarks)
-        self.landmarks[obj_i].collide = False
-        self.landmarks[obj_i].color = color
-        self.landmarks[obj_i].size = LANDMARK_SIZE
-        # Set initial positions
-        # # Fixed initial pos
-        # self.objects[obj_i].state.p_pos = np.zeros(2)
-        # self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
-        # return
-        if min_dist is not None:
-            while True:
-                self.objects[obj_i].state.p_pos = np.random.uniform(
-                    -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, self.dim_p)
-                self.landmarks[obj_i].state.p_pos = np.random.uniform(
-                    -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, self.dim_p)
-                dist = get_dist(self.objects[obj_i].state.p_pos, 
-                                self.landmarks[obj_i].state.p_pos)
-                if dist > min_dist and dist < max_dist:
-                    break
-        else:
-            dist = get_dist(self.objects[obj_i].state.p_pos, 
-                            self.landmarks[obj_i].state.p_pos)
-        # Set distances between objects and their landmark
-        self.obj_lm_dists[obj_i] = dist
 
     def step(self):
         # s

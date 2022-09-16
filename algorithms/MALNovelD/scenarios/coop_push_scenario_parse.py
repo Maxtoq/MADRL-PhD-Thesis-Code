@@ -32,17 +32,16 @@ class ObservationParser(Parser):
     
     vocab = ['Located', 'Object', 'Landmark', 'North', 'South', 'East', 'West', 'Center', 'Not']
 
-    def __init__(self, nb_agents, nb_objects, chance_not_sent):
+    def __init__(self, scenar, chance_not_sent):
         """
         ObservationParser, generate descriptions of the agents' observations.
         Inputs:
-            nb_agents (int): Number of agents.
-            nb_objects (int): Number of objects.
+            scenar (Scenario): Scenario currently running.
             chance_not_sent (float): Chance of generating a not sentence.
         """
-        super(ObservationParser, self).__init__()
-        self.nb_agents = nb_agents
-        self.nb_objects = nb_objects
+        super(ObservationParser, self).__init__(scenar)
+        self.nb_agents = scenar.nb_agents
+        self.nb_objects = scenar.nb_objects
         self.chance_not_sent = chance_not_sent
 
     def object_sentence(self, obs):
@@ -419,7 +418,6 @@ class Scenario(BaseScenario):
             entity.state.p_vel = np.zeros(world.dim_p)
         self._done_flag = False
 
-
     def reward(self, agent, world):
         # Reward = -1 x squared distance between objects and corresponding landmarks
         dists = [get_dist(obj.state.p_pos, 
@@ -442,7 +440,6 @@ class Scenario(BaseScenario):
                 dist = get_dist(agent.state.p_pos, other_agent.state.p_pos)
                 dist_min = agent.size + other_agent.size
                 if dist <= dist_min:
-                    # print("COLLISION")
                     rew -= self.collision_pen
 
         return rew
@@ -465,8 +462,8 @@ class Scenario(BaseScenario):
         for ag in world.agents:
             if ag is agent: continue
             obs.append(np.concatenate((
-                (obj.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
-                obj.state.p_vel # Velocity
+                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
+                ag.state.p_vel # Velocity
             )))
         for obj in world.objects:
             if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
@@ -477,11 +474,11 @@ class Scenario(BaseScenario):
                 )))
             else:
                 obj.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-        for entity in world.landmarks:
-            if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
+        for lm in world.landmarks:
+            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0], 
-                    (entity.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                 )))
             else:
                 obs.append(np.array([0.0, 1.0, 1.0]))

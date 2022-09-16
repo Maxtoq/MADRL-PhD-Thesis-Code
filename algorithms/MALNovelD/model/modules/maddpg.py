@@ -59,10 +59,10 @@ class DDPGAgent:
         """
         Take a step forward in environment for a minibatch of observations
         Inputs:
-            obs (PyTorch Variable): Observations for this agent
+            obs (torch.Tensor): Observations for this agent
             explore (boolean): Whether or not to add exploration noise
         Outputs:
-            action (PyTorch Variable): Actions for this agent
+            action (torch.Tensor): Actions for this agent
         """
         action = self.policy(obs)
         if self.discrete_action:
