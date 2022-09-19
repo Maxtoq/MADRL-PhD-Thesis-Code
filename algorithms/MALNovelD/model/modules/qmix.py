@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 from torch.distributions import Categorical
 
@@ -149,11 +150,16 @@ class QMIXAgent:
                 batch, dim=(1, batch_size, hidden_dim).
             explore (bool): Whether to perform exploration or exploitation.
         Output:
-            actions (torch.Tensor): Chosen actions, dim=([seq_len], batch_size,
-                act_dim).
+            onehot_actions (torch.Tensor): Chosen actions, dim=([seq_len], 
+                batch_size, act_dim).
+            greedy_Qs (torch.Tensor): Q-values corresponding to greedy actions,
+                dim=([seq_len], batch_size, 1).
+            new_qnet_rnn_states (torch.Tensor): New agent's Q-network hidden 
+                states dim=(1, batch_size, hidden_dim).
         """
         # Compute Q-values
-        q_values = self.get_q_values(obs, last_acts, qnet_rnn_states)
+        q_values, new_qnet_rnn_states = self.get_q_values(
+            obs, last_acts, qnet_rnn_states)
 
         batch_size = obs.shape[-2]
         # Choose actions
@@ -172,7 +178,7 @@ class QMIXAgent:
         else:
             onehot_actions = torch.eye(self.q_out_dim)[greedy_actions]
         
-        return onehot_actions, greedy_Qs
+        return onehot_actions, greedy_Qs, new_qnet_rnn_states
 
     def get_params(self):
         pass
@@ -184,8 +190,8 @@ class QMIXAgent:
 class QMIX:
 
     def __init__(self, n_agents, obs_dim, act_dim, lr, 
-                 gamma=0.99, tau=0.01, hidden_dim=64,
-                 shared_params=False, init_explo_rate=1.0):
+                 gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
+                 init_explo_rate=1.0, device="cpu"):
         self.n_agents = n_agents
         self.input_dim = obs_dim
         self.act_dim = act_dim
@@ -201,11 +207,18 @@ class QMIX:
             self.agents = [QMIXAgent(
                     obs_dim, act_dim, lr, hidden_dim, init_explo_rate)
                 for _ in range(n_agents)]
+            self.last_actions = [
+                torch.zeros(1, act_dim, device=device)] * self.n_agents
+            self.qnets_hidden_states = [
+                torch.zeros((1, 1, act_dim), device=device)] * self.n_agents
         else:
             self.agents = [QMIXAgent(
                     obs_dim, act_dim, lr, hidden_dim, init_explo_rate)]
+            self.last_actions = torch.zeros((self.n_agents, act_dim), device=device)
+            self.qnets_hidden_states = torch.zeros(
+                (1, self.n_agents, act_dim), device=device)
 
-        self.device = "cpu"
+        self.device = device
 
     def set_explo_rate(self, explo_rate):
         """
@@ -227,7 +240,16 @@ class QMIX:
         """
         if self.shared_params:
             obs = torch.Tensor(np.array(obs_list)).to(self.device)
-            actions = [self.agents[0].get_actions(obs_list)]
+            actions, _, new_qnets_hidden_states = self.agents[0].get_actions(
+                obs, self.last_actions, self.qnets_hidden_states)
+            actions = [actions[a_i] for a_i in range(self.n_agents)]
+            self.last_actions = actions
+            self.qnets_hidden_states = new_qnets_hidden_states
+        else:
+            actions = [
+                agent.get_actions(torch.Tensor(obs)) 
+                for agent, obs in zip(self.agents, obs_list)]
+        return actions
 
     def prep_training(self, device='cpu'):
         pass

@@ -99,6 +99,7 @@ def run(cfg):
 
         # Get actions
         actions = qmix.get_actions(obs, explore=True)
+        print(actions)
 
         return
 
