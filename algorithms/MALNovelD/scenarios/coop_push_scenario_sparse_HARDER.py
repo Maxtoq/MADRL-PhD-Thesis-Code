@@ -141,7 +141,7 @@ class PushWorld(World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
+    def make_world(self, nb_agents=4, nb_objects=1, obs_range=2.83, 
                    collision_pen=1, relative_coord=True, dist_reward=False, 
                    reward_done=50, step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
         world = PushWorld(nb_agents, nb_objects)
@@ -291,7 +291,7 @@ class Scenario(BaseScenario):
                     obj.state.p_vel # Velocity
                 )))
             else:
-                obj.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for lm in world.landmarks:
             if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((

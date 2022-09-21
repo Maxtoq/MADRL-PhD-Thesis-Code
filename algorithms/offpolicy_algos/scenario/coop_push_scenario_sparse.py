@@ -5,7 +5,7 @@ from offpolicy.envs.mpe.core import World, Agent, Landmark, Action, Entity
 
 LANDMARK_SIZE = 0.1
 OBJECT_SIZE = 0.15
-OBJECT_MASS = 2.0
+OBJECT_MASS = 1.0
 AGENT_SIZE = 0.04
 AGENT_MASS = 0.4
 
@@ -29,8 +29,11 @@ class Object(Entity):
         self.movable = True
 
 class PushWorld(World):
-    def __init__(self, nb_objects):
+    def __init__(self, nb_agents, nb_objects):
         super(PushWorld, self).__init__()
+        # add agent
+        self.nb_agents = nb_agents
+        self.agents = [Agent() for i in range(self.nb_agents)]
         # List of objects to push
         self.nb_objects = nb_objects
         self.objects = [Object() for _ in range(self.nb_objects)]
@@ -65,10 +68,10 @@ class PushWorld(World):
         self.landmarks[obj_i].color = color
         self.landmarks[obj_i].size = LANDMARK_SIZE
         # Set initial positions
-        # Fixed initial pos
-        self.objects[obj_i].state.p_pos = np.zeros(2)
-        self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
-        return
+        # # Fixed initial pos
+        # self.objects[obj_i].state.p_pos = np.zeros(2)
+        # self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
+        # return
         if min_dist is not None:
             while True:
                 self.objects[obj_i].state.p_pos = np.random.uniform(
@@ -140,11 +143,10 @@ class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
                    collision_pen=1, relative_coord=True, dist_reward=False, 
-                   reward_done=50, step_penalty=0.1):
-        world = PushWorld(nb_objects)
+                   reward_done=50, step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
+        world = PushWorld(nb_agents, nb_objects)
         # add agent
         self.nb_agents = nb_agents
-        world.agents = [Agent() for i in range(self.nb_agents)]
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.silent = True
@@ -154,6 +156,19 @@ class Scenario(BaseScenario):
             agent.color[i % 3] = 1.0
         # Objects and landmarks
         self.nb_objects = nb_objects
+        for i, object in enumerate(world.objects):
+            # Random color for both entities
+            color = np.random.uniform(0, 1, world.dim_color)
+            object.name = 'object %d' % i
+            object.color = color
+            object.size = OBJECT_SIZE
+            object.initial_mass = OBJECT_MASS
+            # Corresponding Landmarks
+            world.landmarks[i].name = 'landmark %d' % i
+            world.landmarks[i].collide = False
+            world.landmarks[i].color = color
+            world.landmarks[i].size = LANDMARK_SIZE
+        self.obj_lm_dist_range = obj_lm_dist_range
         # Scenario attributes
         self.obs_range = obs_range
         self.relative_coord = relative_coord
@@ -174,18 +189,48 @@ class Scenario(BaseScenario):
         # Done if all objects are on their landmarks
         return self._done_flag
 
-    def reset_world(self, world, seed=None):
+    def reset_world(self, world, seed=None, init_pos=None):
         if seed is not None:
             np.random.seed(seed)
-        world.reset()
-        # set initial states
-        # Fixed initial pos
-        world.agents[0].state.p_pos = np.array([0.5, -0.5])
-        world.agents[1].state.p_pos = np.array([-0.5, 0.5])
-        for agent in world.agents:
-            # agent.state.p_pos = np.random.uniform(
-            #     -1 + agent.size, 1 - agent.size, world.dim_p)
+
+        # Check if init positions are valid
+        if init_pos is not None:
+            if (len(init_pos["agents"]) != self.nb_agents or 
+                len(init_pos["objects"]) != self.nb_objects or
+                len(init_pos["landmarks"]) != self.nb_objects):
+                print("ERROR: The initial positions {} are not valid.".format(
+                    init_pos))
+                exit(1)
+
+        # Agents' initial pos
+        for i, agent in enumerate(world.agents):
+            if init_pos is None:
+                agent.state.p_pos = np.random.uniform(
+                    -1 + agent.size, 1 - agent.size, world.dim_p)
+            else:
+                agent.state.p_pos = np.array(init_pos["agents"][i])
             agent.state.c = np.zeros(world.dim_c)
+        # Objects and landmarks' initial pos
+        for i, object in enumerate(world.objects):
+            if init_pos is None:
+                while True:
+                    object.state.p_pos = np.random.uniform(
+                        -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
+                    world.landmarks[i].state.p_pos = np.random.uniform(
+                        -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
+                    dist = get_dist(object.state.p_pos, 
+                                    world.landmarks[i].state.p_pos)
+                    if (self.obj_lm_dist_range is None  or 
+                        (dist > self.obj_lm_dist_range[0] and 
+                         dist < self.obj_lm_dist_range[1])):
+                        break
+            else:
+                object.state.p_pos = np.array(init_pos["objects"][i])
+                world.landmarks[i].state.p_pos = np.array(init_pos["landmarks"][i])
+                dist = get_dist(object.state.p_pos, 
+                                world.landmarks[i].state.p_pos)
+            # Set distances between objects and their landmark
+            world.obj_lm_dists[i] = dist
         # Set initial velocity
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
@@ -196,15 +241,9 @@ class Scenario(BaseScenario):
         dists = [get_dist(obj.state.p_pos, 
                           world.landmarks[i].state.p_pos)
                     for i, obj in enumerate(world.objects)]
-        # rew = -sum([pow(d * 3, 2) for d in dists])
-        # rew = -sum(dists)
-        # rew = -sum(np.exp(dists))
+
         # Shaped reward
-        if world.shaping_reward > 0:
-            shaped = 100 * world.shaping_reward
-        else:
-            shaped = 10 * world.shaping_reward
-            # shaped = 0
+        shaped = 100 * world.shaping_reward
         rew = -self.step_penalty + shaped
 
         # Reward if task complete
@@ -220,69 +259,46 @@ class Scenario(BaseScenario):
                 dist_min = agent.size + other_agent.size
                 if dist <= dist_min:
                     rew -= self.collision_pen
-        # Penalty for collision with wall
-        # if (agent.state.p_pos - agent.size <= -1).any() or \
-        #    (agent.state.p_pos + agent.size >= 1).any():
-        #    rew -= self.collision_pen
+
         return rew
-
+        
     def observation(self, agent, world):
-        # Observation:
-        #  - Agent state: position, velocity
-        #  - Other agents and objects:
-        #     - If in sight: [relative x, relative y, v_x, v_y]
-        #     - If not: [0, 0, 0, 0]
-        #  - Landmarks:
-        #     - If in sight: [relative x, relative y]
-        #     - If not: [0, 0]
-        # => Full observation dim = 2 + 2 + 5 x (nb_agents_objects - 1) + 3 x (nb_landmarks)
-        # All distances are divided by max_distance to be in [0, 1]
-        entity_obs = []
-        for entity in world.agents + world.objects:
-            if entity is agent: continue
-            if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
-                # Pos: relative normalised
-                #entity_obs.append(np.concatenate((
-                #    [1.0], (entity.state.p_pos - agent.state.p_pos) / self.obs_range, entity.state.p_vel
-                #)))
-                # Pos: relative
-                if self.relative_coord:
-                    entity_obs.append(np.concatenate((
-                        #[1.0], (entity.state.p_pos - agent.state.p_pos), entity.state.p_vel
-                        (entity.state.p_pos - agent.state.p_pos), entity.state.p_vel
-                    )))
-                # Pos: absolute
-                else:
-                    entity_obs.append(np.concatenate((
-                        #[1.0], entity.state.p_pos, entity.state.p_vel
-                        entity.state.p_pos, entity.state.p_vel
-                    )))
+        """
+        Observation:
+         - Agent state: position, velocity
+         - Other agents: [distance x, distance y, v_x, v_y]
+         - Other agents and objects:
+            - If in sight: [1, distance x, distance y, v_x, v_y]
+            - If not: [0, 0, 0, 0, 0]
+         - Landmarks:
+            - If in sight: [1, distance x, distance y]
+            - If not: [0, 0, 0]
+        => Full observation dim = 2 + 2 + 4 x (nb_agents - 1) + 5 x (nb_objects - 1) + 3 x (nb_landmarks)
+        All distances are divided by max_distance to be in [0, 1]
+        """
+        obs = [agent.state.p_pos, agent.state.p_vel]
+        for ag in world.agents:
+            if ag is agent: continue
+            obs.append(np.concatenate((
+                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
+                ag.state.p_vel # Velocity
+            )))
+        for obj in world.objects:
+            if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0], # Bit saying entity is observed
+                    (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
+                    obj.state.p_vel # Velocity
+                )))
             else:
-                entity_obs.append(np.zeros(4))
-        for entity in world.landmarks:
-            if get_dist(agent.state.p_pos, entity.state.p_pos) <= self.obs_range:
-                # Pos: relative normalised
-                #entity_obs.append(np.concatenate((
-                #    [1.0], (entity.state.p_pos - agent.state.p_pos) / self.obs_range
-                #)))
-                # Pos: relative
-                if self.relative_coord:
-                    # entity_obs.append(np.concatenate((
-                    #     [1.0], (entity.state.p_pos - agent.state.p_pos)
-                    # )))
-                    entity_obs.append(
-                        entity.state.p_pos - agent.state.p_pos
-                    )
-                # Pos: absolute
-                else:
-                    # entity_obs.append(np.concatenate((
-                    #     [1.0], entity.state.p_pos
-                    # )))
-                    entity_obs.append(entity.state.p_pos)
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+        for lm in world.landmarks:
+            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0], 
+                    (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                )))
             else:
-                entity_obs.append(np.zeros(2))
+                obs.append(np.array([0.0, 1.0, 1.0]))
 
-        # Communication
-
-
-        return np.concatenate([agent.state.p_pos, agent.state.p_vel] + entity_obs)
+        return np.concatenate(obs)

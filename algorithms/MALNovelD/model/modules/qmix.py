@@ -44,27 +44,28 @@ class DRQNetwork(nn.Module):
 
 class QMixer(nn.Module):
 
-    def __init__(self, n_agents, cent_obs_dim, device,
-            mixer_hidden_dim=32, hypernet_hidden_dim=64):
+    def __init__(self, n_agents, input_dim,
+            mixer_hidden_dim=32, hypernet_hidden_dim=64, device="cpu"):
         super(QMixer, self).__init__()
         self.n_agents = n_agents
-        self.cent_obs_dim = cent_obs_dim
+        self.input_dim = input_dim
         self.device = device
         self.mixer_hidden_dim = mixer_hidden_dim
         self.hypernet_hidden_dim = hypernet_hidden_dim
 
         # Hypernets
         # self.hypernet_weights1 = MLPNetwork(
-        #     cent_obs_dim, n_agents * mixer_hidden_dim, hypernet_hidden_dim, 0)
+        #     input_dim, n_agents * mixer_hidden_dim, hypernet_hidden_dim, 0)
         self.hypernet_weights1 = get_init_linear(
-            cent_obs_dim, n_agents * mixer_hidden_dim)
-        self.hypernet_bias1 = get_init_linear(cent_obs_dim, mixer_hidden_dim)
+            input_dim, n_agents * mixer_hidden_dim).to(device)
+        self.hypernet_bias1 = get_init_linear(
+            input_dim, mixer_hidden_dim).to(device)
         # self.hypernet_weights2 = MLPNetwork(
-        #     cent_obs_dim, mixer_hidden_dim, hypernet_hidden_dim, 0)
+        #     input_dim, mixer_hidden_dim, hypernet_hidden_dim, 0)
         self.hypernet_weights2 = get_init_linear(
-            cent_obs_dim, mixer_hidden_dim)
+            input_dim, mixer_hidden_dim).to(device)
         self.hypernet_bias2 = MLPNetwork(
-            cent_obs_dim, 1, hypernet_hidden_dim, 0)
+            input_dim, 1, hypernet_hidden_dim, 0).to(device)
 
     def forward(self, local_qs, obs):
         """
@@ -74,13 +75,13 @@ class QMixer(nn.Module):
                 batch_size, n_agents).
             obs (torch.Tensor): Global observation, i.e. concatenated local 
                 observations, dimension=(episode_lenght, batch_size, 
-                n_agents * obs_dim)
+                n_agents * (obs_dim + act_dim))
         Outputs:
             Q_tot (torch.Tensor): Global Q-value computed by the mixer, 
                 dim=(episode_length, batch_size, 1, 1).
         """
         batch_size = local_qs.size(1)
-        obs = obs.view(-1, batch_size, self.cent_obs_dim).float()
+        obs = obs.view(-1, batch_size, self.input_dim).float()
         local_qs = local_qs.view(-1, batch_size, 1, self.num_mixer_q_inps)
 
         # First layer forward pass
@@ -103,13 +104,13 @@ class QMixer(nn.Module):
 
 class QMIXAgent:
 
-    def __init__(self, q_in_dim, q_out_dim, lr, 
-                 hidden_dim=64, init_explo=1.0):
+    def __init__(self, q_in_dim, q_out_dim, 
+                 hidden_dim=64, init_explo=1.0, device="cpu"):
         self.epsilon = init_explo
         self.q_out_dim = q_out_dim
 
         # Q function
-        self.q_network = DRQNetwork(q_in_dim, q_out_dim, hidden_dim)
+        self.q_network = DRQNetwork(q_in_dim, q_out_dim, hidden_dim).to(device)
 
     def set_explo_rate(self, explo_rate):
         self.epsilon = explo_rate
@@ -129,12 +130,21 @@ class QMIXAgent:
             new_qnet_rnn_states (torch.Tensor): New hidden states of the 
                 Q-network, dim=(1, batch_size, hidden_dim).
         """
+        # Check if input is a sequence of observations
+        no_seq = len(obs.shape) == 2
+
         # Concatenate observation and last actions
         qnet_input = torch.cat((obs, last_acts), dim=-1)
+
+        if no_seq:
+            qnet_input = qnet_input.unsqueeze(0)
 
         # Get Q-values
         q_values, new_qnet_rnn_states = self.q_network(
             qnet_input, qnet_rnn_states)
+
+        if no_seq:
+            q_values = q_values.squeeze(0)
 
         return q_values, new_qnet_rnn_states
 
@@ -153,7 +163,7 @@ class QMIXAgent:
             onehot_actions (torch.Tensor): Chosen actions, dim=([seq_len], 
                 batch_size, act_dim).
             greedy_Qs (torch.Tensor): Q-values corresponding to greedy actions,
-                dim=([seq_len], batch_size, 1).
+                dim=([seq_len], batch_size).
             new_qnet_rnn_states (torch.Tensor): New agent's Q-network hidden 
                 states dim=(1, batch_size, hidden_dim).
         """
@@ -193,7 +203,7 @@ class QMIX:
                  gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
                  init_explo_rate=1.0, device="cpu"):
         self.n_agents = n_agents
-        self.input_dim = obs_dim
+        self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.lr = lr
         self.gamma = gamma
@@ -201,24 +211,36 @@ class QMIX:
         self.hidden_dim = hidden_dim
         self.shared_params = shared_params
         self.init_explo_rate = init_explo_rate
+        self.device = device
 
         # Create agent policies
         if not shared_params:
             self.agents = [QMIXAgent(
-                    obs_dim, act_dim, lr, hidden_dim, init_explo_rate)
+                    obs_dim + act_dim, 
+                    act_dim,
+                    hidden_dim, 
+                    init_explo_rate,
+                    device)
                 for _ in range(n_agents)]
             self.last_actions = [
                 torch.zeros(1, act_dim, device=device)] * self.n_agents
             self.qnets_hidden_states = [
-                torch.zeros((1, 1, act_dim), device=device)] * self.n_agents
+                torch.zeros((1, 1, hidden_dim), device=device)] * self.n_agents
         else:
             self.agents = [QMIXAgent(
-                    obs_dim, act_dim, lr, hidden_dim, init_explo_rate)]
-            self.last_actions = torch.zeros((self.n_agents, act_dim), device=device)
+                    obs_dim + act_dim, 
+                    act_dim,
+                    hidden_dim, 
+                    init_explo_rate,
+                    device)]
+            self.last_actions = torch.zeros(
+                (self.n_agents, act_dim), device=device)
             self.qnets_hidden_states = torch.zeros(
-                (1, self.n_agents, act_dim), device=device)
+                (1, self.n_agents, hidden_dim), device=device)
 
-        self.device = device
+        # Create Q-mixer network
+        mixer_in_dim = n_agents * (obs_dim + act_dim)
+        self.mixer = QMixer(n_agents, mixer_in_dim, device=device)
 
     def set_explo_rate(self, explo_rate):
         """
@@ -240,22 +262,37 @@ class QMIX:
         """
         if self.shared_params:
             obs = torch.Tensor(np.array(obs_list)).to(self.device)
-            actions, _, new_qnets_hidden_states = self.agents[0].get_actions(
-                obs, self.last_actions, self.qnets_hidden_states)
-            actions = [actions[a_i] for a_i in range(self.n_agents)]
-            self.last_actions = actions
+            actions_batch, _, new_qnets_hidden_states = self.agents[0].get_actions(
+                obs, self.last_actions, self.qnets_hidden_states, explore)
+            actions = [actions_batch[a_i] for a_i in range(self.n_agents)]
+            self.last_actions = actions_batch
             self.qnets_hidden_states = new_qnets_hidden_states
         else:
-            actions = [
-                agent.get_actions(torch.Tensor(obs)) 
-                for agent, obs in zip(self.agents, obs_list)]
+            actions = []
+            for a_i in range(self.n_agents):
+                obs = torch.Tensor(obs_list[a_i]).unsqueeze(0).to(self.device)
+                action, _, new_qnet_hidden_state = self.agents[a_i].get_actions(
+                    obs, 
+                    self.last_actions[a_i], 
+                    self.qnets_hidden_states[a_i],
+                    explore
+                )
+                actions.append(action.squeeze())
+                self.last_actions[a_i] = action
+                self.qnets_hidden_states[a_i] = new_qnet_hidden_state
         return actions
 
     def prep_training(self, device='cpu'):
-        pass
+        for a in self.agents:
+            a.q_network.train()
+            a.q_network = a.q_network.to(device)
+        self.device = device
 
     def prep_rollouts(self, device='cpu'):
-        pass
+        for a in self.agents:
+            a.q_network.eval()
+            a.q_network = a.q_network.to(device)
+        self.device = device
 
     def step(self, observations, explore=False):
         pass

@@ -22,7 +22,7 @@ def get_config(args, parser=None):
     # Environment parameters
     parser.add_argument('--env_path', type=str,
                         help="Path to scenario to train on")
-    parser.add_argument("--sce_conf_path", default=None, type=str,
+    parser.add_argument("--sce_conf_path", type=str, default="configs/2a_1o_fo_rel.json",
                         help="Path to the scenario config file")
     parser.add_argument('--episode_length', type=int,
                         default=100, help="Max length for any episode")

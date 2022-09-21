@@ -473,7 +473,7 @@ class Scenario(BaseScenario):
                     obj.state.p_vel # Velocity
                 )))
             else:
-                obj.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for lm in world.landmarks:
             if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
