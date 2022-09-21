@@ -51,7 +51,15 @@ def run(cfg):
         act_dim = env.action_space[0].n
     else:
         act_dim = env.action_space[0].shape[0]
-    maddpg = MADDPG_MANovelD(
+    if cfg.noveld_type == "multi_agent":
+        NoveldClass = MADDPG_MANovelD
+    elif cfg.noveld_type == "per_agent":
+        NoveldClass = MADDPG_PANovelD
+    elif cfg.noveld_type == "multi+per_agent":
+        NoveldClass = MADDPG_MPANovelD
+    else:
+        print("ERROR: bad noveld type.")
+    maddpg = NoveldClass(
         n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
         cfg.tau, cfg.hidden_dim, cfg.embed_dim, cfg.discrete_action, 
         cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat)
@@ -265,6 +273,8 @@ if __name__ == '__main__':
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--shared_params", action='store_true')
     # NovelD
+    parser.add_argument("--noveld_type", default="multi_agent", type=str, 
+                        choices=["multi_agent", "per_agent", "multi+per_agent"])
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     # Cuda

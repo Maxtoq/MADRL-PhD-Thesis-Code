@@ -163,7 +163,7 @@ def run(cfg):
             maddpg.prep_rollouts(device='cpu')
 
         # Evalutation
-        if cfg.eval_every is not None and step_i % cfg.eval_every == 0:
+        if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
             eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
                 env, maddpg, eval_scenar, cfg.episode_length)
             eval_data_dict["Step"].append(step_i)
@@ -198,7 +198,7 @@ def run(cfg):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_path", type=str, help="Path to the environment",
-                    default="coop_push_scenario/coop_push_scenario_sparse.py")
+                    default="algotrithms/MALNovelD/scenarios/coop_push_scenario.py")
     parser.add_argument("--model_name", type=str, default="TEST",
                         help="Name of directory to store model/training contents")
     parser.add_argument("--seed", default=1, type=int, help="Random seed")
