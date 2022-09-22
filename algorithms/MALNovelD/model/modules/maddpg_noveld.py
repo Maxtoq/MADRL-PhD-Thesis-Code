@@ -241,7 +241,7 @@ class MADDPG_MPANovelD(MADDPG):
         """
         vf_losses = []
         pol_losses = []
-        nd_losses = []
+        pand_losses = []
         for a_i, sample in enumerate(samples):
             a_i = 0 if self.shared_params else a_i
             # Agent update
@@ -250,13 +250,13 @@ class MADDPG_MPANovelD(MADDPG):
             nd_loss = self.agents[a_i].train_noveld()
             vf_losses.append(vf_loss)
             pol_losses.append(pol_loss)
-            nd_losses.append(nd_loss)
+            pand_losses.append(nd_loss)
 
         # NovelD update
         mand_loss = self.ma_noveld.train_predictor()
         mand_losses = [mand_loss] * self.n_agents
 
-        return vf_losses, pol_losses, nd_losses, mand_losses
+        return vf_losses, pol_losses, (pand_losses, mand_losses)
 
     def reset_noveld(self):
         for a_i in range(self.n_agents):

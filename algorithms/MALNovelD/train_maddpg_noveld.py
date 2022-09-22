@@ -198,8 +198,8 @@ def run(cfg):
                 logger.add_scalars(
                     'agent%i/losses' % a_i, 
                     {'vf_loss': vf_loss[a_i],
-                     'pol_loss': pol_loss[a_i],
-                     'nd_loss': nd_loss[a_i]},
+                     'pol_loss': pol_loss[a_i]},
+                    #  'nd_loss': nd_loss[a_i]},
                     step_i)
             maddpg.update_all_targets()
             maddpg.prep_rollouts(device='cpu')
