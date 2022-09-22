@@ -51,7 +51,7 @@ def run(cfg):
     qmix = QMIX(
         nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
         cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
-        device=device)
+        cfg.max_grad_norm, device=device)
     qmix.prep_rollouts(device=device)
 
     # Create replay buffer
@@ -109,7 +109,6 @@ def run(cfg):
         next_obs, rewards, dones, _ = env.step(actions)
 
         # Save experience for replay buffer
-        print(ep_step_i)
         ep_obs[ep_step_i, 0, :] = np.stack(obs)
         ep_shared_obs[ep_step_i, 0, :] = np.tile(np.concatenate(obs), (2, 1))
         ep_acts[ep_step_i, 0, :] = np.stack(actions)
@@ -123,9 +122,9 @@ def run(cfg):
         # Check for end of episode
         if ep_success or ep_step_i + 1 == cfg.episode_length:
             # Store next state observations for last step
-            ep_obs[ep_step_i, 0, :] = np.stack(obs)
-            ep_shared_obs[ep_step_i, 0, :] = np.tile( 
-                np.concatenate(obs), (2, 1))
+            ep_obs[ep_step_i + 1, 0, :] = np.stack(next_obs)
+            ep_shared_obs[ep_step_i + 1, 0, :] = np.tile( 
+                np.concatenate(next_obs), (2, 1))
             # Store episode in replay buffer
             buffer.store(ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones)
             # Log training data
@@ -138,16 +137,8 @@ def run(cfg):
             train_data_dict["Episode length"].append(ep_step_i + 1)
             # Log Tensorboard
             logger.add_scalar(
-                'agent0/episode_return', 
-                train_data_dict["Episode return"][-1], 
-                train_data_dict["Step"][-1])
-            logger.add_scalar(
                 'agent0/episode_ext_return', 
                 train_data_dict["Episode extrinsic return"][-1], 
-                train_data_dict["Step"][-1])
-            logger.add_scalar(
-                'agent0/episode_int_return', 
-                train_data_dict["Episode intrinsic return"][-1], 
                 train_data_dict["Step"][-1])
             # Reset episode data
             ep_step_i = 0
@@ -157,12 +148,19 @@ def run(cfg):
                 buffer.init_episode_arrays()
             # Reset environment
             obs = env.reset()
-            return
+            qmix.reset_hidden_states()
         else:
             ep_step_i += 1
             obs = next_obs
 
         # Training
+        if ((step_i + 1) % cfg.frames_per_update == 0 and
+                len(buffer) >= cfg.batch_size):
+            qmix.prep_training(device=device)
+            # Get samples
+            sample_batch = buffer.sample(cfg.batch_size, device)
+            # Train
+            qmix.train_on_batch(sample_batch)
 
         # Evaluation
 
@@ -205,6 +203,8 @@ if __name__ == '__main__':
     parser.add_argument("--tau", default=0.005, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--shared_params", action='store_true')
+    parser.add_argument("--max_grad_norm", type=float, default=None,
+                        help='Max norm of gradients if specified (default: None)')
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)
 

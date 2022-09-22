@@ -248,15 +248,15 @@ class RecReplayBuffer:
             batch_size (int): Number of episodes to sample
             device (str): Device to put the samples.
         Outputs:
-            obs_batch (numpy.ndarray): Batch of observations, 
+            obs_batch (torch.Tensor): Batch of observations, 
                 dim=(nb_agents, ep_length + 1, batch_size, obs_dim).
-            shared_obs_batch (numpy.ndarray): Batch of shared observations, 
+            shared_obs_batch (torch.Tensor): Batch of shared observations, 
                 dim=(nb_agents, ep_length + 1, batch_size, shared_obs_dim).
-            act_batch (numpy.ndarray): Batch of actions, 
+            act_batch (torch.Tensor): Batch of actions, 
                 dim=(nb_agents, ep_length + 1, batch_size, act_dim).
-            rew_batch (numpy.ndarray): Batch of rewards, 
+            rew_batch (torch.Tensor): Batch of rewards, 
                 dim=(nb_agents, ep_length + 1, batch_size, 1).
-            done_batch (numpy.ndarray): Batch of done states, 
+            done_batch (torch.Tensor): Batch of done states, 
                 dim=(nb_agents, ep_length + 1, batch_size, 1).
         """
         ids = np.random.choice(self.filled_i, batch_size)
