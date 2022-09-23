@@ -161,11 +161,24 @@ def run(cfg):
             sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
             loss = qmix.train_on_batch(sample_batch)
+            # Log
+            logger.add_scalars('agent0/losses', loss, step_i)
+            qmix.update_all_targets()
+            qmix.prep_rollouts(device=device)
             
 
         # Evaluation
 
         # Save model
+    env.close()
+    # Log Tensorboard
+    logger.export_scalars_to_json(str(log_dir / 'summary.json'))
+    logger.close()
+    # Save training and eval data
+    train_df = pd.DataFrame(train_data_dict)
+    train_df.to_csv(str(run_dir / 'training_data.csv'))
+
+    print("Model saved in dir", run_dir)
 
 
 
@@ -182,7 +195,7 @@ if __name__ == '__main__':
                         default="configs/2a_1o_fo_rel.json",
                         help="Path to the scenario config file")
     # Training
-    parser.add_argument("--n_frames", default=25000, type=int,
+    parser.add_argument("--n_frames", default=2500, type=int,
                         help="Number of training frames to perform")
     parser.add_argument("--buffer_length", default=5000, type=int,
                         help="Max number of episodes stored in replay buffer.")
