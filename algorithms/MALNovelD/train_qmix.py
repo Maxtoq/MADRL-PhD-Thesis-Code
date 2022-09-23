@@ -148,7 +148,7 @@ def run(cfg):
                 buffer.init_episode_arrays()
             # Reset environment
             obs = env.reset()
-            qmix.reset_hidden_states()
+            qmix.reset_new_episode()
         else:
             ep_step_i += 1
             obs = next_obs
@@ -160,7 +160,8 @@ def run(cfg):
             # Get samples
             sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
-            qmix.train_on_batch(sample_batch)
+            loss = qmix.train_on_batch(sample_batch)
+            
 
         # Evaluation
 

@@ -253,11 +253,11 @@ class RecReplayBuffer:
             shared_obs_batch (torch.Tensor): Batch of shared observations, 
                 dim=(nb_agents, ep_length + 1, batch_size, shared_obs_dim).
             act_batch (torch.Tensor): Batch of actions, 
-                dim=(nb_agents, ep_length + 1, batch_size, act_dim).
+                dim=(nb_agents, ep_length, batch_size, act_dim).
             rew_batch (torch.Tensor): Batch of rewards, 
-                dim=(nb_agents, ep_length + 1, batch_size, 1).
+                dim=(nb_agents, ep_length, batch_size, 1).
             done_batch (torch.Tensor): Batch of done states, 
-                dim=(nb_agents, ep_length + 1, batch_size, 1).
+                dim=(nb_agents, ep_length, batch_size, 1).
         """
         ids = np.random.choice(self.filled_i, batch_size)
 
