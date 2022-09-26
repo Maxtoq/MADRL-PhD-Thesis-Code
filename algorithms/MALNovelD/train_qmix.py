@@ -162,7 +162,7 @@ def run(cfg):
             # Train
             loss = qmix.train_on_batch(sample_batch)
             # Log
-            logger.add_scalars('agent0/losses', loss, step_i)
+            logger.add_scalars('agent0/losses', {'qtot_loss': loss}, step_i)
             qmix.update_all_targets()
             qmix.prep_rollouts(device=device)
             

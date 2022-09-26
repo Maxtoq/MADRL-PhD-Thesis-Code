@@ -35,6 +35,7 @@ class DRQNetwork(nn.Module):
             new_rnn_states (torch.Tensor): Final hidden states of the RNN, 
                 dim=(1, batch_size, hidden_dim).
         """
+        self.rnn.flatten_parameters()
         rnn_in = self.mlp_in(obs)
 
         rnn_outs, new_rnn_states = self.rnn(rnn_in, rnn_states)
@@ -112,6 +113,7 @@ class QMIXAgent:
         self.epsilon = init_explo
         self.q_out_dim = q_out_dim
         self.hidden_dim = hidden_dim
+        self.device = device
 
         # Q function
         self.q_net = DRQNetwork(q_in_dim, q_out_dim, hidden_dim).to(device)
@@ -207,10 +209,11 @@ class QMIXAgent:
         if explore:
             # Sample random number for each action
             rands = torch.rand(batch_size)
-            take_random = (rands < self.epsilon).int()
+            take_random = (rands < self.epsilon).int().to(self.device)
             # Get random actions
             rand_actions = Categorical(
-                logits=torch.ones(batch_size, self.q_out_dim)).sample()
+                logits=torch.ones(batch_size, self.q_out_dim)
+            ).sample().to(self.device)
             # Choose actions
             actions = (1 - take_random) * greedy_actions + \
                       take_random * rand_actions
@@ -218,7 +221,7 @@ class QMIXAgent:
         else:
             onehot_actions = torch.eye(self.q_out_dim)[greedy_actions]
         
-        return onehot_actions, greedy_Qs
+        return onehot_actions.to(self.device), greedy_Qs
 
     def get_actions(self, obs, last_acts, qnet_rnn_states, explore=False):
         """
@@ -437,12 +440,14 @@ class QMIX:
 
     def prep_training(self, device='cpu'):
         for a in self.agents:
+            a.device = device
             a.q_net.train()
             a.q_net = a.q_net.to(device)
         self.device = device
 
     def prep_rollouts(self, device='cpu'):
         for a in self.agents:
+            a.device = device
             a.q_net.eval()
             a.q_net = a.q_net.to(device)
         self.device = device
@@ -451,7 +456,7 @@ class QMIX:
         """ Soft update the target networks. """
         for a in self.agents:
             soft_update(a.target_q_net, a.q_net, self.tau)
-        soft_update(self.target_mixer, self.mixer)
+        soft_update(self.target_mixer, self.mixer, self.tau)
 
     def save(self, filename):
         # self.prep_training(device='cpu')
