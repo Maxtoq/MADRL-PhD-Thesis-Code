@@ -100,12 +100,16 @@ def run(cfg):
     # Init episode data for saving in replay buffer
     ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones = \
         buffer.init_episode_arrays()
+    # Get initial last actions and hidden states
+    last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
     for step_i in tqdm(range(cfg.n_frames)):
         qmix.set_explo_rate(eps_decay.get_explo_rate(step_i))
 
         # Get actions
-        actions = qmix.get_actions(obs, explore=True)
-        actions = [a.cpu().data.numpy() for a in actions]
+        actions, qnets_hidden_states = qmix.get_actions(
+            obs, last_actions, qnets_hidden_states, explore=True)
+        last_actions = actions
+        actions = [a.cpu().squeeze().data.numpy() for a in actions]
         next_obs, rewards, dones, _ = env.step(actions)
 
         # Save experience for replay buffer
@@ -115,7 +119,6 @@ def run(cfg):
         ep_rews[ep_step_i, 0, :] = np.vstack(rewards)
         ep_dones[ep_step_i, 0, :] = np.vstack(dones)
 
-        # Save training data
         if any(dones):
             ep_success = True
         
@@ -146,9 +149,10 @@ def run(cfg):
             # Init episode data for saving in replay buffer
             ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones = \
                 buffer.init_episode_arrays()
+            # Get initial last actions and hidden states
+            last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
             # Reset environment
             obs = env.reset()
-            qmix.reset_new_episode()
         else:
             ep_step_i += 1
             obs = next_obs
@@ -166,18 +170,34 @@ def run(cfg):
             qmix.update_all_targets()
             qmix.prep_rollouts(device=device)
             
-
         # Evaluation
+        if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
+            eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
+                env, qmix, eval_scenar, cfg.episode_length, recurrent=True)
+            eval_data_dict["Step"].append(step_i + 1)
+            eval_data_dict["Mean return"].append(eval_return)
+            eval_data_dict["Success rate"].append(eval_success_rate)
+            eval_data_dict["Mean episode length"].append(eval_ep_len)
 
         # Save model
+        if (step_i + 1) % cfg.save_interval == 0:
+            os.makedirs(run_dir / 'incremental', exist_ok=True)
+            qmix.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
+            qmix.save(model_cp_path)
+            qmix.prep_rollouts(device=device)
+
     env.close()
+    # Save model
+    qmix.save(model_cp_path)
     # Log Tensorboard
     logger.export_scalars_to_json(str(log_dir / 'summary.json'))
     logger.close()
     # Save training and eval data
     train_df = pd.DataFrame(train_data_dict)
     train_df.to_csv(str(run_dir / 'training_data.csv'))
-
+    if cfg.eval_every is not None:
+        eval_df = pd.DataFrame(eval_data_dict)
+        eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
     print("Model saved in dir", run_dir)
 
 
@@ -202,6 +222,7 @@ if __name__ == '__main__':
     parser.add_argument("--frames_per_update", default=100, type=int)
     parser.add_argument("--batch_size", default=32, type=int,
                         help="Number of episodes to sample from replay buffer for training.")
+    parser.add_argument("--save_interval", default=100000, type=int)
     # Exploration
     parser.add_argument("--n_explo_frames", default=None, type=int,
                         help="Number of frames where agents explore, if None then equal to n_frames")
