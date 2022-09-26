@@ -128,7 +128,7 @@ def run(cfg):
             # Store episode in replay buffer
             buffer.store(ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones)
             # Log training data
-            train_data_dict["Step"].append(ep_step_i)
+            train_data_dict["Step"].append(step_i)
             train_data_dict["Episode return"].append(
                 np.sum(ep_rews) / nb_agents)
             train_data_dict["Episode extrinsic return"].append(

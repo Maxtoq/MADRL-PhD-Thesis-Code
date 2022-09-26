@@ -7,7 +7,7 @@ n_frames=10000000
 frames_per_update=100
 eval_every=200000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-max_grad_norm=0.5
+max_grad_norm=None
 cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
@@ -18,7 +18,8 @@ do
 --model_name ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} \
 --n_frames ${n_frames} --cuda_device ${cuda_device} \
 --eval_every ${eval_every} --eval_scenar_file ${eval_scenar_file} \
---frames_per_update ${frames_per_update} --max_grad_norm ${max_grad_norm}"
+--frames_per_update ${frames_per_update}"
+#--max_grad_norm ${max_grad_norm}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"
