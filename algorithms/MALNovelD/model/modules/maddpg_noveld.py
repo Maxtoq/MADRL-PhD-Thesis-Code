@@ -41,21 +41,21 @@ class MADDPG_PANovelD(MADDPG):
     meaning that each agent has its own local NovelD model to compute a
     personal intrinsic reward.
     """
-    def __init__(self, n_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
+    def __init__(self, nb_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
                  tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
                  shared_params=False, init_explo_rate=1.0, explo_strat="sample",
                  nd_lr=1e-4, nd_scale_fac=0.5):
         super(MADDPG_PANovelD, self).__init__(
-            n_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
+            nb_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
             discrete_action, shared_params, init_explo_rate, explo_strat)
         # Create agent models
-        critic_input_dim = n_agents * input_dim + n_agents * act_dim
+        critic_input_dim = nb_agents * input_dim + nb_agents * act_dim
         if not shared_params:
             self.agents = [DDPG_NovelD(
                     input_dim, act_dim, critic_input_dim, lr, embed_dim, 
                     hidden_dim, discrete_action, init_explo_rate, explo_strat, 
                     nd_lr, nd_scale_fac)
-                for _ in range(n_agents)]
+                for _ in range(nb_agents)]
         else:
             self.agents = [DDPG_NovelD(
                     input_dim, act_dim, critic_input_dim, lr, embed_dim, 
@@ -96,7 +96,7 @@ class MADDPG_PANovelD(MADDPG):
         return vf_losses, pol_losses, nd_losses
 
     def reset_noveld(self):
-        for a_i in range(self.n_agents):
+        for a_i in range(self.nb_agents):
             a_i = 0 if self.shared_params else a_i
             self.agents[a_i].reset_noveld()
 
@@ -107,17 +107,16 @@ class MADDPG_MANovelD(MADDPG):
     meaning that we use a single NovelD model to compute the intrinsic reward
     of the multi-agent system.
     """
-    def __init__(self, n_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
+    def __init__(self, nb_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
                  tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
                  shared_params=False, init_explo_rate=1.0, explo_strat="sample",
                  nd_lr=1e-4, nd_scale_fac=0.5):
         super(MADDPG_MANovelD, self).__init__(
-            n_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
+            nb_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
             discrete_action, shared_params, init_explo_rate, explo_strat)
-
         # Init NovelD model for the multi-agent system
         self.ma_noveld = NovelD(
-            n_agents * input_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
+            nb_agents * input_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
 
     def step(self, observations, explore=False):
         # If we are starting a new episode, compute novelty for first observation
@@ -139,7 +138,7 @@ class MADDPG_MANovelD(MADDPG):
         cat_obs = torch.Tensor(np.concatenate(next_obs_list)).unsqueeze(0)
         # Get reward
         int_reward = self.ma_noveld.get_reward(cat_obs)
-        int_rewards = [int_reward] * self.n_agents
+        int_rewards = [int_reward] * self.nb_agents
         return int_rewards
 
     def update(self, samples):
@@ -148,7 +147,6 @@ class MADDPG_MANovelD(MADDPG):
         Inputs:
             samples (list): List of batches for the agents to train on (one 
                 for each agent).
-            logger (tensorboardX.SummaryWriter): Tensorboad logger.
         """
         vf_losses = []
         pol_losses = []
@@ -159,7 +157,7 @@ class MADDPG_MANovelD(MADDPG):
             pol_losses.append(pol_loss)
 
         # NovelD update
-        nd_losses = [self.ma_noveld.train_predictor()] * self.n_agents
+        nd_losses = [self.ma_noveld.train_predictor()] * self.nb_agents
 
         return vf_losses, pol_losses, nd_losses
 
@@ -173,26 +171,26 @@ class MADDPG_MPANovelD(MADDPG):
     meaning that there is one NovelD model for the whole multi-agent system and 
     one NovelD model for each agent.
     """
-    def __init__(self, n_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
+    def __init__(self, nb_agents, input_dim, act_dim, lr=0.0007, gamma=0.95, 
                  tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
                  shared_params=False, init_explo_rate=1.0, explo_strat="sample",
                  nd_lr=1e-4, nd_scale_fac=0.5):
         super(MADDPG_MPANovelD, self).__init__(
-            n_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
+            nb_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
             discrete_action, shared_params, init_explo_rate, explo_strat)
 
         # Init NovelD model for the multi-agent system
         self.ma_noveld = NovelD(
-            n_agents * input_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
+            nb_agents * input_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
 
         # Init agents with their NovelD model
-        critic_input_dim = n_agents * input_dim + n_agents * act_dim
+        critic_input_dim = nb_agents * input_dim + nb_agents * act_dim
         if not shared_params:
             self.agents = [DDPG_NovelD(
                     input_dim, act_dim, critic_input_dim, lr, embed_dim, 
                     hidden_dim, discrete_action, init_explo_rate, explo_strat, 
                     nd_lr, nd_scale_fac)
-                for _ in range(n_agents)]
+                for _ in range(nb_agents)]
         else:
             self.agents = [DDPG_NovelD(
                     input_dim, act_dim, critic_input_dim, lr, embed_dim, 
@@ -254,12 +252,12 @@ class MADDPG_MPANovelD(MADDPG):
 
         # NovelD update
         mand_loss = self.ma_noveld.train_predictor()
-        mand_losses = [mand_loss] * self.n_agents
+        mand_losses = [mand_loss] * self.nb_agents
 
         return vf_losses, pol_losses, (pand_losses, mand_losses)
 
     def reset_noveld(self):
-        for a_i in range(self.n_agents):
+        for a_i in range(self.nb_agents):
             a_i = 0 if self.shared_params else a_i
             self.agents[a_i].reset_noveld()
             

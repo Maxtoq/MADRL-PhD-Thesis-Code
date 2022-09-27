@@ -9,6 +9,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from model.modules.qmix import QMIX
+from model.modules.qmix_noveld import QMIX_MANovelD
 from utils.buffer import RecReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env
 from utils.eval import perform_eval_scenar
@@ -48,10 +49,17 @@ def run(cfg):
     nb_agents = sce_conf["nb_agents"]
     obs_dim = env.observation_space[0].shape[0]
     act_dim = env.action_space[0].n
-    qmix = QMIX(
-        nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
-        cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
-        cfg.max_grad_norm, device=device)
+    if cfg.model_type == "qmix":
+        qmix = QMIX(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
+            cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
+            cfg.max_grad_norm, device)
+    elif cfg.model_type == "qmix_manoveld":
+        qmix = QMIX_MANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
+            cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
+            cfg.init_explo_rate, cfg.max_grad_norm, device,
+            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac)
+    else:
+        print("ERROR: bad model type.")
     qmix.prep_rollouts(device=device)
 
     # Create replay buffer
@@ -90,11 +98,14 @@ def run(cfg):
         "Step": [],
         "Episode return": [],
         "Episode extrinsic return": [],
+        "Episode intrinsic return": [],
         "Success": [],
         "Episode length": []
     }
     # Reset episode data and environment
     ep_step_i = 0
+    ep_ext_returns = np.zeros(nb_agents)
+    ep_int_returns = np.zeros(nb_agents)
     ep_success = False
     obs = env.reset()
     # Init episode data for saving in replay buffer
@@ -110,15 +121,26 @@ def run(cfg):
             obs, last_actions, qnets_hidden_states, explore=True)
         last_actions = actions
         actions = [a.cpu().squeeze().data.numpy() for a in actions]
-        next_obs, rewards, dones, _ = env.step(actions)
+        next_obs, ext_rewards, dones, _ = env.step(actions)
+
+        # Compute intrinsic rewards
+        if "noveld" in cfg.model_type:
+            int_rewards = qmix.get_intrinsic_rewards(next_obs)
+            rewards = np.array([ext_rewards]) + \
+                      cfg.int_reward_coeff * np.array([int_rewards])
+            rewards = rewards.T
+        else:
+            rewards = np.vstack(ext_rewards)
 
         # Save experience for replay buffer
         ep_obs[ep_step_i, 0, :] = np.stack(obs)
         ep_shared_obs[ep_step_i, 0, :] = np.tile(np.concatenate(obs), (2, 1))
         ep_acts[ep_step_i, 0, :] = np.stack(actions)
-        ep_rews[ep_step_i, 0, :] = np.vstack(rewards)
+        ep_rews[ep_step_i, 0, :] = rewards
         ep_dones[ep_step_i, 0, :] = np.vstack(dones)
 
+        ep_ext_returns += ext_rewards
+        ep_int_returns += int_rewards
         if any(dones):
             ep_success = True
         
@@ -135,15 +157,27 @@ def run(cfg):
             train_data_dict["Episode return"].append(
                 np.sum(ep_rews) / nb_agents)
             train_data_dict["Episode extrinsic return"].append(
-                np.sum(ep_rews) / nb_agents)
+                np.mean(ep_ext_returns))
+            train_data_dict["Episode intrinsic return"].append(
+                np.mean(ep_int_returns))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_step_i + 1)
             # Log Tensorboard
             logger.add_scalar(
+                'agent0/episode_return', 
+                train_data_dict["Episode return"][-1], 
+                train_data_dict["Step"][-1])
+            logger.add_scalar(
                 'agent0/episode_ext_return', 
                 train_data_dict["Episode extrinsic return"][-1], 
                 train_data_dict["Step"][-1])
+            logger.add_scalar(
+                'agent0/episode_int_return', 
+                train_data_dict["Episode intrinsic return"][-1], 
+                train_data_dict["Step"][-1])
             # Reset episode data
+            ep_ext_returns = np.zeros(nb_agents)
+            ep_int_returns = np.zeros(nb_agents)
             ep_step_i = 0
             ep_success = False
             # Init episode data for saving in replay buffer
@@ -164,9 +198,12 @@ def run(cfg):
             # Get samples
             sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
-            loss = qmix.train_on_batch(sample_batch)
+            losses = qmix.train_on_batch(sample_batch)
+            loss_dict = {"qtot_loss": losses[0]}
+            if cfg.model_type == "qmix_manoveld":
+                loss_dict["nd_loss"] = losses[1]
             # Log
-            logger.add_scalars('agent0/losses', {'qtot_loss': loss}, step_i)
+            logger.add_scalars('agent0/losses', loss_dict, step_i)
             qmix.update_all_targets()
             qmix.prep_rollouts(device=device)
             
@@ -233,6 +270,8 @@ if __name__ == '__main__':
     parser.add_argument("--eval_every", type=int, default=None)
     parser.add_argument("--eval_scenar_file", type=str, default=None)
     # Model hyperparameters
+    parser.add_argument("--model_type", default="qmix", type=str, 
+                        choices=["qmix", "qmix_manoveld"])
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--lr", default=0.0007, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
@@ -240,6 +279,11 @@ if __name__ == '__main__':
     parser.add_argument("--shared_params", action='store_true')
     parser.add_argument("--max_grad_norm", type=float, default=None,
                         help='Max norm of gradients if specified (default: None)')
+    # NovelD
+    parser.add_argument("--embed_dim", default=16, type=int)
+    parser.add_argument("--nd_lr", default=1e-4, type=float)
+    parser.add_argument("--nd_scale_fac", default=0.5, type=float)
+    parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)
 

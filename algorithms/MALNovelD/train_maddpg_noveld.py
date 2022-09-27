@@ -45,7 +45,7 @@ def run(cfg):
     env = make_env(cfg.env_path, sce_conf, cfg.discrete_action)
 
     # Create model
-    n_agents = sce_conf["nb_agents"]
+    nb_agents = sce_conf["nb_agents"]
     input_dim = env.observation_space[0].shape[0]
     if cfg.discrete_action:
         act_dim = env.action_space[0].n
@@ -60,7 +60,7 @@ def run(cfg):
     else:
         print("ERROR: bad noveld type.")
     maddpg = NoveldClass(
-        n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
+        nb_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
         cfg.tau, cfg.hidden_dim, cfg.embed_dim, cfg.discrete_action, 
         cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat)
     maddpg.prep_rollouts(device='cpu')
@@ -68,7 +68,7 @@ def run(cfg):
     # Create replay buffer
     replay_buffer = ReplayBuffer(
         cfg.buffer_length, 
-        n_agents,
+        nb_agents,
         [obsp.shape[0] for obsp in env.observation_space],
         [acsp.shape[0] if not cfg.discrete_action else acsp.n
             for acsp in env.action_space]
@@ -107,9 +107,9 @@ def run(cfg):
         "Episode length": []
     }
     # Reset episode data and environment
-    ep_returns = np.zeros(n_agents)
-    ep_ext_returns = np.zeros(n_agents)
-    ep_int_returns = np.zeros(n_agents)
+    ep_returns = np.zeros(nb_agents)
+    ep_ext_returns = np.zeros(nb_agents)
+    ep_int_returns = np.zeros(nb_agents)
     ep_length = 0
     ep_success = False
     obs = env.reset()
@@ -174,9 +174,9 @@ def run(cfg):
                 train_data_dict["Episode intrinsic return"][-1], 
                 train_data_dict["Step"][-1])
             # Reset the environment
-            ep_returns = np.zeros(n_agents)
-            ep_ext_returns = np.zeros(n_agents)
-            ep_int_returns = np.zeros(n_agents)
+            ep_returns = np.zeros(nb_agents)
+            ep_ext_returns = np.zeros(nb_agents)
+            ep_int_returns = np.zeros(nb_agents)
             ep_length = 0
             ep_success = False
             obs = env.reset()
@@ -191,10 +191,10 @@ def run(cfg):
             maddpg.prep_training(device=device)
             samples = [replay_buffer.sample(
                             config.batch_size, cuda_device=device)
-                       for _ in range(n_agents)]
+                       for _ in range(nb_agents)]
             vf_loss, pol_loss, nd_loss = maddpg.update(samples)
             # Log
-            for a_i in range(n_agents):
+            for a_i in range(nb_agents):
                 logger.add_scalars(
                     'agent%i/losses' % a_i, 
                     {'vf_loss': vf_loss[a_i],
