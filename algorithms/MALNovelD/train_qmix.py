@@ -130,6 +130,7 @@ def run(cfg):
                       cfg.int_reward_coeff * np.array([int_rewards])
             rewards = rewards.T
         else:
+            int_rewards = [0.0, 0.0]
             rewards = np.vstack(ext_rewards)
 
         # Save experience for replay buffer
@@ -199,9 +200,13 @@ def run(cfg):
             sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
             losses = qmix.train_on_batch(sample_batch)
-            loss_dict = {"qtot_loss": losses[0]}
-            if cfg.model_type == "qmix_manoveld":
-                loss_dict["nd_loss"] = losses[1]
+            if cfg.model_type == "qmix":
+                loss_dict = {"qtot_loss": losses}
+            elif cfg.model_type == "qmix_manoveld":
+                loss_dict = {
+                    "qtot_loss": losses[0],
+                    "nd_loss": losses[1]
+                }
             # Log
             logger.add_scalars('agent0/losses', loss_dict, step_i)
             qmix.update_all_targets()

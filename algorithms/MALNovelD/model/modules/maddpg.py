@@ -113,11 +113,11 @@ class DDPGAgent:
 
 class MADDPG:
 
-    def __init__(self, n_agents, input_dim, act_dim, lr=0.0007, gamma=0.95,
+    def __init__(self, nb_agents, input_dim, act_dim, lr=0.0007, gamma=0.95,
                  tau=0.01, hidden_dim=64, discrete_action=False, 
                  shared_params=False, init_explo_rate=1.0, 
                  explo_strat="sample"):
-        self.n_agents = n_agents
+        self.nb_agents = nb_agents
         self.input_dim = input_dim
         self.act_dim = act_dim
         self.gamma = gamma
@@ -129,13 +129,13 @@ class MADDPG:
         self.explo_strat = explo_strat
 
         # Create agent models
-        critic_input_dim = n_agents * input_dim + n_agents * act_dim
+        critic_input_dim = nb_agents * input_dim + nb_agents * act_dim
         if not shared_params:
             self.agents = [DDPGAgent(
                     input_dim, act_dim, critic_input_dim, 
                     lr, hidden_dim, discrete_action, 
                     init_explo_rate, explo_strat)
-                for _ in range(n_agents)]
+                for _ in range(nb_agents)]
         else:
             self.agents = [DDPGAgent(
                 input_dim, act_dim, critic_input_dim, 
@@ -147,14 +147,14 @@ class MADDPG:
     @property
     def policies(self):
         if self.shared_params:
-            return [self.agents[0].policy for _ in range(self.n_agents)]
+            return [self.agents[0].policy for _ in range(self.nb_agents)]
         else:
             return [a.policy for a in self.agents]
 
     @property
     def target_policies(self):
         if self.shared_params:
-            return [self.agents[0].target_policy for _ in range(self.n_agents)]
+            return [self.agents[0].target_policy for _ in range(self.nb_agents)]
         else:
             return [a.target_policy for a in self.agents]
 
@@ -198,7 +198,7 @@ class MADDPG:
         Take a step forward in environment with all agents
         Inputs:
             observations (torch.Tensor): Tensor containing observations of all
-                agents, dim=(n_agents, input_dim).
+                agents, dim=(nb_agents, input_dim).
             explore (boolean): Whether or not to perform exploration.
         Outputs:
             actions (list(torch.Tensor)): List of actions for each agent
@@ -210,7 +210,7 @@ class MADDPG:
             actions = [
                 self.agents[a_i].step(observations[a_i].unsqueeze(0), 
                     explore=explore, device=self.device)
-                for a_i in range(self.n_agents)]
+                for a_i in range(self.nb_agents)]
         return actions
 
     def update(self, sample, agent_i): # , obs_encoder, language_optim=None):
@@ -267,7 +267,7 @@ class MADDPG:
         else:
             curr_pol_vf_in = curr_pol_out
         all_pol_acs = []
-        for i, pi, ob in zip(range(self.n_agents), self.policies, obs):
+        for i, pi, ob in zip(range(self.nb_agents), self.policies, obs):
             if i == agent_i:
                 all_pol_acs.append(curr_pol_vf_in)
             elif self.discrete_action:
@@ -302,7 +302,7 @@ class MADDPG:
         """
         self.prep_training(device='cpu')  # move parameters to CPU before saving
         save_dict = {
-            'n_agents': self.n_agents,
+            'nb_agents': self.nb_agents,
             'input_dim': self.input_dim,
             'act_dim': self.act_dim,
             'gamma': self.gamma,

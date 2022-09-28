@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
 env="algorithms/MALNovelD/scenarios/coop_push_scenario_sparse_HARDER.py"
-model_name="maddpg_manoveld_pol_disc"
-sce_conf_path="configs/2a_1o_pol_rel.json"
+model_name="maddpg_manoveld_fo_disc"
+sce_conf_path="configs/2a_1o_fo_rel.json"
 noveld_type="multi_agent"
 n_frames=10000000
 buffer_length=1000000
@@ -10,12 +10,12 @@ lr=0.0007
 gamma=0.99
 tau=0.01
 explo_strat="sample"
-init_explo_rate=1.0
+init_explo_rate=0.6
 frames_per_update=100
 int_reward_coeff=0.3
 eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do

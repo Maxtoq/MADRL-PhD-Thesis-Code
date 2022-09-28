@@ -11,7 +11,7 @@ tau=0.01
 explo_strat="sample"
 init_explo_rate=1.0
 frames_per_update=100
-eval_every=200000
+eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 cuda_device="cuda:3"
 

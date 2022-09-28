@@ -15,7 +15,7 @@ init_explo_rate=1.0
 epsilon_decay_fn="exp"
 frames_per_policy_update=100
 int_reward_coeff=1.0
-eval_every=200000
+eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 cuda_device="cuda:0"
 
