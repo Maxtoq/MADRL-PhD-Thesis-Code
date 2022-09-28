@@ -7,7 +7,6 @@ n_frames=10000000
 frames_per_update=100
 eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-max_grad_norm=0.5
 init_explo_rate=0.3
 model_type="qmix"
 int_reward_coeff=1.0
@@ -23,7 +22,6 @@ do
 --eval_every ${eval_every} --eval_scenar_file ${eval_scenar_file} \
 --frames_per_update ${frames_per_update} --init_explo_rate ${init_explo_rate} \
 --model_type ${model_type} --int_reward_coeff ${int_reward_coeff}"
-#--max_grad_norm ${max_grad_norm}
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"

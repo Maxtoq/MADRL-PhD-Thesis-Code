@@ -282,8 +282,8 @@ if __name__ == '__main__':
     parser.add_argument("--tau", default=0.005, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--shared_params", action='store_true')
-    parser.add_argument("--max_grad_norm", type=float, default=None,
-                        help='Max norm of gradients if specified (default: None)')
+    parser.add_argument("--max_grad_norm", type=float, default=0.5,
+                        help='Max norm of gradients (default: 0.5)')
     # NovelD
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--nd_lr", default=1e-4, type=float)
