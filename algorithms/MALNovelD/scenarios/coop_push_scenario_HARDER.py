@@ -142,8 +142,8 @@ class PushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=2.83, 
-                   collision_pen=1, relative_coord=True, dist_reward=False, 
-                   reward_done=50, step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
+                   collision_pen=1, reward_done=50, step_penalty=0.1, 
+                   obj_lm_dist_range=[0.2, 1.5]):
         world = PushWorld(nb_agents, nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -171,8 +171,6 @@ class Scenario(BaseScenario):
         self.obj_lm_dist_range = obj_lm_dist_range
         # Scenario attributes
         self.obs_range = obs_range
-        self.relative_coord = relative_coord
-        self.dist_reward = dist_reward
         # Reward attributes
         self.collision_pen = collision_pen
         # Flag for end of episode
