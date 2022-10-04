@@ -167,7 +167,6 @@ class Scenario(BaseScenario):
         if self._done_flag:
             rew += 100
 
-
         # Reward based on distance to object
         if self.dist_reward:
             mean_dist = sum([get_dist(agent.state.p_pos, world.objects[0].state.p_pos)

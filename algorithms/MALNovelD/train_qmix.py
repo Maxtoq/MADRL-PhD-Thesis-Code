@@ -270,7 +270,8 @@ if __name__ == '__main__':
                         help="Number of frames where agents explore, if None then equal to n_frames")
     parser.add_argument("--init_explo_rate", default=1.0, type=float)
     parser.add_argument("--final_explo_rate", default=0.0, type=float)
-    parser.add_argument("--epsilon_decay_fn", default="linear", type=str)
+    parser.add_argument("--epsilon_decay_fn", default="linear", type=str,
+                        choices=["linear", "exp"])
     # Evalutation
     parser.add_argument("--eval_every", type=int, default=None)
     parser.add_argument("--eval_scenar_file", type=str, default=None)
