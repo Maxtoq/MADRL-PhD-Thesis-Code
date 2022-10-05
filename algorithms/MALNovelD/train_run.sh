@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/coop_push_scenario_distreward.py"
+env="algorithms/MALNovelD/scenarios/simple_spread.py"
 model_name="maddpg_fo_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000

@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=5
 env="algorithms/MALNovelD/scenarios/coop_push_scenario_HARDER.py"
 model_name="maddpg_manoveld_pol_disc"
 sce_conf_path="configs/2a_1o_pol_rel.json"
@@ -14,7 +14,7 @@ init_explo_rate=1.0
 epsilon_decay_fn="linear"
 frames_per_update=100
 int_reward_coeff=2.0
-nd_scale_fac=0.5
+nd_scale_fac=0.25
 eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 cuda_device="cuda:0"
