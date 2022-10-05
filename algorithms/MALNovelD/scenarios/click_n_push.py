@@ -1,9 +1,10 @@
 import numpy as np
+import random
 
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
-LANDMARK_SIZE = 0.03
+BUTTON_SIZE = 0.03
 OBJECT_SIZE = 0.15
 OBJECT_MASS = 2.0
 AGENT_SIZE = 0.04
@@ -16,11 +17,41 @@ def get_dist(pos1, pos2, squared=False):
     else:
         return np.sqrt(dist)
 
-def obj_callback(agent, world):
-    action = Action()
-    action.u = np.zeros((world.dim_p))
-    action.c = np.zeros((world.dim_c))
-    return action
+
+class Wall:
+
+    def __init__(self, orientation, position):
+        if orientation == "hor":
+            self.orient = 1
+        elif orientation == "ver":
+            self.orient = 0
+        else:
+            print("ERROR: orientation parameter must be 'hor' or 'ver'.")
+            exit()
+
+        if not -1 <= position <= 1:
+            print("ERROR: position parameter must be in [-1, 1]- interval.")
+            exit()
+        self.position = position
+        # State
+        self.active = True
+        
+    def check_pos(self, entity, temp_pos):
+        if entity.state.p_pos[self.orient] > self.postion:
+            if temp_pos[self.orient] - entity.size < self.postion:
+                entity.state.p_vel[self.orient] = 0.0
+                entity.state.p_pos[self.orient] = self.postion + entity.size
+        elif entity.state.p_pos[self.orient] < self.postion:
+            if temp_pos[self.orient] + entity.size > self.postion:
+                entity.state.p_vel[self.orient] = 0.0
+                entity.state.p_pos[self.orient] = self.postion - entity.size
+
+class Button(Landmark):
+
+    def __init__(self):
+        super(Button, self).__init__()
+        # State of the button (pushed or unpushed)
+        self.pushed = False
 
 class Object(Entity):
     def __init__(self):
@@ -28,81 +59,29 @@ class Object(Entity):
         # Objects are movable
         self.movable = True
 
-class PushWorld(World):
-    def __init__(self, nb_agents, nb_objects):
-        super(PushWorld, self).__init__()
+class ClickNPushWorld(World):
+    def __init__(self, nb_agents):
+        super(ClickNPushWorld, self).__init__()
         # add agent
         self.nb_agents = nb_agents
         self.agents = [Agent() for i in range(self.nb_agents)]
-        # List of objects to push
-        self.nb_objects = nb_objects
-        self.objects = [Object() for _ in range(self.nb_objects)]
-        # Corresponding landmarks
-        self.landmarks = [Landmark() for _ in range(self.nb_objects)]
-        # Distances between objects and their landmark
-        self.obj_lm_dists = np.zeros(self.nb_objects)
-        # Shaping reward based on distances between objects and lms
-        self.shaping_reward = 0.0
+        # Object
+        self.object = Object()
+        # Button
+        self.button = Button()
         # Control inertia
         self.damping = 0.8
+        # Add walls on each side and 
+        self.walls = {
+            "South": Wall("ver", -1),
+            "North": Wall("ver", 1),
+            "West": Wall("hor", -1),
+            "East": Wall("hor", 1)
+        }
 
     @property
     def entities(self):
-        return self.agents + self.objects + self.landmarks
-
-    def reset(self):
-        for i in range(self.nb_objects):
-            self.init_object(i)
-
-    def init_object(self, obj_i, min_dist=0.5, max_dist=1.5):
-        # Random color for both entities
-        color = np.random.uniform(0, 1, self.dim_color)
-        # Object
-        self.objects[obj_i].name = 'object %d' % len(self.objects)
-        self.objects[obj_i].color = color
-        self.objects[obj_i].size = OBJECT_SIZE
-        self.objects[obj_i].initial_mass = OBJECT_MASS
-        # Landmark
-        self.landmarks[obj_i].name = 'landmark %d' % len(self.landmarks)
-        self.landmarks[obj_i].collide = False
-        self.landmarks[obj_i].color = color
-        self.landmarks[obj_i].size = LANDMARK_SIZE
-        # Set initial positions
-        # # Fixed initial pos
-        # self.objects[obj_i].state.p_pos = np.zeros(2)
-        # self.landmarks[obj_i].state.p_pos = np.array([-0.5, -0.5])
-        # return
-        if min_dist is not None:
-            while True:
-                self.objects[obj_i].state.p_pos = np.random.uniform(
-                    -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, self.dim_p)
-                self.landmarks[obj_i].state.p_pos = np.random.uniform(
-                    -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, self.dim_p)
-                dist = get_dist(self.objects[obj_i].state.p_pos, 
-                                self.landmarks[obj_i].state.p_pos)
-                if dist > min_dist and dist < max_dist:
-                    break
-        else:
-            dist = get_dist(self.objects[obj_i].state.p_pos, 
-                            self.landmarks[obj_i].state.p_pos)
-        # Set distances between objects and their landmark
-        self.obj_lm_dists[obj_i] = dist
-
-    def step(self):
-        # s
-        last_obj_lm_dists = np.copy(self.obj_lm_dists)
-        super().step()
-        # s'
-        # Compute shaping reward
-        self.shaping_reward = 0.0
-        for obj_i in range(self.nb_objects):
-            # Update dists
-            self.obj_lm_dists[obj_i] = get_dist(
-                self.objects[obj_i].state.p_pos,
-                self.landmarks[obj_i].state.p_pos)
-            # Compute reward
-            self.shaping_reward += last_obj_lm_dists[obj_i] \
-                                    - self.obj_lm_dists[obj_i]
+        return self.agents + [self.object, self.button]
 
     # Integrate state with walls blocking entities on each side
     def integrate_state(self, p_force):
@@ -115,37 +94,21 @@ class PushWorld(World):
                 speed = np.sqrt(np.square(entity.state.p_vel[0]) \
                         + np.square(entity.state.p_vel[1]))
                 if speed > entity.max_speed:
-                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
-                                                                  np.square(entity.state.p_vel[1])) * entity.max_speed
+                    entity.state.p_vel = entity.state.p_vel / \
+                        np.sqrt(np.square(entity.state.p_vel[0]) +
+                            np.square(entity.state.p_vel[1])) * entity.max_speed
             # Check for wall collision
             temp_pos = entity.state.p_pos + entity.state.p_vel * self.dt
-            # West wall
-            if temp_pos[0] - entity.size < -1:
-                entity.state.p_vel[0] = 0.0
-                entity.state.p_pos[0] = -1.0 + entity.size
-            # East wall
-            if temp_pos[0] + entity.size > 1:
-                entity.state.p_vel[0] = 0.0
-                entity.state.p_pos[0] = 1.0 - entity.size
-            # North wall
-            if temp_pos[1] - entity.size < -1:
-                entity.state.p_vel[1] = 0.0
-                entity.state.p_pos[1] = -1.0 + entity.size
-            # South wall
-            if temp_pos[1] + entity.size > 1:
-                entity.state.p_vel[1] = 0.0
-                entity.state.p_pos[1] = 1.0 - entity.size
+            for walls in self.walls.values():
+                walls.check_pos(entity, temp_pos)
             entity.state.p_pos += entity.state.p_vel * self.dt
-                
-        
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=4, nb_objects=1, obs_range=2.83, 
-                   collision_pen=1, relative_coord=True, dist_reward=False, 
-                   reward_done=50, step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
-        world = PushWorld(nb_agents, nb_objects)
-        # add agent
+    def make_world(self, nb_agents=2, obs_range=2.83, collision_pen=1, 
+                   reward_done=50, step_penalty=0.1, wall_pos=-0.85):
+        world = ClickNPushWorld(nb_agents)
+        # Init world entities
         self.nb_agents = nb_agents
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
@@ -154,25 +117,16 @@ class Scenario(BaseScenario):
             agent.initial_mass = AGENT_MASS
             agent.color = np.array([0.0,0.0,0.0])
             agent.color[i % 3] = 1.0
-        # Objects and landmarks
-        self.nb_objects = nb_objects
-        for i, object in enumerate(world.objects):
-            # Random color for both entities
-            color = np.random.uniform(0, 1, world.dim_color)
-            object.name = 'object %d' % i
-            object.color = color
-            object.size = OBJECT_SIZE
-            object.initial_mass = OBJECT_MASS
-            # Corresponding Landmarks
-            world.landmarks[i].name = 'landmark %d' % i
-            world.landmarks[i].collide = False
-            world.landmarks[i].color = color
-            world.landmarks[i].size = LANDMARK_SIZE
-        self.obj_lm_dist_range = obj_lm_dist_range
+        world.object.size = OBJECT_SIZE
+        world.object.initial_mass = OBJECT_MASS
+        world.object.color = np.random.uniform(0, 1, world.dim_color)
+        world.button.size = BUTTON_SIZE
+        world.button.color = np.random.uniform(0, 1, world.dim_color)
+        # Set blocking wall
+        self.wall_pos = wall_pos
+        world.walls["Block"] = Wall("hor", wall_pos)
         # Scenario attributes
         self.obs_range = obs_range
-        self.relative_coord = relative_coord
-        self.dist_reward = dist_reward
         # Reward attributes
         self.collision_pen = collision_pen
         # Flag for end of episode
@@ -205,12 +159,28 @@ class Scenario(BaseScenario):
         # Agents' initial pos
         for i, agent in enumerate(world.agents):
             if init_pos is None:
-                agent.state.p_pos = np.random.uniform(
-                    -1 + agent.size, 1 - agent.size, world.dim_p)
+                agent.state.p_pos = np.array([
+                    random.uniform(-1 + agent.size, 1 - agent.size),
+                    random.uniform(self.wall_pos + agent.size, 1 - agent.size)
+                ])
             else:
                 agent.state.p_pos = np.array(init_pos["agents"][i])
             agent.state.c = np.zeros(world.dim_c)
-        # Objects and landmarks' initial pos
+        # Object and button's initial pos
+        if init_pos is None:
+            world.object.state.p_pos = np.array([
+                random.uniform(-1 + world.object.size, 1 - world.object.size),
+                random.uniform(
+                    self.wall_pos + world.object.size, 
+                    1 - 2 * world.object.size)
+            ])
+            world.button.state.p_pos = np.array([
+                random.uniform(-1 + world.button.size, 1 - world.button.size),
+                1 - AGENT_SIZE
+            ])
+        else:
+            world.object.state.p_pos = np.array(init_pos["object"])
+            world.button.state.p_pos = np.array(init_pos["button"])
         for i, object in enumerate(world.objects):
             if init_pos is None:
                 while True:
@@ -247,7 +217,7 @@ class Scenario(BaseScenario):
         rew = -self.step_penalty + shaped
 
         # Reward if task complete
-        self._done_flag = all(d <= LANDMARK_SIZE for d in dists)
+        self._done_flag = all(d <= BUTTON_SIZE for d in dists)
         if self._done_flag:
             rew += self.reward_done
 
