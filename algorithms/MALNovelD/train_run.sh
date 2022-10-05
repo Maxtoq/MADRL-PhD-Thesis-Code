@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/simple_spread.py"
+env="algorithms/MALNovelD/scenarios/click_n_push.py"
 model_name="maddpg_fo_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000
@@ -13,7 +13,7 @@ init_explo_rate=1.0
 frames_per_update=100
 eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-cuda_device="cuda:0"
+cuda_device="cuda:2"
 
 for n in $(seq 1 $n_run)
 do

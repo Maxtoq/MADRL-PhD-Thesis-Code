@@ -215,7 +215,7 @@ class Scenario(BaseScenario):
         self._done_flag = False
 
     def reward(self, agent, world):
-        rew = self.step_penalty
+        rew = -self.step_penalty
 
         # Reward if button pushed
         if world.button.is_pushing(agent.state.p_pos):
