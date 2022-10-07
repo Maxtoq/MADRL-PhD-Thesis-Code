@@ -100,6 +100,18 @@ class MADDPG_PANovelD(MADDPG):
             a_i = 0 if self.shared_params else a_i
             self.agents[a_i].reset_noveld()
 
+    @classmethod
+    def init_from_save(cls, filename):
+        """
+        Instantiate instance of this class from file created by 'save' method
+        """
+        save_dict = torch.load(filename, map_location=torch.device('cpu'))
+        agent_params = save_dict.pop("agent_params")
+        instance = cls(**save_dict)
+        for a, params in zip(instance.agents, agent_params):
+            a.load_params(params)
+        return instance
+
 
 class MADDPG_MANovelD(MADDPG):
     """ 
@@ -163,6 +175,18 @@ class MADDPG_MANovelD(MADDPG):
 
     def reset_noveld(self):
         self.ma_noveld.init_new_episode()
+
+    @classmethod
+    def init_from_save(cls, filename):
+        """
+        Instantiate instance of this class from file created by 'save' method
+        """
+        save_dict = torch.load(filename, map_location=torch.device('cpu'))
+        agent_params = save_dict.pop("agent_params")
+        instance = cls(**save_dict)
+        for a, params in zip(instance.agents, agent_params):
+            a.load_params(params)
+        return instance
 
 
 class MADDPG_MPANovelD(MADDPG):
@@ -262,3 +286,15 @@ class MADDPG_MPANovelD(MADDPG):
             self.agents[a_i].reset_noveld()
             
         self.ma_noveld.init_new_episode()
+
+    @classmethod
+    def init_from_save(cls, filename):
+        """
+        Instantiate instance of this class from file created by 'save' method
+        """
+        save_dict = torch.load(filename, map_location=torch.device('cpu'))
+        agent_params = save_dict.pop("agent_params")
+        instance = cls(**save_dict)
+        for a, params in zip(instance.agents, agent_params):
+            a.load_params(params)
+        return instance
