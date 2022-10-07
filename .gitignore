@@ -301,3 +301,13 @@ models/coop_push_scenario_sparse_HARDER/maddpg_panoveld_pol_disc/*
 models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_pol_disc/*
 !models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_pol_disc/train_data
 !models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_pol_disc/eval_data
+
+!models/coop_push_scenario_HARDER
+models/coop_push_scenario_HARDER/*
+
+!models/coop_push_scenario_HARDER/maddpg_manoveld_pol_disc
+models/coop_push_scenario_HARDER/maddpg_manoveld_pol_disc/*
+!models/coop_push_scenario_HARDER/maddpg_manoveld_pol_disc/run18
+models/coop_push_scenario_HARDER/maddpg_manoveld_pol_disc/run18/*
+!models/coop_push_scenario_HARDER/maddpg_manoveld_pol_disc/run18/model.pt
+!models/coop_push_scenario_HARDER/maddpg_manoveld_pol_disc/run18/sce_config.json
