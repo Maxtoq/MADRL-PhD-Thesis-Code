@@ -113,7 +113,7 @@ class ClickNPushWorld(World):
         for ag in self.agents:
             if self.button.is_pushing(ag.state.p_pos):
                 objects_move = True
-                self.global_reward += 0.05
+                self.global_reward += 0.1
                 break
         for obj in self.objects:
             obj.movable = objects_move
