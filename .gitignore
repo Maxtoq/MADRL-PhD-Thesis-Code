@@ -275,6 +275,10 @@ models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/*
 models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run1/*
 !models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run1/model.pt
 !models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run1/sce_config.json
+!models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run5
+models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run5/*
+!models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run5/model.pt
+!models/coop_push_scenario_sparse_HARDER/maddpg_fo_disc/run5/sce_config.json
 
 !models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_fo_disc
 models/coop_push_scenario_sparse_HARDER/maddpg_manoveld_fo_disc/*
