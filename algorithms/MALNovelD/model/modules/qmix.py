@@ -254,7 +254,8 @@ class QMIXAgent:
                 'target_q_net': self.target_q_net.state_dict()}
 
     def load_params(self, params):
-        pass
+        self.q_net.load_state_dict(params['q_net'])
+        self.target_q_net.load_state_dict(params['target_q_net'])
 
 
 class QMIX:
@@ -475,3 +476,21 @@ class QMIX:
             'optimizer': self.optimizer.state_dict()
         }
         torch.save(save_dict, filename)
+
+    @classmethod
+    def init_from_save(cls, filename):
+        """
+        Instantiate instance of this class from file created by 'save' method
+        """
+        save_dict = torch.load(filename, map_location=torch.device('cpu'))
+        agent_params = save_dict.pop("agent_params")
+        mixer_params = save_dict.pop("mixer_params")
+        target_mixer_params = save_dict.pop("target_mixer_params")
+        optimizer = save_dict.pop("optimizer")
+        instance = cls(**save_dict)
+        for a, params in zip(instance.agents, agent_params):
+            a.load_params(params)
+        instance.mixer.load_state_dict(mixer_params)
+        instance.target_mixer.load_state_dict(target_mixer_params)
+        instance.optimizer.load_state_dict(optimizer)
+        return instance
