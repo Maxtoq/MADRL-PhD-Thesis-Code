@@ -8,7 +8,7 @@ import pandas as pd
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from model.modules.maddpg_noveld import MADDPG_PANovelD, MADDPG_MANovelD
+from model.modules.maddpg_rnd import MADDPG_MARND
 from utils.buffer import ReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env
 from utils.eval import perform_eval_scenar
@@ -45,22 +45,31 @@ def run(cfg):
     env = make_env(cfg.env_path, sce_conf, cfg.discrete_action)
 
     # Create model
-    n_agents = sce_conf["nb_agents"]
+    nb_agents = sce_conf["nb_agents"]
     input_dim = env.observation_space[0].shape[0]
     if cfg.discrete_action:
         act_dim = env.action_space[0].n
     else:
         act_dim = env.action_space[0].shape[0]
-    maddpg = MADDPG_MANovelD(
-        n_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
+    if cfg.noveld_type == "multi_agent":
+        RNDClass = MADDPG_MARND
+    # elif cfg.noveld_type == "per_agent":
+    #     NoveldClass = MADDPG_PANovelD
+    # elif cfg.noveld_type == "multi+per_agent":
+    #     NoveldClass = MADDPG_MPANovelD
+    else:
+        print("ERROR: bad noveld type.")
+    maddpg = RNDClass(
+        nb_agents, input_dim, act_dim, cfg.lr, cfg.gamma, 
         cfg.tau, cfg.hidden_dim, cfg.embed_dim, cfg.discrete_action, 
-        cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat)
+        cfg.shared_params, cfg.init_explo_rate, cfg.explo_strat,
+        cfg.rnd_lr)
     maddpg.prep_rollouts(device='cpu')
     
     # Create replay buffer
     replay_buffer = ReplayBuffer(
         cfg.buffer_length, 
-        n_agents,
+        nb_agents,
         [obsp.shape[0] for obsp in env.observation_space],
         [acsp.shape[0] if not cfg.discrete_action else acsp.n
             for acsp in env.action_space]
@@ -99,9 +108,9 @@ def run(cfg):
         "Episode length": []
     }
     # Reset episode data and environment
-    ep_returns = np.zeros(n_agents)
-    ep_ext_returns = np.zeros(n_agents)
-    ep_int_returns = np.zeros(n_agents)
+    ep_returns = np.zeros(nb_agents)
+    ep_ext_returns = np.zeros(nb_agents)
+    ep_int_returns = np.zeros(nb_agents)
     ep_length = 0
     ep_success = False
     obs = env.reset()
@@ -122,8 +131,8 @@ def run(cfg):
         # Compute intrinsic rewards
         int_rewards = maddpg.get_intrinsic_rewards(next_obs)
         rewards = np.array([ext_rewards]) + \
-                  explo_pct_remaining * np.array([int_rewards])
-                #   cfg.int_reward_coeff * np.array([int_rewards])
+                  cfg.int_reward_coeff * np.array([int_rewards])
+                #   explo_pct_remaining * np.array([int_rewards])
         
         # Store experience in replay buffer
         replay_buffer.push(
@@ -166,14 +175,13 @@ def run(cfg):
                 train_data_dict["Episode intrinsic return"][-1], 
                 train_data_dict["Step"][-1])
             # Reset the environment
-            ep_returns = np.zeros(n_agents)
-            ep_ext_returns = np.zeros(n_agents)
-            ep_int_returns = np.zeros(n_agents)
+            ep_returns = np.zeros(nb_agents)
+            ep_ext_returns = np.zeros(nb_agents)
+            ep_int_returns = np.zeros(nb_agents)
             ep_length = 0
             ep_success = False
             obs = env.reset()
             maddpg.reset_noise()
-            maddpg.reset_noveld()
         else:
             obs = next_obs
 
@@ -183,24 +191,24 @@ def run(cfg):
             maddpg.prep_training(device=device)
             samples = [replay_buffer.sample(
                             config.batch_size, cuda_device=device)
-                       for _ in range(n_agents)]
+                       for _ in range(nb_agents)]
             vf_loss, pol_loss, nd_loss = maddpg.update(samples)
             # Log
-            for a_i in range(n_agents):
+            for a_i in range(nb_agents):
                 logger.add_scalars(
                     'agent%i/losses' % a_i, 
                     {'vf_loss': vf_loss[a_i],
-                     'pol_loss': pol_loss[a_i],
-                     'nd_loss': nd_loss[a_i]},
+                     'pol_loss': pol_loss[a_i]},
+                    #  'nd_loss': nd_loss[a_i]},
                     step_i)
             maddpg.update_all_targets()
             maddpg.prep_rollouts(device='cpu')
 
         # Evalutation
-        if cfg.eval_every is not None and step_i % cfg.eval_every == 0:
+        if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
             eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
                 env, maddpg, eval_scenar, cfg.episode_length)
-            eval_data_dict["Step"].append(step_i)
+            eval_data_dict["Step"].append(step_i + 1)
             eval_data_dict["Mean return"].append(eval_return)
             eval_data_dict["Success rate"].append(eval_success_rate)
             eval_data_dict["Mean episode length"].append(eval_ep_len)
@@ -264,9 +272,12 @@ if __name__ == '__main__':
     parser.add_argument("--tau", default=0.01, type=float)
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--shared_params", action='store_true')
-    # NovelD
+    # RND
+    parser.add_argument("--noveld_type", default="multi_agent", type=str, 
+                        choices=["multi_agent", "per_agent", "multi+per_agent"])
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
+    parser.add_argument("--rnd_lr", default=1e-4, type=float)
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)
 
