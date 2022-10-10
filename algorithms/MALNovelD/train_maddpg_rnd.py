@@ -51,7 +51,7 @@ def run(cfg):
         act_dim = env.action_space[0].n
     else:
         act_dim = env.action_space[0].shape[0]
-    if cfg.noveld_type == "multi_agent":
+    if cfg.rnd_type == "multi_agent":
         RNDClass = MADDPG_MARND
     # elif cfg.noveld_type == "per_agent":
     #     NoveldClass = MADDPG_PANovelD
@@ -273,7 +273,7 @@ if __name__ == '__main__':
     parser.add_argument("--gamma", default=0.99, type=float)
     parser.add_argument("--shared_params", action='store_true')
     # RND
-    parser.add_argument("--noveld_type", default="multi_agent", type=str, 
+    parser.add_argument("--rnd_type", default="multi_agent", type=str, 
                         choices=["multi_agent", "per_agent", "multi+per_agent"])
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)

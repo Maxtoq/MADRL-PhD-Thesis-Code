@@ -106,14 +106,14 @@ class ClickNPushWorld(World):
                 self.objects[obj_i].state.p_pos,
                 self.landmarks[obj_i].state.p_pos)
             # Compute reward
-            self.global_reward += 100 * (
+            self.global_reward += 1000 * (
                 last_obj_lm_dists[obj_i] - self.obj_lm_dists[obj_i])
         # Check if button is pushed to set movable state of objects
         objects_move = False
         for ag in self.agents:
             if self.button.is_pushing(ag.state.p_pos):
                 objects_move = True
-                self.global_reward += 0.1
+                self.global_reward += 1.0
                 break
         for obj in self.objects:
             obj.movable = objects_move

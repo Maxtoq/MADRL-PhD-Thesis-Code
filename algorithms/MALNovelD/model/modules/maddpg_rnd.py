@@ -113,7 +113,7 @@ from .rnd import RND
 #         return instance
 
 
-class MADDPG_RND(MADDPG):
+class MADDPG_MARND(MADDPG):
     """ 
     Class impelementing MADDPG with Multi-Agent Randome Network Distillation
     (MADDPG_MARND), meaning that we use a single RND model to compute the
@@ -123,7 +123,7 @@ class MADDPG_RND(MADDPG):
                  tau=0.01, hidden_dim=64, embed_dim=16, discrete_action=False, 
                  shared_params=False, init_explo_rate=1.0, explo_strat="sample",
                  rnd_lr=1e-4):
-        super(MADDPG_RND, self).__init__(
+        super(MADDPG_MARND, self).__init__(
             nb_agents, input_dim, act_dim, lr, gamma, tau, hidden_dim, 
             discrete_action, shared_params, init_explo_rate, explo_strat)
         # Init NovelD model for the multi-agent system
