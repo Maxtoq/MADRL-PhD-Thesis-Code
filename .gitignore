@@ -321,3 +321,10 @@ models/click_n_push2/maddpg_fo_cont/*
 models/click_n_push2/maddpg_fo_cont/run2/*
 !models/click_n_push2/maddpg_fo_cont/run2/model.pt
 !models/click_n_push2/maddpg_fo_cont/run2/sce_config.json
+
+!models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc
+models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/*
+!models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2
+models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2/*
+!models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2/model.pt
+!models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2/sce_config.json

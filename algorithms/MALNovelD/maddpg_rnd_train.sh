@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/click_n_push2.py"
-model_name="maddpg_marnd_fo_disc"
-sce_conf_path="configs/2a_1o_fo_rel.json"
+env="algorithms/MALNovelD/scenarios/coop_push_scenario_HARDER.py"
+model_name="maddpg_marnd_pol_disc"
+sce_conf_path="configs/2a_1o_pol_rel.json"
 rnd_type="multi_agent"
 n_frames=10000000
 buffer_length=1000000
@@ -10,13 +10,13 @@ lr=0.0007
 gamma=0.99
 tau=0.01
 explo_strat="sample"
-init_explo_rate=0.3
+init_explo_rate=1.0
 epsilon_decay_fn="linear"
 frames_per_update=100
-int_reward_coeff=1.0
+int_reward_coeff=2.0
 eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
