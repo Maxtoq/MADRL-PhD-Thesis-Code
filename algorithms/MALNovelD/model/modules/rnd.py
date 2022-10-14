@@ -44,27 +44,27 @@ class RND:
 
     def set_train(self, device):
         self.target.train()
-        self.target = self.target.to(device)
+        self.target.to(device)
         self.predictor.train()
-        self.predictor = self.predictor.to(device)
+        self.predictor.to(device)
         self.stored_preds = self.stored_preds.to(device)
         self.stored_targets = self.stored_targets.to(device)
         self.device = device
 
     def set_eval(self, device):
         self.target.eval()
-        self.target = self.target.to(device)
+        self.target.to(device)
         self.predictor.eval()
-        self.predictor = self.predictor.to(device)
+        self.predictor.to(device)
         self.stored_preds = self.stored_preds.to(device)
         self.stored_targets = self.stored_targets.to(device)
         self.device = device
     
     def store_pred(self, pred, target):
-        self.stored_preds = torch.cat((self.stored_preds, pred)).to(
-            self.device)
-        self.stored_targets = torch.cat((self.stored_targets, target)).to(
-            self.device)
+        self.stored_preds = torch.cat(
+            (self.stored_preds, pred)).to(self.device)
+        self.stored_targets = torch.cat(
+            (self.stored_targets, target)).to(self.device)
 
     def train_predictor(self):
         self.optim.zero_grad()

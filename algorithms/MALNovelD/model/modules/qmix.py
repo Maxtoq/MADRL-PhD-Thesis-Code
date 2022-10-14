@@ -68,7 +68,7 @@ class QMixer(nn.Module):
         self.hypernet_weights2 = get_init_linear(
             input_dim, mixer_hidden_dim).to(device)
         self.hypernet_bias2 = MLPNetwork(
-            input_dim, 1, hypernet_hidden_dim, 0).to(device)
+            input_dim, 1, hypernet_hidden_dim, 0, norm_in=False).to(device)
 
     def forward(self, local_qs, state):
         """
@@ -77,7 +77,7 @@ class QMixer(nn.Module):
             local_qs (torch.Tensor): Local agent q-values, dim=(episode_length, 
                 batch_size, nb_agents).
             state (torch.Tensor): Global state, i.e. concatenated local 
-                observations, dimension=(episode_lenght, batch_size, 
+                observations, dimension=(episode_length, batch_size, 
                 nb_agents * obs_dim)
         Outputs:
             Q_tot (torch.Tensor): Global Q-value computed by the mixer, 
