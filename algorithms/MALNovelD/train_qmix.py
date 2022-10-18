@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from model.modules.qmix import QMIX
-from model.modules.qmix_noveld import QMIX_MANovelD
+from model.modules.qmix_noveld import QMIX_MANovelD, QMIX_PANovelD
 from utils.buffer import RecReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env
 from utils.eval import perform_eval_scenar
@@ -55,6 +55,11 @@ def run(cfg):
             cfg.max_grad_norm, device)
     elif cfg.model_type == "qmix_manoveld":
         qmix = QMIX_MANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
+            cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
+            cfg.init_explo_rate, cfg.max_grad_norm, device,
+            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac)
+    elif cfg.model_type == "qmix_panoveld":
+        qmix = QMIX_PANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
             cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
             cfg.init_explo_rate, cfg.max_grad_norm, device,
             cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac)
@@ -277,7 +282,7 @@ if __name__ == '__main__':
     parser.add_argument("--eval_scenar_file", type=str, default=None)
     # Model hyperparameters
     parser.add_argument("--model_type", default="qmix", type=str, 
-                        choices=["qmix", "qmix_manoveld"])
+                        choices=["qmix", "qmix_manoveld", "qmix_panoveld"])
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--lr", default=0.0007, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
