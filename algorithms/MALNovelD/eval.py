@@ -10,12 +10,12 @@ from utils.eval import eval_episode, rnn_eval_episode
 
 def run(cfg):
      # Get paths
-    if config.model_dir is not None:
-        model_path = os.path.join(config.model_dir, "model.pt")
-        sce_conf_path = os.path.join(config.model_dir, "sce_config.json")
-    elif config.model_cp_path is not None and config.sce_conf_path is not None:
-        model_path = config.model_cp_path
-        sce_conf_path = config.sce_conf_path
+    if cfg.model_dir is not None:
+        model_path = os.path.join(cfg.model_dir, "model.pt")
+        sce_conf_path = os.path.join(cfg.model_dir, "sce_config.json")
+    elif cfg.model_cp_path is not None and cfg.sce_conf_path is not None:
+        model_path = cfg.model_cp_path
+        sce_conf_path = cfg.sce_conf_path
     else:
         sys.exit("ERROR with model paths: you need to provide the path of either \
                   the model directory (--model_dir) or the model checkpoint and \
@@ -50,35 +50,35 @@ def run(cfg):
     if sce_conf_path is not None:
         with open(sce_conf_path) as cf:
             sce_conf = json.load(cf)
-            print('Special config for scenario:', config.env_path)
+            print('Special config for scenario:', cfg.env_path)
             print(sce_conf)
 
     # Load initial positions if given
-    if config.init_pos_file is not None:
-        with open(config.init_pos_file, 'r') as f:
+    if cfg.init_pos_file is not None:
+        with open(cfg.init_pos_file, 'r') as f:
             init_pos_scenars = json.load(f)
         n_episodes = len(init_pos_scenars)
     else:
-        n_episodes = config.n_episodes
+        n_episodes = cfg.n_episodes
         init_pos_scenars = [None] * n_episodes
 
     # Seed env
-    seed = config.seed if config.seed is not None else np.random.randint(1e9)
+    seed = cfg.seed if cfg.seed is not None else np.random.randint(1e9)
     np.random.seed(seed)
     print("Creating environment with seed", seed)
 
     # Create environment
-    env = make_env(config.env_path, discrete_action=config.discrete_action, 
+    env = make_env(cfg.env_path, discrete_action=cfg.discrete_action, 
                     sce_conf=sce_conf)
 
     for ep_i in range(n_episodes):
         ep_return, ep_length, ep_success = eval_fn(
             env, 
             model, 
-            config.episode_length,
+            cfg.episode_length,
             init_pos_scenars[ep_i],
             render=True,
-            step_time=config.step_time,
+            step_time=cfg.step_time,
             verbose=True)
         
         print(f'Episode {ep_i + 1} finished after {ep_length} steps with \

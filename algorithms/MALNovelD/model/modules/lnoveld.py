@@ -142,6 +142,11 @@ class NovelD:
                 'predictor': self.predictor.state_dict(),
                 'predictor_optim': self.predictor_optim.state_dict()}
 
+    def load_params(self, params):
+        self.target.load_state_dict(params['target'])
+        self.predictor.load_state_dict(params['predictor'])
+        self.predictor_optim.load_state_dict(params['predictor_optim'])
+
 
 
 class LNovelD:

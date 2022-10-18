@@ -96,9 +96,8 @@ class MADDPG_PANovelD(MADDPG):
         return vf_losses, pol_losses, nd_losses
 
     def reset_noveld(self):
-        for a_i in range(self.nb_agents):
-            a_i = 0 if self.shared_params else a_i
-            self.agents[a_i].reset_noveld()
+        for agent in self.agents:
+            agent.reset_noveld()
 
     @classmethod
     def init_from_save(cls, filename):
