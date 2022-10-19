@@ -57,12 +57,12 @@ def run(cfg):
         qmix = QMIX_MANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
             cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
             cfg.init_explo_rate, cfg.max_grad_norm, device,
-            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac)
+            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
     elif cfg.model_type == "qmix_panoveld":
         qmix = QMIX_PANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
             cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
             cfg.init_explo_rate, cfg.max_grad_norm, device,
-            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac)
+            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
     else:
         print("ERROR: bad model type.")
     qmix.prep_rollouts(device=device)
@@ -207,7 +207,7 @@ def run(cfg):
             losses = qmix.train_on_batch(sample_batch)
             if cfg.model_type == "qmix":
                 loss_dict = {"qtot_loss": losses}
-            elif cfg.model_type == "qmix_manoveld":
+            elif cfg.model_type in ["qmix_manoveld", "qmix_panoveld"]:
                 loss_dict = {
                     "qtot_loss": losses[0],
                     "nd_loss": losses[1]
@@ -294,6 +294,7 @@ if __name__ == '__main__':
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--nd_lr", default=1e-4, type=float)
     parser.add_argument("--nd_scale_fac", default=0.5, type=float)
+    parser.add_argument("--nd_hidden_dim", default=64, type=int)
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)

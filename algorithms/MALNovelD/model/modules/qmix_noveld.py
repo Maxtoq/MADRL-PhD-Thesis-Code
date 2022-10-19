@@ -7,20 +7,20 @@ from .lnoveld import NovelD
 
 class QMIXAgent_NovelD(QMIXAgent):
 
-    def __init__(self, q_in_dim, q_out_dim, 
+    def __init__(self, obs_dim, act_dim, 
                  hidden_dim=64, init_explo=1.0, device="cpu",
-                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5):
+                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5, nd_hidden_dim=64):
         super(QMIXAgent_NovelD, self).__init__(
-            q_in_dim, q_out_dim, hidden_dim, init_explo, device)
+            obs_dim, act_dim, hidden_dim, init_explo, device)
         self.noveld = NovelD(
-            q_in_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
+            obs_dim, embed_dim, nd_hidden_dim, nd_lr, nd_scale_fac)
 
     def get_actions(self, obs, last_acts, qnet_rnn_states, explore=False):
         # If we are starting a new episode, compute novelty for first observation
         if self.noveld.is_empty():
             self.noveld.get_reward(obs)
 
-        return super().step(obs, last_acts, qnet_rnn_states, explore)
+        return super().get_actions(obs, last_acts, qnet_rnn_states, explore)
 
     def get_intrinsic_reward(self, next_obs):
         intr_reward = self.noveld.get_reward(next_obs)
@@ -52,21 +52,21 @@ class QMIX_PANovelD(QMIX):
     def __init__(self, nb_agents, obs_dim, act_dim, lr, 
                  gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
                  init_explo_rate=1.0, max_grad_norm=None, device="cpu",
-                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5):
-        super(QMIX_MANovelD, self).__init__(
+                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5, nd_hidden_dim=64):
+        super(QMIX_PANovelD, self).__init__(
             nb_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim, 
             shared_params, init_explo_rate, max_grad_norm, device)
         
         # Create agent policies
         if not shared_params:
             self.agents = [QMIXAgent_NovelD(
-                    obs_dim + act_dim, act_dim, hidden_dim, init_explo_rate,
-                    device, embed_dim, nd_lr, nd_scale_fac)
+                    obs_dim, act_dim, hidden_dim, init_explo_rate,
+                    device, embed_dim, nd_lr, nd_scale_fac, nd_hidden_dim)
                 for _ in range(nb_agents)]
         else:
             self.agents = [QMIXAgent_NovelD(
-                    obs_dim + act_dim, act_dim, hidden_dim, init_explo_rate,
-                    device, embed_dim, nd_lr, nd_scale_fac)]
+                    obs_dim, act_dim, hidden_dim, init_explo_rate,
+                    device, embed_dim, nd_lr, nd_scale_fac, nd_hidden_dim)]
 
         # Initiate optimiser with all parameters
         self.parameters = []
@@ -88,7 +88,7 @@ class QMIX_PANovelD(QMIX):
         for a_i, next_obs in enumerate(next_obs_list):
             a_i = 0 if self.shared_params else a_i
             int_reward = self.agents[a_i].get_intrinsic_reward(
-                torch.Tensor(next_obs).unsqueeze(0))
+                torch.Tensor(next_obs).unsqueeze(0).to(self.device))
             int_rewards.append(int_reward)
         return int_rewards
 
@@ -107,7 +107,7 @@ class QMIX_PANovelD(QMIX):
         # NovelD updates
         nd_losses = []
         for agent in self.agents:
-            nd_losses.append(agent.ma_noveld.train_predictor())
+            nd_losses.append(agent.noveld.train_predictor())
 
         return qtot_loss, np.mean(nd_losses)
 
@@ -172,13 +172,13 @@ class QMIX_MANovelD(QMIX):
     def __init__(self, nb_agents, obs_dim, act_dim, lr, 
                  gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
                  init_explo_rate=1.0, max_grad_norm=None, device="cpu",
-                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5):
+                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5, nd_hidden_dim=64):
         super(QMIX_MANovelD, self).__init__(
             nb_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim, 
             shared_params, init_explo_rate, max_grad_norm, device)
         # Init NovelD model for the multi-agent system
         self.ma_noveld = NovelD(
-            nb_agents * obs_dim, embed_dim, hidden_dim, nd_lr, nd_scale_fac)
+            nb_agents * obs_dim, embed_dim, nd_hidden_dim, nd_lr, nd_scale_fac)
 
     def get_actions(self, 
             obs_list, last_actions, qnets_hidden_states, explore=False):

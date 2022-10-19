@@ -108,15 +108,15 @@ class QMixer(nn.Module):
 
 class QMIXAgent:
 
-    def __init__(self, q_in_dim, q_out_dim, 
+    def __init__(self, obs_dim, act_dim, 
                  hidden_dim=64, init_explo=1.0, device="cpu"):
         self.epsilon = init_explo
-        self.q_out_dim = q_out_dim
+        self.act_dim = act_dim
         self.hidden_dim = hidden_dim
         self.device = device
 
         # Q function
-        self.q_net = DRQNetwork(q_in_dim, q_out_dim, hidden_dim).to(device)
+        self.q_net = DRQNetwork(obs_dim + act_dim, act_dim, hidden_dim).to(device)
         # Target Q function
         self.target_q_net = copy.deepcopy(self.q_net)
 
@@ -212,14 +212,14 @@ class QMIXAgent:
             take_random = (rands < self.epsilon).int().to(self.device)
             # Get random actions
             rand_actions = Categorical(
-                logits=torch.ones(batch_size, self.q_out_dim)
+                logits=torch.ones(batch_size, self.act_dim)
             ).sample().to(self.device)
             # Choose actions
             actions = (1 - take_random) * greedy_actions + \
                       take_random * rand_actions
-            onehot_actions = torch.eye(self.q_out_dim)[actions]
+            onehot_actions = torch.eye(self.act_dim)[actions]
         else:
-            onehot_actions = torch.eye(self.q_out_dim)[greedy_actions]
+            onehot_actions = torch.eye(self.act_dim)[greedy_actions]
         
         return onehot_actions.to(self.device), greedy_Qs
 
@@ -277,7 +277,7 @@ class QMIX:
         # Create agent policies
         if not shared_params:
             self.agents = [QMIXAgent(
-                    obs_dim + act_dim, 
+                    obs_dim, 
                     act_dim,
                     hidden_dim, 
                     init_explo_rate,
@@ -285,7 +285,7 @@ class QMIX:
                 for _ in range(nb_agents)]
         else:
             self.agents = [QMIXAgent(
-                    obs_dim + act_dim, 
+                    obs_dim, 
                     act_dim,
                     hidden_dim, 
                     init_explo_rate,
