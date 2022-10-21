@@ -328,3 +328,10 @@ models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/*
 models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2/*
 !models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2/model.pt
 !models/coop_push_scenario_HARDER/maddpg_marnd_fo_disc/run2/sce_config.json
+
+!models/click_n_push2/qmix_manoveld_fo
+models/click_n_push2/qmix_manoveld_fo/*
+!models/click_n_push2/qmix_manoveld_fo/run3
+models/click_n_push2/qmix_manoveld_fo/run3/*
+!models/click_n_push2/qmix_manoveld_fo/run3/model.pt
+!models/click_n_push2/qmix_manoveld_fo/run3/sce_config.json
