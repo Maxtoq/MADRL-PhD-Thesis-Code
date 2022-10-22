@@ -1,7 +1,10 @@
 import argparse
 import os
+import git
 import json
+import time
 import torch
+import random
 import numpy as np
 import pandas as pd
 
@@ -17,13 +20,37 @@ from utils.decay import EpsilonDecay
 
 def run(cfg):
     # Get paths for saving logs and model
-    run_dir, model_cp_path, log_dir = get_paths(config)
+    run_dir, model_cp_path, log_dir = get_paths(cfg)
     print("Saving model in dir", run_dir)
 
     # Save args in txt file
     with open(os.path.join(run_dir, 'args.txt'), 'w') as f:
-        f.write(str(vars(cfg)))
+        f.write(str(time.time()) + '\n')
+        commit_hash = git.Repo(
+            search_parent_directories=True).head.object.hexsha
+        f.write(
+            "Running train_qmix.py at git commit " + str(commit_hash) + '\n')
+        f.write("Parameters:\n")
+        f.write(json.dumps(vars(cfg), indent=4))
 
+    # Init summary writer
+    logger = SummaryWriter(str(log_dir))
+
+    # Load scenario config
+    sce_conf = load_scenario_config(cfg, run_dir)
+
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    random.seed(cfg.seed)
+
+    # Set training device
+    if torch.cuda.is_available():
+        if cfg.cuda_device is None:
+            device = 'cuda'
+        else:
+            device = torch.device(cfg.cuda_device)
+    else:
+        device = 'cpu'
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
 
