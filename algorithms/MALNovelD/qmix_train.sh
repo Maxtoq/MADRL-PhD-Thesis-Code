@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/click_n_push2.py"
+env="algorithms/MALNovelD/scenarios/click_n_push2_fixed.py"
 model_name="qmix_manoveld_fo"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000
@@ -11,11 +11,12 @@ init_explo_rate=0.3
 epsilon_decay_fn="linear"
 model_type="qmix_manoveld"
 int_reward_coeff=1.0
+gamma=0.99
 embed_dim=16 # default 16
 nd_hidden_dim=64 # default 64
-nd_scale_fac=0.25 # default 0.5
+nd_scale_fac=0.5 # default 0.5
 nd_lr=0.0001 # default 0.0001
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
@@ -23,7 +24,7 @@ do
     seed=$RANDOM
     comm="python algorithms/MALNovelD/train_qmix.py --env_path ${env} \
 --model_name ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} \
---n_frames ${n_frames} --cuda_device ${cuda_device} \
+--n_frames ${n_frames} --cuda_device ${cuda_device} --gamma ${gamma} \
 --frames_per_update ${frames_per_update} --init_explo_rate ${init_explo_rate} \
 --nd_scale_fac ${nd_scale_fac} --nd_lr ${nd_lr} --embed_dim ${embed_dim} \
 --nd_hidden_dim ${nd_hidden_dim} \

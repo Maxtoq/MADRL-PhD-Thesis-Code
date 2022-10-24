@@ -51,23 +51,6 @@ def run(cfg):
             device = torch.device(cfg.cuda_device)
     else:
         device = 'cpu'
-    # Init summary writer
-    logger = SummaryWriter(str(log_dir))
-
-    # Load scenario config
-    sce_conf = load_scenario_config(config, run_dir)
-
-    torch.manual_seed(config.seed)
-    np.random.seed(config.seed)
-
-    # Set training device
-    if torch.cuda.is_available():
-        if config.cuda_device is None:
-            device = 'cuda'
-        else:
-            device = torch.device(config.cuda_device)
-    else:
-        device = 'cpu'
 
     # Create environment
     env = make_env(cfg.env_path, sce_conf, discrete_action=True)
