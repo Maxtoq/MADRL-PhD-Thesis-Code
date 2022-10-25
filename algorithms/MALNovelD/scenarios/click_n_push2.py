@@ -4,6 +4,8 @@ import random
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
+from utils.parsers import Parser
+
 BUTTON_RADIUS = 0.03
 LANDMARK_RADIUS = 0.05
 OBJECT_RADIUS = 0.15
@@ -17,6 +19,233 @@ def get_dist(pos1, pos2, squared=False):
         return dist
     else:
         return np.sqrt(dist)
+
+
+class ObservationParser(Parser):
+    
+    vocab = ['Located', 'Object', 'Landmark', 'North', 'South', 'East', 'West', 'Center', 'Not']
+
+    def __init__(self, nb_agents, nb_objects, chance_not_sent):
+        """
+        ObservationParser, generate sentences for the agents.
+        :param nb_agents: (int) Number of agents.
+        :param nb_objects: (int) Number of objects.
+        :param chance_not_sent: (float) Probability of generating a not 
+            sentence.
+        """
+        self.nb_agents = nb_agents
+        self.nb_objects = nb_objects
+        self.chance_not_sent = chance_not_sent
+
+    def object_sentence(self, obj_info):
+        """
+        Generates the part of the sentence concerning an object.
+        Input:  
+            obj_info: (numpy.ndarray(float)) Part of the observation linked to
+                the object (1: visible or not, 2: position, 2: velocity).
+        Output: phrase: (list(str)) The generated phrase.
+        """
+        phrase = []
+
+        # If visible                                      
+        if  obj_info[0] == 1.0:
+            phrase.append("Object")
+            # North / South
+            if  obj_info[2] > AGENT_RADIUS:
+                phrase.append("North")
+            elif  obj_info[2] < -AGENT_RADIUS:
+                phrase.append("South")
+            # West / East
+            if  obj_info[1] > AGENT_RADIUS:
+                phrase.append("East")
+            elif  obj_info[1] < -AGENT_RADIUS:
+                phrase.append("West")
+
+            moves = ["Moving"]
+            if obj_info[4] > 0.05:
+                moves.append("North")
+            elif obj_info[4] < -0.05:
+                moves.append("South")
+            if obj_info[3] > 0.05:
+                moves.append("East")
+            elif obj_info[3] < -0.05:
+                moves.append("West")
+            if len(moves) > 1:
+                phrase.extend(moves)
+
+        return phrase
+
+    def landmark_sentence(self, lm_info):
+        """
+        Generates the part of the sentence concerning a landmark.
+        Input:  
+            lm_info: (numpy.ndarray(float)) Part of the observation linked to
+                the landmark (1: visible or not, 2: position).
+        Output: phrase: (list(str)) The generated phrase.
+        """
+        phrase = []
+
+        # If visible                                      
+        if  lm_info[0] == 1.0:
+            phrase.append("Landmark")
+            # North / South
+            if  lm_info[2] > 0:
+                phrase.append("North")
+            else:
+                phrase.append("South")
+            # West / East
+            if  lm_info[1] > 0:
+                phrase.append("East")
+            else:
+                phrase.append("West")
+
+        return phrase
+
+    def button_sentence(self, button_info):
+        """
+        Generates the part of the sentence concerning a button.
+        Input:  
+            button_info: (numpy.ndarray(float)) Part of the observation linked to
+                the button (1: visible or not, 2: position).
+        Output: phrase: (list(str)) The generated phrase.
+        """
+        phrase = []
+
+        # If visible                                      
+        if  button_info[0] == 1.0:
+            phrase.append("Button")
+
+            if button_info[1] == 1.0:
+                phrase.append("Pushed")
+
+            # North / South
+            if  button_info[3] > 0:
+                phrase.append("North")
+            else:
+                phrase.append("South")
+            # West / East
+            if  button_info[2] > 0:
+                phrase.append("East")
+            else:
+                phrase.append("West")
+
+        return phrase
+
+    # Might generate a not sentence
+    def not_sentence(self, position, no_objects, no_landmarks):
+        '''
+        Might Create a "Not sentence" if the agent don't see 1 
+        or more types of object
+
+        Input:  
+            position: list(float) The position of the agent
+            no_objects: (bool) True or False if we see an object
+            no_landmarks: (bool) True or False if we see a landmark
+
+        Output: list(str) A sentence based on what it doesn't see
+        '''
+        sentence = []
+
+        #Generation of a NOT sentence ?
+        """
+        if = 1: Will generate not_sentence only for objects
+        if = 2: Will generate not_sentence only for landmarks
+        if = 3: Will generate not_sentence for both objects and landmarks
+        """
+        not_sentence = 0
+        # We don't always generate not sentence
+        if random.random() <= self.chance_not_sent:
+            not_sentence = random.randint(1,3)
+
+            if not_sentence == 1 and no_objects:
+                # Object not sentence
+                sentence.extend(["Object","Not"])
+                for word in position:
+                    sentence.append(word)
+            elif not_sentence == 2 and no_landmarks:
+                # Landmark not sentence
+                sentence.extend(["Landmark","Not"])
+                for word in position:
+                    sentence.append(word)
+            elif not_sentence == 3:
+                # Both object
+                if no_objects:
+                    sentence.extend(["Object","Not"])
+                    for word in position:
+                        sentence.append(word)
+                if no_landmarks:
+                    sentence.extend(["Landmark","Not"])
+                    for word in position:
+                        sentence.append(word)
+
+        return sentence
+    
+    # Generate the full sentence for the agent
+    def parse_obs(self, obs):
+        """
+        Generate a description of the given observation.
+        Input:
+            obs: numpy.ndarray(float) An agent's observation of the 
+                environment.
+        Output: sentence: list(str) The generated sentence.
+        """
+        # Sentence generated
+        sentence = []
+        # Position of the agent
+        position = []
+
+        # Get the position of the agent
+        sentence.extend(self.position_agent(obs[0:2]))
+        for i in range(1,len(sentence)):
+            position.append(sentence[i])
+
+        # There are 4 values per agent
+        """
+        2: position
+        2: velocity
+        """
+        place = 4 * self.nb_agents
+        
+        # Objects sentence
+        """
+        1: visible or not
+        2: position
+        2: velocity
+        """
+        obj_phrases = []
+        for object in range(self.nb_objects):
+            obj_phrases.extend(self.object_sentence(obs[place:place + 5]))
+            place += 5
+        no_objects = len(obj_phrases) == 0  
+        sentence.extend(obj_phrases)
+
+        # Landmarks sentence
+        """
+        1: visible or not
+        2: position
+        """
+        lm_phrases = []
+        for landmark in range(self.nb_objects):
+            lm_phrases.extend(self.landmark_sentence(obs[place:place + 3]))
+            place += 3
+        no_landmarks = len(lm_phrases) == 0
+        sentence.extend(lm_phrases)
+
+        # Buttons sentence
+        """
+        1: visible or not
+        1: pushed or not
+        2: position
+        """
+        button_phrase = self.button_sentence(obs[place:place + 4])
+        place += 4
+        no_buttons = len(button_phrase) == 0
+        sentence.extend(button_phrase)
+
+        # # Not sentence
+        # sentence.extend(self.not_sentence(position, no_objects, no_landmarks))
+
+        return sentence
 
 
 class Wall:
@@ -285,7 +514,8 @@ class Scenario(BaseScenario):
          - Button:
             - If in sight: [1, state, distance x, distance y]
             - If not: [0, 0, 0, 0]
-        => Full observation dim = 2 + 2 + 4 x (nb_agents - 1) + 5 x (nb_objects) + 4
+        => Full observation dim = 
+            2 + 2 + 4 x (nb_agents - 1) + 5 x nb_objects + 3 x nb_landmarks + 4
         All distances are divided by max_distance to be in [0, 1]
         """
         obs = [agent.state.p_pos, agent.state.p_vel]
