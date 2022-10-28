@@ -213,7 +213,12 @@ class Scenario(BaseScenario):
             # Positions
             if init_pos is None:
                 obj.state.p_pos = np.array([0.0, 0.0])
-                world.landmarks[i].state.p_pos = np.array([0.0, -0.8])
+                # world.landmarks[i].state.p_pos = np.array([
+                #     random.uniform(-1 + OBJECT_RADIUS, 1 - OBJECT_RADIUS),
+                #     -0.8])
+                world.landmarks[i].state.p_pos = np.array([
+                    0.0,
+                    -0.8])
             else:
                 obj.state.p_pos = np.array(init_pos["objects"][i])
                 world.landmarks[i].state.p_pos = np.array(
@@ -224,7 +229,12 @@ class Scenario(BaseScenario):
             world.obj_lm_dists[i] = dist
         # Button's initial pos
         if init_pos is None:
-            world.button.state.p_pos = np.array([0.0, 1 - AGENT_RADIUS])
+            world.button.state.p_pos = np.array([
+                random.uniform(-1 + BUTTON_RADIUS, 1 - BUTTON_RADIUS),
+                1 - AGENT_RADIUS])
+            # world.button.state.p_pos = np.array([
+            #     0.0,
+            #     1 - AGENT_RADIUS])
         else:
             world.button.state.p_pos = np.array(init_pos["button"])
         # Set initial velocity
