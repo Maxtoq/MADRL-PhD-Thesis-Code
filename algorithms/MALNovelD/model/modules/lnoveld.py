@@ -4,7 +4,7 @@ from torch import nn
 from torch.optim import Adam
 
 from .networks import MLPNetwork
-from .lm import GRUEncoder
+from .lm import GRUEncoder, OneHotEncoder
 
 
 class NovelD:
@@ -13,7 +13,7 @@ class NovelD:
     Criterion" (Zhang et al., 2021).
     """
     def __init__(self, state_dim, embed_dim, hidden_dim, 
-                 lr=1e-4, scale_fac=0.5):
+                 lr=1e-4, scale_fac=0.5, word_encoder=None):
         """
         Inputs:
             :param state_dim (int): Dimension of the input.
@@ -24,14 +24,35 @@ class NovelD:
             :param scale_fac (float): Scaling factor for computing the reward, 
                 noted alpha in the paper, controls how novel we want the states
                 to be to generate some reward (in [0,1]) (default=0.5).
+            :param word_encoder (bool): Word encoder if the input is language
+                (default=None).
         """
         # Random Network Distillation network
-        # Fixed target embedding network
-        self.target = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
-        # Predictor embedding network
-        self.predictor = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
+        if word_encoder is None:
+            # Fixed target embedding network
+            self.target = MLPNetwork(
+                state_dim, embed_dim, hidden_dim, 
+                n_hidden_layers=3, norm_in=False)
+            # Predictor embedding network
+            self.predictor = MLPNetwork(
+                state_dim, embed_dim, hidden_dim, 
+                n_hidden_layers=3, norm_in=False)
+        else:
+            # Add sentence encoder on the input
+            # Fixed target embedding network
+            self.target = nn.Sequential(
+                GRUEncoder(hidden_dim, embed_dim, word_encoder),
+                nn.ReLU(),
+                MLPNetwork(
+                    hidden_dim, embed_dim, hidden_dim, 
+                    n_hidden_layers=2, norm_in=False))
+            # Predictor embedding network
+            self.predictor = nn.Sequential(
+                GRUEncoder(hidden_dim, embed_dim, word_encoder),
+                nn.ReLU(),
+                MLPNetwork(
+                    hidden_dim, embed_dim, hidden_dim, 
+                    n_hidden_layers=2, norm_in=False))
 
         self.device = None
 
