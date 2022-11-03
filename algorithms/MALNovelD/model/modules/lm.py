@@ -95,7 +95,8 @@ class GRUEncoder(nn.Module):
     """
     Class for a language encoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, word_encoder, n_layers=1, device='cpu'):
+    def __init__(self, context_dim, hidden_dim, word_encoder, 
+                 n_layers=1, device='cpu'):
         """
         Inputs:
             :param context_dim (int): Dimension of the context vectors
@@ -107,7 +108,7 @@ class GRUEncoder(nn.Module):
         super(GRUEncoder, self).__init__()
         self.device = device
         self.word_encoder = word_encoder
-        self.hidden_dim = context_dim
+        self.hidden_dim = hidden_dim
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 
             self.hidden_dim, 
