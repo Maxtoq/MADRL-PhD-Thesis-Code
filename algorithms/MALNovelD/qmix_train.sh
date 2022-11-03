@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=5
+n_run=6
 env="algorithms/MALNovelD/scenarios/click_n_push2_fixed.py"
 model_name="qmix_panoveld_fo"
 sce_conf_path="configs/2a_1o_fo_rel.json"

@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=1
-env="algorithms/MALNovelD/scenarios/click_n_push2.py"
+n_run=3
+env="algorithms/MALNovelD/scenarios/click_n_push2_fixed.py"
 model_name="maddpg_manoveld_fo_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 noveld_type="multi_agent"
@@ -10,7 +10,7 @@ lr=0.0007
 gamma=0.99
 tau=0.01
 explo_strat="sample"
-init_explo_rate=1.0
+init_explo_rate=0.6
 epsilon_decay_fn="linear"
 frames_per_update=100
 int_reward_coeff=1.0
@@ -18,7 +18,7 @@ embed_dim=16
 nd_scale_fac=0.5
 eval_every=500000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do

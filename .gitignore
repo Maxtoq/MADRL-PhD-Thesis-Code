@@ -335,3 +335,13 @@ models/click_n_push2/qmix_manoveld_fo/*
 models/click_n_push2/qmix_manoveld_fo/run3/*
 !models/click_n_push2/qmix_manoveld_fo/run3/model.pt
 !models/click_n_push2/qmix_manoveld_fo/run3/sce_config.json
+
+!models/click_n_push2_fixed
+models/click_n_push2_fixed/*
+
+!models/click_n_push2_fixed/qmix_manoveld_fo
+models/click_n_push2_fixed/qmix_manoveld_fo/*
+!models/click_n_push2_fixed/qmix_manoveld_fo/run5
+models/click_n_push2_fixed/qmix_manoveld_fo/run5/*
+!models/click_n_push2_fixed/qmix_manoveld_fo/run5/model.pt
+!models/click_n_push2_fixed/qmix_manoveld_fo/run5/sce_config.json
