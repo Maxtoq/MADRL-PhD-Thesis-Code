@@ -29,6 +29,7 @@ class NovelD:
         """
         # Random Network Distillation network
         if word_encoder is None:
+            self.lang_input = False
             # Fixed target embedding network
             self.target = MLPNetwork(
                 state_dim, embed_dim, hidden_dim, 
@@ -38,6 +39,7 @@ class NovelD:
                 state_dim, embed_dim, hidden_dim, 
                 n_hidden_layers=3, norm_in=False)
         else:
+            self.lang_input = True
             # Add sentence encoder on the input
             # Fixed target embedding network
             self.target = nn.Sequential(
@@ -124,13 +126,17 @@ class NovelD:
         """
         Get intrinsic reward for this new state.
         Inputs:
-            state (torch.Tensor): State from which to generate the reward,
-                dim=(1, state_dim).
+            state (torch.Tensor/list(list(str))): State from which to generate 
+                the reward, if input is language 'state' is a list of 
+                sentences, else it's a torch.Tensor of dim=(1, state_dim).
         Outputs:
             intrinsic_reward (float): Intrinsic reward for the input state.
         """
         # Increment count of current state
-        state_key = tuple(state.squeeze().tolist())
+        if not self.lang_input:
+            state_key = tuple(state.squeeze().tolist())
+        else:
+            state_key = tuple(state[0])
         if state_key in self.episode_states_count:
             self.episode_states_count[state_key] += 1
         else:
@@ -139,6 +145,10 @@ class NovelD:
         # Compute embeddings
         target = self.target(state)
         pred = self.predictor(state)
+
+        if self.lang_input:
+            target = target.squeeze(0)
+            pred = pred.squeeze(0)
 
         # Compute novelty
         nov = torch.norm(pred.detach() - target.detach(), dim=1, p=2)
@@ -176,9 +186,9 @@ class LNovelD:
     Intrinsic Exploration with Language Abstractions" (Mu et al., 2022).
     """
     def __init__(self, 
-            obs_in_dim, 
-            lang_in_dim,
+            obs_in_dim,
             embed_dim,
+            word_encoder,
             hidden_dim=64,
             lr=1e-4, 
             scale_fac=0.5, 
@@ -186,10 +196,9 @@ class LNovelD:
         """
         Inputs:
             :param obs_in_dim (int): Dimension of the observation input.
-            :param lang_in_dim (int): Dimension of the language encoding input.
             :param embed_dim (int): Dimension of the output of RND networks.
-            :param lang_encoder (.lm.GRUEncoder): Network for encoding input
-                sentences.
+            :param word_encoder (.lm.OneHotEncoder): Word encoder that maps 
+                words to corresponding one-hot encodings.
             :param hidden_dim (int): Dimension of the hidden layers in MLPs.
             :param lr (float): Learning rates for training NovelD predictors.
             :param scale_fac (float): Scaling factor for computing the reward, 
@@ -204,7 +213,7 @@ class LNovelD:
             obs_in_dim, embed_dim, hidden_dim, lr, scale_fac)
         # Language-based NovelD
         self.lang_noveld = NovelD(
-            lang_in_dim, embed_dim, hidden_dim, lr, scale_fac)
+            0, embed_dim, hidden_dim, lr, scale_fac, word_encoder)
 
         self.trade_off = trade_off
 

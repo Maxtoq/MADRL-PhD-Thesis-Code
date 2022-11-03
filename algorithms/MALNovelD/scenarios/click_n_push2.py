@@ -23,7 +23,18 @@ def get_dist(pos1, pos2, squared=False):
 
 class ObservationParser(Parser):
     
-    vocab = ['Located', 'Object', 'Landmark', 'North', 'South', 'East', 'West', 'Center', 'Not']
+    vocab = [
+        'Located', 
+        'Object', 
+        'Landmark', 
+        'Button', 
+        'Moving', 
+        'Pushed', 
+        'North', 
+        'South', 
+        'East', 
+        'West', 
+        'Center']
 
     def __init__(self, nb_agents, nb_objects, chance_not_sent):
         """
@@ -131,54 +142,54 @@ class ObservationParser(Parser):
 
         return phrase
 
-    # Might generate a not sentence
-    def not_sentence(self, position, no_objects, no_landmarks):
-        '''
-        Might Create a "Not sentence" if the agent don't see 1 
-        or more types of object
+    # # Might generate a not sentence
+    # def not_sentence(self, position, no_objects, no_landmarks):
+    #     '''
+    #     Might Create a "Not sentence" if the agent don't see 1 
+    #     or more types of object
 
-        Input:  
-            position: list(float) The position of the agent
-            no_objects: (bool) True or False if we see an object
-            no_landmarks: (bool) True or False if we see a landmark
+    #     Input:  
+    #         position: list(float) The position of the agent
+    #         no_objects: (bool) True or False if we see an object
+    #         no_landmarks: (bool) True or False if we see a landmark
 
-        Output: list(str) A sentence based on what it doesn't see
-        '''
-        sentence = []
+    #     Output: list(str) A sentence based on what it doesn't see
+    #     '''
+    #     sentence = []
 
-        #Generation of a NOT sentence ?
-        """
-        if = 1: Will generate not_sentence only for objects
-        if = 2: Will generate not_sentence only for landmarks
-        if = 3: Will generate not_sentence for both objects and landmarks
-        """
-        not_sentence = 0
-        # We don't always generate not sentence
-        if random.random() <= self.chance_not_sent:
-            not_sentence = random.randint(1,3)
+    #     #Generation of a NOT sentence ?
+    #     """
+    #     if = 1: Will generate not_sentence only for objects
+    #     if = 2: Will generate not_sentence only for landmarks
+    #     if = 3: Will generate not_sentence for both objects and landmarks
+    #     """
+    #     not_sentence = 0
+    #     # We don't always generate not sentence
+    #     if random.random() <= self.chance_not_sent:
+    #         not_sentence = random.randint(1,3)
 
-            if not_sentence == 1 and no_objects:
-                # Object not sentence
-                sentence.extend(["Object","Not"])
-                for word in position:
-                    sentence.append(word)
-            elif not_sentence == 2 and no_landmarks:
-                # Landmark not sentence
-                sentence.extend(["Landmark","Not"])
-                for word in position:
-                    sentence.append(word)
-            elif not_sentence == 3:
-                # Both object
-                if no_objects:
-                    sentence.extend(["Object","Not"])
-                    for word in position:
-                        sentence.append(word)
-                if no_landmarks:
-                    sentence.extend(["Landmark","Not"])
-                    for word in position:
-                        sentence.append(word)
+    #         if not_sentence == 1 and no_objects:
+    #             # Object not sentence
+    #             sentence.extend(["Object","Not"])
+    #             for word in position:
+    #                 sentence.append(word)
+    #         elif not_sentence == 2 and no_landmarks:
+    #             # Landmark not sentence
+    #             sentence.extend(["Landmark","Not"])
+    #             for word in position:
+    #                 sentence.append(word)
+    #         elif not_sentence == 3:
+    #             # Both object
+    #             if no_objects:
+    #                 sentence.extend(["Object","Not"])
+    #                 for word in position:
+    #                     sentence.append(word)
+    #             if no_landmarks:
+    #                 sentence.extend(["Landmark","Not"])
+    #                 for word in position:
+    #                     sentence.append(word)
 
-        return sentence
+    #     return sentence
     
     # Generate the full sentence for the agent
     def parse_obs(self, obs):

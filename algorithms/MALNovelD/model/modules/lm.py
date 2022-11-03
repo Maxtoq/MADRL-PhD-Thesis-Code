@@ -99,7 +99,10 @@ class GRUEncoder(nn.Module):
                  n_layers=1, device='cpu'):
         """
         Inputs:
-            :param context_dim (int): Dimension of the context vectors
+            :param context_dim (int): Dimension of the context vectors (output
+                of the model).
+            :param hidden_dim (int): Dimension of the hidden state of the GRU
+                newtork.
             :param word_encoder (OneHotEncoder): Word encoder, associating 
                 tokens with one-hot encodings
             :param n_layers (int): number of layers in the GRU (default: 1)

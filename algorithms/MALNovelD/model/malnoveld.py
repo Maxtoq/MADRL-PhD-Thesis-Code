@@ -3,11 +3,78 @@ import numpy as np
 
 from torch import nn
 
-from .modules.lnoveld import LNovelD
+from .modules.lnoveld import NovelD
 from .modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
 from .modules.obs import ObservationEncoder
 from .modules.comm import CommunicationPolicy
 from .modules.maddpg import MADDPG
+
+
+class LNovelD:
+    """
+    Class implementing the Language-augmented version of NovelD from "Improving
+    Intrinsic Exploration with Language Abstractions" (Mu et al., 2022).
+    """
+    def __init__(self, 
+            obs_in_dim, 
+            lang_in_dim,
+            embed_dim,
+            hidden_dim=64,
+            lr=1e-4, 
+            scale_fac=0.5, 
+            trade_off=1):
+        """
+        Inputs:
+            :param obs_in_dim (int): Dimension of the observation input.
+            :param lang_in_dim (int): Dimension of the language encoding input.
+            :param embed_dim (int): Dimension of the output of RND networks.
+            :param lang_encoder (.lm.GRUEncoder): Network for encoding input
+                sentences.
+            :param hidden_dim (int): Dimension of the hidden layers in MLPs.
+            :param lr (float): Learning rates for training NovelD predictors.
+            :param scale_fac (float): Scaling factor for computing the reward, 
+                noted alpha in the paper, controls how novel we want the states
+                to be to generate some reward (in [0,1]).
+            :param trade_off (float): Parameter for controlling the weight of 
+                the language novelty in the final reward, noted lambda_l in the
+                paper (in [0, +inf]).
+        """
+        # Observatio-based NovelD
+        self.obs_noveld = NovelD(
+            obs_in_dim, embed_dim, hidden_dim, lr, scale_fac)
+        # Language-based NovelD
+        self.lang_noveld = NovelD(
+            lang_in_dim, embed_dim, hidden_dim, lr, scale_fac)
+
+        self.trade_off = trade_off
+
+    def is_empty(self):
+        return self.obs_noveld.is_empty() or self.lang_noveld.is_empty()
+
+    def reset(self):
+        self.obs_noveld.init_new_episode()
+        self.lang_noveld.init_new_episode()
+
+    def set_train(self, device):
+        self.obs_noveld.set_train(device)
+        self.lang_noveld.set_train(device)
+
+    def set_eval(self, device):
+        self.obs_noveld.set_eval(device)
+        self.lang_noveld.set_eval(device)
+
+    def get_reward(self, obs_in, lang_in):
+        obs_int_reward = self.obs_noveld.get_reward(obs_in)
+        lang_int_reward = self.lang_noveld.get_reward(lang_in)
+
+        intrinsic_reward = obs_int_reward + self.trade_off * lang_int_reward
+
+        return intrinsic_reward
+
+    def train(self):
+        obs_loss = self.obs_noveld.train_predictor()
+        lang_loss = self.lang_noveld.train_predictor()
+        return obs_loss, lang_loss
 
 
 class MALNovelD:
