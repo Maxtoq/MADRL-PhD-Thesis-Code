@@ -68,7 +68,7 @@ def rnn_eval_episode(env, model, max_ep_len, init_pos=None, render=False,
     for step_i in range(max_ep_len):
         # Get actions
         actions, qnets_hidden_states = model.get_actions(
-            obs, last_actions, qnets_hidden_states, explore=True)
+            obs, last_actions, qnets_hidden_states)
         last_actions = actions
         actions = [a.cpu().squeeze().data.numpy() for a in actions]
         next_obs, rewards, dones, _ = env.step(actions)
