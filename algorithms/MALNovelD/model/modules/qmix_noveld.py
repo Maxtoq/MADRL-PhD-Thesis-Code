@@ -2,7 +2,8 @@ import torch
 import numpy as np
 
 from .qmix import QMIX, QMIXAgent
-from .lnoveld import NovelD
+from .lnoveld import NovelD, LNovelD
+from .lm import OneHotEncoder
 
 
 class QMIXAgent_NovelD(QMIXAgent):
@@ -273,4 +274,136 @@ class QMIX_MANovelD(QMIX):
         instance.target_mixer.load_state_dict(target_mixer_params)
         instance.optimizer.load_state_dict(optimizer)
         instance.ma_noveld.load_params(manoveld_params)
+        return instance
+
+
+class QMIX_MALNovelD(QMIX):
+    """ 
+    Class impelementing QMIX with Multi-Agent L-NovelD (QMIX_MAaLNovelD),
+    meaning that we use a single L-NovelD model to compute the intrinsic reward
+    of the multi-agent system.
+    """
+    def __init__(self, nb_agents, obs_dim, act_dim, lr, vocab,
+                 gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
+                 init_explo_rate=1.0, max_grad_norm=None, device="cpu",
+                 embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5, nd_hidden_dim=64,
+                 lnd_trade_off=1.0):
+        super(QMIX_MALNovelD, self).__init__(
+            nb_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim, 
+            shared_params, init_explo_rate, max_grad_norm, device)
+        # Init word encoder
+        word_encoder = OneHotEncoder(vocab)
+
+        # Init L-NovelD model for the multi-agent system
+        self.ma_lnoveld = LNovelD(
+            nb_agents * obs_dim, 
+            embed_dim, 
+            word_encoder, 
+            nd_hidden_dim, 
+            nd_lr, 
+            nd_scale_fac, 
+            lnd_trade_off)
+
+    def get_actions(self, 
+            obs_list, last_actions, qnets_hidden_states, descr_list, 
+            explore=False):
+        # If we are starting a new episode, compute novelty for first obs
+        if self.ma_lnoveld.is_empty():
+            # Concatenate observations
+            cat_obs = torch.Tensor(
+                np.concatenate(obs_list)).unsqueeze(0).to(self.device)
+            # Concatenate all descriptions
+            cat_descr = [word for sublist in descr_list for word in sublist]
+            self.ma_lnoveld.get_reward(cat_obs.view(1, -1), cat_descr)
+        return super().get_actions(
+            obs_list, last_actions, qnets_hidden_states, explore)
+
+    def get_intrinsic_rewards(self, next_obs_list, next_descr_list):
+        """
+        Get intrinsic reward of the multi-agent system.
+        Inputs:
+            next_obs_list (list): List of agents' observations at next step.
+            next_descr_list (list): List of agents' descriptions at next step.
+        Outputs:
+            int_rewards (list): List of agents' intrinsic rewards.
+        """
+        # Concatenate observations
+        cat_obs = torch.Tensor(
+            np.concatenate(next_obs_list)).unsqueeze(0).to(self.device)
+        # Concatenate all descriptions
+        cat_descr = [word for sublist in next_descr_list for word in sublist]
+        # Get reward
+        int_rew, obs_int_rew, lang_int_rew = self.ma_lnoveld.get_reward(
+            cat_obs, cat_descr)
+        int_rewards = [int_rew] * self.nb_agents
+        obs_int_rewards = [obs_int_rew] * self.nb_agents
+        lang_int_rewards = [lang_int_rew] * self.nb_agents
+        return int_rewards, obs_int_rewards, lang_int_rewards
+    
+    def train_on_batch(self, batch):
+        """
+        Update all agents and L-NovelD model.
+        Inputs:
+            batch (tuple(torch.Tensor)): Tuple of batches of experiences for
+                the agents to train on.
+        Outputs:
+            qtot_loss (float): QMIX loss.
+            nd_loss (float): MA-L-NovelD loss.
+        """
+        qtot_loss = super().train_on_batch(batch)
+
+        # L-NovelD update
+        lnd_obs_loss, lnd_lang_loss = self.ma_lnoveld.train()
+
+        return qtot_loss, lnd_obs_loss, lnd_lang_loss
+
+    def reset_noveld(self):
+        self.ma_lnoveld.init_new_episode()
+    
+    def prep_training(self, device='cpu'):
+        super().prep_training(device)
+        self.ma_lnoveld.set_train(device)
+    
+    def prep_rollouts(self, device='cpu'):
+        super().prep_rollouts(device)
+        self.ma_lnoveld.set_eval(device)
+
+    def save(self, filename):
+        self.prep_training(device='cpu')
+        save_dict = {
+            'nb_agents': self.nb_agents,
+            'obs_dim': self.obs_dim,
+            'act_dim': self.act_dim,
+            'lr': self.lr,
+            'gamma': self.gamma,
+            'tau': self.tau,
+            'hidden_dim': self.hidden_dim,
+            'shared_params': self.shared_params,
+            'max_grad_norm': self.max_grad_norm,
+            'agent_params': [a.get_params() for a in self.agents],
+            'mixer_params': self.mixer.state_dict(),
+            'target_mixer_params': self.target_mixer.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'manoveld_params': self.ma_lnoveld.get_params()
+        }
+        torch.save(save_dict, filename)
+
+    @classmethod
+    def init_from_save(cls, filename):
+        """
+        Instantiate instance of this class from file created by 'save' method
+        """
+        save_dict = torch.load(filename, map_location=torch.device('cpu'))
+        agent_params = save_dict.pop("agent_params")
+        mixer_params = save_dict.pop("mixer_params")
+        target_mixer_params = save_dict.pop("target_mixer_params")
+        optimizer = save_dict.pop("optimizer")
+        manoveld_params = save_dict.pop("manoveld_params")
+        instance = cls(**save_dict)
+        for a, params in zip(instance.agents, agent_params):
+            a.load_params(params)
+        instance.mixer.load_state_dict(mixer_params)
+        instance.target_mixer.load_state_dict(target_mixer_params)
+        instance.optimizer.load_state_dict(optimizer)
+        instance.ma_lnoveld.load_params(manoveld_params)
         return instance

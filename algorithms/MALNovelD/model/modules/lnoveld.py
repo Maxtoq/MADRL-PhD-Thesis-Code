@@ -4,7 +4,7 @@ from torch import nn
 from torch.optim import Adam
 
 from .networks import MLPNetwork
-from .lm import GRUEncoder, OneHotEncoder
+from .lm import GRUEncoder
 
 
 class NovelD:
@@ -236,11 +236,19 @@ class LNovelD:
         obs_int_reward = self.obs_noveld.get_reward(obs_in)
         lang_int_reward = self.lang_noveld.get_reward(lang_in)
 
-        intrinsic_reward = obs_int_reward + self.trade_off * lang_int_reward
+        tot_reward = obs_int_reward + self.trade_off * lang_int_reward
 
-        return intrinsic_reward
+        return tot_reward, obs_int_reward, lang_int_reward
 
     def train(self):
         obs_loss = self.obs_noveld.train_predictor()
         lang_loss = self.lang_noveld.train_predictor()
         return obs_loss, lang_loss
+
+    def get_params(self):
+        return {"obs_noveld": self.obs_noveld.get_params(),
+                "lang_noveld": self.lang_noveld.get_params()}
+
+    def load_params(self, params):
+        self.obs_noveld.load_params(params["obs_noveld"])
+        self.lang_noveld.load_params(params["lang_noveld"])

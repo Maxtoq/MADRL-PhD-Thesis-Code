@@ -12,9 +12,9 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from model.modules.qmix import QMIX
-from model.modules.qmix_noveld import QMIX_MANovelD, QMIX_PANovelD
+from model.modules.qmix_noveld import QMIX_MANovelD, QMIX_PANovelD, QMIX_MALNovelD
 from utils.buffer import RecReplayBuffer
-from utils.make_env import get_paths, load_scenario_config, make_env
+from utils.make_env import get_paths, load_scenario_config, make_env, make_env_parser
 from utils.eval import perform_eval_scenar
 from utils.decay import EpsilonDecay
 
@@ -53,7 +53,13 @@ def run(cfg):
         device = 'cpu'
 
     # Create environment
-    env = make_env(cfg.env_path, sce_conf, discrete_action=True)
+    if "lnoveld" in cfg.model_type:
+        env, parser = make_env_parser(
+            cfg.env_path, sce_conf, discrete_action=True)
+        lnoveld = True
+    else:
+        env = make_env(cfg.env_path, sce_conf, discrete_action=True)
+        lnoveld = False
 
     # Create model
     nb_agents = sce_conf["nb_agents"]
@@ -72,6 +78,11 @@ def run(cfg):
         qmix = QMIX_PANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
             cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
             cfg.init_explo_rate, cfg.max_grad_norm, device,
+            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
+    elif cfg.model_type == "qmix_malnoveld":
+        qmix = QMIX_MALNovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
+            parser.vocab, cfg.gamma, cfg.tau, cfg.hidden_dim, 
+            cfg.shared_params, cfg.init_explo_rate, cfg.max_grad_norm, device,
             cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
     else:
         print("ERROR: bad model type.")
@@ -114,6 +125,7 @@ def run(cfg):
         "Episode return": [],
         "Episode extrinsic return": [],
         "Episode intrinsic return": [],
+        "Episode intrinsic return 2": [],
         "Success": [],
         "Episode length": []
     }
@@ -121,8 +133,12 @@ def run(cfg):
     ep_step_i = 0
     ep_ext_returns = np.zeros(nb_agents)
     ep_int_returns = np.zeros(nb_agents)
+    ep_int_returns2 = np.zeros(nb_agents)
     ep_success = False
     obs = env.reset()
+    if lnoveld:
+        # Get first descriptions
+        descr = parser.get_descriptions(obs)
     # Init episode data for saving in replay buffer
     ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones = \
         buffer.init_episode_arrays()
@@ -133,14 +149,19 @@ def run(cfg):
 
         # Get actions
         actions, qnets_hidden_states = qmix.get_actions(
-            obs, last_actions, qnets_hidden_states, explore=True)
+            obs, last_actions, qnets_hidden_states, descr, explore=True)
         last_actions = actions
         actions = [a.cpu().squeeze().data.numpy() for a in actions]
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
         # Compute intrinsic rewards
         if "noveld" in cfg.model_type:
-            int_rewards = qmix.get_intrinsic_rewards(next_obs)
+            if lnoveld:
+                next_descr = parser.get_descriptions(next_obs)
+                int_rewards, lnd_obs_rew, lnd_lang_rew = \
+                    qmix.get_intrinsic_rewards(next_obs, next_descr)
+            else:
+                int_rewards = qmix.get_intrinsic_rewards(next_obs)
             rewards = np.array([ext_rewards]) + \
                       cfg.int_reward_coeff * np.array([int_rewards])
             rewards = rewards.T
@@ -156,7 +177,11 @@ def run(cfg):
         ep_dones[ep_step_i, 0, :] = np.vstack(dones)
 
         ep_ext_returns += ext_rewards
-        ep_int_returns += int_rewards
+        if lnoveld:
+            ep_int_returns += lnd_obs_rew
+            ep_int_returns2 += lnd_lang_rew
+        else:
+            ep_int_returns += int_rewards
         if any(dones):
             ep_success = True
         
@@ -176,6 +201,8 @@ def run(cfg):
                 np.mean(ep_ext_returns))
             train_data_dict["Episode intrinsic return"].append(
                 np.mean(ep_int_returns))
+            train_data_dict["Episode intrinsic return 2"].append(
+                np.mean(ep_int_returns2))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_step_i + 1)
             # Log Tensorboard
@@ -187,13 +214,23 @@ def run(cfg):
                 'agent0/episode_ext_return', 
                 train_data_dict["Episode extrinsic return"][-1], 
                 train_data_dict["Step"][-1])
-            logger.add_scalar(
-                'agent0/episode_int_return', 
-                train_data_dict["Episode intrinsic return"][-1], 
-                train_data_dict["Step"][-1])
+            if lnoveld:
+                int_returns_dict = {
+                    "lnd_obs_loss": np.mean(ep_int_returns),
+                    "lnd_lang_loss": np.mean(ep_int_returns2)}
+                logger.add_scalars(
+                    'agent0/episode_int_return', 
+                    int_returns_dict,
+                    train_data_dict["Step"][-1])
+            else:
+                logger.add_scalar(
+                    'agent0/episode_int_return', 
+                    train_data_dict["Episode intrinsic return"][-1], 
+                    train_data_dict["Step"][-1])
             # Reset episode data
             ep_ext_returns = np.zeros(nb_agents)
             ep_int_returns = np.zeros(nb_agents)
+            ep_int_returns2 = np.zeros(nb_agents)
             ep_step_i = 0
             ep_success = False
             # Init episode data for saving in replay buffer
@@ -203,9 +240,13 @@ def run(cfg):
             last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
             # Reset environment
             obs = env.reset()
+            if "noveld" in cfg.model_type:
+                qmix.reset_noveld()
         else:
             ep_step_i += 1
             obs = next_obs
+            if lnoveld:
+                descr = next_descr
 
         # Training
         if ((step_i + 1) % cfg.frames_per_update == 0 and
@@ -220,8 +261,12 @@ def run(cfg):
             elif cfg.model_type in ["qmix_manoveld", "qmix_panoveld"]:
                 loss_dict = {
                     "qtot_loss": losses[0],
-                    "nd_loss": losses[1]
-                }
+                    "nd_loss": losses[1]}
+            elif cfg.model_type == "qmix_malnoveld":
+                loss_dict = {
+                    "qtot_loss": losses[0],
+                    "lnd_obs_loss": losses[1],
+                    "lnd_lang_loss": losses[2]}
             # Log
             logger.add_scalars('agent0/losses', loss_dict, step_i)
             qmix.update_all_targets()
