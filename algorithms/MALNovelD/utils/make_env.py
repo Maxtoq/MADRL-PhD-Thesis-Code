@@ -36,11 +36,11 @@ def make_env(scenario_path, sce_conf={}, discrete_action=False):
         discrete_action=discrete_action)
     return env
 
-def make_env_parser(args, sce_conf={}, discrete_action=False):
+def make_env_parser(scenario_path, sce_conf={}, discrete_action=False):
     from multiagent.environment import MultiAgentEnv
 
     # load scenario from script
-    scenar_lib = imp.load_source('', args.env_path)
+    scenar_lib = imp.load_source('', scenario_path)
     scenario = scenar_lib.Scenario()
 
     # create world
@@ -55,7 +55,7 @@ def make_env_parser(args, sce_conf={}, discrete_action=False):
     parser_args = [
         sce_conf['nb_agents'], 
         sce_conf['nb_objects'], 
-        args.chance_not_sent]
+        0.0]
     parser = scenar_lib.ObservationParser(*parser_args)
 
     return env, parser

@@ -313,7 +313,7 @@ class QMIX_MALNovelD(QMIX):
             cat_obs = torch.Tensor(
                 np.concatenate(obs_list)).unsqueeze(0).to(self.device)
             # Concatenate all descriptions
-            cat_descr = [word for sublist in descr_list for word in sublist]
+            cat_descr = [[word for sublist in descr_list for word in sublist]]
             self.ma_lnoveld.get_reward(cat_obs.view(1, -1), cat_descr)
         return super().get_actions(
             obs_list, last_actions, qnets_hidden_states, explore)
@@ -331,7 +331,7 @@ class QMIX_MALNovelD(QMIX):
         cat_obs = torch.Tensor(
             np.concatenate(next_obs_list)).unsqueeze(0).to(self.device)
         # Concatenate all descriptions
-        cat_descr = [word for sublist in next_descr_list for word in sublist]
+        cat_descr = [[word for sublist in next_descr_list for word in sublist]]
         # Get reward
         int_rew, obs_int_rew, lang_int_rew = self.ma_lnoveld.get_reward(
             cat_obs, cat_descr)
@@ -358,7 +358,7 @@ class QMIX_MALNovelD(QMIX):
         return qtot_loss, lnd_obs_loss, lnd_lang_loss
 
     def reset_noveld(self):
-        self.ma_lnoveld.init_new_episode()
+        self.ma_lnoveld.reset()
     
     def prep_training(self, device='cpu'):
         super().prep_training(device)
@@ -366,7 +366,7 @@ class QMIX_MALNovelD(QMIX):
     
     def prep_rollouts(self, device='cpu'):
         super().prep_rollouts(device)
-        self.ma_lnoveld.set_eval(device)
+        self.ma_lnoveld.set_train(device)
 
     def save(self, filename):
         self.prep_training(device='cpu')

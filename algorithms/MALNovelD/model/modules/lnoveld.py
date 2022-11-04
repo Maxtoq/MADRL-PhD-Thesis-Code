@@ -42,15 +42,19 @@ class NovelD:
             self.lang_input = True
             # Add sentence encoder on the input
             # Fixed target embedding network
+            self.target_encoder = GRUEncoder(
+                hidden_dim, embed_dim, word_encoder)
             self.target = nn.Sequential(
-                GRUEncoder(hidden_dim, embed_dim, word_encoder),
+                self.target_encoder,
                 nn.ReLU(),
                 MLPNetwork(
                     hidden_dim, embed_dim, hidden_dim, 
                     n_hidden_layers=2, norm_in=False))
             # Predictor embedding network
+            self.predictor_encoder = GRUEncoder(
+                hidden_dim, embed_dim, word_encoder)
             self.predictor = nn.Sequential(
-                GRUEncoder(hidden_dim, embed_dim, word_encoder),
+                self.predictor_encoder,
                 nn.ReLU(),
                 MLPNetwork(
                     hidden_dim, embed_dim, hidden_dim, 
@@ -89,6 +93,9 @@ class NovelD:
         self.target = self.target.to(device)
         self.predictor.train()
         self.predictor = self.predictor.to(device)
+        if self.lang_input:
+            self.target_encoder.device = device
+            self.predictor_encoder.device = device
         self.stored_preds = self.stored_preds.to(device)
         self.stored_targets = self.stored_targets.to(device)
         self.device = device
@@ -98,6 +105,9 @@ class NovelD:
         self.target = self.target.to(device)
         self.predictor.eval()
         self.predictor = self.predictor.to(device)
+        if self.lang_input:
+            self.target_encoder.device = device
+            self.predictor_encoder.device = device
         self.stored_preds = self.stored_preds.to(device)
         self.stored_targets = self.stored_targets.to(device)
         self.device = device

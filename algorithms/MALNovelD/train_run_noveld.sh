@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=3
+n_run=2
 env="algorithms/MALNovelD/scenarios/click_n_push2_fixed.py"
 model_name="maddpg_manoveld_fo_disc"
 sce_conf_path="configs/2a_1o_fo_rel.json"
@@ -10,7 +10,7 @@ lr=0.0007
 gamma=0.99
 tau=0.01
 explo_strat="sample"
-init_explo_rate=0.6
+init_explo_rate=0.3
 epsilon_decay_fn="linear"
 frames_per_update=100
 int_reward_coeff=1.0

@@ -148,8 +148,12 @@ def run(cfg):
         qmix.set_explo_rate(eps_decay.get_explo_rate(step_i))
 
         # Get actions
-        actions, qnets_hidden_states = qmix.get_actions(
-            obs, last_actions, qnets_hidden_states, descr, explore=True)
+        if lnoveld:
+            actions, qnets_hidden_states = qmix.get_actions(
+                obs, last_actions, qnets_hidden_states, descr, explore=True)
+        else:
+            actions, qnets_hidden_states = qmix.get_actions(
+                obs, last_actions, qnets_hidden_states, explore=True)
         last_actions = actions
         actions = [a.cpu().squeeze().data.numpy() for a in actions]
         next_obs, ext_rewards, dones, _ = env.step(actions)
@@ -240,7 +244,7 @@ def run(cfg):
             last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
             # Reset environment
             obs = env.reset()
-            if "noveld" in cfg.model_type:
+            if "lnoveld" in cfg.model_type:
                 qmix.reset_noveld()
         else:
             ep_step_i += 1
@@ -337,7 +341,7 @@ if __name__ == '__main__':
     parser.add_argument("--eval_scenar_file", type=str, default=None)
     # Model hyperparameters
     parser.add_argument("--model_type", default="qmix", type=str, 
-                        choices=["qmix", "qmix_manoveld", "qmix_panoveld"])
+                        choices=["qmix", "qmix_manoveld", "qmix_panoveld", "qmix_malnoveld"])
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--lr", default=0.0007, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
