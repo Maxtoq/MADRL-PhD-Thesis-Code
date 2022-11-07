@@ -220,8 +220,8 @@ def run(cfg):
                 train_data_dict["Step"][-1])
             if lnoveld:
                 int_returns_dict = {
-                    "lnd_obs_loss": np.mean(ep_int_returns),
-                    "lnd_lang_loss": np.mean(ep_int_returns2)}
+                    "lnd_obs_return": np.mean(ep_int_returns),
+                    "lnd_lang_return": np.mean(ep_int_returns2)}
                 logger.add_scalars(
                     'agent0/episode_int_return', 
                     int_returns_dict,

@@ -346,3 +346,7 @@ models/click_n_push2_fixed/qmix_manoveld_fo/run5/*
 !models/click_n_push2_fixed/qmix_manoveld_fo/run5/model.pt
 !models/click_n_push2_fixed/qmix_manoveld_fo/run5/sce_config.json
 !models/click_n_push2_fixed/qmix_manoveld_fo/train_data
+
+!models/click_n_push2_fixed/qmix_fo
+models/click_n_push2_fixed/qmix_fo/*
+!models/click_n_push2_fixed/qmix_fo/train_data
