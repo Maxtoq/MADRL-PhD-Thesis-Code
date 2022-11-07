@@ -6,7 +6,7 @@ import re
 
 """
 Must be called as:
-$ python move_run_data.py *path_to_model_dir* *data_fil_name* *run_names*
+$ python move_run_data.py *path_to_model_dir* --data_file *data_fil_name* --runs *run_names*
 *run_names* being a list of either single runs (e.g. 'run12'), or 
 sequences of runs noted as 'runN-runM' which corresponds to all runs 
 between N and M.

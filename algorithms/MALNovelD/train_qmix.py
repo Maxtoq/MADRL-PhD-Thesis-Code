@@ -244,7 +244,7 @@ def run(cfg):
             last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
             # Reset environment
             obs = env.reset()
-            if "lnoveld" in cfg.model_type:
+            if "noveld" in cfg.model_type:
                 qmix.reset_noveld()
         else:
             ep_step_i += 1
