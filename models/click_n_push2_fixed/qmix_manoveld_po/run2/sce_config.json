@@ -1,0 +1,6 @@
+{
+    "nb_agents": 2,
+    "nb_objects": 1,
+    "obs_range": 0.5,
+    "collision_pen": 3.0
+}
