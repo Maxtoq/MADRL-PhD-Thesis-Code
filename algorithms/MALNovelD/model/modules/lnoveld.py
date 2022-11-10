@@ -248,7 +248,7 @@ class LNovelD:
 
         tot_reward = obs_int_reward + self.trade_off * lang_int_reward
 
-        return tot_reward, obs_int_reward, lang_int_reward
+        return tot_reward, obs_int_reward, self.trade_off * lang_int_reward
 
     def train(self):
         obs_loss = self.obs_noveld.train_predictor()

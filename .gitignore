@@ -351,9 +351,16 @@ models/click_n_push2_fixed/qmix_manoveld_fo/run5/*
 models/click_n_push2_fixed/qmix_fo/*
 !models/click_n_push2_fixed/qmix_fo/train_data
 
+!models/click_n_push2_fixed/qmix_panoveld_fo
+models/click_n_push2_fixed/qmix_panoveld_fo/*
+!models/click_n_push2_fixed/qmix_panoveld_fo/train_data
+
 !models/click_n_push2_fixed/qmix_manoveld_po
 models/click_n_push2_fixed/qmix_manoveld_po/*
 !models/click_n_push2_fixed/qmix_manoveld_po/run2
 models/click_n_push2_fixed/qmix_manoveld_po/run2/*
 !models/click_n_push2_fixed/qmix_manoveld_po/run2/model.pt
 !models/click_n_push2_fixed/qmix_manoveld_po/run2/sce_config.json
+
+!models/click_n_push_fixed
+models/click_n_push_fixed/*

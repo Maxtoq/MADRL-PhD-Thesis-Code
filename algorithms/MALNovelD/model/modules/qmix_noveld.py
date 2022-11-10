@@ -287,7 +287,7 @@ class QMIX_MALNovelD(QMIX):
                  gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
                  init_explo_rate=1.0, max_grad_norm=None, device="cpu",
                  embed_dim=16, nd_lr=1e-4, nd_scale_fac=0.5, nd_hidden_dim=64,
-                 lnd_trade_off=1.0):
+                 lnd_trade_off=50.0):
         super(QMIX_MALNovelD, self).__init__(
             nb_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim, 
             shared_params, init_explo_rate, max_grad_norm, device)
