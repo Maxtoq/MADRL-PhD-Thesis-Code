@@ -129,6 +129,8 @@ def run(cfg):
         "Success": [],
         "Episode length": []
     }
+    if cfg.save_descriptions:
+        saved_descrs = []
     # Reset episode data and environment
     ep_step_i = 0
     ep_ext_returns = np.zeros(nb_agents)
@@ -188,6 +190,10 @@ def run(cfg):
             ep_int_returns += int_rewards
         if any(dones):
             ep_success = True
+
+        if cfg.save_descriptions:
+            saved_descrs.append(
+                {"step": step_i, "obs": list(obs), "descr": descr})
         
         # Check for end of episode
         if ep_success or ep_step_i + 1 == cfg.episode_length:
@@ -304,6 +310,9 @@ def run(cfg):
     if cfg.eval_every is not None:
         eval_df = pd.DataFrame(eval_data_dict)
         eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
+    if cfg.save_descriptions:
+        with open(str(run_dir / "descriptions.json"), 'w') as f:
+            json.dump(saved_descrs, f)
     print("Model saved in dir", run_dir)
 
 
@@ -355,6 +364,8 @@ if __name__ == '__main__':
     parser.add_argument("--nd_scale_fac", default=0.5, type=float)
     parser.add_argument("--nd_hidden_dim", default=64, type=int)
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
+    # Language
+    parser.add_argument("--save_descriptions", action="store_true")
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)
 
