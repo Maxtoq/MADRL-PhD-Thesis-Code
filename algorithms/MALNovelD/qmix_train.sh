@@ -16,7 +16,7 @@ embed_dim=16 # default 16
 nd_hidden_dim=64 # default 64
 nd_scale_fac=0.5 # default 0.5
 nd_lr=0.0001 # default 0.0001
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
