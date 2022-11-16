@@ -43,7 +43,7 @@ class NovelD:
             # Add sentence encoder on the input
             # Fixed target embedding network
             self.target_encoder = GRUEncoder(
-                hidden_dim, embed_dim, word_encoder)
+                hidden_dim, 40, word_encoder)
             self.target = nn.Sequential(
                 self.target_encoder,
                 nn.ReLU(),
@@ -52,7 +52,7 @@ class NovelD:
                     n_hidden_layers=2, norm_in=False))
             # Predictor embedding network
             self.predictor_encoder = GRUEncoder(
-                hidden_dim, embed_dim, word_encoder)
+                hidden_dim, 40, word_encoder)
             self.predictor = nn.Sequential(
                 self.predictor_encoder,
                 nn.ReLU(),
@@ -243,6 +243,19 @@ class LNovelD:
         self.lang_noveld.set_eval(device)
 
     def get_reward(self, obs_in, lang_in):
+        """
+        Get intrinsic reward for the given observation-description couple.
+        Inputs:
+            obs_in (torch.Tensor): Observation to compute the reward from,
+                dim=(1, state_dim).
+            lang_in (list(list(str))): Description to compute the reward from.
+        Outputs:
+            tot_reward (float): Intrinsic reward given by LNovelD.
+            obs_int_reward (float): Part of the total intrinsic reward based on
+                the given observation.
+            lang_int_reward (float): Part of the total intrinsic reward based 
+                on the given description.
+        """
         obs_int_reward = self.obs_noveld.get_reward(obs_in)
         lang_int_reward = self.lang_noveld.get_reward(lang_in)
 
