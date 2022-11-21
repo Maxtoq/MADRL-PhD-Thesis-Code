@@ -217,9 +217,9 @@ class QMIXAgent:
             # Choose actions
             actions = (1 - take_random) * greedy_actions + \
                       take_random * rand_actions
-            onehot_actions = torch.eye(self.act_dim)[actions]
+            onehot_actions = torch.eye(self.act_dim)[actions.to("cpu")]
         else:
-            onehot_actions = torch.eye(self.act_dim)[greedy_actions]
+            onehot_actions = torch.eye(self.act_dim)[greedy_actions.to("cpu")]
         
         return onehot_actions.to(self.device), greedy_Qs
 
