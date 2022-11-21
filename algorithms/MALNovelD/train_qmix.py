@@ -193,7 +193,9 @@ def run(cfg):
 
         if cfg.save_descriptions:
             saved_descrs.append(
-                {"step": step_i, "obs": list(obs), "descr": descr})
+                {"step": step_i, 
+                "obs": [list(o) for o in obs], 
+                "descr": descr})
         
         # Check for end of episode
         if ep_success or ep_step_i + 1 == cfg.episode_length:
