@@ -78,7 +78,7 @@ def rnn_eval_episode(env, model, max_ep_len, init_pos=None, render=False,
             print("Rewards", rewards)
 
         if render:
-            time.sleep(step_time)
+            time.sleep(10)
             env.render()
 
         ep_return += rewards[0]

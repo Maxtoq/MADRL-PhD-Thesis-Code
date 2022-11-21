@@ -290,6 +290,9 @@ def run(cfg):
             eval_data_dict["Mean return"].append(eval_return)
             eval_data_dict["Success rate"].append(eval_success_rate)
             eval_data_dict["Mean episode length"].append(eval_ep_len)
+            # Save eval data
+            eval_df = pd.DataFrame(eval_data_dict)
+            eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
 
         # Save model
         if (step_i + 1) % cfg.save_interval == 0:
@@ -297,6 +300,9 @@ def run(cfg):
             qmix.save(run_dir / 'incremental' / ('model_ep%i.pt' % (step_i)))
             qmix.save(model_cp_path)
             qmix.prep_rollouts(device=device)
+            # Save training data
+            train_df = pd.DataFrame(train_data_dict)
+            train_df.to_csv(str(run_dir / 'training_data.csv'))
 
     env.close()
     # Save model
