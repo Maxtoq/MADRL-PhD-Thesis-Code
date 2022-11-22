@@ -65,7 +65,7 @@ class Object(Entity):
         self.movable = True
 
 class ClickNPushWorld(World):
-    def __init__(self, nb_agents, nb_objects):
+    def __init__(self, nb_agents, nb_objects, nb_buttons):
         super(ClickNPushWorld, self).__init__()
         # add agent
         self.nb_agents = nb_agents
@@ -78,7 +78,8 @@ class ClickNPushWorld(World):
         # Distances between objects and their landmark
         self.obj_lm_dists = np.zeros(self.nb_objects)
         # Button
-        self.button = Button()
+        self.nb_buttons = nb_buttons
+        self.buttons = [Button() for _ in range(self.nb_buttons)]
         # Control inertia
         self.damping = 0.8
         # Add walls on each side and 
@@ -93,7 +94,7 @@ class ClickNPushWorld(World):
 
     @property
     def entities(self):
-        return self.agents + self.objects + self.landmarks + [self.button]
+        return self.agents + self.objects + self.landmarks + self.buttons
 
     def step(self):
         last_obj_lm_dists = np.copy(self.obj_lm_dists)
@@ -108,13 +109,16 @@ class ClickNPushWorld(World):
             # Compute reward
             self.global_reward += 100 * (
                 last_obj_lm_dists[obj_i] - self.obj_lm_dists[obj_i])
-        # Check if button is pushed to set movable state of objects
+        # Check if buttons are pushed to set movable state of objects
         objects_move = False
-        for ag in self.agents:
-            if self.button.is_pushing(ag.state.p_pos):
-                objects_move = True
-                self.global_reward += 0.5
-                break
+        pushed = []
+        for b in self.buttons:
+            pushed.append(
+                any([b.is_pushing(ag.state.p_pos) for ag in self.agents]))
+            b.pushed = pushed[-1]
+        self.global_reward += 0.2 * sum(pushed)
+        if all(pushed):
+            objects_move = True
         for obj in self.objects:
             obj.movable = objects_move
 
@@ -140,10 +144,11 @@ class ClickNPushWorld(World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=1, reward_done=50, reward_button_pushed=10, 
-                   step_penalty=0.1, obj_lm_dist_range=[0.5, 1.5]):
-        world = ClickNPushWorld(nb_agents, nb_objects)
+    def make_world(
+            self, nb_agents=2, nb_objects=1, nb_buttons=1, obs_range=2.83, 
+            collision_pen=1, reward_done=50, reward_button_pushed=10, 
+            step_penalty=0.1, obj_lm_dist_range=[0.5, 1.5]):
+        world = ClickNPushWorld(nb_agents, nb_objects, nb_buttons)
         # Init world entities
         self.nb_agents = nb_agents
         for i, agent in enumerate(world.agents):
@@ -151,7 +156,7 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.size = AGENT_RADIUS
             agent.initial_mass = AGENT_MASS
-            agent.accel = 3.5
+            agent.accel = 3.8
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color[i % 3] = 1.0
         self.nb_objects = nb_objects
@@ -164,8 +169,9 @@ class Scenario(BaseScenario):
             world.landmarks[i].size = LANDMARK_RADIUS
             world.landmarks[i].collide = False
             world.landmarks[i].color = color
-        world.button.size = BUTTON_RADIUS
-        world.button.color = np.random.uniform(0, 1, world.dim_color)
+        for i, but in enumerate(world.buttons):
+            but.size = BUTTON_RADIUS
+            but.color = np.array([0.01, 0.01, 0.01])
         # Scenario attributes
         self.obs_range = obs_range
         self.obj_lm_dist_range = obj_lm_dist_range
@@ -238,34 +244,35 @@ class Scenario(BaseScenario):
                     obj.state.p_pos, world.landmarks[i].state.p_pos)
             # Set distances between objects and their landmark
             world.obj_lm_dists[i] = dist
-        # Button's initial pos
-        if init_pos is None:
-            # world.button.state.p_pos = np.array([
-            #     random.uniform(-1 + BUTTON_RADIUS, 1 - BUTTON_RADIUS),
-            #     1 - AGENT_RADIUS])
-            # world.button.state.p_pos = np.array([
-            #     0.0,
-            #     1 - AGENT_RADIUS])
-            while True:
-                world.button.state.p_pos = np.array([
-                    random.uniform(-1 + AGENT_RADIUS, 1 - AGENT_RADIUS),
-                    random.uniform(-1 + AGENT_RADIUS, 1 - AGENT_RADIUS)])
-                obj_dist = get_dist(
-                        world.objects[0].state.p_pos, 
-                        world.button.state.p_pos)
-                lm_dist = get_dist(
-                        world.landmarks[0].state.p_pos, 
-                        world.button.state.p_pos)
-                if (obj_dist > OBJECT_RADIUS + AGENT_RADIUS and 
-                    lm_dist > OBJECT_RADIUS + AGENT_RADIUS):
-                    break
-        else:
-            world.button.state.p_pos = np.array(init_pos["button"])
+        # Buttons' initial pos
+        for i, but in enumerate(world.buttons):
+            but.pushed = False
+            if init_pos is None:
+                # world.button.state.p_pos = np.array([
+                #     random.uniform(-1 + BUTTON_RADIUS, 1 - BUTTON_RADIUS),
+                #     1 - AGENT_RADIUS])
+                # world.button.state.p_pos = np.array([
+                #     0.0,
+                #     1 - AGENT_RADIUS])
+                while True:
+                    but.state.p_pos = np.array([
+                        random.uniform(-1 + AGENT_RADIUS, 1 - AGENT_RADIUS),
+                        random.uniform(-1 + AGENT_RADIUS, 1 - AGENT_RADIUS)])
+                    obj_dist = get_dist(
+                            world.objects[0].state.p_pos, 
+                            but.state.p_pos)
+                    lm_dist = get_dist(
+                            world.landmarks[0].state.p_pos, 
+                            but.state.p_pos)
+                    if (obj_dist > OBJECT_RADIUS + AGENT_RADIUS and 
+                        lm_dist > OBJECT_RADIUS + AGENT_RADIUS):
+                        break
+            else:
+                but.state.p_pos = np.array(init_pos["button"])
         # Set initial velocity
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
-        # Initialise state of button and wall
-        world.button.pushed = False
+        # Initialise state of wall
         self._done_flag = False
 
     def reward(self, agent, world):
@@ -333,13 +340,14 @@ class Scenario(BaseScenario):
                 )))
             else:
                 obs.append(np.array([0.0, 1.0, 1.0]))
-        if get_dist(
-            agent.state.p_pos, world.button.state.p_pos) <= self.obs_range:
-            obs.append(np.concatenate((
-                [1.0, float(world.button.pushed)], 
-                (world.button.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
-            )))
-        else:
-            obs.append(np.array([0.0, 0.0, 1.0, 1.0]))
+        for but in world.buttons:
+            if get_dist(
+                agent.state.p_pos, but.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0, float(but.pushed)], 
+                    (but.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                )))
+            else:
+                obs.append(np.array([0.0, 0.0, 1.0, 1.0]))
 
         return np.concatenate(obs)
