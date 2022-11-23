@@ -223,7 +223,7 @@ class RecReplayBuffer:
                 self.shared_obs_buff, n_roll, axis=1)
             self.act_buff = np.roll(self.act_buff, n_roll, axis=1)
             self.rew_buff = np.roll(self.rew_buff, n_roll, axis=1)
-            self.dones_buff = np.roll(self.dones_buff, n_roll, axis=1)
+            self.done_buff = np.roll(self.done_buff, n_roll, axis=1)
             self.filled_i = self.buffer_size
             self.curr_i = 0
         

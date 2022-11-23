@@ -116,7 +116,7 @@ class ClickNPushWorld(World):
             pushed.append(
                 any([b.is_pushing(ag.state.p_pos) for ag in self.agents]))
             b.pushed = pushed[-1]
-        self.global_reward += 0.2 * sum(pushed)
+        self.global_reward += (0.4 / self.nb_buttons) * sum(pushed)
         if all(pushed):
             objects_move = True
         for obj in self.objects:

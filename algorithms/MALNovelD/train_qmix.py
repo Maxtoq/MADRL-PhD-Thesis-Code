@@ -53,6 +53,8 @@ def run(cfg):
         device = 'cpu'
 
     # Create environment
+    if "rel_overgen.py" in cfg.env_path:
+        env = 
     if "lnoveld" in cfg.model_type:
         env, parser = make_env_parser(
             cfg.env_path, sce_conf, discrete_action=True)
@@ -177,7 +179,8 @@ def run(cfg):
 
         # Save experience for replay buffer
         ep_obs[ep_step_i, 0, :] = np.stack(obs)
-        ep_shared_obs[ep_step_i, 0, :] = np.tile(np.concatenate(obs), (2, 1))
+        ep_shared_obs[ep_step_i, 0, :] = np.tile(
+            np.concatenate(obs), (nb_agents, 1))
         ep_acts[ep_step_i, 0, :] = np.stack(actions)
         ep_rews[ep_step_i, 0, :] = rewards
         ep_dones[ep_step_i, 0, :] = np.vstack(dones)
@@ -202,7 +205,7 @@ def run(cfg):
             # Store next state observations for last step
             ep_obs[ep_step_i + 1, 0, :] = np.stack(next_obs)
             ep_shared_obs[ep_step_i + 1, 0, :] = np.tile( 
-                np.concatenate(next_obs), (2, 1))
+                np.concatenate(next_obs), (nb_agents, 1))
             # Store episode in replay buffer
             buffer.store(ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones)
             # Log training data
