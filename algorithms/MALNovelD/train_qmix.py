@@ -1,5 +1,6 @@
 import argparse
 import os
+import imp
 import git
 import json
 import time
@@ -54,8 +55,9 @@ def run(cfg):
 
     # Create environment
     if "rel_overgen.py" in cfg.env_path:
-        env = 
-    if "lnoveld" in cfg.model_type:
+        env = imp.load_source('', cfg.env_path).RelOvergenEnv(100)
+        lnoveld = False
+    elif "lnoveld" in cfg.model_type:
         env, parser = make_env_parser(
             cfg.env_path, sce_conf, discrete_action=True)
         lnoveld = True
@@ -65,8 +67,10 @@ def run(cfg):
 
     # Create model
     nb_agents = sce_conf["nb_agents"]
-    obs_dim = env.observation_space[0].shape[0]
-    act_dim = env.action_space[0].n
+    # obs_dim = env.observation_space[0].shape[0]
+    # act_dim = env.action_space[0].n
+    obs_dim = env.obs_dim
+    act_dim = env.act_dim
     if cfg.model_type == "qmix":
         qmix = QMIX(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,

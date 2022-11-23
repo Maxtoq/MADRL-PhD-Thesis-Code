@@ -7,7 +7,7 @@ MID_REWARD = 0
 class RelOvergenEnv:
 
     def __init__(self, state_dim):
-        self.obs_dim = 2
+        self.obs_dim = state_dim
         self.act_dim = 2
 
         self.state_dim = state_dim
@@ -26,11 +26,17 @@ class RelOvergenEnv:
         self.max_steps = state_dim
         self.current_step = 0
 
+    def get_obs(self):
+        return [
+            np.eye(self.state_dim)[self.agents_pos[0]],
+            np.eye(self.state_dim)[self.agents_pos[1]]
+        ]
+
     def reset(self):
         for a_i in range(2):
             self.agents_pos[a_i] = random.randint(0, self.state_dim - 1)
         self.current_step = 0
-        return [self.agents_pos, self.agents_pos]
+        return self.get_obs()
 
     def compute_reward(self):
         opti = BEST_REWARD - 25 * (
@@ -43,13 +49,13 @@ class RelOvergenEnv:
 
     def step(self, actions):
         for a_i in range(2):
-            self.agents_pos[a_i] += actions[a_i][0]
-            self.agents_pos[a_i] -= actions[a_i][1]
+            self.agents_pos[a_i] += int(actions[a_i][0])
+            self.agents_pos[a_i] -= int(actions[a_i][1])
             if self.agents_pos[a_i] < 0:
                 self.agents_pos[a_i] = 0
             elif self.agents_pos[a_i] >= self.state_dim:
                 self.agents_pos[a_i] = self.state_dim - 1
-        next_states = [self.agents_pos, self.agents_pos]
+        next_states = self.get_obs()
 
         reward = self.compute_reward()
         rewards =[reward, reward]

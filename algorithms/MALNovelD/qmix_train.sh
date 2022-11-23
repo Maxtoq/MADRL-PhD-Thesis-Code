@@ -1,8 +1,8 @@
 #!/bin/sh
-n_run=3
-env="algorithms/MALNovelD/scenarios/click_n_push.py"
-model_name="qmix_manoveld_3a_fo"
-sce_conf_path="configs/3a_1o_2b_fo_rel.json"
+n_run=1
+env="algorithms/MALNovelD/scenarios/rel_overgen.py"
+model_name="qmix_manoveld_fo"
+sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000
 frames_per_update=100
 eval_every=1000000
