@@ -366,3 +366,12 @@ models/click_n_push2_fixed/qmix_manoveld_po/run2/*
 
 !models/click_n_push_fixed
 models/click_n_push_fixed/*
+
+!models/rel_overgen
+models/rel_overgen/*
+
+!models/rel_overgen/qmix_manoveld_fo
+models/rel_overgen/qmix_manoveld_fo/*
+!models/rel_overgen/qmix_manoveld_fo/run8
+models/rel_overgen/qmix_manoveld_fo/run8/*
+!models/rel_overgen/qmix_manoveld_fo/run8/model.pt

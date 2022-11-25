@@ -55,22 +55,29 @@ def run(cfg):
 
     # Create environment
     if "rel_overgen.py" in cfg.env_path:
-        env = imp.load_source('', cfg.env_path).RelOvergenEnv(100)
+        env = imp.load_source('', cfg.env_path).RelOvergenEnv(
+            cfg.state_dim,
+            cfg.optimal_reward,
+            cfg.optimal_diffusion_coeff,
+            cfg.suboptimal_reward,
+            cfg.suboptimal_diffusion_coeff)
+        obs_dim = env.obs_dim
+        act_dim = env.act_dim
         lnoveld = False
     elif "lnoveld" in cfg.model_type:
         env, parser = make_env_parser(
             cfg.env_path, sce_conf, discrete_action=True)
+        obs_dim = env.observation_space[0].shape[0]
+        act_dim = env.action_space[0].n
         lnoveld = True
     else:
         env = make_env(cfg.env_path, sce_conf, discrete_action=True)
+        obs_dim = env.observation_space[0].shape[0]
+        act_dim = env.action_space[0].n
         lnoveld = False
 
     # Create model
     nb_agents = sce_conf["nb_agents"]
-    # obs_dim = env.observation_space[0].shape[0]
-    # act_dim = env.action_space[0].n
-    obs_dim = env.obs_dim
-    act_dim = env.act_dim
     if cfg.model_type == "qmix":
         qmix = QMIX(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
@@ -383,6 +390,12 @@ if __name__ == '__main__':
     parser.add_argument("--save_descriptions", action="store_true")
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)
+    # Relative Overgeneralisation environment
+    parser.add_argument("--state_dim", type=int, default=50)
+    parser.add_argument("--optimal_reward", type=float, default=12.0)
+    parser.add_argument("--optimal_diffusion_coeff", type=float, default=30.0)
+    parser.add_argument("--suboptimal_reward", type=float, default=0.0)
+    parser.add_argument("--suboptimal_diffusion_coeff", type=float, default=0.08)
 
     config = parser.parse_args()
 

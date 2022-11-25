@@ -1,14 +1,13 @@
 import numpy as np
 import random
 
-BEST_REWARD = 12
-MID_REWARD = 0
-
 class RelOvergenEnv:
 
-    def __init__(self, state_dim):
+    def __init__(self, state_dim, 
+                 optim_reward=8, optim_diff_coeff=25, 
+                 suboptim_reward=0, suboptim_diff_coeff=0.125):
         self.obs_dim = state_dim
-        self.act_dim = 2
+        self.act_dim = 3
 
         self.state_dim = state_dim
         self.unit = 10.0 / state_dim
@@ -22,6 +21,11 @@ class RelOvergenEnv:
         self.suboptimal_state = [
             10.0 - int(state_dim / 4) * self.unit, 
             10.0 - int(state_dim / 5) * self.unit]
+        
+        self.optim_reward = optim_reward
+        self.optim_diff_coeff = optim_diff_coeff
+        self.suboptim_reward = suboptim_reward
+        self.suboptim_diff_coeff = suboptim_diff_coeff
         
         self.max_steps = state_dim
         self.current_step = 0
@@ -39,10 +43,10 @@ class RelOvergenEnv:
         return self.get_obs()
 
     def compute_reward(self):
-        opti = BEST_REWARD - 25 * (
+        opti = self.optim_reward - self.optim_diff_coeff * (
             (self.states[self.agents_pos[0]] - self.optimal_state[0]) ** 2 + 
             (self.states[self.agents_pos[1]] - self.optimal_state[1]) ** 2)
-        subopti = MID_REWARD - 0.125 * (
+        subopti = self.suboptim_reward - self.suboptim_diff_coeff * (
             (self.states[self.agents_pos[0]] - self.suboptimal_state[0]) ** 2 + 
             (self.states[self.agents_pos[1]] - self.suboptimal_state[1]) ** 2)
         return max(opti, subopti)
