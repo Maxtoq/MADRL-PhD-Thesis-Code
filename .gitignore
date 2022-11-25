@@ -375,3 +375,9 @@ models/rel_overgen/qmix_manoveld_fo/*
 !models/rel_overgen/qmix_manoveld_fo/run8
 models/rel_overgen/qmix_manoveld_fo/run8/*
 !models/rel_overgen/qmix_manoveld_fo/run8/model.pt
+
+!models/rel_overgen/qmix_fo
+models/rel_overgen/qmix_fo/*
+!models/rel_overgen/qmix_fo/run10
+models/rel_overgen/qmix_fo/run10/*
+!models/rel_overgen/qmix_fo/run10/model.pt
