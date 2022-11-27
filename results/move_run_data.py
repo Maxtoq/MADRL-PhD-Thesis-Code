@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser.add_argument("model_dir", type=str)
     parser.add_argument("--data_file", type=str, default="training_data.csv")
     parser.add_argument("--output_dir_name", type=str, default="train_data")
-    parser.add_argument("--runs", type=str, nargs="*")
+    parser.add_argument("--runs", type=str, nargs="*", required=True)
     args = parser.parse_args()
 
     # Get run paths
