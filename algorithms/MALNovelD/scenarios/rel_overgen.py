@@ -20,8 +20,8 @@ class RelOvergenEnv:
             int(state_dim / 4) * self.unit, 
             int(state_dim / 5) * self.unit]
         self.suboptimal_state = [
-            10.0 - int(state_dim / 4) * self.unit, 
-            10.0 - int(state_dim / 5) * self.unit]
+            10.0 - int(state_dim / 9) * self.unit, 
+            10.0 - int(state_dim / 8) * self.unit]
         
         self.optim_reward = optim_reward
         self.optim_diff_coeff = optim_diff_coeff
