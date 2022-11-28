@@ -60,7 +60,8 @@ def run(cfg):
             cfg.optimal_reward,
             cfg.optimal_diffusion_coeff,
             cfg.suboptimal_reward,
-            cfg.suboptimal_diffusion_coeff)
+            cfg.suboptimal_diffusion_coeff,
+            cfg.save_visited_states)
         obs_dim = env.obs_dim
         act_dim = env.act_dim
         lnoveld = False
@@ -335,6 +336,9 @@ def run(cfg):
     if cfg.save_descriptions:
         with open(str(run_dir / "descriptions.json"), 'w') as f:
             json.dump(saved_descrs, f)
+    if cfg.save_visited_states:
+        with open(str(run_dir / "visited_states.json"), 'w') as f:
+            json.dump(env.visited_states[:-1], f)
     print("Model saved in dir", run_dir)
 
 
@@ -395,7 +399,10 @@ if __name__ == '__main__':
     parser.add_argument("--optimal_reward", type=float, default=12.0)
     parser.add_argument("--optimal_diffusion_coeff", type=float, default=30.0)
     parser.add_argument("--suboptimal_reward", type=float, default=0.0)
-    parser.add_argument("--suboptimal_diffusion_coeff", type=float, default=0.08)
+    parser.add_argument("--suboptimal_diffusion_coeff", type=float, 
+                        default=0.08)
+    parser.add_argument("--save_visited_states", action="store_true",
+                         default=False)
 
     config = parser.parse_args()
 

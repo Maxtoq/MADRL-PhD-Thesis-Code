@@ -5,7 +5,8 @@ class RelOvergenEnv:
 
     def __init__(self, state_dim, 
                  optim_reward=8, optim_diff_coeff=25, 
-                 suboptim_reward=0, suboptim_diff_coeff=0.125):
+                 suboptim_reward=0, suboptim_diff_coeff=0.125,
+                 save_visited_states=False):
         self.obs_dim = state_dim
         self.act_dim = 3
 
@@ -30,7 +31,12 @@ class RelOvergenEnv:
         self.max_steps = state_dim
         self.current_step = 0
 
+        self.save_visited = save_visited_states
+        self.visited_states = []
+
     def get_obs(self):
+        if self.save_visited:
+            self.visited_states.append(self.agents_pos[:])
         return [
             np.eye(self.state_dim)[self.agents_pos[0]],
             np.eye(self.state_dim)[self.agents_pos[1]]
@@ -62,7 +68,7 @@ class RelOvergenEnv:
         next_states = self.get_obs()
 
         reward = self.compute_reward()
-        rewards =[reward, reward]
+        rewards = [reward, reward]
         
         self.current_step += 1
         done = float(self.current_step >= self.max_steps)

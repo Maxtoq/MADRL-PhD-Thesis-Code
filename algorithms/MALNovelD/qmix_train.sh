@@ -1,9 +1,9 @@
 #!/bin/sh
-n_run=20
+n_run=1
 env="algorithms/MALNovelD/scenarios/rel_overgen.py"
 model_name="qmix_fo"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=2000000
+n_frames=4000000
 frames_per_update=100
 eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
@@ -16,7 +16,8 @@ embed_dim=16 # default 16
 nd_hidden_dim=64 # default 64
 nd_scale_fac=0.5 # default 0.5
 nd_lr=0.0001 # default 0.0001
-cuda_device="cuda:3"
+state_dim=50
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do
@@ -28,7 +29,8 @@ do
 --frames_per_update ${frames_per_update} --init_explo_rate ${init_explo_rate} \
 --nd_scale_fac ${nd_scale_fac} --nd_lr ${nd_lr} --embed_dim ${embed_dim} \
 --nd_hidden_dim ${nd_hidden_dim} \
---model_type ${model_type} --int_reward_coeff ${int_reward_coeff}"
+--model_type ${model_type} --int_reward_coeff ${int_reward_coeff} \
+--state_dim {$state_dim} --save_visited_states"
 # --eval_every ${eval_every} --eval_scenar_file ${eval_scenar_file} \
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
