@@ -17,7 +17,7 @@ from model.modules.qmix_noveld import QMIX_MANovelD, QMIX_PANovelD, QMIX_MALNove
 from utils.buffer import RecReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env, make_env_parser
 from utils.eval import perform_eval_scenar
-from utils.decay import EpsilonDecay
+from utils.decay import ParameterDecay
 
 def run(cfg):
     # Get paths for saving logs and model
@@ -101,6 +101,15 @@ def run(cfg):
     else:
         print("ERROR: bad model type.")
     qmix.prep_rollouts(device=device)
+    
+    # Intrinsic reward coefficient
+    if cfg.int_reward_fn != "constant":
+        int_reward_coeff = ParameterDecay(
+            cfg.int_reward_coeff, 
+            cfg.int_reward_coeff / 100, 
+            cfg.n_frames, 
+            cfg.int_reward_fn, 
+            cfg.int_reward_decay_smooth)
 
     # Create replay buffer
     buffer = RecReplayBuffer(
@@ -110,7 +119,7 @@ def run(cfg):
     if cfg.n_explo_frames is None:
         cfg.n_explo_frames = cfg.n_frames
     # Set epsilon decay function
-    eps_decay = EpsilonDecay(
+    eps_decay = ParameterDecay(
         cfg.init_explo_rate, cfg.final_explo_rate, 
         cfg.n_explo_frames, cfg.epsilon_decay_fn)
 
@@ -182,8 +191,11 @@ def run(cfg):
                     qmix.get_intrinsic_rewards(next_obs, next_descr)
             else:
                 int_rewards = qmix.get_intrinsic_rewards(next_obs)
-            rewards = np.array([ext_rewards]) + \
-                      cfg.int_reward_coeff * np.array([int_rewards])
+            if cfg.int_reward_fn == "constant":
+                coeff = cfg.int_reward_coeff
+            else:
+                coeff = int_reward_coeff.get_explo_rate(step_i)
+            rewards = np.array([ext_rewards]) + coeff * np.array([int_rewards])
             rewards = rewards.T
         else:
             int_rewards = [0.0, 0.0]
@@ -384,12 +396,16 @@ if __name__ == '__main__':
     parser.add_argument("--shared_params", action='store_true')
     parser.add_argument("--max_grad_norm", type=float, default=0.5,
                         help='Max norm of gradients (default: 0.5)')
+    # Intrinsic reward hyperparameters
+    parser.add_argument("--int_reward_fn", default="constant", type=str, 
+                        choices=["constant", "linear", "sigmoid"])
+    parser.add_argument("--int_reward_coeff", default=0.1, type=float)
+    parser.add_argument("--int_reward_decay_smooth", type=float, default=2.0)
     # NovelD
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--nd_lr", default=1e-4, type=float)
     parser.add_argument("--nd_scale_fac", default=0.5, type=float)
     parser.add_argument("--nd_hidden_dim", default=64, type=int)
-    parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     # Language
     parser.add_argument("--save_descriptions", action="store_true")
     # Cuda
