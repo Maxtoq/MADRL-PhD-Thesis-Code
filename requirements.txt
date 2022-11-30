@@ -33,7 +33,6 @@ matplotlib==3.3.4
 numpy==1.19.5
 numpy-stl==2.16.3
 oauthlib==3.1.1
-opencv-python==4.5.4.58
 opt-einsum==3.3.0
 pandas==1.1.5
 pathtools==0.1.2
@@ -66,7 +65,7 @@ tensorboardX==2.4
 tensorflow==2.6.2
 tensorflow-estimator==2.6.0
 termcolor==1.1.0
-torch==1.10.0
+torch
 tqdm==4.62.3
 typing-extensions==3.7.4.3
 urllib3==1.26.7

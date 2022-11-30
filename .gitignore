@@ -391,6 +391,7 @@ models/rel_overgen/qmix_manoveld_fo/run6/*
 !models/rel_overgen/qmix_manoveld_fo/run6/model.pt
 
 !models/rel_overgen/qmix_manoveld_fo/train_data
+!models/rel_overgen/qmix_manoveld_fo/train_data_mlia
 
 !models/rel_overgen/qmix_fo/run5
 models/rel_overgen/qmix_fo/run5/*
@@ -399,3 +400,6 @@ models/rel_overgen/qmix_fo/run5/*
 !models/rel_overgen/qmix_panoveld_fo
 models/rel_overgen/qmix_panoveld_fo/*
 !models/rel_overgen/qmix_panoveld_fo/train_data
+
+maxtoq*
+algorithms/MALNovelD/sbatch_qmix_train.sh
