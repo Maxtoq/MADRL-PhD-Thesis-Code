@@ -17,8 +17,8 @@ class RelOvergenEnv:
         self.agents_pos = [0, 0]
 
         self.optimal_state = [
-            int(state_dim / 5) * self.unit, 
-            int(state_dim / 6) * self.unit]
+            int(state_dim / 4) * self.unit, 
+            int(state_dim / 5) * self.unit]
         self.suboptimal_state = [
             10.0 - self.optimal_state[0], 
             10.0 - self.optimal_state[1]]

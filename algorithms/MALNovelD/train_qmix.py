@@ -106,7 +106,7 @@ def run(cfg):
     if cfg.int_reward_fn != "constant":
         int_reward_coeff = ParameterDecay(
             cfg.int_reward_coeff, 
-            cfg.int_reward_coeff / 100, 
+            cfg.int_reward_coeff / 10, 
             cfg.n_frames, 
             cfg.int_reward_fn, 
             cfg.int_reward_decay_smooth)
@@ -400,7 +400,7 @@ if __name__ == '__main__':
     parser.add_argument("--int_reward_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
-    parser.add_argument("--int_reward_decay_smooth", type=float, default=2.0)
+    parser.add_argument("--int_reward_decay_smooth", type=float, default=1.5)
     # NovelD
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--nd_lr", default=1e-4, type=float)
