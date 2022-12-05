@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=6
 env="algorithms/MALNovelD/scenarios/rel_overgen.py"
 model_name="qmix_manoveld"
 sce_conf_path="configs/2a_1o_fo_rel.json"
@@ -12,7 +12,7 @@ n_explo_frames=2000000
 epsilon_decay_fn="linear"
 model_type="qmix_manoveld"
 int_reward_coeff=10.0
-int_reward_fn="constant"
+int_reward_fn="sigmoid"
 gamma=0.99
 embed_dim=16 # default 16
 nd_hidden_dim=64 # default 64
@@ -20,7 +20,7 @@ nd_scale_fac=0.5 # default 0.5
 nd_lr=0.0001 # default 0.0001
 state_dim=50
 optimal_diffusion_coeff=30
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
