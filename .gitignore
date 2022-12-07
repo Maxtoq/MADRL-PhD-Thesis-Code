@@ -407,3 +407,12 @@ algorithms/MALNovelD/sbatch_qmix_train.sh
 !models/rel_overgen/qmix_manoveld
 models/rel_overgen/qmix_manoveld/*
 !models/rel_overgen/qmix_manoveld/train_data
+!models/rel_overgen/qmix_manoveld/train_data_40_50
+
+!models/rel_overgen/qmix
+models/rel_overgen/qmix/*
+!models/rel_overgen/qmix/train_data_40_50
+
+!models/rel_overgen/qmix_manoveld_sig
+models/rel_overgen/qmix_manoveld_sig/*
+!models/rel_overgen/qmix_manoveld_sig/train_data_40_50
