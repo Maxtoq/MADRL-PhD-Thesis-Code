@@ -426,3 +426,7 @@ models/rel_overgen/qmix_panoveld/*
 !models/rel_overgen/qmix_panoveld_4040
 models/rel_overgen/qmix_panoveld_4040/*
 !models/rel_overgen/qmix_panoveld_4040/train_data
+
+!models/rel_overgen/qmix_panoveld_4030
+models/rel_overgen/qmix_panoveld_4030/*
+!models/rel_overgen/qmix_panoveld_4030/train_data
