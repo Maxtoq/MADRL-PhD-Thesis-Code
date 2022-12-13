@@ -1,9 +1,9 @@
 #!/bin/sh
 n_run=6
 env="algorithms/MALNovelD/scenarios/rel_overgen.py"
-model_name="qmix_panoveld_4030"
+model_name="TEST"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=2000000
+n_frames=2000
 frames_per_update=100
 eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
