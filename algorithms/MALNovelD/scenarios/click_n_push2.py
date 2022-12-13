@@ -6,7 +6,7 @@ from multiagent.core import World, Agent, Landmark, Action, Entity
 
 from utils.parsers import Parser
 
-BUTTON_RADIUS = 0.03
+BUTTON_RADIUS = 0.04
 LANDMARK_RADIUS = 0.05
 OBJECT_RADIUS = 0.15
 OBJECT_MASS = 2.0
@@ -340,14 +340,14 @@ class ClickNPushWorld(World):
         super().step()
         self.global_reward = 0.0
         # Compute shaping reward
-        for obj_i in range(self.nb_objects):
-            # Update dists
-            self.obj_lm_dists[obj_i] = get_dist(
-                self.objects[obj_i].state.p_pos,
-                self.landmarks[obj_i].state.p_pos)
-            # Compute reward
-            self.global_reward += 100 * (
-                last_obj_lm_dists[obj_i] - self.obj_lm_dists[obj_i])
+        # for obj_i in range(self.nb_objects):
+        #     # Update dists
+        #     self.obj_lm_dists[obj_i] = get_dist(
+        #         self.objects[obj_i].state.p_pos,
+        #         self.landmarks[obj_i].state.p_pos)
+        #     # Compute reward
+        #     self.global_reward += 100 * (
+        #         last_obj_lm_dists[obj_i] - self.obj_lm_dists[obj_i])
         # Check if button is pushed to set movable state of objects
         objects_move = False
         for ag in self.agents:
@@ -381,8 +381,8 @@ class ClickNPushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=1, reward_done=50, reward_button_pushed=10, 
-                   step_penalty=0.1, obj_lm_dist_range=[0.3, 1.5]):
+                   collision_pen=1, reward_done=50, 
+                   step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
         world = ClickNPushWorld(nb_agents, nb_objects)
         # Init world entities
         self.nb_agents = nb_agents
@@ -391,6 +391,7 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.size = AGENT_RADIUS
             agent.initial_mass = AGENT_MASS
+            agent.accel = 3.8
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color[i % 3] = 1.0
         self.nb_objects = nb_objects
@@ -414,7 +415,6 @@ class Scenario(BaseScenario):
         self._done_flag = False
         # Reward for completing the task
         self.reward_done = reward_done
-        self.reward_button_pushed = reward_button_pushed
         # Penalty for step in the environment
         self.step_penalty = step_penalty
         # make initial conditions
@@ -452,11 +452,11 @@ class Scenario(BaseScenario):
             obj.movable = False
             # Positions
             if init_pos is None:
+                obj.state.p_pos = np.array([0.0, 0.0])
                 while True:
                     # obj.state.p_pos = np.array([
                     #     random.uniform(-1 + obj.size, 1 - obj.size),
                     #     random.uniform(-1 + obj.size, 1 - 2 * obj.size)])
-                    obj.state.p_pos = np.array([0.0, 0.0])
                     world.landmarks[i].state.p_pos = np.array([
                         random.uniform(-1 + obj.size, 1 - obj.size),
                         random.uniform(-1 + obj.size, 1 - 2 * obj.size)])
