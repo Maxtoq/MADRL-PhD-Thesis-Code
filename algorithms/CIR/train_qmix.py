@@ -12,8 +12,7 @@ import pandas as pd
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from model.modules.qmix import QMIX
-from model.modules.qmix_noveld import QMIX_MANovelD, QMIX_PANovelD, QMIX_MALNovelD
+from models.qmix_intrinsic import QMIX_CIR
 from utils.buffer import RecReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env, make_env_parser
 from utils.eval import perform_eval_scenar
@@ -65,12 +64,6 @@ def run(cfg):
         obs_dim = env.obs_dim
         act_dim = env.act_dim
         lnoveld = False
-    elif "lnoveld" in cfg.model_type:
-        env, parser = make_env_parser(
-            cfg.env_path, sce_conf, discrete_action=True)
-        obs_dim = env.observation_space[0].shape[0]
-        act_dim = env.action_space[0].n
-        lnoveld = True
     else:
         env = make_env(cfg.env_path, sce_conf, discrete_action=True)
         obs_dim = env.observation_space[0].shape[0]
@@ -79,36 +72,46 @@ def run(cfg):
 
     # Create model
     nb_agents = sce_conf["nb_agents"]
-    if cfg.model_type == "qmix":
-        qmix = QMIX(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
+    # if cfg.intrinsic_reward_algo in ["none", "]:
+    #     qmix = QMIX(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
+    #         cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
+    #         cfg.max_grad_norm, device)
+    # elif cfg.model_type == "qmix_cir":
+    #     qmix = QMIX_MANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
+    #         cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
+    #         cfg.init_explo_rate, cfg.max_grad_norm, device,
+    #         cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
+    # # elif cfg.model_type == "qmix_panoveld":
+    # #     qmix = QMIX_PANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
+    # #         cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
+    # #         cfg.init_explo_rate, cfg.max_grad_norm, device,
+    # #         cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
+    # else:
+    #     print("ERROR: bad model type.")
+    if cfg.intrinsic_reward_algo == "none":
+        intrinsic_reward_params = {}
+    elif "noveld" in cfg.intrinsic_reward_algo:
+        intrinsic_reward_params = {}
+    elif "e3b" in cfg.intrinsic_reward_algo:
+        intrinsic_reward_params = {
+            "input_dim": 2 * obs_dim,
+            "act_dim": 2 * act_dim,
+            "enc_dim": cfg.encoding_dim,
+            "ridge": cfg.ridge,
+            "lr": cfg.nd_lr}
+    qmix = QMIX_CIR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
-            cfg.max_grad_norm, device)
-    elif cfg.model_type == "qmix_manoveld":
-        qmix = QMIX_MANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
-            cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
-            cfg.init_explo_rate, cfg.max_grad_norm, device,
-            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
-    elif cfg.model_type == "qmix_panoveld":
-        qmix = QMIX_PANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
-            cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
-            cfg.init_explo_rate, cfg.max_grad_norm, device,
-            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
-    elif cfg.model_type == "qmix_malnoveld":
-        qmix = QMIX_MALNovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
-            parser.vocab, cfg.gamma, cfg.tau, cfg.hidden_dim, 
-            cfg.shared_params, cfg.init_explo_rate, cfg.max_grad_norm, device,
-            cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
-    else:
-        print("ERROR: bad model type.")
+            cfg.max_grad_norm, device, cfg.intrinsic_reward_algo,
+            intrinsic_reward_params)
     qmix.prep_rollouts(device=device)
     
     # Intrinsic reward coefficient
-    if cfg.int_reward_fn != "constant":
+    if cfg.int_reward_decay_fn != "constant":
         int_reward_coeff = ParameterDecay(
             cfg.int_reward_coeff, 
             cfg.int_reward_coeff / 10, 
             cfg.n_frames, 
-            cfg.int_reward_fn, 
+            cfg.int_reward_decay_fn, 
             cfg.int_reward_decay_smooth)
 
     # Create replay buffer
@@ -123,7 +126,7 @@ def run(cfg):
         cfg.init_explo_rate, cfg.final_explo_rate, 
         cfg.n_explo_frames, cfg.epsilon_decay_fn)
 
-    # Set-up evaluation scenario
+    # Setup evaluation scenario
     if cfg.eval_every is not None:
         if cfg.eval_scenar_file is None:
             print("ERROR: Evaluation scenario file must be provided with --eval_scenar_file argument")
@@ -148,23 +151,16 @@ def run(cfg):
         "Episode return": [],
         "Episode extrinsic return": [],
         "Episode intrinsic return": [],
-        "Episode intrinsic return 2": [],
         "Success": [],
         "Episode length": []
     }
-    if cfg.save_descriptions:
-        saved_descrs = []
     # Reset episode data and environment
     ep_step_i = 0
     ep_ext_returns = np.zeros(nb_agents)
     ep_int_returns = np.zeros(nb_agents)
-    ep_int_returns2 = np.zeros(nb_agents)
     ep_success = False
     obs = env.reset()
     qmix.reset_int_reward(obs)
-    if lnoveld:
-        # Get first descriptions
-        descr = parser.get_descriptions(obs)
     # Init episode data for saving in replay buffer
     ep_obs, ep_shared_obs, ep_acts, ep_rews, ep_dones = \
         buffer.init_episode_arrays()
@@ -174,33 +170,20 @@ def run(cfg):
         qmix.set_explo_rate(eps_decay.get_explo_rate(step_i))
 
         # Get actions
-        if lnoveld:
-            actions, qnets_hidden_states = qmix.get_actions(
-                obs, last_actions, qnets_hidden_states, descr, explore=True)
-        else:
-            actions, qnets_hidden_states = qmix.get_actions(
-                obs, last_actions, qnets_hidden_states, explore=True)
+        actions, qnets_hidden_states = qmix.get_actions(
+            obs, last_actions, qnets_hidden_states, explore=True)
         last_actions = actions
         actions = [a.cpu().squeeze().data.numpy() for a in actions]
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
         # Compute intrinsic rewards
-        if "noveld" in cfg.model_type:
-            if lnoveld:
-                next_descr = parser.get_descriptions(next_obs)
-                int_rewards, lnd_obs_rew, lnd_lang_rew = \
-                    qmix.get_intrinsic_rewards(next_obs, next_descr)
-            else:
-                int_rewards = qmix.get_intrinsic_rewards(next_obs)
-            if cfg.int_reward_fn == "constant":
-                coeff = cfg.int_reward_coeff
-            else:
-                coeff = int_reward_coeff.get_explo_rate(step_i)
-            rewards = np.array([ext_rewards]) + coeff * np.array([int_rewards])
-            rewards = rewards.T
+        int_rewards = qmix.get_intrinsic_rewards(next_obs)
+        if cfg.int_reward_decay_fn == "constant":
+            coeff = cfg.int_reward_coeff
         else:
-            int_rewards = [0.0, 0.0]
-            rewards = np.vstack(ext_rewards)
+            coeff = int_reward_coeff.get_explo_rate(step_i)
+        rewards = np.array([ext_rewards]) + coeff * np.array([int_rewards])
+        rewards = rewards.T
 
         # Save experience for replay buffer
         ep_obs[ep_step_i, 0, :] = np.stack(obs)
@@ -211,19 +194,9 @@ def run(cfg):
         ep_dones[ep_step_i, 0, :] = np.vstack(dones)
 
         ep_ext_returns += ext_rewards
-        if lnoveld:
-            ep_int_returns += lnd_obs_rew
-            ep_int_returns2 += lnd_lang_rew
-        else:
-            ep_int_returns += int_rewards
+        ep_int_returns += int_rewards
         if any(dones):
             ep_success = True
-
-        if cfg.save_descriptions:
-            saved_descrs.append(
-                {"step": step_i, 
-                "obs": [list(o) for o in obs], 
-                "descr": descr})
         
         # Check for end of episode
         if ep_success or ep_step_i + 1 == cfg.episode_length:
@@ -241,8 +214,6 @@ def run(cfg):
                 np.mean(ep_ext_returns))
             train_data_dict["Episode intrinsic return"].append(
                 np.mean(ep_int_returns))
-            train_data_dict["Episode intrinsic return 2"].append(
-                np.mean(ep_int_returns2))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_step_i + 1)
             # Log Tensorboard
@@ -254,23 +225,13 @@ def run(cfg):
                 'agent0/episode_ext_return', 
                 train_data_dict["Episode extrinsic return"][-1], 
                 train_data_dict["Step"][-1])
-            if lnoveld:
-                int_returns_dict = {
-                    "lnd_obs_return": np.mean(ep_int_returns),
-                    "lnd_lang_return": np.mean(ep_int_returns2)}
-                logger.add_scalars(
-                    'agent0/episode_int_return', 
-                    int_returns_dict,
-                    train_data_dict["Step"][-1])
-            else:
-                logger.add_scalar(
-                    'agent0/episode_int_return', 
-                    train_data_dict["Episode intrinsic return"][-1], 
-                    train_data_dict["Step"][-1])
+            logger.add_scalar(
+                'agent0/episode_int_return', 
+                train_data_dict["Episode intrinsic return"][-1], 
+                train_data_dict["Step"][-1])
             # Reset episode data
             ep_ext_returns = np.zeros(nb_agents)
             ep_int_returns = np.zeros(nb_agents)
-            ep_int_returns2 = np.zeros(nb_agents)
             ep_step_i = 0
             ep_success = False
             # Init episode data for saving in replay buffer
@@ -294,18 +255,11 @@ def run(cfg):
             # Get samples
             sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
-            losses = qmix.train_on_batch(sample_batch)
-            if cfg.model_type == "qmix":
-                loss_dict = {"qtot_loss": losses}
-            elif cfg.model_type in ["qmix_manoveld", "qmix_panoveld"]:
-                loss_dict = {
-                    "qtot_loss": losses[0],
-                    "nd_loss": losses[1]}
-            elif cfg.model_type == "qmix_malnoveld":
-                loss_dict = {
-                    "qtot_loss": losses[0],
-                    "lnd_obs_loss": losses[1],
-                    "lnd_lang_loss": losses[2]}
+            losses = qmix.train(sample_batch)
+            print(losses)
+            loss_dict = {
+                "qtot_loss": losses[0],
+                "int_reward_loss": losses[1]}
             # Log
             logger.add_scalars('agent0/losses', loss_dict, step_i)
             qmix.update_all_targets()
@@ -345,9 +299,6 @@ def run(cfg):
     if cfg.eval_every is not None:
         eval_df = pd.DataFrame(eval_data_dict)
         eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
-    if cfg.save_descriptions:
-        with open(str(run_dir / "descriptions.json"), 'w') as f:
-            json.dump(saved_descrs, f)
     if cfg.save_visited_states:
         with open(str(run_dir / "visited_states.json"), 'w') as f:
             json.dump(env.visited_states[:-1], f)
@@ -387,8 +338,6 @@ if __name__ == '__main__':
     parser.add_argument("--eval_every", type=int, default=None)
     parser.add_argument("--eval_scenar_file", type=str, default=None)
     # Model hyperparameters
-    parser.add_argument("--model_type", default="qmix", type=str, 
-                        choices=["qmix", "qmix_manoveld", "qmix_panoveld", "qmix_malnoveld"])
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--lr", default=0.0007, type=float)
     parser.add_argument("--tau", default=0.005, type=float)
@@ -397,7 +346,9 @@ if __name__ == '__main__':
     parser.add_argument("--max_grad_norm", type=float, default=0.5,
                         help='Max norm of gradients (default: 0.5)')
     # Intrinsic reward hyperparameters
-    parser.add_argument("--int_reward_fn", default="constant", type=str, 
+    parser.add_argument("--intrinsic_reward_algo", default='none', 
+                        choices=['none', 'cent_noveld', 'cent_e3b'])
+    parser.add_argument("--int_reward_decay_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     parser.add_argument("--int_reward_decay_smooth", type=float, default=1.5)
@@ -406,8 +357,9 @@ if __name__ == '__main__':
     parser.add_argument("--nd_lr", default=1e-4, type=float)
     parser.add_argument("--nd_scale_fac", default=0.5, type=float)
     parser.add_argument("--nd_hidden_dim", default=64, type=int)
-    # Language
-    parser.add_argument("--save_descriptions", action="store_true")
+    # E3B
+    parser.add_argument("--encoding_dim", default=64, type=int)
+    parser.add_argument("--ridge", default=0.1)
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)
     # Relative Overgeneralisation environment

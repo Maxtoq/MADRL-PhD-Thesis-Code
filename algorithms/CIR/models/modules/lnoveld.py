@@ -4,10 +4,11 @@ from torch import nn
 from torch.optim import Adam
 
 from .networks import MLPNetwork
+from .intrinsic_rewards import IntrinsicReward
 from .lm import GRUEncoder
 
 
-class NovelD:
+class NovelD(IntrinsicReward):
     """
     Class implementing NovelD, from "NovelD: A Simple yet Effective Exploration
     Criterion" (Zhang et al., 2021).
