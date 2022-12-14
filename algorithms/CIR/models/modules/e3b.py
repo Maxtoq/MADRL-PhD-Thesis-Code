@@ -8,9 +8,10 @@ class E3B(IntrinsicReward):
     
     def __init__(self, 
             input_dim, act_dim, enc_dim, 
-            hidden_dim=64, ridge=0.1, lr=1e-4):
+            hidden_dim=64, ridge=0.1, lr=1e-4, device="cpu"):
         self.enc_dim = enc_dim
         self.ridge = ridge
+        self.device = device
         # State encoder
         self.encoder = MLPNetwork(
             input_dim, enc_dim, hidden_dim, norm_in=False)
@@ -19,8 +20,8 @@ class E3B(IntrinsicReward):
             2 * enc_dim, act_dim, hidden_dim, norm_in=False)
         # Inverse covariance matrix
         self.ridge = ridge
-        self.inv_cov = torch.eye(enc_dim) * (1.0 / self.ridge)
-        self.outer_product_buffer = torch.empty(enc_dim, enc_dim)
+        self.inv_cov = torch.eye(enc_dim).to(device) * (1.0 / self.ridge)
+        self.outer_product_buffer = torch.empty(enc_dim, enc_dim).to(device)
         
         # Optimizers
         self.encoder_optim = torch.optim.Adam(
@@ -31,18 +32,23 @@ class E3B(IntrinsicReward):
             lr=lr)
     
     def init_new_episode(self):
-        self.inv_cov = torch.eye(self.enc_dim) * (1.0 / self.ridge)
+        self.inv_cov = torch.eye(self.enc_dim).to(self.device)
+        self.inv_cov *= (1.0 / self.ridge)
 
     def set_train(self, device):
         self.encoder.train()
         self.encoder = self.encoder.to(device)
         self.inv_dyn.train()
         self.inv_dyn = self.inv_dyn.to(device)
+        self.inv_cov = self.inv_cov.to(device)
+        self.outer_product_buffer = self.outer_product_buffer.to(device)
         self.device = device
 
     def set_eval(self, device):
         self.encoder.eval()
         self.encoder = self.encoder.to(device)
+        self.inv_cov = self.inv_cov.to(device)
+        self.outer_product_buffer = self.outer_product_buffer.to(device)
         self.device = device
         
     def get_reward(self, state):

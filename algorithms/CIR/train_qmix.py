@@ -98,7 +98,8 @@ def run(cfg):
             "act_dim": 2 * act_dim,
             "enc_dim": cfg.encoding_dim,
             "ridge": cfg.ridge,
-            "lr": cfg.nd_lr}
+            "lr": cfg.nd_lr,
+            "device": device}
     qmix = QMIX_CIR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
             cfg.max_grad_norm, device, cfg.intrinsic_reward_algo,
@@ -256,7 +257,6 @@ def run(cfg):
             sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
             losses = qmix.train(sample_batch)
-            print(losses)
             loss_dict = {
                 "qtot_loss": losses[0],
                 "int_reward_loss": losses[1]}
