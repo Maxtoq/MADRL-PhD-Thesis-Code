@@ -1,17 +1,17 @@
 #!/bin/sh
-n_run=6
-env="algorithms/MALNovelD/scenarios/rel_overgen.py"
-model_name="TEST"
+n_run=2
+env="algorithms/MALNovelD/scenarios/coop_push_scenario_noshaping.py"
+model_name="qmix_manoveld_fo"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=2000
+n_frames=10000000
 frames_per_update=100
 eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
-n_explo_frames=2000000
+n_explo_frames=10000000
 epsilon_decay_fn="linear"
-model_type="qmix_panoveld"
-int_reward_coeff=10.0
+model_type="qmix_manoveld"
+int_reward_coeff=1.0
 int_reward_fn="constant"
 gamma=0.99
 embed_dim=16 # default 16
@@ -20,7 +20,7 @@ nd_scale_fac=0.5 # default 0.5
 nd_lr=0.0001 # default 0.0001
 state_dim=40
 optimal_diffusion_coeff=30
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do

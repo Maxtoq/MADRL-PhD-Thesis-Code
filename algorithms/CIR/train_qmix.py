@@ -90,13 +90,21 @@ def run(cfg):
     #     print("ERROR: bad model type.")
     if cfg.intrinsic_reward_algo == "none":
         intrinsic_reward_params = {}
-    elif "noveld" in cfg.intrinsic_reward_algo:
+    elif "cent_noveld" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {}
-    elif "e3b" in cfg.intrinsic_reward_algo:
+    elif "cent_e3b" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {
             "input_dim": 2 * obs_dim,
             "act_dim": 2 * act_dim,
             "enc_dim": cfg.encoding_dim,
+            "ridge": cfg.ridge,
+            "lr": cfg.nd_lr,
+            "device": device}
+    elif "cent_e2srnd" == cfg.intrinsic_reward_algo:
+        intrinsic_reward_params = {
+            "input_dim": 2 * obs_dim,
+            "embed_dim": cfg.encoding_dim,
+            "hidden_dim": cfg.nd_hidden_dim,
             "ridge": cfg.ridge,
             "lr": cfg.nd_lr,
             "device": device}
@@ -347,7 +355,7 @@ if __name__ == '__main__':
                         help='Max norm of gradients (default: 0.5)')
     # Intrinsic reward hyperparameters
     parser.add_argument("--intrinsic_reward_algo", default='none', 
-                        choices=['none', 'cent_noveld', 'cent_e3b'])
+                        choices=['none', 'cent_noveld', 'cent_e3b', 'cent_e2srnd'])
     parser.add_argument("--int_reward_decay_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
@@ -356,7 +364,7 @@ if __name__ == '__main__':
     parser.add_argument("--embed_dim", default=16, type=int)
     parser.add_argument("--nd_lr", default=1e-4, type=float)
     parser.add_argument("--nd_scale_fac", default=0.5, type=float)
-    parser.add_argument("--nd_hidden_dim", default=64, type=int)
+    parser.add_argument("--nd_hidden_dim", default=128, type=int)
     # E3B
     parser.add_argument("--encoding_dim", default=64, type=int)
     parser.add_argument("--ridge", default=0.1)

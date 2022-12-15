@@ -9,17 +9,18 @@ class E2S_RND(IntrinsicReward):
     """ Elliptical Episodic Scaling of Random Network Distillation. """
 
     def __init__(self, 
-            state_dim, embed_dim, hidden_dim, 
-            lr=1e-4, ridge=0.1, device="cpu"):
+            input_dim, embed_dim, hidden_dim, 
+            ridge=0.1, lr=1e-4, device="cpu"):
+        self.input_dim = input_dim
         self.ridge = ridge
         self.device = device
         # Random Network Distillation network
         # Fixed target embedding network
         self.target = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
+            input_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
         # Predictor embedding network
         self.predictor = MLPNetwork(
-            state_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
+            input_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
 
         self.device = None
 
@@ -27,19 +28,17 @@ class E2S_RND(IntrinsicReward):
         for param in self.target.parameters():
             param.requires_grad = False
 
-        # Training objects
-        self.predictor_loss = nn.MSELoss()
-
         # Inverse covariance matrix for Elliptical bonus
         self.ridge = ridge
-        self.inv_cov = torch.eye(enc_dim).to(device) * (1.0 / self.ridge)
-        self.outer_product_buffer = torch.empty(enc_dim, enc_dim).to(device)
+        self.inv_cov = torch.eye(input_dim).to(device) * (1.0 / self.ridge)
+        self.outer_product_buffer = torch.empty(
+            input_dim, input_dim).to(device)
         
         # Optimizers
-        self.optim = Adam(self.predictor.parameters(), lr=lr)
+        self.optim = torch.optim.Adam(self.predictor.parameters(), lr=lr)
     
     def init_new_episode(self):
-        self.inv_cov = torch.eye(self.enc_dim).to(self.device)
+        self.inv_cov = torch.eye(self.input_dim).to(self.device)
         self.inv_cov *= (1.0 / self.ridge)
 
     def set_train(self, device):
@@ -77,8 +76,8 @@ class E2S_RND(IntrinsicReward):
         int_reward = torch.norm(pred.detach() - target.detach(), dim=1, p=2)
 
         # Compute the elliptic scale
-        u = torch.mv(self.inv_cov, enc_state)
-        elliptic_scale = torch.dot(enc_state, u).item()
+        u = torch.mv(self.inv_cov, state.squeeze())
+        elliptic_scale = torch.dot(state, u).item()
         # Update covariance matrix
         torch.outer(u, u, out=self.outer_product_buffer)
         torch.add(
