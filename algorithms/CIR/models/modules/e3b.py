@@ -4,6 +4,7 @@ from torch.nn import functional as F
 from .networks import MLPNetwork
 from .intrinsic_rewards import IntrinsicReward
 
+
 class E3B(IntrinsicReward):
     
     def __init__(self, 
