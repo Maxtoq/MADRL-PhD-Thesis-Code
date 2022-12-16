@@ -72,41 +72,39 @@ def run(cfg):
 
     # Create model
     nb_agents = sce_conf["nb_agents"]
-    # if cfg.intrinsic_reward_algo in ["none", "]:
-    #     qmix = QMIX(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
-    #         cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
-    #         cfg.max_grad_norm, device)
-    # elif cfg.model_type == "qmix_cir":
-    #     qmix = QMIX_MANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
-    #         cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
-    #         cfg.init_explo_rate, cfg.max_grad_norm, device,
-    #         cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
-    # # elif cfg.model_type == "qmix_panoveld":
-    # #     qmix = QMIX_PANovelD(nb_agents, obs_dim, act_dim, cfg.lr, 
-    # #         cfg.gamma, cfg.tau, cfg.hidden_dim, cfg.shared_params, 
-    # #         cfg.init_explo_rate, cfg.max_grad_norm, device,
-    # #         cfg.embed_dim, cfg.nd_lr, cfg.nd_scale_fac, cfg.nd_hidden_dim)
-    # else:
-    #     print("ERROR: bad model type.")
     if cfg.intrinsic_reward_algo == "none":
         intrinsic_reward_params = {}
     elif "cent_noveld" == cfg.intrinsic_reward_algo:
-        intrinsic_reward_params = {}
+        intrinsic_reward_params = {
+            "input_dim": 2 * obs_dim,
+            "enc_dim": cfg.int_rew_enc_dim,
+            "hidden_dim": cfg.int_rew_hidden_dim,
+            "lr": cfg.int_rew_lr,
+            "scale_fac": cfg.scale_fac,
+            "device": device}
+    elif "cent_rnd" == cfg.intrinsic_reward_algo:
+        intrinsic_reward_params = {
+            "input_dim": 2 * obs_dim,
+            "enc_dim": cfg.int_rew_enc_dim,
+            "hidden_dim": cfg.int_rew_hidden_dim,
+            "lr": cfg.int_rew_lr,
+            "device": device}
     elif "cent_e3b" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {
             "input_dim": 2 * obs_dim,
             "act_dim": 2 * act_dim,
-            "enc_dim": cfg.encoding_dim,
+            "enc_dim": cfg.int_rew_enc_dim,
+            "hidden_dim": cfg.int_rew_hidden_dim,
             "ridge": cfg.ridge,
-            "lr": cfg.nd_lr,
+            "lr": cfg.int_rew_lr,
             "device": device}
     elif "cent_e2srnd" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {
             "input_dim": 2 * obs_dim,
-            "embed_dim": cfg.encoding_dim,
-            "hidden_dim": cfg.nd_hidden_dim,
+            "enc_dim": cfg.int_rew_enc_dim,
+            "hidden_dim": cfg.int_rew_hidden_dim,
             "ridge": cfg.ridge,
-            "lr": cfg.nd_lr,
+            "lr": cfg.int_rew_lr,
             "device": device}
     qmix = QMIX_CIR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
@@ -307,7 +305,7 @@ def run(cfg):
     if cfg.eval_every is not None:
         eval_df = pd.DataFrame(eval_data_dict)
         eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
-    if cfg.save_visited_states:
+    if "rel_overgen.py" in cfg.env_path and cfg.save_visited_states:
         with open(str(run_dir / "visited_states.json"), 'w') as f:
             json.dump(env.visited_states[:-1], f)
     print("Model saved in dir", run_dir)
@@ -355,18 +353,15 @@ if __name__ == '__main__':
                         help='Max norm of gradients (default: 0.5)')
     # Intrinsic reward hyperparameters
     parser.add_argument("--intrinsic_reward_algo", default='none', 
-                        choices=['none', 'cent_noveld', 'cent_e3b', 'cent_e2srnd'])
+                        choices=['none', 'cent_noveld', 'cent_rnd', 'cent_e3b', 'cent_e2srnd'])
     parser.add_argument("--int_reward_decay_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)
     parser.add_argument("--int_reward_decay_smooth", type=float, default=1.5)
-    # NovelD
-    parser.add_argument("--embed_dim", default=16, type=int)
-    parser.add_argument("--nd_lr", default=1e-4, type=float)
-    parser.add_argument("--nd_scale_fac", default=0.5, type=float)
-    parser.add_argument("--nd_hidden_dim", default=128, type=int)
-    # E3B
-    parser.add_argument("--encoding_dim", default=64, type=int)
+    parser.add_argument("--int_rew_lr", default=1e-4, type=float)
+    parser.add_argument("--int_rew_hidden_dim", default=128, type=int)
+    parser.add_argument("--int_rew_enc_dim", default=16, type=int)
+    parser.add_argument("--scale_fac", default=0.5, type=float)
     parser.add_argument("--ridge", default=0.1)
     # Cuda
     parser.add_argument("--cuda_device", default=None, type=str)

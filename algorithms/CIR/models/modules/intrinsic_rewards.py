@@ -39,7 +39,7 @@ class IntrinsicReward(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def train(self):
+    def train(self, state_batch, act_batch):
         """
         Set to evaluation mode and put networks on given device.
         """

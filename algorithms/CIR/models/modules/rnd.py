@@ -59,11 +59,12 @@ class RND(IntrinsicReward):
         pred = self.predictor(state)
 
         # Compute novelty
-        int_reward = torch.norm(pred.detach() - target.detach(), dim=1, p=2)
+        int_reward = torch.norm(
+            pred.detach() - target.detach(), dim=1, p=2).item()
         
         return int_reward
     
-    def train(self, state_batch):
+    def train(self, state_batch, act_batch):
         """
         Inputs:
             state_batch (torch.Tensor): Batch of states, dim=(episode_length, 

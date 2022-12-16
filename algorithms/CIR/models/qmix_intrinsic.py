@@ -2,7 +2,8 @@ import torch
 import numpy as np
 
 from .modules.qmix import QMIX
-from .modules.lnoveld import NovelD
+from .modules.noveld import NovelD
+from .modules.rnd import RND
 from .modules.e3b import E3B
 from .modules.e2s_rnd import E2S_RND
 
@@ -27,6 +28,8 @@ class QMIX_CIR(QMIX):
             self.cent_int_rew = None
         elif intrinsic_reward_algo == "cent_noveld":
             self.cent_int_rew = NovelD(**intrinsic_reward_params)
+        elif intrinsic_reward_algo == "cent_rnd":
+            self.cent_int_rew = RND(**intrinsic_reward_params)
         elif intrinsic_reward_algo == "cent_e3b":
             self.cent_int_rew = E3B(**intrinsic_reward_params)
         elif intrinsic_reward_algo == "cent_e2srnd":

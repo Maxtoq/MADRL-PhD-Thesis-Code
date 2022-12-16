@@ -9,11 +9,11 @@ from .rnd import RND
 
 class NovelD(RND):
     """ NovelD. """
-    def __init__(self, state_dim, enc_dim, hidden_dim, 
+    def __init__(self, input_dim, enc_dim, hidden_dim, 
                  lr=1e-4, scale_fac=0.5, device="cpu"):
         """
         Inputs:
-            state_dim (int): Dimension of the input.
+            input_dim (int): Dimension of the input.
             embed_dim (int): Dimension of the output of RND networks.
             hidden_dim (int): Dimension of the hidden layers in MLPs.
             lr (float): Learning rate for training the predictor
@@ -24,7 +24,7 @@ class NovelD(RND):
             device (str): CUDA device.
         """
         super(NovelD, self).__init__(
-            state_dim, enc_dim, hidden_dim, lr, device)
+            input_dim, enc_dim, hidden_dim, lr, device)
         self.scale_fac = scale_fac
         # Last state novelty
         self.last_nov = None
@@ -63,7 +63,7 @@ class NovelD(RND):
         pred = self.predictor(state)
 
         # Compute novelty
-        nov = torch.norm(pred.detach() - target.detach(), dim=1, p=2)
+        nov = torch.norm(pred.detach() - target.detach(), dim=1, p=2).item()
 
         # Compute reward
         if self.last_nov is not None:
