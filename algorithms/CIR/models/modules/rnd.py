@@ -9,18 +9,17 @@ class RND(IntrinsicReward):
     """ Random Network Distillation. """
 
     def __init__(self, 
-            input_dim, embed_dim, hidden_dim, 
+            input_dim, enc_dim, hidden_dim, 
             lr=1e-4, device="cpu"):
         self.input_dim = input_dim
-        self.ridge = ridge
         self.device = device
         # Random Network Distillation network
         # Fixed target embedding network
         self.target = MLPNetwork(
-            input_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
+            input_dim, enc_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
         # Predictor embedding network
         self.predictor = MLPNetwork(
-            input_dim, embed_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
+            input_dim, enc_dim, hidden_dim, n_hidden_layers=3, norm_in=False)
 
         # Fix weights of target
         for param in self.target.parameters():
@@ -34,16 +33,16 @@ class RND(IntrinsicReward):
 
     def set_train(self, device):
         self.target.train()
-        self.target.to(device)
+        self.target = self.target.to(device)
         self.predictor.train()
-        self.predictor.to(device)
+        self.predictor = self.predictor.to(device)
         self.device = device
 
     def set_eval(self, device):
         self.target.eval()
-        self.target.to(device)
+        self.target = self.target.to(device)
         self.predictor.eval()
-        self.predictor.to(device)
+        self.predictor = self.predictor.to(device)
         self.device = device
         
     def get_reward(self, state):
