@@ -106,6 +106,15 @@ def run(cfg):
             "ridge": cfg.ridge,
             "lr": cfg.int_rew_lr,
             "device": device}
+    elif "cent_e2snoveld" == cfg.intrinsic_reward_algo:
+        intrinsic_reward_params = {
+            "input_dim": 2 * obs_dim,
+            "enc_dim": cfg.int_rew_enc_dim,
+            "hidden_dim": cfg.int_rew_hidden_dim,
+            "ridge": cfg.ridge,
+            "scale_fac": cfg.scale_fac,
+            "lr": cfg.int_rew_lr,
+            "device": device}
     qmix = QMIX_CIR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
             cfg.max_grad_norm, device, cfg.intrinsic_reward_algo,
@@ -353,7 +362,7 @@ if __name__ == '__main__':
                         help='Max norm of gradients (default: 0.5)')
     # Intrinsic reward hyperparameters
     parser.add_argument("--intrinsic_reward_algo", default='none', 
-                        choices=['none', 'cent_noveld', 'cent_rnd', 'cent_e3b', 'cent_e2srnd'])
+                        choices=['none', 'cent_noveld', 'cent_rnd', 'cent_e3b', 'cent_e2srnd', 'cent_e2snoveld'])
     parser.add_argument("--int_reward_decay_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)

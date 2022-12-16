@@ -6,6 +6,7 @@ from .modules.noveld import NovelD
 from .modules.rnd import RND
 from .modules.e3b import E3B
 from .modules.e2s_rnd import E2S_RND
+from .modules.e2s_noveld import E2S_NovelD
 
 class QMIX_CIR(QMIX):
     """ 
@@ -34,6 +35,8 @@ class QMIX_CIR(QMIX):
             self.cent_int_rew = E3B(**intrinsic_reward_params)
         elif intrinsic_reward_algo == "cent_e2srnd":
             self.cent_int_rew = E2S_RND(**intrinsic_reward_params)
+        elif intrinsic_reward_algo == "cent_e2snoveld":
+            self.cent_int_rew = E2S_NovelD(**intrinsic_reward_params)
         else:
             print("ERROR: wrong intrinsic reward algorithm, must be in ['none', 'noveld', 'e3b'].")
             exit()

@@ -42,9 +42,8 @@ class NovelD(RND):
         """
         Get intrinsic reward for this new state.
         Inputs:
-            state (torch.Tensor/list(list(str))): State from which to generate 
-                the reward, if input is language 'state' is a list of 
-                sentences, else it's a torch.Tensor of dim=(1, state_dim).
+            state (torch.Tensor): State from which to generate 
+                the reward, dim=(1, state_dim).
         Outputs:
             intrinsic_reward (float): Intrinsic reward for the input state.
         """
@@ -63,8 +62,7 @@ class NovelD(RND):
 
         # Compute reward
         if self.last_nov is not None:
-            intrinsic_reward = float(torch.clamp(
-                nov - self.scale_fac * self.last_nov, min=0))
+            intrinsic_reward = max(nov - self.scale_fac * self.last_nov, 0.0)
         else:
             intrinsic_reward = 0.0
 
