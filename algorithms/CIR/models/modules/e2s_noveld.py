@@ -2,17 +2,16 @@ import torch
 from torch.nn import functional as F
 
 from .networks import MLPNetwork
-from .rnd import RND
+from .noveld import NovelD
 
 
-class E2S_RND(RND):
+class E2S_NovelD(NovelD):
     """ Elliptical Episodic Scaling of Random Network Distillation. """
 
-    def __init__(self, 
-            input_dim, enc_dim, hidden_dim, 
-            ridge=0.1, lr=1e-4, device="cpu"):
-        super(E2S_RND, self).__init__(
-            input_dim, enc_dim, hidden_dim, lr, device)
+    def __init__(self, input_dim, enc_dim, hidden_dim, 
+                 ridge=0.1, scale_fac=0.5, lr=1e-4, device="cpu"):
+        super(E2S_NovelD, self).__init__(
+            input_dim, enc_dim, hidden_dim, lr, scale_fac, device)
         self.ridge = ridge
         # Inverse covariance matrix for Elliptical bonus
         self.inv_cov = torch.eye(input_dim).to(device) * (1.0 / self.ridge)
@@ -20,6 +19,7 @@ class E2S_RND(RND):
             input_dim, input_dim).to(device)
     
     def init_new_episode(self):
+        super().init_new_episode()
         self.inv_cov = torch.eye(self.input_dim).to(self.device)
         self.inv_cov *= (1.0 / self.ridge)
 
@@ -37,7 +37,7 @@ class E2S_RND(RND):
         Outputs:
             int_reward (float): Intrinsic reward for the input state.
         """
-        # Get RND reward
+        # Get NovelD reward
         int_reward = super().get_reward(state)
 
         # Compute the elliptic scale

@@ -58,12 +58,8 @@ class NovelD(RND):
         if self.episode_states_count[state_key] > 1:
             return 0.0
 
-        # Compute embeddings
-        target = self.target(state)
-        pred = self.predictor(state)
-
-        # Compute novelty
-        nov = torch.norm(pred.detach() - target.detach(), dim=1, p=2).item()
+        # Get RND reward as novelty
+        nov = super().get_reward(state)
 
         # Compute reward
         if self.last_nov is not None:
