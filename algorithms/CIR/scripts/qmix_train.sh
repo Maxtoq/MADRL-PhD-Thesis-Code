@@ -1,10 +1,10 @@
 #!/bin/sh
 n_run=2
-env="algorithms/MALNovelD/scenarios/rel_overgen.py"
+env="algorithms/MALNovelD/scenarios/coop_push_scenario_noshaping.py"
 model_name="qmix_cent_e2snoveld"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=2000000
-n_explo_frames=2000000
+n_frames=10000000
+n_explo_frames=10000000
 frames_per_update=100
 eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
@@ -20,7 +20,7 @@ scale_fac=0.5 # default 0.5
 int_rew_lr=0.0001 # default 0.0001
 state_dim=40
 optimal_diffusion_coeff=30
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
