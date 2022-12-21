@@ -51,8 +51,11 @@ if __name__ == '__main__':
 
     # Move train data to new directory
     for run in run_dirs:
-        file_path = os.path.join(run, args.data_file)
-        if not os.path.exists(file_path):
-            print("WARNING: data file", file_path, "does not exist.")
+        source_file_path = os.path.join(run, args.data_file)
+        if not os.path.exists(source_file_path):
+            print("WARNING: data file", source_file_path, "does not exist.")
         run_name = re.findall("(run\d+)", run)[0] + ".csv"
-        shutil.copyfile(file_path, os.path.join(data_dir, run_name))
+        dest_file_path = os.path.join(data_dir, run_name)
+        while os.path.isfile(dest_file_path):
+            dest_file_path = dest_file_path[:-4] + "_1.csv"
+        shutil.copyfile(source_file_path, os.path.join(data_dir, run_name))

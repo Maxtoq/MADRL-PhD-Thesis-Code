@@ -6,9 +6,9 @@ from multiagent.core import World, Agent, Landmark, Action, Entity
 
 from utils.parsers import Parser
 
-BUTTON_RADIUS = 0.04
-LANDMARK_RADIUS = 0.05
-OBJECT_RADIUS = 0.15
+BUTTON_RADIUS = 0.05
+LANDMARK_RADIUS = 0.07
+OBJECT_RADIUS = 0.2
 OBJECT_MASS = 2.0
 AGENT_RADIUS = 0.04
 AGENT_MASS = 0.4
@@ -353,7 +353,7 @@ class ClickNPushWorld(World):
         for ag in self.agents:
             if self.button.is_pushing(ag.state.p_pos):
                 objects_move = True
-                self.global_reward += 0.5
+                self.global_reward += 3.0
                 break
         for obj in self.objects:
             obj.movable = objects_move
@@ -381,8 +381,8 @@ class ClickNPushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=1, reward_done=50, 
-                   step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
+                   collision_pen=15.0, reward_done=300, 
+                   step_penalty=0.1, obj_lm_dist_range=[OBJECT_RADIUS + LANDMARK_RADIUS, 1.5]):
         world = ClickNPushWorld(nb_agents, nb_objects)
         # Init world entities
         self.nb_agents = nb_agents
@@ -478,7 +478,7 @@ class Scenario(BaseScenario):
         if init_pos is None:
             world.button.state.p_pos = np.array([
                 random.uniform(-1 + BUTTON_RADIUS, 1 - BUTTON_RADIUS),
-                1 - AGENT_RADIUS])
+                1 - BUTTON_RADIUS])
         else:
             world.button.state.p_pos = np.array(init_pos["button"])
         # Set initial velocity
