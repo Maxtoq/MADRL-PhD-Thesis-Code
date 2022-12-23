@@ -12,7 +12,7 @@ import pandas as pd
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
-from models.qmix_intrinsic import QMIX_CIR
+from models.qmix_intrinsic import QMIX_IR
 from utils.buffer import RecReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env, make_env_parser
 from utils.eval import perform_eval_scenar
@@ -63,62 +63,59 @@ def run(cfg):
             cfg.save_visited_states)
         obs_dim = env.obs_dim
         act_dim = env.act_dim
-        lnoveld = False
     else:
         env = make_env(cfg.env_path, sce_conf, discrete_action=True)
         obs_dim = env.observation_space[0].shape[0]
         act_dim = env.action_space[0].n
-        lnoveld = False
 
     # Create model
     nb_agents = sce_conf["nb_agents"]
     if cfg.intrinsic_reward_algo == "none":
         intrinsic_reward_params = {}
-    elif "cent_noveld" == cfg.intrinsic_reward_algo:
+    elif "noveld" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {
-            "input_dim": 2 * obs_dim,
             "enc_dim": cfg.int_rew_enc_dim,
             "hidden_dim": cfg.int_rew_hidden_dim,
             "lr": cfg.int_rew_lr,
             "scale_fac": cfg.scale_fac,
             "device": device}
-    elif "cent_rnd" == cfg.intrinsic_reward_algo:
+    elif "rnd" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {
-            "input_dim": 2 * obs_dim,
             "enc_dim": cfg.int_rew_enc_dim,
             "hidden_dim": cfg.int_rew_hidden_dim,
             "lr": cfg.int_rew_lr,
             "device": device}
-    elif "cent_e3b" == cfg.intrinsic_reward_algo:
+    elif "e3b" == cfg.intrinsic_reward_algo:
+        if cfg.intrinsic_reward_mode == "central":
+            ir_act_dim = nb_agents * act_dim
+        else:
+            ir_act_dim = act_dim
         intrinsic_reward_params = {
-            "input_dim": 2 * obs_dim,
-            "act_dim": 2 * act_dim,
-            "enc_dim": cfg.int_rew_enc_dim,
-            "hidden_dim": cfg.int_rew_hidden_dim,
-            "ridge": cfg.ridge,
-            "lr": cfg.int_rew_lr,
-            "device": device}
-    elif "cent_e2srnd" == cfg.intrinsic_reward_algo:
-        intrinsic_reward_params = {
-            "input_dim": 2 * obs_dim,
+            "act_dim": ir_act_dim,
             "enc_dim": cfg.int_rew_enc_dim,
             "hidden_dim": cfg.int_rew_hidden_dim,
             "ridge": cfg.ridge,
             "lr": cfg.int_rew_lr,
             "device": device}
-    elif "cent_e2snoveld" == cfg.intrinsic_reward_algo:
+    elif "e2srnd" == cfg.intrinsic_reward_algo:
         intrinsic_reward_params = {
-            "input_dim": 2 * obs_dim,
+            "enc_dim": cfg.int_rew_enc_dim,
+            "hidden_dim": cfg.int_rew_hidden_dim,
+            "ridge": cfg.ridge,
+            "lr": cfg.int_rew_lr,
+            "device": device}
+    elif "e2snoveld" == cfg.intrinsic_reward_algo:
+        intrinsic_reward_params = {
             "enc_dim": cfg.int_rew_enc_dim,
             "hidden_dim": cfg.int_rew_hidden_dim,
             "ridge": cfg.ridge,
             "scale_fac": cfg.scale_fac,
             "lr": cfg.int_rew_lr,
             "device": device}
-    qmix = QMIX_CIR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
+    qmix = QMIX_IR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
-            cfg.max_grad_norm, device, cfg.intrinsic_reward_algo,
-            intrinsic_reward_params)
+            cfg.max_grad_norm, device, cfg.intrinsic_reward_mode, 
+            cfg.intrinsic_reward_algo, intrinsic_reward_params)
     qmix.prep_rollouts(device=device)
     
     # Intrinsic reward coefficient
@@ -183,6 +180,7 @@ def run(cfg):
     # Get initial last actions and hidden states
     last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
     for step_i in tqdm(range(cfg.n_frames)):
+        print(step_i)
         qmix.set_explo_rate(eps_decay.get_explo_rate(step_i))
 
         # Get actions
@@ -261,8 +259,6 @@ def run(cfg):
         else:
             ep_step_i += 1
             obs = next_obs
-            if lnoveld:
-                descr = next_descr
 
         # Training
         if ((step_i + 1) % cfg.frames_per_update == 0 and
@@ -361,8 +357,10 @@ if __name__ == '__main__':
     parser.add_argument("--max_grad_norm", type=float, default=0.5,
                         help='Max norm of gradients (default: 0.5)')
     # Intrinsic reward hyperparameters
+    parser.add_argument("--intrinsic_reward_mode", default="central",
+                        choices=["central", "local"])
     parser.add_argument("--intrinsic_reward_algo", default='none', 
-                        choices=['none', 'cent_noveld', 'cent_rnd', 'cent_e3b', 'cent_e2srnd', 'cent_e2snoveld'])
+                        choices=['none', 'noveld', 'rnd', 'e3b', 'e2srnd', 'e2snoveld'])
     parser.add_argument("--int_reward_decay_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)

@@ -60,3 +60,30 @@ class IntrinsicReward(ABC):
             params (dict): Dictionary of state dicts.
         """
         raise NotImplementedError
+
+
+class NoIntrinsicReward(IntrinsicReward):
+    """ Placeholder class for models with no intrinsic reward. """
+    def __init__(self, **kwargs):
+        pass
+    
+    def init_new_episode(self):
+        pass
+
+    def set_train(self, device):
+        pass
+
+    def set_eval(self, device):
+        pass
+        
+    def get_reward(self, state):
+        return 0.0
+    
+    def train(self, *args):
+        pass
+    
+    def get_params(self):
+        return {}
+
+    def load_params(self, params):
+        pass
