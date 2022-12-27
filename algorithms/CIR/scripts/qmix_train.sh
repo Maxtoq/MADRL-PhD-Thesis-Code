@@ -9,9 +9,10 @@ episode_length=100 # def 100
 frames_per_update=100
 eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-init_explo_rate=0.3
+init_explo_rate=0.6
 epsilon_decay_fn="linear"
-intrinsic_reward_algo="cent_e2snoveld"
+intrinsic_reward_mode="central"
+intrinsic_reward_algo="e2snoveld"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
@@ -30,7 +31,7 @@ do
     comm="python algorithms/CIR/train_qmix.py --env_path ${env} --model_name ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} \
 --n_frames ${n_frames} --cuda_device ${cuda_device} --gamma ${gamma} --episode_length ${episode_length} --frames_per_update ${frames_per_update} \
 --init_explo_rate ${init_explo_rate} --n_explo_frames ${n_explo_frames} \
---intrinsic_reward_algo ${intrinsic_reward_algo} \
+--intrinsic_reward_mode ${intrinsic_reward_mode} --intrinsic_reward_algo ${intrinsic_reward_algo} \
 --int_reward_coeff ${int_reward_coeff} --int_reward_decay_fn ${int_reward_decay_fn} \
 --scale_fac ${scale_fac} --int_rew_lr ${int_rew_lr} --int_rew_enc_dim ${int_rew_enc_dim} --int_rew_hidden_dim ${int_rew_hidden_dim} \
 --state_dim ${state_dim} --optimal_diffusion_coeff ${optimal_diffusion_coeff} --save_visited_states"

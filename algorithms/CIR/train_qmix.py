@@ -180,7 +180,6 @@ def run(cfg):
     # Get initial last actions and hidden states
     last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
     for step_i in tqdm(range(cfg.n_frames)):
-        print(step_i)
         qmix.set_explo_rate(eps_decay.get_explo_rate(step_i))
 
         # Get actions

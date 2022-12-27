@@ -7,10 +7,10 @@ from multiagent.core import World, Agent, Landmark, Action, Entity
 from utils.parsers import Parser
 
 BUTTON_RADIUS = 0.05
-LANDMARK_RADIUS = 0.1
+LANDMARK_RADIUS = 1.0
 OBJECT_RADIUS = 0.3
-OBJECT_MASS = 2.0
-AGENT_RADIUS = 0.04
+OBJECT_MASS = 1.5
+AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
 
 def get_dist(pos1, pos2, squared=False):
@@ -391,7 +391,7 @@ class Scenario(BaseScenario):
             agent.silent = True
             agent.size = AGENT_RADIUS
             agent.initial_mass = AGENT_MASS
-            agent.accel = 3.8
+            agent.accel = 4.0
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color[i % 3] = 1.0
         self.nb_objects = nb_objects
@@ -452,20 +452,26 @@ class Scenario(BaseScenario):
             obj.movable = False
             # Positions
             if init_pos is None:
-                obj.state.p_pos = np.array([0.0, 0.0])
-                while True:
-                    # obj.state.p_pos = np.array([
-                    #     random.uniform(-1 + obj.size, 1 - obj.size),
-                    #     random.uniform(-1 + obj.size, 1 - 2 * obj.size)])
-                    world.landmarks[i].state.p_pos = np.array([
-                        random.uniform(-1 + obj.size, 1 - obj.size),
-                        random.uniform(-1 + obj.size, 1 - 2 * obj.size)])
-                    dist = get_dist(
-                        obj.state.p_pos, world.landmarks[i].state.p_pos)
-                    if (self.obj_lm_dist_range is None  or 
-                        (dist > self.obj_lm_dist_range[0] and 
-                         dist < self.obj_lm_dist_range[1])):
-                        break
+                obj.state.p_pos = np.array([0.0, -OBJECT_RADIUS])
+                # Pick a corner randomly
+                c = random.randint(0, 1)
+                if c == 0:
+                    world.landmarks[i].state.p_pos = np.array([1.0, -1.0])
+                elif c == 1:
+                    world.landmarks[i].state.p_pos = np.array([-1.0, -1.0])
+                # while True:
+                #     # obj.state.p_pos = np.array([
+                #     #     random.uniform(-1 + obj.size, 1 - obj.size),
+                #     #     random.uniform(-1 + obj.size, 1 - 2 * obj.size)])
+                #     world.landmarks[i].state.p_pos = np.array([
+                #         random.uniform(-1 + obj.size, 1 - obj.size),
+                #         random.uniform(-1 + obj.size, 1 - 2 * obj.size)])
+                dist = get_dist(
+                    obj.state.p_pos, world.landmarks[i].state.p_pos)
+                #     if (self.obj_lm_dist_range is None  or 
+                #         (dist > self.obj_lm_dist_range[0] and 
+                #          dist < self.obj_lm_dist_range[1])):
+                #         break
             else:
                 obj.state.p_pos = np.array(init_pos["objects"][i])
                 world.landmarks[i].state.p_pos = np.array(
