@@ -64,7 +64,7 @@ class IntrinsicReward(ABC):
 
 class NoIntrinsicReward(IntrinsicReward):
     """ Placeholder class for models with no intrinsic reward. """
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass
     
     def init_new_episode(self):
@@ -80,7 +80,7 @@ class NoIntrinsicReward(IntrinsicReward):
         return 0.0
     
     def train(self, *args):
-        pass
+        return 0.0
     
     def get_params(self):
         return {}

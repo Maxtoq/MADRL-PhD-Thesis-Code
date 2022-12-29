@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
 env="algorithms/MALNovelD/scenarios/click_n_push2.py"
-model_name="qmix_cent_e2snoveld"
+model_name="qmix"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000
 n_explo_frames=10000000
@@ -9,10 +9,10 @@ episode_length=100 # def 100
 frames_per_update=100
 eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-init_explo_rate=0.6
+init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="central"
-intrinsic_reward_algo="e2snoveld"
+intrinsic_reward_algo="none"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
@@ -22,7 +22,7 @@ scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=30
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
