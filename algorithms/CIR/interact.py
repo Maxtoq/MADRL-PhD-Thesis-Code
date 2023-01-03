@@ -12,6 +12,56 @@ from utils.actors import KeyboardActor, RandomActor
 from models.modules.e2s_noveld import E2S_NovelD
 
 
+class RewardNormalizator:
+
+    def __init__(self):
+        self.reward_sum = 0.0
+        self.reward_m2 = 0.0
+        self.reward_count = 0.0
+
+    def _update_running_mean(self, rewards):
+        """
+        Updates the running mean of rewards.
+        Inputs:
+            rewards (numpy.ndarray): List of rewards to use for the update.
+        """
+        new_count = len(rewards)
+        new_sum = sum(rewards)
+        new_mean = new_sum / new_count
+        if self.reward_count != 0.0:
+            curr_mean = self.reward_sum / self.reward_count
+        else:
+            curr_mean = 0.0
+        new_m2 = np.sum((rewards - new_mean) ** 2) + (
+            (self.reward_count * new_count)
+            / (self.reward_count + new_count)
+            * (new_mean - curr_mean) ** 2
+        )
+
+        self.reward_count += new_count
+        self.reward_sum += new_sum
+        self.reward_m2 += new_m2
+
+    def _get_running_std(self):
+        """Returns standard deviation of the running mean of the reward."""
+        return np.sqrt(self.reward_m2 / self.reward_count)
+
+    def normalize_rewards(self, rewards):
+        """
+        Updates the running mean of rewards and returns normalize rewards.
+        Inputs:
+            rewards (list(float)): List of rewards to use for the update.
+        Outputs:
+            norm_rewards (list(float)): List of normalized rewards.
+        """
+        rewards = np.array(rewards)
+        self._update_running_mean(rewards)
+        std = self._get_running_std()
+        if std > 0:
+            rewards /= std
+        return list(rewards)
+
+
 def run(args):
     # Load scenario config
     sce_conf = {}
@@ -41,16 +91,19 @@ def run(args):
         print("ERROR : Pick correct actors (random or manual)")
         exit(0)
 
-    obs_dim = env.observation_space[0].shape[0]
-    act_dim = env.action_space[0].shape[0]
-    intrinsic_reward = E2S_NovelD(2 * obs_dim, 16, 64, 0.5, 0.1)
+    # obs_dim = env.observation_space[0].shape[0]
+    # act_dim = env.action_space[0].shape[0]
+    # intrinsic_reward = E2S_NovelD(2 * obs_dim, 16, 64, 0.5, 0.1)
+
+    # ext_rn = RewardNormalizator()
+    # int_rn = RewardNormalizator()
 
     for ep_i in range(args.n_episodes):
         # Reset the environment
         obs = env.reset(init_pos=init_pos_scenar)
-        intrinsic_reward.init_new_episode()
-        intrinsic_reward.get_reward(
-            torch.Tensor(np.concatenate(obs)).unsqueeze(0))
+        # intrinsic_reward.init_new_episode()
+        # intrinsic_reward.get_reward(
+        #     torch.Tensor(np.concatenate(obs)).unsqueeze(0))
 
         env.render()
         time.sleep(args.step_time)
@@ -64,10 +117,14 @@ def run(args):
             actions = actor.get_action()
             print("Actions:", actions)
             next_obs, rewards, dones, infos = env.step(actions)
-            int_rewards = intrinsic_reward.get_reward(
-                torch.Tensor(np.concatenate(next_obs)).unsqueeze(0))
-            print("Extrinsic rewards:", rewards)
-            print("Intrinsic rewards:", int_rewards)
+            # int_reward = intrinsic_reward.get_reward(
+            #     torch.Tensor(np.concatenate(next_obs)).unsqueeze(0))
+            # int_rewards = [int_reward] * 2
+
+            # norm_ext_rewards = ext_rn.normalize_rewards([rewards[0]])
+            # norm_int_rewards = int_rn.normalize_rewards([int_rewards[0]])
+            print("Extrinsic rewards:", rewards)#, ", norm:", norm_ext_rewards)
+            # print("Intrinsic rewards:", int_rewards)#, ", norm:", norm_int_rewards)
 
             env.render()
             time.sleep(args.step_time)
