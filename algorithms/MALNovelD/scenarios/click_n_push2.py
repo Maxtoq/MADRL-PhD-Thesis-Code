@@ -7,8 +7,8 @@ from multiagent.core import World, Agent, Landmark, Action, Entity
 from utils.parsers import Parser
 
 BUTTON_RADIUS = 0.05
-LANDMARK_RADIUS = 0.6
-OBJECT_RADIUS = 0.2
+LANDMARK_RADIUS = 0.9 #1
+OBJECT_RADIUS = 0.3 #0.3
 OBJECT_MASS = 1.5
 AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
@@ -353,7 +353,7 @@ class ClickNPushWorld(World):
         for ag in self.agents:
             if self.button.is_pushing(ag.state.p_pos):
                 objects_move = True
-                self.global_reward += 5.0
+                self.global_reward += 4.5
                 break
         for obj in self.objects:
             obj.movable = objects_move
@@ -381,8 +381,8 @@ class ClickNPushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=15.0, reward_done=800, 
-                   step_penalty=0.1, obj_lm_dist_range=[OBJECT_RADIUS + LANDMARK_RADIUS, 1.5]):
+                   collision_pen=15.0, reward_done=200, 
+                   step_penalty=5.0, obj_lm_dist_range=[OBJECT_RADIUS + LANDMARK_RADIUS, 1.5]):
         world = ClickNPushWorld(nb_agents, nb_objects)
         # Init world entities
         self.nb_agents = nb_agents
@@ -452,7 +452,7 @@ class Scenario(BaseScenario):
             obj.movable = False
             # Positions
             if init_pos is None:
-                obj.state.p_pos = np.array([0.0, -OBJECT_RADIUS])
+                obj.state.p_pos = np.array([0.0, OBJECT_RADIUS])
                 # Pick a corner randomly
                 c = random.randint(0, 1)
                 if c == 0:

@@ -105,8 +105,13 @@ def run(cfg):
             "lr": cfg.int_rew_lr,
             "device": device}
     elif "e2snoveld" == cfg.intrinsic_reward_algo:
+        if cfg.intrinsic_reward_mode == "central":
+            ir_act_dim = nb_agents * act_dim
+        else:
+            ir_act_dim = act_dim
         intrinsic_reward_params = {
             "enc_dim": cfg.int_rew_enc_dim,
+            "act_dim": ir_act_dim,
             "hidden_dim": cfg.int_rew_hidden_dim,
             "ridge": cfg.ridge,
             "scale_fac": cfg.scale_fac,

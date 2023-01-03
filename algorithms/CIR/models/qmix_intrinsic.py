@@ -7,7 +7,7 @@ from .modules.noveld import NovelD
 from .modules.rnd import RND
 from .modules.e3b import E3B
 from .modules.e2s_rnd import E2S_RND
-from .modules.e2s_noveld import E2S_NovelD
+from .modules.e2s_noveld import E2S_NovelD_InvDyn
 
 IR_MODELS = {
     "none": NoIntrinsicReward,
@@ -15,7 +15,7 @@ IR_MODELS = {
     "rnd": RND,
     "e3b": E3B,
     "e2srnd": E2S_RND,
-    "e2snoveld": E2S_NovelD
+    "e2snoveld": E2S_NovelD_InvDyn
 }
 
 class QMIX_IR(QMIX):
