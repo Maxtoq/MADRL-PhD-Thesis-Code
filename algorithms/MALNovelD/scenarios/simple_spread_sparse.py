@@ -14,9 +14,22 @@ def get_dist(pos1, pos2, squared=False):
     else:
         return np.sqrt(dist)
 
+
+class SimpleSpreadWorld(Walled_World):
+
+    def __init__(self):
+        self.landmarks_filled = []
+
+    def step(self):
+        super().step()
+        for i, landmark in enumerate(self.landmarks):
+            self.landmarks_filled[i] = get_dist(
+                a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE
+
+
 class Scenario(BaseScenario):
     def make_world(self, **kwargs):
-        world = Walled_World()
+        world = SimpleSpreadWorld()
         # set any world properties first
         world.dim_c = 2
         self.nb_agents = kwargs["nb_agents"]
@@ -36,6 +49,7 @@ class Scenario(BaseScenario):
             landmark.collide = False
             landmark.movable = False
             landmark.size = LANDMARK_SIZE
+            world.landmarks_filled.append(False)
         # make initial conditions
         self.reset_world(world)
         self.done_flag = False
@@ -99,15 +113,15 @@ class Scenario(BaseScenario):
         return self.done_flag
 
     def reward(self, agent, world):
-        agents_on_lms = []
-        # Done if all agents are on a landmark
-        for a in world.agents:
-            on_lms = [
-                get_dist(a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE
-                for l in world.landmarks
-            ]
-            agents_on_lms.append(any(on_lms))
-        self.done_flag = all(agents_on_lms)
+        # agents_on_lms = []
+        # # Done if all agents are on a landmark
+        # for a in world.agents:
+        #     on_lms = [
+        #         get_dist(a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE
+        #         for l in world.landmarks
+        #     ]
+        #     agents_on_lms.append(any(on_lms))
+        self.done_flag = all(world.landmarks_filled)
         
         rew = 50.0 if self.done_flag else 0.0
 
@@ -117,18 +131,10 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
-        entity_pos = []
-        for entity in world.landmarks:  # world.entities:
-            entity_pos.append(entity.state.p_pos - agent.state.p_pos)
-        # entity colors
-        entity_color = []
-        for entity in world.landmarks:  # world.entities:
-            entity_color.append(entity.color)
-        # communication of all other agents
-        comm = []
-        other_pos = []
-        for other in world.agents:
-            if other is agent: continue
-            comm.append(other.state.c)
-            other_pos.append(other.state.p_pos - agent.state.p_pos)
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + entity_pos + other_pos + comm)
+        lm_pos = []
+        for l in world.landmarks:  # world.entities:
+            lm_pos.append(np.concatenate((
+                l.state.p_pos - agent.state.p_pos,
+                [int(get_dist(a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE)]
+            )))
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + lm_pos)

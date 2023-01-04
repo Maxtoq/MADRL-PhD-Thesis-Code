@@ -1,10 +1,10 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/rel_overgen.py"
+env="algorithms/MALNovelD/scenarios/coop_push_scenario_noshaping.py"
 model_name="qmix_cent_e2snoveld_inv_dyn"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=2000000
-n_explo_frames=2000000
+n_frames=10000000
+n_explo_frames=10000000
 episode_length=100 # def 100
 frames_per_update=100
 eval_every=1000000
@@ -16,13 +16,13 @@ intrinsic_reward_algo="e2snoveld"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
-int_rew_enc_dim=16 # def 16
-int_rew_hidden_dim=64 # def 64
+int_rew_enc_dim=64 # def 16
+int_rew_hidden_dim=128 # def 64
 scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=30
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
