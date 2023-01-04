@@ -18,13 +18,18 @@ def get_dist(pos1, pos2, squared=False):
 class SimpleSpreadWorld(Walled_World):
 
     def __init__(self):
+        super(SimpleSpreadWorld, self).__init__()
         self.landmarks_filled = []
 
     def step(self):
         super().step()
-        for i, landmark in enumerate(self.landmarks):
-            self.landmarks_filled[i] = get_dist(
-                a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE
+        for i, l in enumerate(self.landmarks):
+            for a in self.agents:
+                if get_dist(a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE:
+                    self.landmarks_filled[i] = True
+                    break
+                else:
+                    self.landmarks_filled[i] = False
 
 
 class Scenario(BaseScenario):
@@ -132,9 +137,10 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         lm_pos = []
-        for l in world.landmarks:  # world.entities:
+        print(world.landmarks_filled)
+        for i, l in enumerate(world.landmarks):  # world.entities:
             lm_pos.append(np.concatenate((
-                l.state.p_pos - agent.state.p_pos,
-                [int(get_dist(a.state.p_pos, l.state.p_pos) < LANDMARK_SIZE)]
+                [int(world.landmarks_filled[i])],
+                l.state.p_pos - agent.state.p_pos
             )))
         return np.concatenate([agent.state.p_vel] + [agent.state.p_pos] + lm_pos)

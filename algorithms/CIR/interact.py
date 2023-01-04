@@ -91,9 +91,9 @@ def run(args):
         print("ERROR : Pick correct actors (random or manual)")
         exit(0)
 
-    # obs_dim = env.observation_space[0].shape[0]
-    # act_dim = env.action_space[0].shape[0]
-    # intrinsic_reward = E2S_NovelD(2 * obs_dim, 16, 64, 0.5, 0.1)
+    obs_dim = env.observation_space[0].shape[0]
+    act_dim = env.action_space[0].shape[0]
+    intrinsic_reward = E2S_NovelD(2 * obs_dim, 16, 64, 0.5, 0.1)
 
     # ext_rn = RewardNormalizator()
     # int_rn = RewardNormalizator()
@@ -101,9 +101,9 @@ def run(args):
     for ep_i in range(args.n_episodes):
         # Reset the environment
         obs = env.reset(init_pos=init_pos_scenar)
-        # intrinsic_reward.init_new_episode()
-        # intrinsic_reward.get_reward(
-        #     torch.Tensor(np.concatenate(obs)).unsqueeze(0))
+        intrinsic_reward.init_new_episode()
+        intrinsic_reward.get_reward(
+            torch.Tensor(np.concatenate(obs)).unsqueeze(0))
 
         env.render()
         time.sleep(args.step_time)
@@ -117,14 +117,14 @@ def run(args):
             actions = actor.get_action()
             print("Actions:", actions)
             next_obs, rewards, dones, infos = env.step(actions)
-            # int_reward = intrinsic_reward.get_reward(
-            #     torch.Tensor(np.concatenate(next_obs)).unsqueeze(0))
-            # int_rewards = [int_reward] * 2
+            int_reward = intrinsic_reward.get_reward(
+                torch.Tensor(np.concatenate(next_obs)).unsqueeze(0))
+            int_rewards = [int_reward] * 2
 
             # norm_ext_rewards = ext_rn.normalize_rewards([rewards[0]])
             # norm_int_rewards = int_rn.normalize_rewards([int_rewards[0]])
             print("Extrinsic rewards:", rewards)#, ", norm:", norm_ext_rewards)
-            # print("Intrinsic rewards:", int_rewards)#, ", norm:", norm_int_rewards)
+            print("Intrinsic rewards:", int_rewards)#, ", norm:", norm_int_rewards)
 
             env.render()
             time.sleep(args.step_time)
