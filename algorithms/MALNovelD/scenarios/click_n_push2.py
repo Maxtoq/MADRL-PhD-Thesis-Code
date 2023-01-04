@@ -381,8 +381,8 @@ class ClickNPushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=15.0, reward_done=200, 
-                   step_penalty=5.0, obj_lm_dist_range=[OBJECT_RADIUS + LANDMARK_RADIUS, 1.5]):
+                   collision_pen=15.0, reward_done=400, step_penalty=5.0, 
+                   obj_lm_dist_range=[OBJECT_RADIUS + LANDMARK_RADIUS, 1.5]):
         world = ClickNPushWorld(nb_agents, nb_objects)
         # Init world entities
         self.nb_agents = nb_agents

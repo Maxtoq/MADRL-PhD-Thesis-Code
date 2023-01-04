@@ -137,7 +137,6 @@ class Scenario(BaseScenario):
     def observation(self, agent, world):
         # get positions of all entities in this agent's reference frame
         lm_pos = []
-        print(world.landmarks_filled)
         for i, l in enumerate(world.landmarks):  # world.entities:
             lm_pos.append(np.concatenate((
                 [int(world.landmarks_filled[i])],
