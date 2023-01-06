@@ -442,4 +442,5 @@ outputs/*
 !models/rel_overgen/qmix_cent_e2snoveld_inv_dyn
 models/rel_overgen/qmix_cent_e2snoveld_inv_dyn/*
 !models/rel_overgen/qmix_cent_e2snoveld_inv_dyn/train_data_4030
+!models/rel_overgen/qmix_cent_e2snoveld_inv_dyn/train_data_4040
 
