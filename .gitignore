@@ -432,3 +432,9 @@ models/rel_overgen/qmix_panoveld_4040/*
 !models/rel_overgen/qmix_panoveld_4030
 models/rel_overgen/qmix_panoveld_4030/*
 !models/rel_overgen/qmix_panoveld_4030/train_data
+
+!models/rel_overgen/qmix_loc_e2snoveld_inv_dyn
+models/rel_overgen/qmix_loc_e2snoveld_inv_dyn/*
+!models/rel_overgen/qmix_loc_e2snoveld_inv_dyn/train_data
+
+outputs/*
