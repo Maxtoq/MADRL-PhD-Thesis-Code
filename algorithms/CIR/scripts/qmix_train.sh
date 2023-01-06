@@ -1,10 +1,10 @@
 #!/bin/sh
-n_run=2
-env="algorithms/MALNovelD/scenarios/click_n_push2.py"
-model_name="qmix_cent_e2snoveld_inv_dyn"
+n_run=1
+env="algorithms/MALNovelD/scenarios/simple_spread_sparse.py"
+model_name="qmix_cent_e2snoveld_invdyn"
 sce_conf_path="configs/2a_1o_fo_rel.json"
-n_frames=10000000
-n_explo_frames=10000000
+n_frames=5000000
+n_explo_frames=5000000
 episode_length=100 # def 100
 frames_per_update=100
 eval_every=1000000
@@ -21,8 +21,8 @@ int_rew_hidden_dim=128 # def 64
 scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
-optimal_diffusion_coeff=30
-cuda_device="cuda:2"
+optimal_diffusion_coeff=50
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
