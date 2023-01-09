@@ -4,7 +4,7 @@ import random
 from multiagent.core import Walled_World, Agent, Landmark
 from multiagent.scenario import BaseScenario
 
-LANDMARK_SIZE = 0.1
+LANDMARK_SIZE = 0.06
 AGENT_SIZE = 0.06
 
 def get_dist(pos1, pos2, squared=False):
@@ -128,7 +128,7 @@ class Scenario(BaseScenario):
         #     agents_on_lms.append(any(on_lms))
         self.done_flag = all(world.landmarks_filled)
         
-        rew = 50.0 if self.done_flag else 0.0
+        rew = 100.0 if self.done_flag else 0.0
 
         rew += -0.1
 

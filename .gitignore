@@ -447,3 +447,7 @@ models/rel_overgen/qmix_cent_e2snoveld_inv_dyn/*
 !models/rel_overgen/qmix_loc_e2snoveld_inv_dyn
 models/rel_overgen/qmix_loc_e2snoveld_inv_dyn/*
 !models/rel_overgen/qmix_loc_e2snoveld_inv_dyn/train_data_4040
+
+!models/rel_overgen/qmix_cent_e2snoveld_invdyn_4050
+models/rel_overgen/qmix_cent_e2snoveld_invdyn_4050/*
+!models/rel_overgen/qmix_cent_e2snoveld_invdyn_4050/train_data
