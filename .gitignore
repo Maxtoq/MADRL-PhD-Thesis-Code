@@ -413,6 +413,9 @@ models/rel_overgen/qmix_manoveld/*
 
 !models/rel_overgen/qmix
 models/rel_overgen/qmix/*
+!models/rel_overgen/qmix/run3
+models/rel_overgen/qmix/run3/*
+!models/rel_overgen/qmix/run3/model.pt
 !models/rel_overgen/qmix/train_data_40_50
 !models/rel_overgen/qmix/train_data_40_40
 !models/rel_overgen/qmix/train_data_40_30
