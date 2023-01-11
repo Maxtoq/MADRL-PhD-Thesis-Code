@@ -1,10 +1,10 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/simple_spread_sparse.py"
+env="algorithms/MALNovelD/scenarios/click_n_push2.py"
 model_name="qmix_cent_e2snoveld_invdyn"
-sce_conf_path="configs/4a_1o_fo.json"
-n_frames=10000000
-n_explo_frames=10000000
+sce_conf_path="configs/2a_1o_fo_rel.json"
+n_frames=15000000
+n_explo_frames=7000000
 episode_length=100 # def 100
 frames_per_update=100
 eval_every=1000000
@@ -22,12 +22,12 @@ scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=50
-cuda_device="cuda:2"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
-    seed=$RANDOM
+    seed=14741 # $RANDOM
     comm="python algorithms/CIR/train_qmix.py --env_path ${env} --model_name ${model_name} --sce_conf_path ${sce_conf_path} --seed ${seed} \
 --n_frames ${n_frames} --cuda_device ${cuda_device} --gamma ${gamma} --episode_length ${episode_length} --frames_per_update ${frames_per_update} \
 --init_explo_rate ${init_explo_rate} --n_explo_frames ${n_explo_frames} \
