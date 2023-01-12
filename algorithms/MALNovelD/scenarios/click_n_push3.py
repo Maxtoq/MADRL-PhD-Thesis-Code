@@ -4,12 +4,10 @@ import random
 from multiagent.scenario import BaseScenario
 from multiagent.core import Walled_World, Agent, Landmark, Action, Entity
 
-from utils.parsers import Parser
-
 BUTTON_RADIUS = 0.05
-LANDMARK_RADIUS = 1.0 #1
-OBJECT_RADIUS = 0.3 #0.3
-OBJECT_MASS = 1.5
+LANDMARK_RADIUS = 0.9 #1
+OBJECT_RADIUS = 0.2 #0.3
+OBJECT_MASS = 0.8
 AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
 
@@ -99,13 +97,14 @@ class Scenario(BaseScenario):
         world.object.initial_mass = OBJECT_MASS
         world.object.color = obj_color
         # Landmark
-        world.landmarks.size = LANDMARK_RADIUS
-        world.landmarks.collide = False
-        world.landmarks.color = obj_color
+        world.landmark.size = LANDMARK_RADIUS
+        world.landmark.collide = False
+        world.landmark.color = obj_color
         # Buttons
+        button_color = np.random.uniform(0, 1, world.dim_color)
         for b in world.buttons:
             b.size = BUTTON_RADIUS
-            b.color = np.random.uniform(0, 1, world.dim_color)
+            b.color = button_color
         # Scenario attributes
         self.obs_range = obs_range
         # Reward attributes
@@ -138,17 +137,20 @@ class Scenario(BaseScenario):
                 exit(1)
 
         # Agents' initial pos
-        for i, agent in enumerate(world.agents):
-            if init_pos is None:
-                agent.state.p_pos = np.array([
-                    random.uniform(-1 + agent.size, 1 - agent.size),
-                    random.uniform(-1 + agent.size, 1 - agent.size)
-                ])
-            else:
-                agent.state.p_pos = np.array(init_pos["agents"][i])
-            agent.state.c = np.zeros(world.dim_c)
+        world.agents[0].state.p_pos = np.array([-0.75, 1 - AGENT_RADIUS])
+        world.agents[1].state.p_pos = np.array([0.0, 1 - AGENT_RADIUS])
+        world.agents[2].state.p_pos = np.array([0.75, 1 - AGENT_RADIUS])
+        # for i, agent in enumerate(world.agents):
+        #     if init_pos is None:
+        #         agent.state.p_pos = np.array([
+        #             random.uniform(-1 + agent.size, 1 - agent.size),
+        #             random.uniform(-1 + agent.size, 1 - agent.size)
+        #         ])
+        #     else:
+        #         agent.state.p_pos = np.array(init_pos["agents"][i])
+        #     agent.state.c = np.zeros(world.dim_c)
         # Object and landmark
-        obj.movable = False
+        world.object.movable = False
         world.object.state.p_pos = np.array([0.0, 0.5])
         world.landmark.state.p_pos = np.array([0.0, -1.0])
         # Buttons
@@ -158,7 +160,7 @@ class Scenario(BaseScenario):
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
         # Initialise state of button and wall
-        for b in world.button:
+        for b in world.buttons:
             b.pushed = False
         self._done_flag = False
 
@@ -166,12 +168,12 @@ class Scenario(BaseScenario):
         rew = -self.step_penalty
         
         # Reward if task complete
-        dists = [get_dist(obj.state.p_pos, world.landmarks[i].state.p_pos)
-                 for i, obj in enumerate(world.objects)]
+        dist = get_dist(world.object.state.p_pos, world.landmark.state.p_pos)
         if not self._done_flag:
-            self._done_flag = all(d <= LANDMARK_RADIUS for d in dists)
-            if self._done_flag:
-                world.global_reward += self.reward_done
+            self._done_flag = dist <= LANDMARK_RADIUS
+        if self._done_flag:
+            rew += self.reward_done
+
 
         # Reward if all buttons pushed
         if all([b.pushed for b in world.buttons]):
@@ -191,17 +193,17 @@ class Scenario(BaseScenario):
         Observation:
          - Agent state: position, velocity
          - Other agents: [distance x, distance y, v_x, v_y]
-         - Objects:
+         - Object:
             - If in sight: [1, distance x, distance y, v_x, v_y]
             - If not: [0, 0, 0, 0, 0]
-         - Landmarks:
+         - Landmark:
             - If in sight: [1, distance x, distance y]
             - If not: [0, 0, 0]
-         - Button:
+         - Buttons:
             - If in sight: [1, state, distance x, distance y]
             - If not: [0, 0, 0, 0]
         => Full observation dim = 
-            2 + 2 + 4 x (nb_agents - 1) + 5 x nb_objects + 3 x nb_landmarks + 4
+            2 + 2 + 4 x (nb_agents - 1) + 5 x nb_object + 3 x nb_landmark + 4 x nb_button
         All distances are divided by max_distance to be in [0, 1]
         """
         obs = [agent.state.p_pos, agent.state.p_vel]
@@ -213,19 +215,19 @@ class Scenario(BaseScenario):
                 ag.state.p_vel # Velocity
             )))
         # Object
-        if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
+        if get_dist(agent.state.p_pos, world.object.state.p_pos) <= self.obs_range:
             obs.append(np.concatenate((
                 [1.0], # Bit saying entity is observed
-                (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
-                obj.state.p_vel # Velocity
+                (world.object.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
+                world.object.state.p_vel # Velocity
             )))
         else:
             obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         # Landmark
-        if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
+        if get_dist(agent.state.p_pos, world.landmark.state.p_pos) <= self.obs_range:
             obs.append(np.concatenate((
                 [1.0], 
-                (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                (world.landmark.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
             )))
         else:
             obs.append(np.array([0.0, 1.0, 1.0]))
