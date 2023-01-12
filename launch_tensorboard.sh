@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Script for launching the tensorboard server, listening on the port 8080
-echo Launching Tensorboard with command \"python venv/lib/python3.6/site-packages/tensorboard/main.py --logdir=models/simple_spread_sparse/ --port=8069 --bind_all\"
+echo Launching Tensorboard with command \"python venv/lib/python3.6/site-packages/tensorboard/main.py --logdir=models/coop_push_scenario_noshaping/ --port=8030 --bind_all\"
 
 source venv/bin/activate
 
-python venv/lib/python3.6/site-packages/tensorboard/main.py --logdir=models/simple_spread_sparse/ --port=8069 --bind_all
+python venv/lib/python3.6/site-packages/tensorboard/main.py --logdir=models/coop_push_scenario_noshaping/ --port=8030 --bind_all
 
