@@ -49,8 +49,6 @@ class ClickNPushWorld(Walled_World):
         self.buttons = [Button() for i in range(2)]
         # Control inertia
         self.damping = 0.8
-        # Global reward at each step
-        self.global_reward = 0.0
 
     @property
     def entities(self):
@@ -59,7 +57,6 @@ class ClickNPushWorld(Walled_World):
     def step(self):
         # last_obj_lm_dists = np.copy(self.obj_lm_dists)
         super().step()
-        self.global_reward = 0.0
         # Check if button is pushed to set movable state of objects
         buttons_pushed = [False, False]
         for i, b in enumerate(self.buttons):
@@ -71,7 +68,6 @@ class ClickNPushWorld(Walled_World):
                     break
         object_move = all(buttons_pushed)
         if object_move:
-            self.global_reward += 4.5
             self.object.movable = True
 
 
@@ -79,7 +75,7 @@ class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=3, nb_objects=1, obs_range=2.83, 
                    collision_pen=15.0, reward_done=500, step_penalty=5.0, 
-                   reward_buttons_pushed=4.5):
+                   reward_buttons_pushed=4.9):
         world = ClickNPushWorld(nb_agents)
         # Agents
         self.nb_agents = nb_agents
