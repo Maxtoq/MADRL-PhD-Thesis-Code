@@ -8,6 +8,7 @@ BUTTON_RADIUS = 0.06
 LANDMARK_RADIUS = 0.5 #1
 OBJECT_RADIUS = 0.15 #0.3
 OBJECT_MASS = 0.8
+OBJECT_SPEED = 0.05
 AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
 
@@ -46,7 +47,7 @@ class ClickNWaitWorld(Walled_World):
         # Landmark
         self.landmark = Landmark()
         # Buttons
-        self.buttons = [Button() for i in range(2)]
+        self.buttons = [Button() for i in range(self.nb_agents)]
         # Control inertia
         self.damping = 0.8
 
@@ -58,7 +59,7 @@ class ClickNWaitWorld(Walled_World):
         # last_obj_lm_dists = np.copy(self.obj_lm_dists)
         super().step()
         # Check if button is pushed to set movable state of objects
-        buttons_pushed = [False, False]
+        buttons_pushed = [False] * self.nb_agents
         for i, b in enumerate(self.buttons):
             b.pushed = False
             for a in self.agents:
@@ -68,7 +69,7 @@ class ClickNWaitWorld(Walled_World):
                     break
         object_move = all(buttons_pushed)
         if object_move:
-            self.object.movable = True
+            self.object.state.p_pos[1] -= OBJECT_SPEED
 
 
 class Scenario(BaseScenario):
@@ -76,7 +77,7 @@ class Scenario(BaseScenario):
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
                    collision_pen=15.0, reward_done=500, step_penalty=5.0, 
                    reward_buttons_pushed=4.9):
-        world = ClickNPushWorld(nb_agents)
+        world = ClickNWaitWorld(nb_agents)
         # Agents
         self.nb_agents = nb_agents
         for i, agent in enumerate(world.agents):
@@ -133,9 +134,14 @@ class Scenario(BaseScenario):
                 exit(1)
 
         # Agents' initial pos
-        world.agents[0].state.p_pos = np.array([-0.75, 1 - AGENT_RADIUS])
-        world.agents[1].state.p_pos = np.array([0.0, 1 - AGENT_RADIUS])
-        world.agents[2].state.p_pos = np.array([0.75, 1 - AGENT_RADIUS])
+        agents_init_pos = [
+            [-0.75, 1 - AGENT_RADIUS],
+            [0.75, 1 - AGENT_RADIUS],
+            [-0.75, 0.0],
+            [0.75, 0.0],
+        ]
+        for i in range(self.nb_agents):
+            world.agents[i].state.p_pos = np.array(agents_init_pos[i])
         # for i, agent in enumerate(world.agents):
         #     if init_pos is None:
         #         agent.state.p_pos = np.array([
@@ -150,8 +156,14 @@ class Scenario(BaseScenario):
         world.object.state.p_pos = np.array([0.0, 0.5])
         world.landmark.state.p_pos = np.array([0.0, -1.0])
         # Buttons
-        world.buttons[0].state.p_pos = np.array([-0.5, 0.5])
-        world.buttons[1].state.p_pos = np.array([0.5, 0.5])
+        buttons_init_pos = [
+            [-0.5, 0.5],
+            [0.5, 0.5],
+            [-0.5, -0.5],
+            [0.5, -0.5],
+        ]
+        for i in range(self.nb_agents):
+            world.buttons[i].state.p_pos = np.array(buttons_init_pos[i])
         # Set initial velocity
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
@@ -189,8 +201,8 @@ class Scenario(BaseScenario):
          - Agent state: position, velocity
          - Other agents: [distance x, distance y, v_x, v_y]
          - Object:
-            - If in sight: [1, distance x, distance y, v_x, v_y]
-            - If not: [0, 0, 0, 0, 0]
+            - If in sight: [1, distance x, distance y]
+            - If not: [0, 0, 0]
          - Landmark:
             - If in sight: [1, distance x, distance y]
             - If not: [0, 0, 0]
@@ -214,7 +226,6 @@ class Scenario(BaseScenario):
             obs.append(np.concatenate((
                 [1.0], # Bit saying entity is observed
                 (world.object.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
-                world.object.state.p_vel # Velocity
             )))
         else:
             obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
