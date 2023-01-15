@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=3
 env="algorithms/MALNovelD/scenarios/click_n_push3.py"
 model_name="qmix"
 sce_conf_path="configs/3a_1o_fo.json"
@@ -13,7 +13,7 @@ init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="central"
 intrinsic_reward_algo="none"
-int_reward_coeff=1.0
+int_reward_coeff=0.2
 int_reward_decay_fn="constant"
 gamma=0.99
 int_rew_enc_dim=48 # def 16

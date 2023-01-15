@@ -7,7 +7,7 @@ from multiagent.core import World, Agent, Landmark, Action, Entity
 from utils.parsers import Parser
 
 BUTTON_RADIUS = 0.05
-LANDMARK_RADIUS = 0.9 #1
+LANDMARK_RADIUS = 0.8 #0.9
 OBJECT_RADIUS = 0.3 #0.3
 OBJECT_MASS = 1.5
 AGENT_RADIUS = 0.045

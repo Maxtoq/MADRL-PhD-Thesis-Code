@@ -5,7 +5,7 @@ from multiagent.scenario import BaseScenario
 from multiagent.core import Walled_World, Agent, Landmark, Action, Entity
 
 BUTTON_RADIUS = 0.06
-LANDMARK_RADIUS = 0.9 #1
+LANDMARK_RADIUS = 0.8 #1
 OBJECT_RADIUS = 0.15 #0.3
 OBJECT_MASS = 0.8
 AGENT_RADIUS = 0.045
