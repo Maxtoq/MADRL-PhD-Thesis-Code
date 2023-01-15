@@ -1,18 +1,18 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=loc_corners
+#SBATCH --job-name=cent_corners
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
-#SBATCH --time=600
+#SBATCH --time=1200
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
 #SBATCH --output=outputs/%x-%j.out
 
 source venv/bin/activate
 
-n_run=1
+n_run=2
 env="algorithms/MALNovelD/scenarios/coop_push_corners.py"
-model_name="qmix_loc_e2snoveld_invdyn"
+model_name="qmix_cent_e2snoveld_invdyn"
 sce_conf_path="configs/2a_1o_fo_rel.json"
 n_frames=10000000
 n_explo_frames=10000000
@@ -22,7 +22,7 @@ eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
-intrinsic_reward_mode="local"
+intrinsic_reward_mode="central"
 intrinsic_reward_algo="e2snoveld"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
