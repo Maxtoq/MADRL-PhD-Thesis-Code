@@ -118,8 +118,8 @@ class PushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
-                   collision_pen=3.0, relative_coord=True, dist_reward=False, 
-                   reward_done=100, step_penalty=0.1, obj_lm_dist_range=[0.75, 1.75]):
+                   collision_pen=10.0, relative_coord=True, dist_reward=False, 
+                   reward_done=400, step_penalty=1.0, obj_lm_dist_range=[1.0, 2.0]):
         world = PushWorld(nb_agents, nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -257,10 +257,14 @@ class Scenario(BaseScenario):
         obs = [agent.state.p_pos, agent.state.p_vel]
         for ag in world.agents:
             if ag is agent: continue
-            obs.append(np.concatenate((
-                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
-                ag.state.p_vel # Velocity
-            )))
+            if get_dist(agent.state.p_pos, ag.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0],
+                    (ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    ag.state.p_vel # Velocity
+                )))
+            else:
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for obj in world.objects:
             if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
