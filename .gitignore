@@ -462,3 +462,8 @@ models/coop_push_corners/*
 !models/coop_push_corners/qmix_loc_e2snoveld_invdyn
 models/coop_push_corners/qmix_loc_e2snoveld_invdyn/*
 !models/coop_push_corners/qmix_loc_e2snoveld_invdyn/train_data
+
+!models/coop_push_corners/qmix
+models/coop_push_corners/qmix/*
+!models/coop_push_corners/qmix/train_data
+!models/coop_push_corners/qmix/train_data_mod
