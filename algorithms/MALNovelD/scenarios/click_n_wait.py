@@ -4,7 +4,7 @@ import random
 from multiagent.scenario import BaseScenario
 from multiagent.core import Walled_World, Agent, Landmark, Action, Entity
 
-BUTTON_RADIUS = 0.06
+BUTTON_RADIUS = 0.07
 LANDMARK_RADIUS = 0.5 #1
 OBJECT_RADIUS = 0.15 #0.3
 OBJECT_MASS = 0.8
@@ -75,8 +75,8 @@ class ClickNWaitWorld(Walled_World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=15.0, reward_done=500, step_penalty=5.0, 
-                   reward_buttons_pushed=4.9):
+                   collision_pen=8.0, reward_done=500, step_penalty=2.0, 
+                   reward_buttons_pushed=0.0):
         world = ClickNWaitWorld(nb_agents)
         # Agents
         self.nb_agents = nb_agents
@@ -217,10 +217,14 @@ class Scenario(BaseScenario):
         # Other agents
         for ag in world.agents:
             if ag is agent: continue
-            obs.append(np.concatenate((
-                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
-                ag.state.p_vel # Velocity
-            )))
+            if get_dist(agent.state.p_pos, ag.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0], # Bit saying entity is observed
+                    (ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    ag.state.p_vel # Velocity
+                )))
+            else:
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         # Object
         if get_dist(agent.state.p_pos, world.object.state.p_pos) <= self.obs_range:
             obs.append(np.concatenate((
@@ -228,7 +232,7 @@ class Scenario(BaseScenario):
                 (world.object.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
             )))
         else:
-            obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+            obs.append(np.array([0.0, 1.0, 1.0]))
         # Landmark
         if get_dist(agent.state.p_pos, world.landmark.state.p_pos) <= self.obs_range:
             obs.append(np.concatenate((

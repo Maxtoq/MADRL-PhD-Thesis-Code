@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
-env="algorithms/MALNovelD/scenarios/coop_push_corners.py"
-model_name="qmix_po"
-sce_conf_path="configs/3a_1o_pol.json"
+env="algorithms/MALNovelD/scenarios/click_n_wait.py"
+model_name="qmix_po_2"
+sce_conf_path="configs/2a_1o_polarge_rel.json"
 n_frames=10000000
 n_explo_frames=8000000
 episode_length=100 # def 100
@@ -19,10 +19,10 @@ gamma=0.99
 int_rew_enc_dim=48 # def 16
 int_rew_hidden_dim=128 # def 64
 scale_fac=0.2 # def 0.5
-int_rew_lr=0.0002 # def 0.0001
+int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=50
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do
