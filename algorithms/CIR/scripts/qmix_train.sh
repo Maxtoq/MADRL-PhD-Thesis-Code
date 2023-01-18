@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
 env="algorithms/MALNovelD/scenarios/coop_push_corners.py"
-model_name="qmix_cent_e2snoveld_po"
-sce_conf_path="configs/3a_1o_pol.json"
+model_name="qmix_loc_e2snoveld_po_2"
+sce_conf_path="configs/2a_1o_pol_rel.json"
 n_frames=10000000
 n_explo_frames=8000000
 episode_length=100 # def 100
@@ -11,18 +11,18 @@ eval_every=1000000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
-intrinsic_reward_mode="central"
+intrinsic_reward_mode="local"
 intrinsic_reward_algo="e2snoveld"
-int_reward_coeff=0.5
+int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
 int_rew_enc_dim=48 # def 16
 int_rew_hidden_dim=128 # def 64
 scale_fac=0.2 # def 0.5
-int_rew_lr=0.0002 # def 0.0001
+int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=50
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
