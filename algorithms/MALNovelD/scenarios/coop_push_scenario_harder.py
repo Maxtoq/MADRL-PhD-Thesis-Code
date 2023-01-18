@@ -3,7 +3,7 @@ import numpy as np
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
-LANDMARK_SIZE = 0.07
+LANDMARK_SIZE = 0.03
 OBJECT_SIZE = 0.15
 OBJECT_MASS = 2.0
 AGENT_SIZE = 0.04
@@ -54,7 +54,7 @@ class PushWorld(World):
         for i in range(self.nb_objects):
             self.init_object(i)
 
-    def init_object(self, obj_i, min_dist=0.2, max_dist=1.5):
+    def init_object(self, obj_i, min_dist=0.5, max_dist=1.5):
         # Random color for both entities
         color = np.random.uniform(0, 1, self.dim_color)
         # Object
@@ -141,9 +141,9 @@ class PushWorld(World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
-                   collision_pen=1, relative_coord=True, dist_reward=False, 
-                   reward_done=50, step_penalty=0.1, obj_lm_dist_range=[0.2, 1.5]):
+    def make_world(self, nb_agents=4, nb_objects=1, obs_range=2.83, 
+                   collision_pen=1, reward_done=50, step_penalty=0.1, 
+                   obj_lm_dist_range=[0.2, 1.5]):
         world = PushWorld(nb_agents, nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -171,8 +171,6 @@ class Scenario(BaseScenario):
         self.obj_lm_dist_range = obj_lm_dist_range
         # Scenario attributes
         self.obs_range = obs_range
-        self.relative_coord = relative_coord
-        self.dist_reward = dist_reward
         # Reward attributes
         self.collision_pen = collision_pen
         # Flag for end of episode
@@ -237,10 +235,8 @@ class Scenario(BaseScenario):
         self._done_flag = False
 
     def reward(self, agent, world):
-        # Reward = -1 x squared distance between objects and corresponding landmarks
-        dists = [get_dist(obj.state.p_pos, 
-                          world.landmarks[i].state.p_pos)
-                    for i, obj in enumerate(world.objects)]
+        dists = [get_dist(obj.state.p_pos, world.landmarks[i].state.p_pos)
+                 for i, obj in enumerate(world.objects)]
 
         # Shaped reward
         shaped = 100 * world.shaping_reward
