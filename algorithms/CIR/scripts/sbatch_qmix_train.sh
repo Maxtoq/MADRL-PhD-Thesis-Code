@@ -1,22 +1,22 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --nodelist=zz
-#SBATCH --job-name=cent_cpc
+#SBATCH --nodelist=top
+#SBATCH --job-name=ro_lim
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
-#SBATCH --time=900
+#SBATCH --time=4500
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
 #SBATCH --output=outputs/%x-%j.out
 
 source venv/bin/activate
 
-n_run=1
-env="algorithms/MALNovelD/scenarios/coop_push_corners.py"
-model_name="qmix_loc_e2snoveld_po_2"
-sce_conf_path="configs/2a_1o_pol_rel.json"
-n_frames=10000000
-n_explo_frames=8000000
+n_run=15
+env="algorithms/MALNovelD/scenarios/rel_overgen.py"
+model_name="qmix_lim"
+sce_conf_path="configs/2a_1o_polarge.json"
+n_frames=5000000
+n_explo_frames=3000000
 episode_length=100 # def 100
 frames_per_update=100
 eval_every=1000000
@@ -25,15 +25,15 @@ init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="local"
 intrinsic_reward_algo="e2snoveld"
-int_reward_coeff=0.5
+int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
 int_rew_enc_dim=48 # def 16
-int_rew_hidden_dim=128 # def 64
+int_rew_hidden_dim=512 # def 64
 scale_fac=0.2 # def 0.5
-int_rew_lr=0.0002 # def 0.0001
+int_rew_lr=0.0001 # def 0.0001
 state_dim=40
-optimal_diffusion_coeff=50
+optimal_diffusion_coeff=30
 cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
