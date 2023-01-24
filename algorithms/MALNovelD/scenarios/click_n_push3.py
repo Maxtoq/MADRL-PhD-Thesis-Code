@@ -150,8 +150,8 @@ class Scenario(BaseScenario):
         world.object.state.p_pos = np.array([0.0, 0.5])
         world.landmark.state.p_pos = np.array([0.0, -1.0])
         # Buttons
-        world.buttons[0].state.p_pos = np.array([-0.5, 0.5])
-        world.buttons[1].state.p_pos = np.array([0.5, 0.5])
+        world.buttons[0].state.p_pos = np.array([-0.5, 0.0])
+        world.buttons[1].state.p_pos = np.array([0.5, 0.0])
         # Set initial velocity
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
@@ -205,10 +205,14 @@ class Scenario(BaseScenario):
         # Other agents
         for ag in world.agents:
             if ag is agent: continue
-            obs.append(np.concatenate((
-                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
-                ag.state.p_vel # Velocity
-            )))
+            if get_dist(agent.state.p_pos, ag.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0], # Bit saying entity is observed
+                    (ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    ag.state.p_vel # Velocity
+                )))
+            else:
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         # Object
         if get_dist(agent.state.p_pos, world.object.state.p_pos) <= self.obs_range:
             obs.append(np.concatenate((
