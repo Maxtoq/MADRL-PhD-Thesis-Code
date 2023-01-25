@@ -241,12 +241,14 @@ class RecReplayBuffer:
         if self.curr_i == self.buffer_size:
             self.curr_i = 0
 
-    def sample(self, batch_size, device=None):
+    def sample(self, batch_size, device=None, ids=None):
         """
         Returns a batch of experienced episodes.
         Inputs:
-            batch_size (int): Number of episodes to sample
+            batch_size (int): Number of episodes to sample.
             device (str): Device to put the samples.
+            ids (numpy.ndarray): Indexes of transitions to sample (used in 
+                prioritized experience replay).
         Outputs:
             obs_batch (torch.Tensor): Batch of observations, 
                 dim=(nb_agents, ep_length + 1, batch_size, obs_dim).
@@ -259,7 +261,8 @@ class RecReplayBuffer:
             done_batch (torch.Tensor): Batch of done states, 
                 dim=(nb_agents, ep_length, batch_size, 1).
         """
-        ids = np.random.choice(self.filled_i, batch_size)
+        if ids is None:
+            ids = np.random.choice(self.filled_i, batch_size)
 
         obs_batch = self.obs_buff[:, ids]
         shared_obs_batch = self.shared_obs_buff[:, ids]
