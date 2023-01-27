@@ -24,12 +24,14 @@ class QMIX_IR(QMIX):
     """
     def __init__(self, nb_agents, obs_dim, act_dim, lr, 
                  gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
-                 init_explo_rate=1.0, max_grad_norm=None, device="cpu",
+                 init_explo_rate=1.0, max_grad_norm=None, device="cpu", 
+                 use_per=False, per_nu=0.9, per_eps=1e-6, 
                  intrinsic_reward_mode="central", intrinsic_reward_algo="none",
                  intrinsic_reward_params={}):
         super(QMIX_IR, self).__init__(
             nb_agents, obs_dim, act_dim, lr, gamma, tau, hidden_dim, 
-            shared_params, init_explo_rate, max_grad_norm, device)
+            shared_params, init_explo_rate, max_grad_norm, device, use_per, 
+            per_nu, per_eps)
 
         self.ir_mode = intrinsic_reward_mode
         self.intrinsic_reward_algo = intrinsic_reward_algo
@@ -77,21 +79,27 @@ class QMIX_IR(QMIX):
             qtot_loss (float): QMIX loss.
             int_rew_loss (float): Intrinsic reward loss.
         """
-        qtot_loss = super().train_on_batch(batch)
+        qtot_loss, new_priorities = super().train_on_batch(batch)
 
         # Intrinsic reward model update
         if self.ir_mode == "central":
-            _, shared_obs_b, act_b, _, _ = batch
+            if self.use_per:
+                _, shared_obs_b, act_b, _, _, _, _ = batch
+            else:
+                _, shared_obs_b, act_b, _, _ = batch
             act_b = torch.cat(tuple(act_b), dim=-1)
             int_rew_loss = self.int_rew.train(shared_obs_b[0], act_b)
         elif self.ir_mode == "local":
-            obs_b, _, act_b, _, _ = batch
+            if self.use_per:
+                obs_b, _, act_b, _, _, _, _ = batch
+            else:
+                obs_b, _, act_b, _, _ = batch
             losses = [
                 self.int_rew[a_i].train(obs_b[a_i], act_b[a_i])
                 for a_i in range(self.nb_agents)]
             int_rew_loss = sum(losses) / self.nb_agents
 
-        return qtot_loss, float(int_rew_loss)
+        return qtot_loss, float(int_rew_loss), new_priorities
 
     def reset_int_reward(self, obs_list):
         if self.ir_mode == "central":

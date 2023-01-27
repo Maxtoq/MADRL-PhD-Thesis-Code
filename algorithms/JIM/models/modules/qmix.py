@@ -262,7 +262,8 @@ class QMIX:
 
     def __init__(self, nb_agents, obs_dim, act_dim, lr, 
                  gamma=0.99, tau=0.01, hidden_dim=64, shared_params=False, 
-                 init_explo_rate=1.0, max_grad_norm=None, device="cpu"):
+                 init_explo_rate=1.0, max_grad_norm=None, device="cpu",
+                 use_per=False, per_nu=0.9, per_eps=1e-6):
         self.nb_agents = nb_agents
         self.obs_dim = obs_dim
         self.act_dim = act_dim
@@ -273,6 +274,9 @@ class QMIX:
         self.shared_params = shared_params
         self.max_grad_norm = max_grad_norm
         self.device = device
+        self.use_per = use_per
+        self.per_nu = per_nu
+        self.per_eps = per_eps
 
         # Create agent policies
         if not shared_params:
@@ -343,7 +347,10 @@ class QMIX:
         return actions, new_qnets_hidden_states
 
     def train_on_batch(self, batch):
-        obs_b, shared_obs_b, act_b, rew_b, done_b = batch
+        if self.use_per:
+            obs_b, shared_obs_b, act_b, rew_b, done_b, imp_wght_b, ids = batch
+        else:
+            obs_b, shared_obs_b, act_b, rew_b, done_b = batch
 
         batch_size = obs_b.shape[2]
 
@@ -404,7 +411,16 @@ class QMIX:
         error = Q_tot - Q_tot_targets.detach()
 
         # Compute MSE loss
-        loss = (error ** 2).sum()
+        if self.use_per:
+            mse_error = (error ** 2).sum(dim=0).flatten()
+            imp_wght_error = mse_error * imp_wght_b
+            loss = imp_wght_error.sum()
+            err = error.abs().cpu().detach().numpy()
+            new_priorities = ((1 - self.per_nu) * err.mean(axis=0) +
+                self.per_nu * err.max(axis=0)).flatten() + self.per_eps
+        else:
+            loss = (error ** 2).sum()
+            new_priorities = None
 
         # Backward and gradient step
         self.optimizer.zero_grad()
@@ -414,7 +430,7 @@ class QMIX:
                 self.parameters, self.max_grad_norm)
         self.optimizer.step()
 
-        return loss.item()
+        return loss.item(), new_priorities
 
     def get_init_model_inputs(self):
         """ 

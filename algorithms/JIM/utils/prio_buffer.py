@@ -1,3 +1,6 @@
+import numpy as np
+import torch
+
 from .buffer import ReplayBuffer, RecReplayBuffer
 
 
@@ -164,7 +167,7 @@ class MinSegmentTree(SegmentTree):
         """
         return super(MinSegmentTree, self).reduce(start, end)
 
-        
+
 class PrioritizedRecReplayBuffer(RecReplayBuffer):
     def __init__(self, 
             alpha, buffer_size, episode_length, nb_agents, obs_dim, act_dim):
@@ -193,7 +196,7 @@ class PrioritizedRecReplayBuffer(RecReplayBuffer):
                 self._it_mins[idx] = self.max_priorities ** self.alpha
 
     def _sample_proportional(self, batch_size):
-        total = self._it_sums[a_i].sum(0, len(self) - 1)
+        total = self._it_sums.sum(0, len(self) - 1)
         mass = np.random.random(size=batch_size) * total
         idx = self._it_sums.find_prefixsum_idx(mass)
         return idx
@@ -216,19 +219,27 @@ class PrioritizedRecReplayBuffer(RecReplayBuffer):
                 dim=(nb_agents, ep_length, batch_size, 1).
             done_batch (torch.Tensor): Batch of done states, 
                 dim=(nb_agents, ep_length, batch_size, 1).
+            torch_weights (torch.Tensor): Batch of importance weigths, 
+                dim=(batch_size).
+            batch_ids (numpy.ndarray): Indexes of the samples in the batch, 
+                dim=(batch_size).
         """
         batch_ids = self._sample_proportional(batch_size)
 
         p_min = self._it_mins.min() / self._it_sums.sum()
         max_weight = (p_min * len(self)) ** (-beta)
-        p_sample = self._it_sums[batch_inds] / self._it_sums.sum()
+        p_sample = self._it_sums[batch_ids] / self._it_sums.sum()
         weights = (p_sample * len(self)) ** (-beta) / max_weight
 
         obs_batch, shared_obs_batch, act_batch, rew_batch, done_batch = \
             super().sample(batch_size, device, ids=batch_ids)
 
+        torch_weights = torch.Tensor(weights)
+        if device is not None:
+            torch_weights = torch_weights.to(device)
+
         return obs_batch, shared_obs_batch, act_batch, rew_batch, done_batch, \
-            weights, batch_inds
+            torch_weights, batch_ids
 
     def update_priorities(self, ids, priorities):
         """

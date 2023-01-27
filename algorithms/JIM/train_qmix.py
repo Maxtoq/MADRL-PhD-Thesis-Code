@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from models.qmix_intrinsic import QMIX_IR
 from utils.buffer import RecReplayBuffer
+from utils.prio_buffer import PrioritizedRecReplayBuffer
 from utils.make_env import get_paths, load_scenario_config, make_env, make_env_parser
 from utils.eval import perform_eval_scenar
 from utils.decay import ParameterDecay
@@ -119,8 +120,9 @@ def run(cfg):
             "device": device}
     qmix = QMIX_IR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
-            cfg.max_grad_norm, device, cfg.intrinsic_reward_mode, 
-            cfg.intrinsic_reward_algo, intrinsic_reward_params)
+            cfg.max_grad_norm, device, cfg.use_per, cfg.per_nu, cfg.per_eps,
+            cfg.intrinsic_reward_mode, cfg.intrinsic_reward_algo, 
+            intrinsic_reward_params)
     qmix.prep_rollouts(device=device)
     
     # Intrinsic reward coefficient
@@ -133,8 +135,22 @@ def run(cfg):
             cfg.int_reward_decay_smooth)
 
     # Create replay buffer
-    buffer = RecReplayBuffer(
-        cfg.buffer_length, cfg.episode_length, nb_agents, obs_dim, act_dim)
+    if cfg.use_per:
+        beta = ParameterDecay(cfg.per_beta_start, 1.0, cfg.n_frames)
+        buffer = PrioritizedRecReplayBuffer(
+            cfg.per_alpha, 
+            cfg.buffer_length, 
+            cfg.episode_length, 
+            nb_agents, 
+            obs_dim, 
+            act_dim)
+    else:
+        buffer = RecReplayBuffer(
+            cfg.buffer_length, 
+            cfg.episode_length, 
+            nb_agents, 
+            obs_dim, 
+            act_dim)
 
     # Get number of exploration steps
     if cfg.n_explo_frames is None:
@@ -185,7 +201,7 @@ def run(cfg):
     # Get initial last actions and hidden states
     last_actions, qnets_hidden_states = qmix.get_init_model_inputs()
     for step_i in tqdm(range(cfg.n_frames)):
-        qmix.set_explo_rate(eps_decay.get_explo_rate(step_i))
+        qmix.set_explo_rate(eps_decay.get_param(step_i))
 
         # Get actions
         actions, qnets_hidden_states = qmix.get_actions(
@@ -199,7 +215,7 @@ def run(cfg):
         if cfg.int_reward_decay_fn == "constant":
             coeff = cfg.int_reward_coeff
         else:
-            coeff = int_reward_coeff.get_explo_rate(step_i)
+            coeff = int_reward_coeff.get_param(step_i)
         rewards = np.array([ext_rewards]) + coeff * np.array([int_rewards])
         rewards = rewards.T
 
@@ -269,12 +285,20 @@ def run(cfg):
                 len(buffer) >= cfg.batch_size):
             qmix.prep_training(device=device)
             # Get samples
-            sample_batch = buffer.sample(cfg.batch_size, device)
+            if cfg.use_per:
+                b = beta.get_param(step_i)
+                sample_batch = buffer.sample(cfg.batch_size, b, device)
+            else:
+                sample_batch = buffer.sample(cfg.batch_size, device)
             # Train
-            losses = qmix.train(sample_batch)
+            qmix_loss, int_reward_loss, new_prio = qmix.train(sample_batch)
+
+            if cfg.use_per:
+                buffer.update_priorities(sample_batch[-1], new_prio)
+
             loss_dict = {
-                "qtot_loss": losses[0],
-                "int_reward_loss": losses[1]}
+                "qtot_loss": qmix_loss,
+                "int_reward_loss": int_reward_loss}
             # Log
             logger.add_scalars('agent0/losses', loss_dict, step_i)
             qmix.update_all_targets()
@@ -336,12 +360,20 @@ if __name__ == '__main__':
     # Training
     parser.add_argument("--n_frames", default=2500, type=int,
                         help="Number of training frames to perform")
-    parser.add_argument("--buffer_length", default=5000, type=int,
-                        help="Max number of episodes stored in replay buffer.")
     parser.add_argument("--frames_per_update", default=100, type=int)
     parser.add_argument("--batch_size", default=32, type=int,
                         help="Number of episodes to sample from replay buffer for training.")
     parser.add_argument("--save_interval", default=100000, type=int)
+    # Replay Buffer
+    parser.add_argument("--buffer_length", default=5000, type=int,
+                        help="Max number of episodes stored in replay buffer.")
+    parser.add_argument("--use_per", action="store_true", default=False,
+                        help="Whether to use Prioritized Experience Replay.")
+    parser.add_argument("--per_alpha", default=0.6, type=float)
+    parser.add_argument("--per_nu", default=0.9, type=float,
+                        help="Weight of max TD error in formation of PER weights.")
+    parser.add_argument("--per_eps", default=1e-6, type=float)
+    parser.add_argument("--per_beta_start", default=0.4, type=float)
     # Exploration
     parser.add_argument("--n_explo_frames", default=None, type=int,
                         help="Number of frames where agents explore, if None then equal to n_frames")
