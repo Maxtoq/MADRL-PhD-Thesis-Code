@@ -1,7 +1,0 @@
-{
-    "nb_agents": 3,
-    "nb_objects": 1,
-    "nb_buttons": 2,
-    "obs_range": 2.83,
-    "collision_pen": 3.0
-}
