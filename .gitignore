@@ -1,4 +1,3 @@
-launch_tensorboard.sh
 venv/*
 models/*
 old_models/*
@@ -479,3 +478,5 @@ models/coop_push_corners/qmix_loc_e2snoveld_po/*
 models/coop_push_corners/qmix/*
 !models/coop_push_corners/qmix/train_data
 !models/coop_push_corners/qmix/train_data_mod
+
+launch_tensorboard.sh

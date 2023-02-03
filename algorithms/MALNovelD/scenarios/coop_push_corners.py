@@ -4,7 +4,7 @@ import numpy as np
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
-LANDMARK_SIZE = 0.5
+LANDMARK_SIZE = 0.35
 OBJECT_SIZE = 0.15
 OBJECT_MASS = 1.0
 AGENT_SIZE = 0.04
@@ -30,6 +30,14 @@ class Object(Entity):
         self.movable = True
 
 class PushWorld(World):
+
+    corners = [
+        np.array([-1.0, -1.0]),
+        np.array([1.0, -1.0]),
+        np.array([1.0, 1.0]),
+        np.array([-1.0, 1.0])
+    ]
+
     def __init__(self, nb_agents, nb_objects):
         super(PushWorld, self).__init__()
         # add agent
@@ -40,6 +48,7 @@ class PushWorld(World):
         self.objects = [Object() for _ in range(self.nb_objects)]
         # Corresponding landmarks
         self.landmarks = [Landmark() for _ in range(self.nb_objects)]
+        self.lm_corners = [None] * self.nb_objects
         # Control inertia
         self.damping = 0.8
 
@@ -119,7 +128,7 @@ class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
                    collision_pen=10.0, relative_coord=True, dist_reward=False, 
-                   reward_done=200, step_penalty=1.0, obj_lm_dist_range=[1.0, 2.0]):
+                   reward_done=100, step_penalty=1.0, obj_lm_dist_range=[1.0, 2.0]):
         world = PushWorld(nb_agents, nb_objects)
         # add agent
         self.nb_agents = nb_agents
@@ -192,14 +201,8 @@ class Scenario(BaseScenario):
                 while True:
                     # Pick a corner randomly
                     c = random.randint(0, 3)
-                    if c == 0:
-                        world.landmarks[i].state.p_pos = np.array([-1.0, -1.0])
-                    elif c == 1:
-                        world.landmarks[i].state.p_pos = np.array([1.0, -1.0])
-                    elif c == 2:
-                        world.landmarks[i].state.p_pos = np.array([1.0, 1.0])
-                    elif c == 3:
-                        world.landmarks[i].state.p_pos = np.array([-1.0, 1.0])
+                    world.lm_corners[i] = c
+                    world.landmarks[i].state.p_pos = world.corners[c]
                     # Place object
                     object.state.p_pos = np.random.uniform(
                         -1 + OBJECT_SIZE, 1 - OBJECT_SIZE, world.dim_p)
@@ -260,27 +263,26 @@ class Scenario(BaseScenario):
             if get_dist(agent.state.p_pos, ag.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0],
-                    (ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    ag.state.p_pos, #(ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                     ag.state.p_vel # Velocity
                 )))
             else:
-                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
+                obs.append(np.array([0.0, -1.0, -1.0, 0.0, 0.0]))
         for obj in world.objects:
             if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0], # Bit saying entity is observed
-                    (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
+                    obj.state.p_pos, #(obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
                     obj.state.p_vel # Velocity
                 )))
             else:
-                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-        for lm in world.landmarks:
-            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
-                obs.append(np.concatenate((
-                    [1.0], 
-                    (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
-                )))
+                obs.append(np.array([0.0, -1.0, -1.0, 0.0, 0.0]))
+        for lm_i, lm in enumerate(world.landmarks):
+            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range - LANDMARK_SIZE:
+                obs.append(np.array([1.0, float(world.lm_corners[lm_i] + 1)], 
+                      #(lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                ))
             else:
-                obs.append(np.array([0.0, 1.0, 1.0]))
+                obs.append(np.array([0.0, 0.0]))
 
         return np.concatenate(obs)
