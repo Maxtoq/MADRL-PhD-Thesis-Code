@@ -480,3 +480,15 @@ models/coop_push_corners/qmix/*
 !models/coop_push_corners/qmix/train_data_mod
 
 launch_tensorboard.sh
+
+!models/rel_overgen/qmix_4030
+models/rel_overgen/qmix_4030/*
+!models/rel_overgen/qmix_4030/train_data
+
+!models/rel_overgen/qmix_4040
+models/rel_overgen/qmix_4040/*
+!models/rel_overgen/qmix_4040/train_data
+
+!models/rel_overgen/qmix_4050
+models/rel_overgen/qmix_4050/*
+!models/rel_overgen/qmix_4050/train_data

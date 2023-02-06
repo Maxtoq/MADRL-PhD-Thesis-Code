@@ -278,10 +278,6 @@ class Scenario(BaseScenario):
             else:
                 obs.append(np.array([0.0, -1.0, -1.0, 0.0, 0.0]))
         for lm_i, lm in enumerate(world.landmarks):
-            print(lm_i)
-            print(get_dist(agent.state.p_pos, lm.state.p_pos))
-            print(self.obs_range + LANDMARK_SIZE)
-            print(get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range + LANDMARK_SIZE)
             if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range + LANDMARK_SIZE:
                 obs.append(np.array([1.0, float(world.lm_corners[lm_i] + 1)], 
                       #(lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
