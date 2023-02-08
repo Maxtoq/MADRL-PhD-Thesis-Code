@@ -46,7 +46,7 @@ class PushButtons(Walled_World):
         self.nb_buttons = nb_buttons
         self.buttons = [Button() for i in range(nb_buttons * 2)]
         self.colors_pushed = {
-            self.colors.keys()[i]: 0 for i in range(nb_buttons)}
+            list(self.colors.keys())[i]: 0 for i in range(nb_buttons)}
         # Control inertia
         self.damping = 0.8
         # Global reward at each step
@@ -59,7 +59,7 @@ class PushButtons(Walled_World):
     def step(self):
         super().step()
         self.colors_pushed = {
-            self.colors.keys()[i]: 0 for i in range(nb_buttons)}
+            list(self.colors.keys())[i]: 0 for i in range(self.nb_buttons)}
         for b in self.buttons:
             for a in self.agents:
                 if b.is_pushing(a.state.p_pos):
@@ -109,66 +109,28 @@ class Scenario(BaseScenario):
             agent.state.c = np.zeros(world.dim_c)
         # Buttons
         button_positions = [-0.5, 0.0, 0.5]
+        colors = random.sample([0, 1, 2], 3) + random.sample([0, 1, 2], 3)
         for i, button in enumerate(world.buttons):
             y = -0.5 if i < 3 else 0.5
             button.state.p_pos = np.array([button_positions[i % 3], y])
-            button.color_name = world.colors.keys()[random.randint(0, 2)]
+            button.color_name = list(world.colors.keys())[colors[i]]
             button.color = world.colors[button.color_name]
-        # Button's initial pos
-        if init_pos is None:
-            world.button.state.p_pos = np.array([
-                random.uniform(-1 + BUTTON_RADIUS, 1 - BUTTON_RADIUS),
-                1 - BUTTON_RADIUS])
-        else:
-            world.button.state.p_pos = np.array(init_pos["button"])
         # Set initial velocity
         for entity in world.entities:
             entity.state.p_vel = np.zeros(world.dim_p)
-        # Initialise state of button and wall
-        world.button.pushed = False
-        self._done_flag = False
 
     def reward(self, agent, world):
-        rew = -self.step_penalty
-        
-        # Reward if task complete
-        dists = [get_dist(obj.state.p_pos, world.landmarks[i].state.p_pos)
-                 for i, obj in enumerate(world.objects)]
-        if not self._done_flag:
-            self._done_flag = all(d <= LANDMARK_RADIUS for d in dists)
-            if self._done_flag:
-                world.global_reward += self.reward_done
-
-        rew += world.global_reward
-
-        # Penalty for collision between agents
-        if agent.collide:
-            for other_agent in world.agents:
-                if other_agent is agent: continue
-                dist = get_dist(agent.state.p_pos, other_agent.state.p_pos)
-                dist_min = agent.size + other_agent.size
-                if dist <= dist_min:
-                    rew -= self.collision_pen
+        rew = 0.0
+        # Red bonus
+        if world.colors_pushed["red"] == 2:
+            rew += 5.0
+        elif world.colors_pushed["green"] == 2:
+            rew += 2.0
+        elif world.colors_pushed["blue"] == 2:
+            rew += 1.0
         return rew
 
     def observation(self, agent, world):
-        """
-        Observation:
-         - Agent state: position, velocity
-         - Other agents: [distance x, distance y, v_x, v_y]
-         - Objects:
-            - If in sight: [1, distance x, distance y, v_x, v_y]
-            - If not: [0, 0, 0, 0, 0]
-         - Landmarks:
-            - If in sight: [1, distance x, distance y]
-            - If not: [0, 0, 0]
-         - Button:
-            - If in sight: [1, state, distance x, distance y]
-            - If not: [0, 0, 0, 0]
-        => Full observation dim = 
-            2 + 2 + 4 x (nb_agents - 1) + 5 x nb_objects + 3 x nb_landmarks + 4
-        All distances are divided by max_distance to be in [0, 1]
-        """
         obs = [agent.state.p_pos, agent.state.p_vel]
 
         for ag in world.agents:
@@ -181,30 +143,14 @@ class Scenario(BaseScenario):
                 )))
             else:
                 obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-        for obj in world.objects:
-            if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
-                obs.append(np.concatenate((
-                    [1.0], # Bit saying entity is observed
-                    (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
-                    obj.state.p_vel # Velocity
-                )))
-            else:
-                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
-        for lm in world.landmarks:
-            if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range:
+        for b in world.buttons:
+            if get_dist(agent.state.p_pos, b.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0], 
-                    (lm.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    (b.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    b.color
                 )))
             else:
-                obs.append(np.array([0.0, 1.0, 1.0]))
-        if get_dist(
-            agent.state.p_pos, world.button.state.p_pos) <= self.obs_range:
-            obs.append(np.concatenate((
-                [1.0, float(world.button.pushed)], 
-                (world.button.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
-            )))
-        else:
-            obs.append(np.array([0.0, 0.0, 1.0, 1.0]))
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0, 0.0]))
 
         return np.concatenate(obs)
