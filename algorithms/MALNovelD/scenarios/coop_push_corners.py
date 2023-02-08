@@ -263,20 +263,20 @@ class Scenario(BaseScenario):
             if get_dist(agent.state.p_pos, ag.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0],
-                    ag.state.p_pos, #(ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    (ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
                     ag.state.p_vel # Velocity
                 )))
             else:
-                obs.append(np.array([0.0, -1.0, -1.0, 0.0, 0.0]))
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for obj in world.objects:
             if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
                     [1.0], # Bit saying entity is observed
-                    obj.state.p_pos, #(obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
+                    (obj.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normalised into [0, 1]
                     obj.state.p_vel # Velocity
                 )))
             else:
-                obs.append(np.array([0.0, -1.0, -1.0, 0.0, 0.0]))
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for lm_i, lm in enumerate(world.landmarks):
             if get_dist(agent.state.p_pos, lm.state.p_pos) <= self.obs_range + LANDMARK_SIZE:
                 obs.append(np.array([1.0, float(world.lm_corners[lm_i] + 1)], 

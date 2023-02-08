@@ -353,7 +353,7 @@ class ClickNPushWorld(World):
         for ag in self.agents:
             if self.button.is_pushing(ag.state.p_pos):
                 objects_move = True
-                self.global_reward += 4.5
+                # self.global_reward += 4.5
                 break
         for obj in self.objects:
             obj.movable = objects_move
@@ -381,7 +381,7 @@ class ClickNPushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=2, nb_objects=1, obs_range=2.83, 
-                   collision_pen=15.0, reward_done=500, step_penalty=5.0, 
+                   collision_pen=15.0, reward_done=100, step_penalty=1.0, 
                    obj_lm_dist_range=[OBJECT_RADIUS + LANDMARK_RADIUS, 1.5]):
         world = ClickNPushWorld(nb_agents, nb_objects)
         # Init world entities
@@ -539,10 +539,14 @@ class Scenario(BaseScenario):
 
         for ag in world.agents:
             if ag is agent: continue
-            obs.append(np.concatenate((
-                (ag.state.p_pos - agent.state.p_pos) / 2.83, # Relative position normailised into [0, 1]
-                ag.state.p_vel # Velocity
-            )))
+            if get_dist(agent.state.p_pos, ag.state.p_pos) <= self.obs_range:
+                obs.append(np.concatenate((
+                    [1.0],
+                    (ag.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    ag.state.p_vel # Velocity
+                )))
+            else:
+                obs.append(np.array([0.0, 1.0, 1.0, 0.0, 0.0]))
         for obj in world.objects:
             if get_dist(agent.state.p_pos, obj.state.p_pos) <= self.obs_range:
                 obs.append(np.concatenate((
