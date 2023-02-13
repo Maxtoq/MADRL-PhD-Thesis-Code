@@ -378,7 +378,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_explo_frames", default=None, type=int,
                         help="Number of frames where agents explore, if None then equal to n_frames")
     parser.add_argument("--init_explo_rate", default=1.0, type=float)
-    parser.add_argument("--final_explo_rate", default=0.0, type=float)
+    parser.add_argument("--final_explo_rate", default=0.001, type=float)
     parser.add_argument("--epsilon_decay_fn", default="linear", type=str,
                         choices=["linear", "exp"])
     # Evalutation

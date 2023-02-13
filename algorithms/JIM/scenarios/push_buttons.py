@@ -4,7 +4,7 @@ import random
 from multiagent.scenario import BaseScenario
 from multiagent.core import Walled_World, Agent, Landmark, Action, Entity
 
-BUTTON_RADIUS = 0.05
+BUTTON_RADIUS = 0.08
 AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
 
@@ -100,16 +100,21 @@ class Scenario(BaseScenario):
             np.random.seed(seed)
 
         # Agents' initial pos
+        # agent_positions = [
+        #     [-0.2, 0.0],
+        #     [0.0, 0.0],
+        #     [0.2, 0.0]]
         agent_positions = [
-            [-0.2, 0.0],
-            [0.0, 0.0],
+            [random.uniform(-1 + AGENT_RADIUS, -AGENT_RADIUS), 0.0],
+            [random.uniform(AGENT_RADIUS, 1 - AGENT_RADIUS), 0.0],
             [0.2, 0.0]]
         for i, agent in enumerate(world.agents):
             agent.state.p_pos = np.array(agent_positions[i])
             agent.state.c = np.zeros(world.dim_c)
         # Buttons
         button_positions = [-0.5, 0.0, 0.5]
-        colors = random.sample([0, 1, 2], 3) + random.sample([0, 1, 2], 3)
+        # colors = random.sample([0, 1, 2], 3) + random.sample([0, 1, 2], 3)
+        colors = [0, 1, 2, 2, 0, 1]
         for i, button in enumerate(world.buttons):
             y = -0.5 if i < 3 else 0.5
             button.state.p_pos = np.array([button_positions[i % 3], y])
@@ -123,11 +128,17 @@ class Scenario(BaseScenario):
         rew = 0.0
         # Red bonus
         if world.colors_pushed["red"] == 2:
-            rew += 5.0
+            rew += 10.0
         elif world.colors_pushed["green"] == 2:
-            rew += 2.0
+            rew += 4.0
         elif world.colors_pushed["blue"] == 2:
-            rew += 1.0
+            rew += 2.0
+        elif world.colors_pushed["red"] == 1:
+            rew += -1.0
+        elif world.colors_pushed["green"] == 1:
+            rew += 0.5
+        elif world.colors_pushed["blue"] == 1:
+            rew += 0.5
         return rew
 
     def observation(self, agent, world):
