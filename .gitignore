@@ -516,3 +516,14 @@ models/rel_overgen/qmix_lim_4040/*
 !models/rel_overgen/qmix_lim_4050
 models/rel_overgen/qmix_lim_4050/*
 !models/rel_overgen/qmix_lim_4050/train_data
+
+!models/push_buttons
+models/push_buttons/*
+
+!models/push_buttons/qmix_lim
+models/push_buttons/qmix_lim/*
+!models/push_buttons/qmix_lim/train_data
+
+!models/push_buttons/qmix_jim
+models/push_buttons/qmix_jim/*
+!models/push_buttons/qmix_jim/train_data
