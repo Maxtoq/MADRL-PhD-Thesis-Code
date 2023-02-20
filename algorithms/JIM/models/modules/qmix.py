@@ -409,8 +409,6 @@ class QMIX:
         Q_tot_targets = global_rew_b + self.gamma * next_Q_tot
         # Compute Bellman error
         error = Q_tot - Q_tot_targets.detach()
-        print(error, error.shape)
-        exit()
 
         # Compute MSE loss
         if self.use_per:
