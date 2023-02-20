@@ -162,7 +162,7 @@ def run(cfg):
 
     # Setup evaluation scenario
     if cfg.eval_every is not None:
-        if cfg.eval_scenar_file is None:
+        if cfg.eval_scenar_file is not None:
             # Load evaluation scenario
             with open(cfg.eval_scenar_file, 'r') as f:
                 eval_scenar = json.load(f)

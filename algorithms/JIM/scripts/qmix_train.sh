@@ -7,7 +7,7 @@ n_frames=10000000
 n_explo_frames=9000000
 episode_length=100 # def 100
 frames_per_update=100
-eval_every=1000000
+eval_every=10000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
@@ -22,7 +22,7 @@ scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=40
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do
@@ -34,8 +34,8 @@ do
 --intrinsic_reward_mode ${intrinsic_reward_mode} --intrinsic_reward_algo ${intrinsic_reward_algo} \
 --int_reward_coeff ${int_reward_coeff} --int_reward_decay_fn ${int_reward_decay_fn} \
 --scale_fac ${scale_fac} --int_rew_lr ${int_rew_lr} --int_rew_enc_dim ${int_rew_enc_dim} --int_rew_hidden_dim ${int_rew_hidden_dim} \
+--eval_every ${eval_every} \
 --state_dim ${state_dim} --optimal_diffusion_coeff ${optimal_diffusion_coeff} --save_visited_states"
-# --eval_every ${eval_every} --eval_scenar_file ${eval_scenar_file} \
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"

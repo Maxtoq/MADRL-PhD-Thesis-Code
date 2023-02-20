@@ -130,11 +130,11 @@ class Scenario(BaseScenario):
         if world.colors_pushed["red"] == 2:
             rew += 10.0
         elif world.colors_pushed["green"] == 2:
-            rew += 4.0
-        elif world.colors_pushed["blue"] == 2:
             rew += 2.0
-        elif world.colors_pushed["red"] == 1:
-            rew += -1.0
+        elif world.colors_pushed["blue"] == 2:
+            rew += 1.0
+        # elif world.colors_pushed["red"] == 1:
+        #     rew += -1.0
         elif world.colors_pushed["green"] == 1:
             rew += 0.5
         elif world.colors_pushed["blue"] == 1:
