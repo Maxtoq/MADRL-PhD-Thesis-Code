@@ -4,7 +4,7 @@ import numpy as np
 
 
 def perform_eval_scenar(
-        env, model, init_pos_list, max_episode_length, recurrent=False):
+        env, model, max_episode_length, init_pos_list=[None], recurrent=False):
     rollout_fn = rnn_eval_episode if recurrent else eval_episode
     tot_return = 0.0
     n_success = 0.0

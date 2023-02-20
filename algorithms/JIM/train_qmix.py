@@ -163,18 +163,17 @@ def run(cfg):
     # Setup evaluation scenario
     if cfg.eval_every is not None:
         if cfg.eval_scenar_file is None:
-            print("ERROR: Evaluation scenario file must be provided with --eval_scenar_file argument")
-            exit()
-        else:
             # Load evaluation scenario
             with open(cfg.eval_scenar_file, 'r') as f:
                 eval_scenar = json.load(f)
-            eval_data_dict = {
-                "Step": [],
-                "Mean return": [],
-                "Success rate": [],
-                "Mean episode length": []
-            }
+        else:
+            eval_scenar = [None]
+        eval_data_dict = {
+            "Step": [],
+            "Mean return": [],
+            "Success rate": [],
+            "Mean episode length": []
+        }
 
     # Start training
     print(f"Starting training for {cfg.n_frames} frames")
@@ -307,7 +306,7 @@ def run(cfg):
         # Evaluation
         if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
             eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
-                env, qmix, eval_scenar, cfg.episode_length, recurrent=True)
+                env, qmix, cfg.episode_length, recurrent=True)
             eval_data_dict["Step"].append(step_i + 1)
             eval_data_dict["Mean return"].append(eval_return)
             eval_data_dict["Success rate"].append(eval_success_rate)
