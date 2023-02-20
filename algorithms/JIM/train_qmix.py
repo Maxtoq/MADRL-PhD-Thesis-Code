@@ -355,7 +355,7 @@ if __name__ == '__main__':
     # Environment
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--sce_conf_path", type=str, 
-                        default="configs/2a_1o_fo_rel.json",
+                        default="configs/2a_1o_fo.json",
                         help="Path to the scenario config file")
     # Training
     parser.add_argument("--n_frames", default=2500, type=int,
