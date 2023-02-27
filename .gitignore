@@ -527,3 +527,11 @@ models/push_buttons/qmix_lim/*
 !models/push_buttons/qmix_jim
 models/push_buttons/qmix_jim/*
 !models/push_buttons/qmix_jim/train_data
+
+!models/push_buttons/qmix_lim_pol
+models/push_buttons/qmix_lim_pol/*
+!models/push_buttons/qmix_lim_pol/train_data
+
+!models/push_buttons/qmix_jim_pol
+models/push_buttons/qmix_jim_pol/*
+!models/push_buttons/qmix_jim_pol/train_data

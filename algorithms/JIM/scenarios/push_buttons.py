@@ -4,7 +4,7 @@ import random
 from multiagent.scenario import BaseScenario
 from multiagent.core import Walled_World, Agent, Landmark, Action, Entity
 
-BUTTON_RADIUS = 0.09
+BUTTON_RADIUS = 0.1
 AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
 
