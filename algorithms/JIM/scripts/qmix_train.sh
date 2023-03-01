@@ -1,7 +1,7 @@
 #!/bin/sh
-n_run=6
+n_run=3
 env="algorithms/JIM/scenarios/push_buttons.py"
-model_name="qmix_lim_pol"
+model_name="qmix_pol"
 sce_conf_path="configs/2a_pol.json"
 n_frames=10000000
 n_explo_frames=9000000
@@ -12,7 +12,7 @@ eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="local"
-intrinsic_reward_algo="e2snoveld"
+intrinsic_reward_algo="none"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
