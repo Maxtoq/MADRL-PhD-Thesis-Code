@@ -1,31 +1,31 @@
 #!/bin/bash
-#SBATCH --partition=hard
-#SBATCH --nodelist=zz
-#SBATCH --job-name=lim_pb
+#SBATCH --partition=electronic
+#SBATCH --nodelist=daft
+#SBATCH --job-name=qmix_pb
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
-#SBATCH --time=1800
+#SBATCH --time=6000
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
 #SBATCH --output=outputs/%x-%j.out
 
 source venv/bin/activate
 
-n_run=2
+n_run=1
 env="algorithms/JIM/scenarios/push_buttons.py"
-model_name="qmix_lim"
+model_name="qmix_pol"
 sce_conf_path="configs/2a_pol.json"
 n_frames=10000000
 n_explo_frames=9000000
 episode_length=100 # def 100
 frames_per_update=100
-eval_every=1000000
+eval_every=10000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="local"
-intrinsic_reward_algo="e2snoveld"
-int_reward_coeff=1.0
+intrinsic_reward_algo="none"
+int_reward_coeff=4.0
 int_reward_decay_fn="constant"
 gamma=0.99
 int_rew_enc_dim=32 # def 16, JIM 90, LIM 30
@@ -46,8 +46,8 @@ do
 --intrinsic_reward_mode ${intrinsic_reward_mode} --intrinsic_reward_algo ${intrinsic_reward_algo} \
 --int_reward_coeff ${int_reward_coeff} --int_reward_decay_fn ${int_reward_decay_fn} \
 --scale_fac ${scale_fac} --int_rew_lr ${int_rew_lr} --int_rew_enc_dim ${int_rew_enc_dim} --int_rew_hidden_dim ${int_rew_hidden_dim} \
+--eval_every ${eval_every} \
 --state_dim ${state_dim} --optimal_diffusion_coeff ${optimal_diffusion_coeff} --save_visited_states"
-# --eval_every ${eval_every} --eval_scenar_file ${eval_scenar_file} \
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"
