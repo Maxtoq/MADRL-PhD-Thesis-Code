@@ -47,7 +47,7 @@ class Chunk(Entity):
 
 class ForagingWorld(Walled_World):
 
-    def __init__(self, nb_agents=3):
+    def __init__(self, nb_agents, scenario_params):
         super(ForagingWorld, self).__init__()
         # add agent
         self.nb_agents = nb_agents
@@ -56,6 +56,7 @@ class ForagingWorld(Walled_World):
         self.chunks = [Chunk() for i in range(2)]
         # Control inertia
         self.damping = 0.8
+        self.scenario_params = scenario_params
 
     @property
     def entities(self):
@@ -99,8 +100,15 @@ class ForagingWorld(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=3, obs_range=2.83, collision_pen=3.0):
-        world = ForagingWorld(nb_agents)
+    def make_world(self, nb_agents=3, obs_range=2.83, collision_pen=3.0,
+                   chunk_radius=0.09):
+        self.nb_agents = nb_agents
+        self.obs_range = obs_range
+        self.collision_pen = collision_pen
+        self.agent_radius = AGENT_RADIUS
+        self.chunk_radius = chunk_radius
+        # Create world
+        world = ForagingWorld(nb_agents, self.get_params())
         # Init world entities
         self.nb_agents = nb_agents
         for i, agent in enumerate(world.agents):
@@ -112,7 +120,7 @@ class Scenario(BaseScenario):
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color += i / nb_agents
         for chunk in world.chunks:
-            chunk.size = 0.1
+            chunk.size = self.chunk_radius
         world.chunks[0].color = np.array([1.0, 1.0, 1.0])
         world.chunks[1].color = np.array([1.0, 0.0, 0.0])
         # Scenario attributes
@@ -120,6 +128,15 @@ class Scenario(BaseScenario):
         # make initial conditions
         self.reset_world(world)
         return world
+    
+    def get_params(self):
+        return {
+            "nb_agents": self.nb_agents,
+            "obs_range": self.obs_range,
+            "collision_pen": self.collision_pen,
+            "agent_radius": self.agent_radius,
+            "chunk_radius": self.chunk_radius
+        }
 
     def done(self, agent, world):
         return False
@@ -151,7 +168,7 @@ class Scenario(BaseScenario):
             rew += 1.0
             world.chunks[0].done = True
         if world.chunks[1].nb_agents_touched >= 2:
-            rew += 100.0
+            rew += 50.0
             world.chunks[1].done = True
         return rew
 

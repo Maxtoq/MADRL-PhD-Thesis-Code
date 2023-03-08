@@ -15,7 +15,8 @@ from tqdm import tqdm
 from models.qmix_intrinsic import QMIX_IR
 from utils.buffer import RecReplayBuffer
 from utils.prio_buffer import PrioritizedRecReplayBuffer
-from utils.make_env import get_paths, load_scenario_config, make_env, make_env_parser
+from utils.make_env import make_env, make_env_parser
+from utils.utils import get_paths, load_scenario_config, write_params
 from utils.eval import perform_eval_scenar
 from utils.decay import ParameterDecay
 
@@ -23,16 +24,6 @@ def run(cfg):
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(cfg)
     print("Saving model in dir", run_dir)
-
-    # Save args in txt file
-    with open(os.path.join(run_dir, 'args.txt'), 'w') as f:
-        f.write(str(time.time()) + '\n')
-        commit_hash = git.Repo(
-            search_parent_directories=True).head.object.hexsha
-        f.write(
-            "Running train_qmix.py at git commit " + str(commit_hash) + '\n')
-        f.write("Parameters:\n")
-        f.write(json.dumps(vars(cfg), indent=4))
 
     # Init summary writer
     logger = SummaryWriter(str(log_dir))
@@ -68,6 +59,9 @@ def run(cfg):
         env = make_env(cfg.env_path, sce_conf, discrete_action=True)
         obs_dim = env.observation_space[0].shape[0]
         act_dim = env.action_space[0].n
+
+    # Save args in txt file
+    write_params(run_dir, cfg, env)
 
     # Create model
     nb_agents = sce_conf["nb_agents"]

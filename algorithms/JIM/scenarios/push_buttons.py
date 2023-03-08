@@ -4,7 +4,6 @@ import random
 from multiagent.scenario import BaseScenario
 from multiagent.core import Walled_World, Agent, Landmark, Action, Entity
 
-BUTTON_RADIUS = 0.1
 AGENT_RADIUS = 0.045
 AGENT_MASS = 0.4
 
@@ -38,7 +37,7 @@ class PushButtons(Walled_World):
         "pink": np.array([0.0, 1.0, 1.0])
     }
 
-    def __init__(self, nb_agents, nb_buttons, button_radius):
+    def __init__(self, nb_agents, nb_buttons, button_radius, scenario_params):
         super(PushButtons, self).__init__()
         # add agent
         self.nb_agents = nb_agents
@@ -52,6 +51,7 @@ class PushButtons(Walled_World):
         self.damping = 0.8
         # Global reward at each step
         self.global_reward = 0.0
+        self.scenario_params = scenario_params
 
     @property
     def entities(self):
@@ -70,14 +70,17 @@ class PushButtons(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=2, obs_range=2.83, **kwargs):
-        self.nb_buttons = kwargs["nb_buttons"] if "nb_buttons" in kwargs else 3
-        self.collision_pen = kwargs["collision_pen"] if "nb_buttons" in kwargs else 3.0
-        self.agent_radius = kwargs["agent_radius"] if "nb_buttons" in kwargs else 0.045
-        self.button_radius = kwargs["button_radius"] if "nb_buttons" in kwargs else 0.1
-        world = PushButtons(nb_agents, self.nb_buttons, self.button_radius)
-        # Init world entities
+    def make_world(self, nb_agents=2, nb_buttons=3, obs_range=2.83, 
+                   collision_pen=3.0, button_radius=0.1):
         self.nb_agents = nb_agents
+        self.nb_buttons = nb_buttons
+        self.obs_range = obs_range
+        self.collision_pen = collision_pen
+        self.agent_radius = AGENT_RADIUS
+        self.button_radius = button_radius;
+        # Create world
+        world = PushButtons(nb_agents, self.nb_buttons, self.button_radius, self.get_params())
+        # Init world entities
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.silent = True
@@ -88,11 +91,19 @@ class Scenario(BaseScenario):
             agent.color += i / nb_agents
         for button in world.buttons:
             button.size = self.button_radius
-        # Scenario attributes
-        self.obs_range = obs_range
         # make initial conditions
         self.reset_world(world)
         return world
+    
+    def get_params(self):
+        return {
+            "nb_agents": self.nb_agents,
+            "nb_buttons": self.nb_buttons,
+            "obs_range": self.obs_range,
+            "collision_pen": self.collision_pen,
+            "agent_radius": self.agent_radius,
+            "button_radius": self.button_radius
+        }
 
     def done(self, agent, world):
         return False
