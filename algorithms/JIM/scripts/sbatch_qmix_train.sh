@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --partition=electronic
-#SBATCH --nodelist=daft
-#SBATCH --job-name=qmix_pb
+#SBATCH --partition=funky
+#SBATCH --nodelist=pascal
+#SBATCH --job-name=noveld_pb
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -11,9 +11,9 @@
 
 source venv/bin/activate
 
-n_run=1
+n_run=4
 env="algorithms/JIM/scenarios/push_buttons.py"
-model_name="qmix_pol"
+model_name="qmix_noveld_pol"
 sce_conf_path="configs/2a_pol.json"
 n_frames=10000000
 n_explo_frames=9000000
@@ -23,13 +23,13 @@ eval_every=10000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
-intrinsic_reward_mode="local"
-intrinsic_reward_algo="none"
+intrinsic_reward_mode="central"
+intrinsic_reward_algo="noveld"
 int_reward_coeff=4.0
 int_reward_decay_fn="constant"
 gamma=0.99
-int_rew_enc_dim=32 # def 16, JIM 90, LIM 30
-int_rew_hidden_dim=256 # def 64, JIM 1024, LIM 256
+int_rew_enc_dim=64 # def 16, JIM 90, LIM 30
+int_rew_hidden_dim=512 # def 64, JIM 1024, LIM 256
 scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40

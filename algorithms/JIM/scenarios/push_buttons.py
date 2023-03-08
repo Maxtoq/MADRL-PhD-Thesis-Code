@@ -18,13 +18,14 @@ def get_dist(pos1, pos2, squared=False):
 
 class Button(Landmark):
 
-    def __init__(self):
+    def __init__(self, radius):
         super(Button, self).__init__()
         self.collide = False
         self.color_name = None
+        self.radius = radius
 
     def is_pushing(self, agent_pos):
-        return get_dist(agent_pos, self.state.p_pos) < BUTTON_RADIUS
+        return get_dist(agent_pos, self.state.p_pos) < self.radius
 
 
 class PushButtons(Walled_World):
@@ -37,14 +38,14 @@ class PushButtons(Walled_World):
         "pink": np.array([0.0, 1.0, 1.0])
     }
 
-    def __init__(self, nb_agents=2, nb_buttons=3):
+    def __init__(self, nb_agents, nb_buttons, button_radius):
         super(PushButtons, self).__init__()
         # add agent
         self.nb_agents = nb_agents
         self.agents = [Agent() for i in range(nb_agents)]
         # Buttons
         self.nb_buttons = nb_buttons
-        self.buttons = [Button() for i in range(nb_buttons * 2)]
+        self.buttons = [Button(button_radius) for i in range(nb_buttons * 2)]
         self.colors_pushed = {
             list(self.colors.keys())[i]: 0 for i in range(nb_buttons)}
         # Control inertia
@@ -69,25 +70,26 @@ class PushButtons(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=2, nb_buttons=3, obs_range=2.83, 
-                   collision_pen=3.0):
-        world = PushButtons(nb_agents, nb_buttons)
+    def make_world(self, nb_agents=2, obs_range=2.83, **kwargs):
+        self.nb_buttons = kwargs["nb_buttons"] if "nb_buttons" in kwargs else 3
+        self.collision_pen = kwargs["collision_pen"] if "nb_buttons" in kwargs else 3.0
+        self.agent_radius = kwargs["agent_radius"] if "nb_buttons" in kwargs else 0.045
+        self.button_radius = kwargs["button_radius"] if "nb_buttons" in kwargs else 0.1
+        world = PushButtons(nb_agents, self.nb_buttons, self.button_radius)
         # Init world entities
         self.nb_agents = nb_agents
         for i, agent in enumerate(world.agents):
             agent.name = 'agent %d' % i
             agent.silent = True
-            agent.size = AGENT_RADIUS
+            agent.size = self.agent_radius
             agent.initial_mass = AGENT_MASS
             agent.accel = 4.0
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color += i / nb_agents
         for button in world.buttons:
-            button.size = BUTTON_RADIUS
+            button.size = self.button_radius
         # Scenario attributes
         self.obs_range = obs_range
-        # Reward attributes
-        self.collision_pen = collision_pen
         # make initial conditions
         self.reset_world(world)
         return world
@@ -105,8 +107,8 @@ class Scenario(BaseScenario):
         #     [0.0, 0.0],
         #     [0.2, 0.0]]
         agent_positions = [
-            [random.uniform(-1 + AGENT_RADIUS, -AGENT_RADIUS), 0.0],
-            [random.uniform(AGENT_RADIUS, 1 - AGENT_RADIUS), 0.0],
+            [random.uniform(-1 + self.agent_radius, -self.agent_radius), 0.0],
+            [random.uniform(self.agent_radius, 1 - self.agent_radius), 0.0],
             [0.2, 0.0]]
         for i, agent in enumerate(world.agents):
             agent.state.p_pos = np.array(agent_positions[i])
