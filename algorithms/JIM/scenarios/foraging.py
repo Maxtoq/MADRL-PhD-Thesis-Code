@@ -66,8 +66,8 @@ class ForagingWorld(Walled_World):
             np.array([-0.5, 0.0]),
             np.array([0.5, 0.0])]
         big_chunk_positions = [
-            np.array([-0.5, 0.9]),
-            np.array([0.5, 0.9])]
+            np.array([-0.5, 0.8]),
+            np.array([0.5, 0.8])]
         if self.chunks[0].done or start:
             if self.chunks[0].pos_id == -1:
                 self.chunks[0].pos_id = random.randint(0, 1)
@@ -112,7 +112,7 @@ class Scenario(BaseScenario):
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color += i / nb_agents
         for chunk in world.chunks:
-            chunk.size = 0.08
+            chunk.size = 0.1
         world.chunks[0].color = np.array([1.0, 1.0, 1.0])
         world.chunks[1].color = np.array([1.0, 0.0, 0.0])
         # Scenario attributes
@@ -151,7 +151,7 @@ class Scenario(BaseScenario):
             rew += 1.0
             world.chunks[0].done = True
         if world.chunks[1].nb_agents_touched >= 2:
-            rew += 50.0
+            rew += 100.0
             world.chunks[1].done = True
         return rew
 
