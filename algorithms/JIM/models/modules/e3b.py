@@ -7,9 +7,8 @@ from .intrinsic_rewards import IntrinsicReward
 
 class E3B(IntrinsicReward):
     
-    def __init__(self, 
-            input_dim, act_dim, enc_dim, 
-            hidden_dim=64, ridge=0.1, lr=1e-4, device="cpu"):
+    def __init__(self, input_dim, act_dim, enc_dim, 
+            hidden_dim=64, ridge=0.1, lr=1e-4, device="cpu", **kw):
         self.enc_dim = enc_dim
         self.ridge = ridge
         self.device = device
@@ -99,7 +98,7 @@ class E3B(IntrinsicReward):
         loss.backward()
         self.encoder_optim.step()
         self.inv_dyn_optim.step()
-        return loss
+        return float(loss)
     
     def get_params(self):
         return {'encoder': self.encoder.state_dict(),

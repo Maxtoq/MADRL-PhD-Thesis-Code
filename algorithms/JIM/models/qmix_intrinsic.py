@@ -7,7 +7,7 @@ from .modules.noveld import NovelD
 from .modules.rnd import RND
 from .modules.e3b import E3B
 from .modules.e2s_rnd import E2S_RND
-from .modules.e2s_noveld import E2S_NovelD_InvDyn
+from .modules.e2s_noveld import E2S_NovelD
 
 IR_MODELS = {
     "none": NoIntrinsicReward,
@@ -15,7 +15,7 @@ IR_MODELS = {
     "rnd": RND,
     "e3b": E3B,
     "e2srnd": E2S_RND,
-    "e2snoveld": E2S_NovelD_InvDyn
+    "e2snoveld": E2S_NovelD
 }
 
 class QMIX_IR(QMIX):
@@ -96,7 +96,7 @@ class QMIX_IR(QMIX):
                 for a_i in range(self.nb_agents)]
             int_rew_loss = sum(losses) / self.nb_agents
 
-        return qtot_loss, float(int_rew_loss), new_priorities
+        return qtot_loss, int_rew_loss, new_priorities
 
     def reset_int_reward(self, obs_list):
         if self.ir_mode == "central":
