@@ -64,11 +64,11 @@ class ForagingWorld(Walled_World):
 
     def init_pos_chunks(self, start=False):
         small_chunk_positions = [
-            np.array([-0.5, 0.0]),
-            np.array([0.5, 0.0])]
+            np.array([-0.75, 0.0]),
+            np.array([0.75, 0.0])]
         big_chunk_positions = [
-            np.array([-0.5, 0.8]),
-            np.array([0.5, 0.8])]
+            np.array([-0.75, 0.8]),
+            np.array([0.75, 0.8])]
         if self.chunks[0].done or start:
             if self.chunks[0].pos_id == -1:
                 self.chunks[0].pos_id = random.randint(0, 1)
@@ -167,7 +167,7 @@ class Scenario(BaseScenario):
         if world.chunks[0].nb_agents_touched >= 1:
             rew += 1.0
             world.chunks[0].done = True
-        if world.chunks[1].nb_agents_touched >= 2:
+        if world.chunks[1].nb_agents_touched >= 3:
             rew += 50.0
             world.chunks[1].done = True
         return rew

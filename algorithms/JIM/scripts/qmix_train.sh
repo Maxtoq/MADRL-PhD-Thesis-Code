@@ -22,7 +22,7 @@ scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=40
-cuda_device="cuda:2"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
