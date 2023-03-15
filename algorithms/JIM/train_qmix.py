@@ -99,7 +99,7 @@ def run(cfg):
             "ridge": cfg.ridge,
             "lr": cfg.int_rew_lr,
             "device": device}
-    elif "e2snoveld" == cfg.intrinsic_reward_algo:
+    elif "e2snoveld" in cfg.intrinsic_reward_algo:
         if cfg.intrinsic_reward_mode == "central":
             ir_act_dim = nb_agents * act_dim
         else:
@@ -112,6 +112,12 @@ def run(cfg):
             "scale_fac": cfg.scale_fac,
             "lr": cfg.int_rew_lr,
             "device": device}
+        if "-llec" in cfg.intrinsic_reward_algo:
+            intrinsic_reward_params["ablation"] = "LLEC"
+            cfg.intrinsic_reward_algo = "e2snoveld"
+        elif "-eec" in cfg.intrinsic_reward_algo:
+            intrinsic_reward_params["ablation"] = "EEC"
+            cfg.intrinsic_reward_algo = "e2snoveld"
     qmix = QMIX_IR(nb_agents, obs_dim, act_dim, cfg.lr, cfg.gamma, cfg.tau, 
             cfg.hidden_dim, cfg.shared_params, cfg.init_explo_rate,
             cfg.max_grad_norm, device, cfg.use_per, cfg.per_nu, cfg.per_eps,
@@ -341,14 +347,14 @@ def run(cfg):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_path", type=str, help="Path to the environment",
-                    default="algorithms/MALNovelD/scenarios/coop_push_scenario_sparse.py")
+                    default="algorithms/JIM/scenarios/push_buttons.py")
     parser.add_argument("--model_name", type=str, default="qmix_TEST",
                         help="Name of directory to store model/training contents")
     parser.add_argument("--seed", default=1, type=int, help="Random seed")
     # Environment
     parser.add_argument("--episode_length", default=100, type=int)
     parser.add_argument("--sce_conf_path", type=str, 
-                        default="configs/2a_1o_fo.json",
+                        default="configs/2a_pol.json",
                         help="Path to the scenario config file")
     # Training
     parser.add_argument("--n_frames", default=2500, type=int,
@@ -389,7 +395,7 @@ if __name__ == '__main__':
     parser.add_argument("--intrinsic_reward_mode", default="central",
                         choices=["central", "local"])
     parser.add_argument("--intrinsic_reward_algo", default='none', 
-                        choices=['none', 'noveld', 'rnd', 'e3b', 'e2srnd', 'e2snoveld'])
+                        choices=['none', 'noveld', 'rnd', 'e3b', 'e2srnd', 'e2snoveld', 'e2snoveld-llec', 'e2snoveld-eec'])
     parser.add_argument("--int_reward_decay_fn", default="constant", type=str, 
                         choices=["constant", "linear", "sigmoid"])
     parser.add_argument("--int_reward_coeff", default=0.1, type=float)

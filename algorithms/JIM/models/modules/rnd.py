@@ -10,7 +10,7 @@ class RND(IntrinsicReward):
 
     def __init__(self, 
             input_dim, enc_dim, hidden_dim, 
-            lr=1e-4, device="cpu", **kw):
+            lr=1e-4, device="cpu"):
         self.input_dim = input_dim
         self.device = device
         # Random Network Distillation network

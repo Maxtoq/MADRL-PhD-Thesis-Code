@@ -8,7 +8,7 @@ from .intrinsic_rewards import IntrinsicReward
 class E3B(IntrinsicReward):
     
     def __init__(self, input_dim, act_dim, enc_dim, 
-            hidden_dim=64, ridge=0.1, lr=1e-4, device="cpu", **kw):
+            hidden_dim=64, ridge=0.1, lr=1e-4, device="cpu"):
         self.enc_dim = enc_dim
         self.ridge = ridge
         self.device = device
