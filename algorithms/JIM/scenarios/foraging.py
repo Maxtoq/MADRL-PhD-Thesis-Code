@@ -64,23 +64,35 @@ class ForagingWorld(Walled_World):
 
     def init_pos_chunks(self, start=False):
         small_chunk_positions = [
-            np.array([-0.75, 0.0]),
-            np.array([0.75, 0.0])]
+            np.array([-0.4, 0.0]),
+            np.array([0.4, 0.0]),
+            np.array([0.0, -0.4]),
+            np.array([0.0, 0.4])]
         big_chunk_positions = [
-            np.array([-0.75, 0.8]),
-            np.array([0.75, 0.8])]
+            np.array([-0.8, 0.8]),
+            np.array([0.8, 0.8]),
+            np.array([-0.8, -0.8]),
+            np.array([0.8, -0.8])]
         if self.chunks[0].done or start:
             if self.chunks[0].pos_id == -1:
-                self.chunks[0].pos_id = random.randint(0, 1)
+                self.chunks[0].pos_id = random.randint(0, 3)
             else:
-                self.chunks[0].pos_id = self.chunks[0].pos_id - 1
+                while True:
+                    new_id = random.randint(0, 3)
+                    if new_id != self.chunks[0].pos_id:
+                        break
+                self.chunks[0].pos_id = new_id
             self.chunks[0].state.p_pos = small_chunk_positions[
                 self.chunks[0].pos_id]
             self.chunks[0].done =False
         if self.chunks[1].done or start:
             if self.chunks[1].pos_id == -1:
-                self.chunks[1].pos_id = random.randint(0, 1)
+                self.chunks[1].pos_id = random.randint(0, 3)
             else:
+                while True:
+                    new_id = random.randint(0, 3)
+                    if new_id != self.chunks[1].pos_id:
+                        break
                 self.chunks[1].pos_id = self.chunks[1].pos_id - 1
             self.chunks[1].state.p_pos = big_chunk_positions[
                 self.chunks[1].pos_id]
@@ -100,7 +112,7 @@ class ForagingWorld(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=3, obs_range=2.83, collision_pen=3.0,
+    def make_world(self, nb_agents=4, obs_range=2.83, collision_pen=3.0,
                    chunk_radius=0.09):
         self.nb_agents = nb_agents
         self.obs_range = obs_range
@@ -119,8 +131,10 @@ class Scenario(BaseScenario):
             agent.accel = 3.5
             agent.color = np.array([0.0, 0.0, 0.0])
             agent.color += i / nb_agents
-        for chunk in world.chunks:
-            chunk.size = self.chunk_radius
+        # for chunk in world.chunks:
+        #     chunk.size = self.chunk_radius
+        world.chunks[0].size = self.chunk_radius - 0.02
+        world.chunks[1].size = self.chunk_radius
         world.chunks[0].color = np.array([1.0, 1.0, 1.0])
         world.chunks[1].color = np.array([1.0, 0.0, 0.0])
         # Scenario attributes
@@ -146,14 +160,21 @@ class Scenario(BaseScenario):
             np.random.seed(seed)
 
         # Agents' initial pos
-        space = 2 / self.nb_agents
-        for i, agent in enumerate(world.agents):
-            start = -1 + space * i
-            end = start + space
-            agent.state.p_pos = np.array([
-                random.uniform(start + AGENT_RADIUS, end - AGENT_RADIUS),
-                -1 + AGENT_RADIUS * 2])
-            agent.state.c = np.zeros(world.dim_c)
+        # space = 2 / self.nb_agents
+        # for i, agent in enumerate(world.agents):
+        #     start = -1 + space * i
+        #     end = start + space
+        #     agent.state.p_pos = np.array([
+        #         random.uniform(start + AGENT_RADIUS, end - AGENT_RADIUS),
+        #         -1 + AGENT_RADIUS * 2])
+        #     agent.state.c = np.zeros(world.dim_c)
+        agent_positions = [
+            np.array([-0.05, -0.05]),
+            np.array([-0.05, 0.05]),
+            np.array([0.05, -0.05]),
+            np.array([0.05, 0.05])]
+        for a_i, ag in enumerate(world.agents):
+            ag.state.p_pos = agent_positions[a_i]
         # Buttons
         world.init_pos_chunks(True)
         for chk in world.chunks:
@@ -167,8 +188,8 @@ class Scenario(BaseScenario):
         if world.chunks[0].nb_agents_touched >= 1:
             rew += 1.0
             world.chunks[0].done = True
-        if world.chunks[1].nb_agents_touched >= 3:
-            rew += 50.0
+        if world.chunks[1].nb_agents_touched >= 2:
+            rew += 100.0
             world.chunks[1].done = True
         return rew
 

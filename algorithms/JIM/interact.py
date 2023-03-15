@@ -93,7 +93,7 @@ def run(args):
 
     obs_dim = env.observation_space[0].shape[0]
     act_dim = env.action_space[0].shape[0]
-    intrinsic_reward = E2S_NovelD(nb_agents * obs_dim, 16, 64, 0.5, 0.1)
+    intrinsic_reward = E2S_NovelD(nb_agents * obs_dim, 5, 64, 512, 0.5, 0.1)
 
     # ext_rn = RewardNormalizator()
     # int_rn = RewardNormalizator()
