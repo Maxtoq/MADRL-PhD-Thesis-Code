@@ -559,3 +559,13 @@ models/foraging/qmix_pol/*
 models/foraging/qmix_pol/run2/*
 !models/foraging/qmix_pol/run2/model.pt
 !models/foraging/qmix_pol/run2/sce_config.json
+
+!models/foraging_bis
+models/foraging_bis/*
+
+!models/foraging_bis/qmix_po
+models/foraging_bis/qmix_po/*
+!models/foraging_bis/qmix_po/run4
+models/foraging_bis/qmix_po/run4/*
+!models/foraging_bis/qmix_po/run4/model.pt
+!models/foraging_bis/qmix_po/run4/sce_config.json

@@ -49,14 +49,14 @@ class Chunk(Entity):
 class ForagingWorld(Walled_World):
 
     small_chunk_pos = [
-        np.array([-0.3, 0.3]),
-        np.array([-0.5, 0.3]),
-        np.array([-0.3, 0.5]),
-        np.array([-0.6, 0.6]),
-        np.array([0.3, -0.3]),
-        np.array([0.5, -0.3]),
-        np.array([0.3, -0.5]),
-        np.array([0.6, -0.6])]
+        np.array([-0.2, 0.2]),
+        np.array([-0.4, 0.2]),
+        np.array([-0.2, 0.4]),
+        np.array([-0.5, 0.5]),
+        np.array([0.2, -0.2]),
+        np.array([0.4, -0.2]),
+        np.array([0.2, -0.4]),
+        np.array([0.5, -0.5])]
     big_chunk_pos = [
         np.array([0.85, 0.5]),
         np.array([0.5, 0.85]),
@@ -193,7 +193,7 @@ class Scenario(BaseScenario):
                     chk.done = True
             else:
                 if chk.nb_agents_touched >= 2:
-                    rew += 100.0
+                    rew += 50.0
                     chk.done = True
         return rew
 

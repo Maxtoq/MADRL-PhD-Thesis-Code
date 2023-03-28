@@ -186,7 +186,7 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         rew = 0.0
         if world.chunks[0].nb_agents_touched >= 1:
-            rew += 1.0
+            rew += 2.0
             world.chunks[0].done = True
         if world.chunks[1].nb_agents_touched >= 2:
             rew += 100.0
