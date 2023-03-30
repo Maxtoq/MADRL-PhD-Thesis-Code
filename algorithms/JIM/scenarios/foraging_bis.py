@@ -102,7 +102,7 @@ class ForagingWorld(Walled_World):
             if chk.done or start:
                 while True:
                     if c_i < self.nb_chunks - 2:
-                        new_id = random.randint(0, 7)
+                        new_id = random.randint(0, len(self.small_chunk_pos) - 1)
                         if new_id not in self.small_pos_taken:
                             if chk.pos_id in self.small_pos_taken:
                                 self.small_pos_taken.remove(chk.pos_id)
@@ -110,7 +110,7 @@ class ForagingWorld(Walled_World):
                             chk.state.p_pos = self.small_chunk_pos[new_id]
                             break
                     else:
-                        new_id = random.randint(0, 3)
+                        new_id = random.randint(0, len(self.big_chunk_pos) - 1)
                         if new_id not in self.big_pos_taken:
                             if chk.pos_id in self.big_pos_taken:
                                 self.big_pos_taken.remove(chk.pos_id)
