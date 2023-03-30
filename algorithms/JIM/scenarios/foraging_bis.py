@@ -83,9 +83,10 @@ class ForagingWorld(Walled_World):
         super(ForagingWorld, self).__init__()
         # add agent
         self.nb_agents = nb_agents
-        self.nb_chunks = nb_chunks
         self.agents = [Agent() for i in range(nb_agents)]
         # Resources
+        self.nb_chunks = nb_chunks
+        self.nb_big_chunks = scenario_params["nb_big_chunks"]
         self.chunks = [Chunk() for i in range(nb_chunks)]
         self.small_pos_taken = []
         self.big_pos_taken = []
@@ -101,7 +102,7 @@ class ForagingWorld(Walled_World):
         for c_i, chk in enumerate(self.chunks):
             if chk.done or start:
                 while True:
-                    if c_i < self.nb_chunks - 2:
+                    if c_i < self.nb_chunks - self.nb_big_chunks:
                         new_id = random.randint(0, len(self.small_chunk_pos) - 1)
                         if new_id not in self.small_pos_taken:
                             if chk.pos_id in self.small_pos_taken:
@@ -134,10 +135,11 @@ class ForagingWorld(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, nb_agents=4, nb_chunks=6, obs_range=2.83, collision_pen=3.0,
-                   chunk_radius=0.09):
+    def make_world(self, nb_agents=4, nb_chunks=6, nb_big_chunks=1, 
+                   obs_range=2.83, collision_pen=3.0, chunk_radius=0.09):
         self.nb_agents = nb_agents
         self.nb_chunks = nb_chunks
+        self.nb_big_chunks = nb_big_chunks
         self.obs_range = obs_range
         self.collision_pen = collision_pen
         self.agent_radius = AGENT_RADIUS
@@ -156,7 +158,7 @@ class Scenario(BaseScenario):
             agent.color += i / nb_agents
         for c_i, chk in enumerate(world.chunks):
             chk.size = self.chunk_radius
-            if c_i < nb_chunks - 2:
+            if c_i < nb_chunks - nb_big_chunks:
                 chk.color = np.array([1.0, 1.0, 1.0])
                 chk.value = 1.0
             else:
@@ -172,6 +174,7 @@ class Scenario(BaseScenario):
         return {
             "nb_agents": self.nb_agents,
             "nb_chunks": self.nb_chunks,
+            "nb_big_chunks": self.nb_big_chunks,
             "obs_range": self.obs_range,
             "collision_pen": self.collision_pen,
             "agent_radius": self.agent_radius,
@@ -203,13 +206,13 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         rew = 0.0
         for c_i, chk in enumerate(world.chunks):
-            if c_i < self.nb_chunks - 2:
+            if c_i < self.nb_chunks - self.nb_big_chunks:
                 if chk.nb_agents_touched >= 1:
                     rew += 1.0
                     chk.done = True
             else:
                 if chk.nb_agents_touched >= 2:
-                    rew += 50.0
+                    rew += 100.0
                     chk.done = True
         return rew
 
