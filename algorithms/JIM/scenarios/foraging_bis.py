@@ -53,6 +53,14 @@ class ForagingWorld(Walled_World):
         np.array([-0.4, 0.2]),
         np.array([-0.2, 0.4]),
         np.array([-0.5, 0.5]),
+        np.array([0.2, 0.2]),
+        np.array([0.4, 0.2]),
+        np.array([0.2, 0.4]),
+        np.array([0.5, 0.5]),
+        np.array([-0.2, -0.2]),
+        np.array([-0.4, -0.2]),
+        np.array([-0.2, -0.4]),
+        np.array([-0.5, -0.5]),
         np.array([0.2, -0.2]),
         np.array([0.4, -0.2]),
         np.array([0.2, -0.4]),
@@ -61,7 +69,15 @@ class ForagingWorld(Walled_World):
         np.array([0.85, 0.5]),
         np.array([0.5, 0.85]),
         np.array([-0.85, -0.5]),
-        np.array([-0.5, -0.85]),]
+        np.array([-0.5, -0.85]),
+        np.array([-0.85, 0.5]),
+        np.array([-0.5, 0.85]),
+        np.array([0.85, -0.5]),
+        np.array([0.5, -0.85]),
+        np.array([0.85, 0.0]),
+        np.array([0.0, 0.85]),
+        np.array([-0.85, 0.0]),
+        np.array([0.0, -0.85]),]
 
     def __init__(self, nb_agents, nb_chunks, scenario_params):
         super(ForagingWorld, self).__init__()
