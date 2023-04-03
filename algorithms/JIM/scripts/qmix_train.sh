@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=3
-env="algorithms/JIM/scenarios/foraging_bis.py"
+env="algorithms/JIM/scenarios/foraging_large.py"
 model_name="qmix_jim_po"
 sce_conf_path="configs/4a_po.json"
 n_frames=10000000
@@ -22,7 +22,7 @@ scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=40
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
 do
