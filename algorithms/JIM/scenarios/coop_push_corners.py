@@ -52,6 +52,8 @@ class PushWorld(World):
         # Control inertia
         self.damping = 0.8
 
+        self.scenario_params = {}
+
     @property
     def entities(self):
         return self.agents + self.objects + self.landmarks

@@ -136,7 +136,7 @@ class ForagingWorld(Walled_World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_chunks=6, nb_big_chunks=1, 
-                   obs_range=2.83, collision_pen=3.0, chunk_radius=0.09):
+                   obs_range=2.83, collision_pen=3.0, chunk_radius=0.08):
         self.nb_agents = nb_agents
         self.nb_chunks = nb_chunks
         self.nb_big_chunks = nb_big_chunks
@@ -208,11 +208,11 @@ class Scenario(BaseScenario):
         for c_i, chk in enumerate(world.chunks):
             if c_i < self.nb_chunks - self.nb_big_chunks:
                 if chk.nb_agents_touched >= 1:
-                    rew += 1.0
+                    rew += 2.0
                     chk.done = True
             else:
                 if chk.nb_agents_touched >= 2:
-                    rew += 100.0
+                    rew += 50.0
                     chk.done = True
         return rew
 

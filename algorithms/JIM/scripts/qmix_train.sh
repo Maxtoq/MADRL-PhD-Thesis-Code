@@ -1,10 +1,10 @@
 #!/bin/sh
-n_run=3
-env="algorithms/JIM/scenarios/foraging_large.py"
-model_name="qmix_jim_po"
-sce_conf_path="configs/4a_po.json"
+n_run=4
+env="algorithms/JIM/scenarios/coop_push_corners.py"
+model_name="qmix"
+sce_conf_path="configs/2a_1o_fo.json"
 n_frames=10000000
-n_explo_frames=9000000
+n_explo_frames=10000000
 episode_length=100 # def 100
 frames_per_update=100
 eval_every=10000
@@ -12,8 +12,8 @@ eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="central"
-intrinsic_reward_algo="e2snoveld"
-int_reward_coeff=1.0
+intrinsic_reward_algo="none"
+int_reward_coeff=0.5
 int_reward_decay_fn="constant"
 gamma=0.99
 int_rew_enc_dim=64 # def 16, JIM 90, LIM 30
@@ -22,7 +22,7 @@ scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
 optimal_diffusion_coeff=40
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do
