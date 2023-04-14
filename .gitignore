@@ -543,6 +543,14 @@ models/push_buttons/qmix_pol/*
 !models/push_buttons/qmix_pol/train_data
 !models/push_buttons/qmix_pol/train_data_1
 
+!models/push_buttons/qmix_jim-eec_pol
+models/push_buttons/qmix_jim-eec_pol/*
+!models/push_buttons/qmix_jim-eec_pol/train_data
+
+!models/push_buttons/qmix_jim-llec_pol
+models/push_buttons/qmix_jim-llec_pol/*
+!models/push_buttons/qmix_jim-llec_pol/train_data
+
 !models/foraging
 models/foraging/*
 
