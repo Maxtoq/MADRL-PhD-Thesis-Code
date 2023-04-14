@@ -1,5 +1,4 @@
 {
     "nb_agents": 2,
-    "obs_range": 0.6,
-    "button_radius": 0.09
+    "obs_range": 0.6
 }
