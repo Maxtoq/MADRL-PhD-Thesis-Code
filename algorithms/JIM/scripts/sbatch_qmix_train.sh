@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --partition=funky
-#SBATCH --nodelist=rodgers
-#SBATCH --job-name=corners
+#SBATCH --partition=hard
+#SBATCH --nodelist=led
+#SBATCH --job-name=4_corners
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=7000
@@ -11,10 +11,10 @@
 
 source venv/bin/activate
 
-n_run=4
-env="algorithms/JIM/scenarios/coop_push_corners.py"
-model_name="qmix_loc_e2snoveld_invdyn"
-sce_conf_path="configs/2a_1o_fo.json"
+n_run=6
+env="algorithms/JIM/scenarios/coop_push_corners_new.py"
+model_name="qmix_4a_jim_pol"
+sce_conf_path="configs/4a_pol.json"
 n_frames=10000000
 n_explo_frames=10000000
 episode_length=100 # def 100
@@ -23,13 +23,13 @@ eval_every=10000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
-intrinsic_reward_mode="local"
+intrinsic_reward_mode="central"
 intrinsic_reward_algo="e2snoveld"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
-int_rew_enc_dim=64 # def 16, JIM 90, LIM 30
-int_rew_hidden_dim=128 # def 64, JIM 1024, LIM 256
+int_rew_enc_dim=120 # def 16, JIM 90, LIM 30
+int_rew_hidden_dim=1024 # def 64, JIM 1024, LIM 256
 scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
