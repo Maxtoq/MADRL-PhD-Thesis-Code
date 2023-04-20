@@ -5,5 +5,5 @@ echo Launching Tensorboard with command \"python venv/lib/python3.6/site-package
 
 source venv/bin/activate
 
-python venv/lib/python3.8/site-packages/tensorboard/main.py --logdir=models/coop_push_corners/ --port=8080 --bind_all
+python venv/lib/python3.8/site-packages/tensorboard/main.py --logdir=models/coop_push_corners_new/ --port=8080 --bind_all
 

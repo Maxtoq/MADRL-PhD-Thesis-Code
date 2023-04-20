@@ -129,7 +129,7 @@ class PushWorld(World):
 class Scenario(BaseScenario):
 
     def make_world(self, nb_agents=4, nb_objects=1, obs_range=0.4, 
-                   collision_pen=3.0, reward_done=100, step_penalty=1.0, 
+                   collision_pen=2.0, reward_done=100, step_penalty=1.0, 
                    obj_lm_dist_range=[1.0, 2.0]):
         self.nb_agents = nb_agents
         self.nb_objects = nb_objects
