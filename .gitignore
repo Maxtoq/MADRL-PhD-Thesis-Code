@@ -479,6 +479,14 @@ models/coop_push_corners/qmix/*
 !models/coop_push_corners/qmix/train_data
 !models/coop_push_corners/qmix/train_data_mod
 
+!models/coop_push_corners/qmix_jim
+models/coop_push_corners/qmix_jim/*
+!models/coop_push_corners/qmix_jim/train_data
+
+!models/coop_push_corners/qmix_lim
+models/coop_push_corners/qmix_lim/*
+!models/coop_push_corners/qmix_lim/train_data
+
 launch_tensorboard.sh
 
 !models/rel_overgen/qmix_4030
