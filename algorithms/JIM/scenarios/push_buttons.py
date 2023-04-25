@@ -30,9 +30,9 @@ class Button(Landmark):
 class PushButtons(Walled_World):
 
     colors = {
-        "red": np.array([1.0, 0.0, 0.0]),
-        "green": np.array([0.0, 1.0, 0.0]),
-        "blue": np.array([0.0, 0.0, 1.0]),
+        "red": np.array([0.835, 0.369, 0.0]),
+        "green": np.array([0.337, 0.706, 0.91]),
+        "blue": np.array([0.925, 0.878, 0.196]),
         "yellow": np.array([1.0, 1.0, 0.0]),
         "pink": np.array([0.0, 1.0, 1.0])
     }

@@ -37,6 +37,7 @@ class QMIX_IR(QMIX):
         self.intrinsic_reward_algo = intrinsic_reward_algo
         self.intrinsic_reward_params = intrinsic_reward_params
         if self.ir_mode == "central":
+            intrinsic_reward_params["device"] = "cpu"
             self.int_rew = IR_MODELS[intrinsic_reward_algo](
                 nb_agents * obs_dim, **intrinsic_reward_params)
         elif self.ir_mode == "local":
@@ -184,5 +185,5 @@ class QMIX_IR(QMIX):
         instance.mixer.load_state_dict(mixer_params)
         instance.target_mixer.load_state_dict(target_mixer_params)
         instance.optimizer.load_state_dict(optimizer)
-        instance._load_ir_params(int_rew_params)
+        # instance._load_ir_params(int_rew_params)
         return instance

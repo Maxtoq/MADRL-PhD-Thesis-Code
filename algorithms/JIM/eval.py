@@ -45,6 +45,8 @@ def run(cfg):
         n_episodes = cfg.n_episodes
         init_pos_scenars = [None] * n_episodes
 
+    traj_list = []
+
     # Seed env
     seed = cfg.seed if cfg.seed is not None else np.random.randint(1e9)
     np.random.seed(seed)
@@ -55,7 +57,7 @@ def run(cfg):
                     sce_conf=sce_conf)
 
     for ep_i in range(n_episodes):
-        ep_return, ep_length, ep_success = rnn_eval_episode(
+        ep_return, ep_length, ep_success, traj = rnn_eval_episode(
             env, 
             model, 
             cfg.episode_length,
@@ -63,10 +65,17 @@ def run(cfg):
             render=True,
             step_time=cfg.step_time,
             verbose=True)
+
+        traj_list.append(traj)
         
         print(f'Episode {ep_i + 1} finished after {ep_length} steps with \
                 return {ep_return}.')
     print("SEED was", seed)
+
+    if cfg.save_traj:
+        with open(cfg.save_path, 'w') as f:
+            print("Saving trajectory in file", cfg.save_path)
+            json.dump(traj_list, f)
 
 
 if __name__ == '__main__':
@@ -87,6 +96,9 @@ if __name__ == '__main__':
     parser.add_argument("--discrete_action", action='store_true')
     # Render
     parser.add_argument("--step_time", default=0.1, type=float)
+    # Save
+    parser.add_argument("--save_traj", default=False, action='store_true')
+    parser.add_argument("--save_path", default="results/traj.json", type=str)
     # Evaluation scenario
     parser.add_argument('--init_pos_file', default=None,
                         help='JSON file containing initial positions of \
