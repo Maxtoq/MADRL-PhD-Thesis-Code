@@ -179,11 +179,12 @@ class QMIX_IR(QMIX):
         target_mixer_params = save_dict.pop("target_mixer_params")
         optimizer = save_dict.pop("optimizer")
         int_rew_params = save_dict.pop("int_reward_params")
+        save_dict["intrinsic_reward_params"]["device"] = "cpu"
         instance = cls(**save_dict)
         for a, params in zip(instance.agents, agent_params):
             a.load_params(params)
         instance.mixer.load_state_dict(mixer_params)
         instance.target_mixer.load_state_dict(target_mixer_params)
         instance.optimizer.load_state_dict(optimizer)
-        # instance._load_ir_params(int_rew_params)
+        instance._load_ir_params(int_rew_params)
         return instance
