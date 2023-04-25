@@ -186,5 +186,5 @@ class QMIX_IR(QMIX):
         instance.mixer.load_state_dict(mixer_params)
         instance.target_mixer.load_state_dict(target_mixer_params)
         instance.optimizer.load_state_dict(optimizer)
-        instance._load_ir_params(int_rew_params)
+        # instance._load_ir_params(int_rew_params)
         return instance

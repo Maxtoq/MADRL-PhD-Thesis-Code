@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=5
 env="algorithms/JIM/scenarios/coop_push_corners.py"
-model_name="qmix_jim_15"
+model_name="qmix_15"
 sce_conf_path="configs/2a_1o_fo.json"
 n_frames=15000000
 n_explo_frames=15000000
@@ -12,7 +12,7 @@ eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="central"
-intrinsic_reward_algo="e2snoveld"
+intrinsic_reward_algo="none"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
