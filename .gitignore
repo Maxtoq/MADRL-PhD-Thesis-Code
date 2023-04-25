@@ -540,6 +540,14 @@ models/push_buttons/qmix_jim/*
 models/push_buttons/qmix_lim_pol/*
 !models/push_buttons/qmix_lim_pol/train_data
 !models/push_buttons/qmix_lim_pol/train_data_1
+!models/push_buttons/qmix_lim_pol/run11
+models/push_buttons/qmix_lim_pol/run11/*
+!models/push_buttons/qmix_lim_pol/run11/sce_config.json
+!models/push_buttons/qmix_lim_pol/run11/model.pt
+!models/push_buttons/qmix_lim_pol/run5
+models/push_buttons/qmix_lim_pol/run5/*
+!models/push_buttons/qmix_lim_pol/run5/sce_config.json
+!models/push_buttons/qmix_lim_pol/run5/model.pt
 
 !models/push_buttons/qmix_jim_pol
 models/push_buttons/qmix_jim_pol/*
