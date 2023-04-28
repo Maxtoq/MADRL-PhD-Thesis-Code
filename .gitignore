@@ -574,6 +574,10 @@ models/push_buttons/qmix_jim_pol/run13/*
 models/push_buttons/qmix_pol/*
 !models/push_buttons/qmix_pol/train_data
 !models/push_buttons/qmix_pol/train_data_1
+!models/push_buttons/qmix_pol/run8
+models/push_buttons/qmix_pol/run8/*
+!models/push_buttons/qmix_pol/run8/sce_config.json
+!models/push_buttons/qmix_pol/run8/model.pt
 
 !models/push_buttons/qmix_jim-eec_pol
 models/push_buttons/qmix_jim-eec_pol/*

@@ -62,7 +62,7 @@ def run(cfg):
             model, 
             cfg.episode_length,
             init_pos_scenars[ep_i],
-            render=True,
+            render=not cfg.no_render,
             step_time=cfg.step_time,
             verbose=True)
 
@@ -96,6 +96,7 @@ if __name__ == '__main__':
     parser.add_argument("--discrete_action", action='store_true')
     # Render
     parser.add_argument("--step_time", default=0.1, type=float)
+    parser.add_argument("--no_render", default=False, action="store_true")
     # Save
     parser.add_argument("--save_traj", default=False, action='store_true')
     parser.add_argument("--save_path", default="results/traj.json", type=str)
