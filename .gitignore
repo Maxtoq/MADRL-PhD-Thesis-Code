@@ -487,6 +487,18 @@ models/coop_push_corners/qmix_jim/*
 models/coop_push_corners/qmix_lim/*
 !models/coop_push_corners/qmix_lim/train_data
 
+!models/coop_push_corners/qmix_jim_15
+models/coop_push_corners/qmix_jim_15/*
+!models/coop_push_corners/qmix_jim_15/train_data
+
+!models/coop_push_corners/qmix_lim_15
+models/coop_push_corners/qmix_lim_15/*
+!models/coop_push_corners/qmix_lim_15/train_data
+
+!models/coop_push_corners/qmix_15
+models/coop_push_corners/qmix_15/*
+!models/coop_push_corners/qmix_15/train_data
+
 launch_tensorboard.sh
 
 !models/rel_overgen/qmix_4030
