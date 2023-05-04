@@ -613,3 +613,14 @@ models/foraging_bis/qmix_po/*
 models/foraging_bis/qmix_po/run4/*
 !models/foraging_bis/qmix_po/run4/model.pt
 !models/foraging_bis/qmix_po/run4/sce_config.json
+
+!models/coop_push_corners_new
+models/coop_push_corners_new/*
+
+!models/coop_push_corners_new/qmix_jim_pol
+models/coop_push_corners_new/qmix_jim_pol/*
+!models/coop_push_corners_new/qmix_jim_pol/train_data
+
+!models/coop_push_corners_new/qmix_lim_pol
+models/coop_push_corners_new/qmix_lim_pol/*
+!models/coop_push_corners_new/qmix_lim_pol/train_data

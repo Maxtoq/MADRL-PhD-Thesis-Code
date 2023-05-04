@@ -4,7 +4,7 @@ import numpy as np
 from multiagent.scenario import BaseScenario
 from multiagent.core import World, Agent, Landmark, Action, Entity
 
-LANDMARK_RADIUS = 0.4
+LANDMARK_RADIUS = 0.5
 OBJECT_RADIUS = 0.15
 OBJECT_MASS = 1.0
 AGENT_RADIUS = 0.04

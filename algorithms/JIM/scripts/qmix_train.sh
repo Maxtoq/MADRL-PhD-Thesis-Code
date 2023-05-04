@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=5
-env="algorithms/JIM/scenarios/coop_push_corners.py"
-model_name="qmix_jim_pol_s"
-sce_conf_path="configs/2a_1o_fo.json"
+env="algorithms/JIM/scenarios/coop_push_corners_new.py"
+model_name="qmix_jim_pol"
+sce_conf_path="configs/2a_pol.json"
 n_frames=10000000
 n_explo_frames=10000000
 episode_length=100 # def 100
