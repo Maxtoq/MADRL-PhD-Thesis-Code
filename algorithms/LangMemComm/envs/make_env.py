@@ -6,12 +6,22 @@ ma_gym_tasks = {
     "Switch2": "ma_gym:Switch2-v0"
 }
 
+def get_env_class_and_args(cfg):
+    if cfg.task_name == "Switch2":
+        from .ma_gym.envs.switch.switch_one_corridor import Switch as EnvClass
+        args = {
+            "n_agents": 2,
+            "max_steps": cfg.episode_length,
+            "clock": False
+        }
+        return EnvClass, args
 
 def make_env(cfg, n_rollout_threads):
+    env_class, args = get_env_class_and_args(cfg)
     def get_env_fn(rank):
         def init_env():
             if cfg.env_name == "ma_gym":
-                env = gym.make(ma_gym_tasks[cfg.task_name])
+                env = env_class(**args)
             else:
                 print("Can not support the " +
                       cfg.env_name + "environment.")

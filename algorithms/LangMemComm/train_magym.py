@@ -5,11 +5,12 @@ import random
 import numpy as np
 
 from tensorboardX import SummaryWriter
-from tqdm import tqdm
+from tqdm import trange
 
 from config import get_config
-from utils import get_paths, write_params
+from log import get_paths, write_params
 from envs.make_env import make_env
+from algorithms.mappo.mappo import MAPPO
 
 
 def set_seeds(seed):
@@ -52,16 +53,39 @@ def run():
     if cfg.env_name == "ma_gym":
         env = make_env(cfg, cfg.n_rollout_threads)
         n_agents = env.n_agents
-        obs_dim = env.observation_space[0].shape[0]
-        act_dim = act_dim = env.action_space[0].n
+        obs_space = env.observation_space
+        shared_obs_space = env.shared_observation_space
+        act_space = act_dim = env.action_space
         write_params(run_dir, cfg)
-
-    print(n_agents, obs_dim, act_dim)
 
     # Create model
     if "ppo" in cfg.algorithm_name:
-        pass
+        algo = MAPPO(
+            cfg, n_agents, obs_space, shared_obs_space, act_space, device)
 
+    if cfg.use_eval:
+        eval_data_dict = {
+            "Step": [],
+            "Mean return": [],
+            "Success rate": [],
+            "Mean episode length": []
+        }
+
+    # Start training
+    print(f"Starting training for {cfg.n_steps} frames")
+    print(f"                  updates every {cfg.n_steps_per_update} frames")
+    print(f"                  with seed {cfg.seed}")
+    train_data_dict = {
+        "Step": [],
+        "Episode return": [],
+        "Success": [],
+        "Episode length": []
+    }
+    obs = env.reset()
+    for step_i in trange(cfg.n_steps):
+        # Perform step
+        # Get action
+        actions = algo.get_actions(obs, step_i)
     env.close()
 
 

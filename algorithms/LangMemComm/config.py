@@ -165,8 +165,10 @@ def get_config():
                         help="Number of parallel envs for training rollouts")
     parser.add_argument("--n_eval_rollout_threads", type=int, default=1,
                         help="Number of parallel envs for evaluating rollouts")
-    parser.add_argument("--num_env_steps", type=int, default=10e6,
+    parser.add_argument("--n_steps", type=int, default=10e6,
                         help='Number of environment steps to train (default: 10e6)')
+    parser.add_argument("--n_steps_per_update", type=int, default=100,
+                        help='Number of environment steps between training updates (default: 100)')
 
     # env parameters
     parser.add_argument("--env_name", type=str, default='ma_gym', help="specify the name of environment")
@@ -260,8 +262,8 @@ def get_config():
     parser.add_argument("--log_interval", type=int, default=5, help="time duration between contiunous twice log printing.")
 
     # eval parameters
-    parser.add_argument("--use_eval", action='store_true', default=False, help="by default, do not start evaluation. If set`, start evaluation alongside with training.")
-    parser.add_argument("--eval_interval", type=int, default=25, help="time duration between contiunous twice evaluation progress.")
+    parser.add_argument("--use_eval", action='store_true', default=False, help="controls if we evaluate agents accross training.")
+    parser.add_argument("--eval_interval", type=int, default=10000, help="number of steps between evaluations.")
     parser.add_argument("--eval_episodes", type=int, default=32, help="number of episodes of a single evaluation.")
 
     # render parameters
