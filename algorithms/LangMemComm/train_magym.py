@@ -5,7 +5,8 @@ import random
 import numpy as np
 
 from tensorboardX import SummaryWriter
-from tqdm import trange
+from tqdm import tqdm
+from itertools import chain
 
 from config import get_config
 from log import get_paths, write_params
@@ -21,7 +22,7 @@ def set_seeds(seed):
 def set_cuda_device(cfg):
     if torch.cuda.is_available():
         if cfg.cuda_device is None:
-            device = 'cuda'
+            device = torch.device('cuda')
         else:
             device = torch.device(cfg.cuda_device)
         if cfg.cuda_deterministic:
@@ -30,6 +31,14 @@ def set_cuda_device(cfg):
     else:
         device = 'cpu'
     return device
+
+def reset_envs(envs):
+    obs = envs.reset()
+    share_obs = []
+    for o in obs:
+        share_obs.append(list(chain(*o)))
+    share_obs = np.array(share_obs)
+    return obs, share_obs
 
 
 def run():
@@ -51,11 +60,11 @@ def run():
     
     # Create train environment
     if cfg.env_name == "ma_gym":
-        env = make_env(cfg, cfg.n_rollout_threads)
-        n_agents = env.n_agents
-        obs_space = env.observation_space
-        shared_obs_space = env.shared_observation_space
-        act_space = act_dim = env.action_space
+        envs = make_env(cfg, cfg.n_rollout_threads)
+        n_agents = envs.n_agents
+        obs_space = envs.observation_space
+        shared_obs_space = envs.shared_observation_space
+        act_space = act_dim = envs.action_space
         write_params(run_dir, cfg)
 
     # Create model
@@ -81,11 +90,35 @@ def run():
         "Success": [],
         "Episode length": []
     }
-    obs = env.reset()
-    for step_i in trange(cfg.n_steps):
+    # Reset env
+    obs, share_obs = reset_envs(envs)
+    ep_step_i = 0
+    algo.warmup(obs, share_obs)
+    for step_i in tqdm(range(0, int(cfg.n_steps), cfg.n_rollout_threads)):
+        algo.prep_rollout()
         # Perform step
         # Get action
-        actions = algo.get_actions(obs, step_i)
+        output = algo.get_actions(ep_step_i)
+        actions = output[-1]
+        # Perform action and get reward and next obs
+        # print(actions)
+        obs, rewards, dones, infos = envs.step(actions)
+        # Insert data into replay buffer
+        data = (obs, rewards, dones, infos) + output[:-1]
+        algo.store(data)
+
+        # Check for end of episode
+        done = False
+        print(dones)
+        return
+        if all(dones) or ep_step_i + 1 == cfg.episode_length:
+            done = True
+
+        # If end of episode
+        if done:
+            algo.train()
+        else:
+            ep_step_i += 1
     env.close()
 
 

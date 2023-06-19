@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import torch.nn as nn
 
+from itertools import chain
+
 from .r_actor_critic import R_Actor, R_Critic
 from .utils import update_linear_schedule, get_gard_norm, huber_loss, mse_loss, check
 from .buffer import SeparatedReplayBuffer
@@ -10,6 +12,10 @@ from .nn_modules.valuenorm import ValueNorm
 ##########################################################################
 # Code modified from https://github.com/marlbenchmark/on-policy
 ##########################################################################
+
+def torch2numpy(x):
+    return x.detach().cpu().numpy()
+
 
 class R_MAPPOPolicy:
     """
@@ -358,14 +364,25 @@ class R_MAPPOTrainAlgo():
 
 
 class MAPPO():
-
-    def __init__(self, cfg, n_agents, obs_space, shared_obs_space, act_space, device):
-        self.args = cfg
+    """
+    Class handling training of MAPPO from paper "The Surprising Effectiveness 
+    of PPO in Cooperative Multi-Agent Games" (https://arxiv.org/abs/2103.01955).
+    :param args: (argparse.Namespace) all arguments for training
+    :param n_agents: (int) number of agents
+    :param obs_space: (gym.Space) observation space
+    :param shared_obs_space: (gym.Space) shared observation space
+    :param act_space: (gym.Space) action space
+    :param device: (torch.device) cuda device used for training
+    """
+    def __init__(self, 
+            args, n_agents, obs_space, shared_obs_space, act_space, device):
+        self.args = args
         self.n_agents = n_agents
         self.obs_space = obs_space
         self.shared_obs_space = shared_obs_space
         self.act_space = act_space
         self.device = device
+        self.use_centralized_V = self.args.use_centralized_V
 
         # Set variant
         if self.args.algorithm_name == "rmappo":
@@ -375,40 +392,175 @@ class MAPPO():
             self.args.use_recurrent_policy = False 
             self.args.use_naive_recurrent_policy = False
         elif self.args.algorithm_name == "ippo":
-            self.args.use_centralized_V = False
+            self.use_centralized_V = False
         else:
             raise NotImplementedError
 
         # Init agent policies
         self.policy = []
-        for agent_id in range(self.n_agents):
-            if self.args.use_centralized_V:
-                shared_observation_space = self.shared_obs_space[agent_id]
+        for a_id in range(self.n_agents):
+            if self.use_centralized_V:
+                shared_observation_space = self.shared_obs_space[a_id]
             else:
-                shared_observation_space = self.observation_space[agent_id]
+                shared_observation_space = self.observation_space[a_id]
             # policy network
             po = R_MAPPOPolicy(self.args,
-                self.obs_space[agent_id],
+                self.obs_space[a_id],
                 shared_observation_space,
-                self.act_space[agent_id],
+                self.act_space[a_id],
                 device=self.device)
             self.policy.append(po)
 
         self.trainer = []
         self.buffer = []
-        for agent_id in range(self.n_agents):
+        for a_id in range(self.n_agents):
             # algorithm
             tr = R_MAPPOTrainAlgo(
-                self.args, self.policy[agent_id], device=self.device)
+                self.args, self.policy[a_id], device=self.device)
             # buffer
-            if self.args.use_centralized_V:
-                shared_observation_space = self.shared_obs_space[agent_id]
+            if self.use_centralized_V:
+                shared_observation_space = self.shared_obs_space[a_id]
             else:
-                shared_observation_space = self.observation_space[agent_id]
+                shared_observation_space = self.observation_space[a_id]
             bu = SeparatedReplayBuffer(self.args, 
-                self.obs_space[agent_id], 
+                self.obs_space[a_id], 
                 shared_observation_space, 
-                self.act_space[agent_id])
+                self.act_space[a_id])
             self.buffer.append(bu)
             self.trainer.append(tr)
-        
+
+    def prep_rollout(self):
+        for a_id in range(self.n_agents):
+            self.trainer[a_id].prep_rollout()
+
+    def warmup(self, obs, share_obs):
+        """
+        Initialize the buffer with first observations.
+        :param obs: (numpy.ndarray) first observations
+        :param share_obs: (numpy.ndarray) first shared observations
+        """
+        for a_id in range(self.n_agents):
+            if not self.use_centralized_V:
+                share_obs = np.array(list(obs[:, a_id]))
+            self.buffer[a_id].share_obs[0] = share_obs.copy()
+            self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
+
+    @torch.no_grad()
+    def get_actions(self, step_i):
+        values = []
+        actions = []
+        temp_actions_env = []
+        action_log_probs = []
+        rnn_states = []
+        rnn_states_critic = []
+
+        for a_id in range(self.n_agents):
+            value, action, action_log_prob, rnn_state, rnn_state_critic \
+                = self.trainer[a_id].policy.get_actions(
+                    self.buffer[a_id].share_obs[step_i],
+                    self.buffer[a_id].obs[step_i],
+                    self.buffer[a_id].rnn_states[step_i],
+                    self.buffer[a_id].rnn_states_critic[step_i],
+                    self.buffer[a_id].masks[step_i])
+            # [agents, envs, dim]
+            values.append(torch2numpy(value))
+            action = torch2numpy(action)
+            # rearrange action
+            # if self.act_space[a_id].__class__.__name__ == 'MultiDiscrete':
+            #     for i in range(self.act_space[a_id].shape):
+            #         uc_action_env = np.eye(
+            #             self.act_space[a_id].high[i]+1)[action[:, i]]
+            #         if i == 0:
+            #             action_env = uc_action_env
+            #         else:
+            #             action_env = np.concatenate(
+            #                 (action_env, uc_action_env), axis=1)
+            # if self.act_space[a_id].__class__.__name__ == 'Discrete':
+            #     action_env = np.squeeze(
+            #         np.eye(self.act_space[a_id].n)[action], 1)
+            # else:
+            #     raise NotImplementedError
+            
+
+            actions.append(action)
+            # temp_actions_env.append(action_env)
+            action_log_probs.append(torch2numpy(action_log_prob))
+            rnn_states.append(torch2numpy(rnn_state))
+            rnn_states_critic.append(torch2numpy(rnn_state_critic))
+
+        # [envs, agents, dim]
+        actions_env = [[actions[0][i], actions[1][i]] for i in range(actions[0].shape[0])]
+        # print(temp_actions_env)
+        # for i in range(self.args.n_rollout_threads):
+        #     one_hot_action_env = []
+        #     for temp_action_env in temp_actions_env:
+        #         one_hot_action_env.append(temp_action_env[i])
+        #     actions_env.append(one_hot_action_env)
+
+        values = np.array(values).transpose(1, 0, 2)
+        actions = np.array(actions).transpose(1, 0, 2)
+        action_log_probs = np.array(action_log_probs).transpose(1, 0, 2)
+        rnn_states = np.array(rnn_states).transpose(1, 0, 2, 3)
+        rnn_states_critic = np.array(rnn_states_critic).transpose(1, 0, 2, 3)
+
+        return values, actions, action_log_probs, rnn_states, \
+               rnn_states_critic, actions_env
+
+    def store(self, data):
+        obs, rewards, dones, infos, values, actions, action_log_probs, \
+            rnn_states, rnn_states_critic = data
+
+        rnn_states[dones == True] = np.zeros(
+            ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
+            dtype=np.float32)
+        rnn_states_critic[dones == True] = np.zeros(
+            ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
+            dtype=np.float32)
+        masks = np.ones(
+            (self.args.n_rollout_threads, self.n_agents, 1), dtype=np.float32)
+        masks[dones == True] = np.zeros(
+            ((dones == True).sum(), 1), dtype=np.float32)
+
+        share_obs = []
+        for o in obs:
+            share_obs.append(list(chain(*o)))
+        share_obs = np.array(share_obs)
+
+        for a_id in range(self.n_agents):
+            if not self.use_centralized_V:
+                share_obs = np.array(list(obs[:, a_id]))
+
+            self.buffer[a_id].insert(
+                share_obs,
+                np.array(list(obs[:, a_id])),
+                rnn_states[:, a_id],
+                rnn_states_critic[:, a_id],
+                actions[:, a_id],
+                action_log_probs[:, a_id],
+                values[:, a_id],
+                rewards[:, a_id],
+                masks[:, a_id])
+
+    @torch.no_grad()
+    def compute_last_value(self):
+        for a_id in range(self.n_agents):
+            next_value = self.trainer[a_id].policy.get_values(
+                self.buffer[a_id].share_obs[-1], 
+                self.buffer[a_id].rnn_states_critic[-1],
+                self.buffer[a_id].masks[-1])
+            next_value = torch2numpy(next_value)
+            self.buffer[a_id].compute_returns(
+                next_value, self.trainer[a_id].value_normalizer)
+
+    def train(self):
+        # Compute last value
+        self.compute_last_value()
+        # Train
+        train_infos = []
+        for a_id in range(self.num_agents):
+            self.trainer[a_id].prep_training()
+            train_info = self.trainer[a_id].train(self.buffer[a_id])
+            train_infos.append(train_info)       
+            self.buffer[a_id].after_update()
+        return train_infos
+
