@@ -4,12 +4,12 @@ import torch
 import random
 import numpy as np
 
-from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from itertools import chain
 
 from config import get_config
-from log import get_paths, write_params
+from logging.logger import Logger
+from logging.util import get_paths, write_params
 from envs.make_env import make_env
 from algorithms.mappo.mappo import MAPPO
 
@@ -50,8 +50,8 @@ def run():
     run_dir, model_cp_path, log_dir = get_paths(cfg)
     print("Saving model in dir", run_dir)
 
-    # Init summary writer
-    logger = SummaryWriter(str(log_dir))
+    # Init logger
+    logger = Logger(log_dir, cfg.log_tensorboard)
 
     set_seeds(cfg.seed)
 
@@ -72,24 +72,10 @@ def run():
         algo = MAPPO(
             cfg, n_agents, obs_space, shared_obs_space, act_space, device)
 
-    if cfg.use_eval:
-        eval_data_dict = {
-            "Step": [],
-            "Mean return": [],
-            "Success rate": [],
-            "Mean episode length": []
-        }
-
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
     print(f"                  updates every {cfg.n_steps_per_update} frames")
     print(f"                  with seed {cfg.seed}")
-    train_data_dict = {
-        "Step": [],
-        "Episode return": [],
-        "Success": [],
-        "Episode length": []
-    }
     # Reset env
     obs, share_obs = reset_envs(envs)
     ep_step_i = 0
@@ -104,21 +90,30 @@ def run():
         # print(actions)
         obs, rewards, dones, infos = envs.step(actions)
         # Insert data into replay buffer
+        if cfg.env_name == "ma_gym":
+            rewards = rewards[..., np.newaxis]
         data = (obs, rewards, dones, infos) + output[:-1]
         algo.store(data)
 
         # Check for end of episode
         done = False
-        print(dones)
-        return
-        if all(dones) or ep_step_i + 1 == cfg.episode_length:
+        if dones.sum(1).all() or ep_step_i + 1 == cfg.episode_length:
             done = True
 
         # If end of episode
         if done:
             algo.train()
+            # Log train data
+            logger.log(rewards, dones)
+            # Reset env
+
         else:
             ep_step_i += 1
+
+        # Save
+
+        # Eval
+
     env.close()
 
 

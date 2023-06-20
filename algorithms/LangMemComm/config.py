@@ -259,7 +259,8 @@ def get_config():
     parser.add_argument("--save_interval", type=int, default=1, help="time duration between contiunous twice models saving.")
 
     # log parameters
-    parser.add_argument("--log_interval", type=int, default=5, help="time duration between contiunous twice log printing.")
+    parser.add_argument("--log_tensorboard", action='store_false', default=True, 
+                        help='log training data in tensorboard')
 
     # eval parameters
     parser.add_argument("--use_eval", action='store_true', default=False, help="controls if we evaluate agents accross training.")

@@ -557,7 +557,7 @@ class MAPPO():
         self.compute_last_value()
         # Train
         train_infos = []
-        for a_id in range(self.num_agents):
+        for a_id in range(self.n_agents):
             self.trainer[a_id].prep_training()
             train_info = self.trainer[a_id].train(self.buffer[a_id])
             train_infos.append(train_info)       
