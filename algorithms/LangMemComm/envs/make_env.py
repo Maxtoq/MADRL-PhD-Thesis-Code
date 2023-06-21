@@ -2,9 +2,6 @@ import gym
 
 from .env_wrappers import DummyVecEnv, SubprocVecEnv
 
-ma_gym_tasks = {
-    "Switch2": "ma_gym:Switch2-v0"
-}
 
 def get_env_class_and_args(cfg):
     if cfg.task_name == "Switch2":

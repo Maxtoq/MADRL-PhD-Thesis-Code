@@ -8,8 +8,9 @@ from tqdm import tqdm
 from itertools import chain
 
 from config import get_config
-from logging.logger import Logger
-from logging.util import get_paths, write_params
+from log.train_log import Logger
+from log.util import get_paths, write_params
+from log.progress_bar import Progress
 from envs.make_env import make_env
 from algorithms.mappo.mappo import MAPPO
 
@@ -51,7 +52,8 @@ def run():
     print("Saving model in dir", run_dir)
 
     # Init logger
-    logger = Logger(log_dir, cfg.log_tensorboard)
+    logger = Logger(
+        log_dir, cfg.episode_length, cfg.n_rollout_threads, cfg.log_tensorboard)
 
     set_seeds(cfg.seed)
 
@@ -76,11 +78,15 @@ def run():
     print(f"Starting training for {cfg.n_steps} frames")
     print(f"                  updates every {cfg.n_steps_per_update} frames")
     print(f"                  with seed {cfg.seed}")
+    progress = Progress(cfg.n_steps)
     # Reset env
-    obs, share_obs = reset_envs(envs)
+    step_i = 0
     ep_step_i = 0
+    obs, share_obs = reset_envs(envs)
     algo.warmup(obs, share_obs)
-    for step_i in tqdm(range(0, int(cfg.n_steps), cfg.n_rollout_threads)):
+    while step_i < cfg.n_steps:
+    # for step_i in tqdm(range(0, int(cfg.n_steps), cfg.n_rollout_threads)):
+        progress.print_progress(step_i)
         algo.prep_rollout()
         # Perform step
         # Get action
@@ -97,24 +103,32 @@ def run():
 
         # Check for end of episode
         done = False
-        if dones.sum(1).all() or ep_step_i + 1 == cfg.episode_length:
+        if dones.all(axis=1).all() or ep_step_i + 1 == cfg.episode_length:
             done = True
+        # print(ep_step_i)
+        # print(dones, dones.all(axis=1))
+        # envs.render()
+        # time.sleep(0.2)
+
+        # Save data for logging
+        logger.count_returns(ep_step_i, rewards, dones)
 
         # If end of episode
         if done:
             algo.train()
             # Log train data
-            logger.log(rewards, dones)
-            # Reset env
-
+            step_i += logger.log(step_i)
+            # print(logger.train_data, step_i)
+            # Reset env (env, buffer, log)
         else:
             ep_step_i += 1
 
-        # Save
-
         # Eval
 
+        # Save
+
     env.close()
+    # Save model and training data
 
 
 if __name__ == '__main__':
