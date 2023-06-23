@@ -163,7 +163,7 @@ def get_config():
                         default=1, help="Number of torch threads for training")
     parser.add_argument("--n_rollout_threads", type=int, default=1,
                         help="Number of parallel envs for training rollouts")
-    parser.add_argument("--n_eval_rollout_threads", type=int, default=1,
+    parser.add_argument("--n_eval_threads", type=int, default=1,
                         help="Number of parallel envs for evaluating rollouts")
     parser.add_argument("--n_steps", type=int, default=10e6,
                         help='Number of environment steps to train (default: 10e6)')
@@ -256,14 +256,14 @@ def get_config():
     parser.add_argument("--use_linear_lr_decay", action='store_true',
                         default=False, help='use a linear schedule on the learning rate')
     # save parameters
-    parser.add_argument("--save_interval", type=int, default=1, help="time duration between contiunous twice models saving.")
+    parser.add_argument("--save_interval", type=int, default=10000, help="number of steps between models saving")
 
     # log parameters
     parser.add_argument("--log_tensorboard", action='store_false', default=True, 
                         help='log training data in tensorboard')
 
     # eval parameters
-    parser.add_argument("--use_eval", action='store_true', default=False, help="controls if we evaluate agents accross training.")
+    parser.add_argument("--do_eval", action='store_true', default=False, help="controls if we evaluate agents accross training.")
     parser.add_argument("--eval_interval", type=int, default=10000, help="number of steps between evaluations.")
     parser.add_argument("--eval_episodes", type=int, default=32, help="number of episodes of a single evaluation.")
 

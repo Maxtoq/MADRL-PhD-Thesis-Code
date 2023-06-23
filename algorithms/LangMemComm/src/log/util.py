@@ -25,6 +25,8 @@ def get_paths(cfg):
     log_dir = run_dir / 'logs'
     if not log_dir.exists():
         os.makedirs(log_dir)
+    
+    os.makedirs(run_dir / "incremental")
 
     return run_dir, model_cp_path, log_dir
 

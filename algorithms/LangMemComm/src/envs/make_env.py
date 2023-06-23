@@ -1,9 +1,12 @@
 import gym
+import numpy as np
+
+from itertools import chain
 
 from .env_wrappers import DummyVecEnv, SubprocVecEnv
 
 
-def get_env_class_and_args(cfg):
+def _get_env_class_and_args(cfg):
     if cfg.task_name == "Switch2":
         from .ma_gym.envs.switch.switch_one_corridor import Switch as EnvClass
         args = {
@@ -13,8 +16,18 @@ def get_env_class_and_args(cfg):
         }
         return EnvClass, args
 
-def make_env(cfg, n_rollout_threads):
-    env_class, args = get_env_class_and_args(cfg)
+def reset_envs(envs):
+    obs = envs.reset()
+    share_obs = []
+    for o in obs:
+        share_obs.append(list(chain(*o)))
+    share_obs = np.array(share_obs)
+    return obs, share_obs
+
+def make_env(cfg, n_rollout_threads, seed=None):
+    if seed is None:
+        seed = cfg.seed
+    env_class, args = _get_env_class_and_args(cfg)
     def get_env_fn(rank):
         def init_env():
             if cfg.env_name == "ma_gym":
@@ -23,7 +36,7 @@ def make_env(cfg, n_rollout_threads):
                 print("Can not support the " +
                       cfg.env_name + "environment.")
                 raise NotImplementedError
-            env.seed(cfg.seed + rank * 1000)
+            env.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:

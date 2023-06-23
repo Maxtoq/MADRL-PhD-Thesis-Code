@@ -170,9 +170,9 @@ class Switch(gym.Env):
             else:
                 rewards[agent_i] = 0
 
-        if self._step_count >= self._max_steps:
-            for i in range(self.n_agents):
-                self._agent_dones[i] = True
+        # if self._step_count >= self._max_steps:
+        #     for i in range(self.n_agents):
+        #         self._agent_dones[i] = True
 
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]

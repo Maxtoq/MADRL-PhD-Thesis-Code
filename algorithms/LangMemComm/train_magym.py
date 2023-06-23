@@ -5,14 +5,14 @@ import random
 import numpy as np
 
 from tqdm import tqdm
-from itertools import chain
 
-from config import get_config
-from log.train_log import Logger
-from log.util import get_paths, write_params
-from log.progress_bar import Progress
-from envs.make_env import make_env
-from algorithms.mappo.mappo import MAPPO
+from src.utils.config import get_config
+from src.utils.eval import perform_eval
+from src.log.train_log import Logger
+from src.log.util import get_paths, write_params
+from src.log.progress_bar import Progress
+from src.envs.make_env import make_env, reset_envs
+from src.algorithms.mappo.mappo import MAPPO
 
 
 def set_seeds(seed):
@@ -33,14 +33,6 @@ def set_cuda_device(cfg):
         device = 'cpu'
     return device
 
-def reset_envs(envs):
-    obs = envs.reset()
-    share_obs = []
-    for o in obs:
-        share_obs.append(list(chain(*o)))
-    share_obs = np.array(share_obs)
-    return obs, share_obs
-
 
 def run():
     # Load config
@@ -52,8 +44,7 @@ def run():
     print("Saving model in dir", run_dir)
 
     # Init logger
-    logger = Logger(
-        log_dir, cfg.episode_length, cfg.n_rollout_threads, cfg.log_tensorboard)
+    logger = Logger(cfg, log_dir)
 
     set_seeds(cfg.seed)
 
@@ -69,6 +60,9 @@ def run():
         act_space = act_dim = envs.action_space
         write_params(run_dir, cfg)
 
+    if cfg.do_eval:
+        eval_envs = make_env(cfg, cfg.n_eval_threads, cfg.seed + 1000)
+
     # Create model
     if "ppo" in cfg.algorithm_name:
         algo = MAPPO(
@@ -82,12 +76,14 @@ def run():
     # Reset env
     step_i = 0
     ep_step_i = 0
+    last_save_step = 0
+    last_eval_step = 0
     obs, share_obs = reset_envs(envs)
-    algo.warmup(obs, share_obs)
+    algo.start_episode(obs, share_obs)
+    algo.prep_rollout()
     while step_i < cfg.n_steps:
     # for step_i in tqdm(range(0, int(cfg.n_steps), cfg.n_rollout_threads)):
         progress.print_progress(step_i)
-        algo.prep_rollout()
         # Perform step
         # Get action
         output = algo.get_actions(ep_step_i)
@@ -115,20 +111,35 @@ def run():
 
         # If end of episode
         if done:
-            algo.train()
+            train_infos = algo.train()
             # Log train data
-            step_i += logger.log(step_i)
-            # print(logger.train_data, step_i)
+            step_i += logger.log_train(step_i)
             # Reset env (env, buffer, log)
+            obs, share_obs = reset_envs(envs)
+            algo.start_episode(obs, share_obs)
+            logger.reset_episode()
+            algo.prep_rollout()
+            ep_step_i = 0
         else:
             ep_step_i += 1
 
         # Eval
+        if cfg.do_eval and step_i - last_eval_step > cfg.eval_interval:
+            last_eval_step = step_i
+            mean_return, success_rate, mean_ep_len = perform_eval(cfg, algo)
+            logger.log_eval(step_i, mean_return, success_rate, mean_ep_len)
 
         # Save
+        if step_i - last_save_step > cfg.save_interval:
+            last_save_step = step_i
+            algo.save(run_dir / "incremental" / ('model_ep%i.pt' % (step_i)))
+            logger.save()
+
 
     env.close()
     # Save model and training data
+    algo.save(run_dir / "model_ep.pt")
+    logger.save_n_close()
 
 
 if __name__ == '__main__':
