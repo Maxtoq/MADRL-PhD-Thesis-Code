@@ -7,9 +7,8 @@ from pathlib import Path
 from shutil import copyfile
 
 def get_paths(cfg):
-    env_name = cfg.env_name + '_' + cfg.task_name
     # Get path of the run directory
-    model_dir = Path('./models') / env_name / cfg.experiment_name
+    model_dir = Path('./models') / cfg.env_name / cfg.experiment_name
     if not model_dir.exists():
         curr_run = 'run1'
     else:

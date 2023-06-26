@@ -171,8 +171,7 @@ def get_config():
                         help='Number of environment steps between training updates (default: 100)')
 
     # env parameters
-    parser.add_argument("--env_name", type=str, default='ma_gym', help="specify the name of environment")
-    parser.add_argument("--task_name", type=str, default='Switch2', help="specify the name of thr task")
+    parser.add_argument("--env_name", type=str, default='magym_Switch2', help="specify the names of environment and the task")
 
     # replay buffer parameters
     parser.add_argument("--episode_length", type=int,

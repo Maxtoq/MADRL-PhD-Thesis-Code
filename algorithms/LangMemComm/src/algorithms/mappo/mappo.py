@@ -465,6 +465,7 @@ class MAPPO():
         rnn_states = []
         rnn_states_critic = []
 
+
         for a_id in range(self.n_agents):
             value, action, action_log_prob, rnn_state, rnn_state_critic \
                 = self.trainer[a_id].policy.get_actions(
@@ -500,7 +501,9 @@ class MAPPO():
             rnn_states_critic.append(torch2numpy(rnn_state_critic))
 
         # [envs, agents, dim]
-        actions_env = [[actions[0][i], actions[1][i]] for i in range(actions[0].shape[0])]
+        actions_env = [
+            [actions[a_i][e_i] for a_i in range(self.n_agents)] 
+            for e_i in range(actions[0].shape[0])]
         # print(temp_actions_env)
         # for i in range(self.args.n_rollout_threads):
         #     one_hot_action_env = []

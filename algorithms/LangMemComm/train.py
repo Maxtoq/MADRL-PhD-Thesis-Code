@@ -52,13 +52,13 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
-    if cfg.env_name == "ma_gym":
-        envs = make_env(cfg, cfg.n_rollout_threads)
-        n_agents = envs.n_agents
-        obs_space = envs.observation_space
-        shared_obs_space = envs.shared_observation_space
-        act_space = act_dim = envs.action_space
-        write_params(run_dir, cfg)
+    # if cfg.env_name == "ma_gym":
+    envs = make_env(cfg, cfg.n_rollout_threads)
+    n_agents = envs.n_agents
+    obs_space = envs.observation_space
+    shared_obs_space = envs.shared_observation_space
+    act_space = act_dim = envs.action_space
+    write_params(run_dir, cfg)
 
     if cfg.do_eval:
         eval_envs = make_env(cfg, cfg.n_eval_threads, cfg.seed + 1000)
@@ -92,8 +92,8 @@ def run():
         # print(actions)
         obs, rewards, dones, infos = envs.step(actions)
         # Insert data into replay buffer
-        if cfg.env_name == "ma_gym":
-            rewards = rewards[..., np.newaxis]
+        # if cfg.env_name == "ma_gym":
+        rewards = rewards[..., np.newaxis]
         data = (obs, rewards, dones, infos) + output[:-1]
         algo.store(data)
 

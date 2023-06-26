@@ -4,17 +4,20 @@ import numpy as np
 from itertools import chain
 
 from .env_wrappers import DummyVecEnv, SubprocVecEnv
+from .mpe.environment import MultiAgentEnv
 
-
-def _get_env_class_and_args(cfg):
-    if cfg.task_name == "Switch2":
-        from .ma_gym.envs.switch.switch_one_corridor import Switch as EnvClass
-        args = {
-            "n_agents": 2,
-            "max_steps": cfg.episode_length,
-            "clock": False
-        }
-        return EnvClass, args
+def _get_env(cfg):
+    if "mpe" in cfg.env_name:
+        if "Spread" in cfg.env_name:
+            from .mpe.scenarios.simple_spread import Scenario
+        scenario = Scenario()
+        scenario.make_world()
+        env = MultiAgentEnv(scenario, discrete_action=True)
+    elif "magym" in cfg.env_name:
+        if "Switch2" in cfg.env_name:
+            from .ma_gym.envs.switch.switch_one_corridor import Switch
+            env = Switch(n_agents=2, max_steps=cfg.episode_length, clock=False)
+    return env
 
 def reset_envs(envs):
     obs = envs.reset()
@@ -27,16 +30,10 @@ def reset_envs(envs):
 def make_env(cfg, n_rollout_threads, seed=None):
     if seed is None:
         seed = cfg.seed
-    env_class, args = _get_env_class_and_args(cfg)
     def get_env_fn(rank):
         def init_env():
-            if cfg.env_name == "ma_gym":
-                env = env_class(**args)
-            else:
-                print("Can not support the " +
-                      cfg.env_name + "environment.")
-                raise NotImplementedError
-            env.seed(seed + rank * 1000)
+            env = _get_env(cfg)
+            # env.seed(seed + rank * 1000)
             return env
         return init_env
     if n_rollout_threads == 1:
