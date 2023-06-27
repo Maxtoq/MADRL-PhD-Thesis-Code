@@ -578,16 +578,16 @@ class MAPPO():
 
     def save(self, path):
         agents_params = []
-        for a_id in range(self.num_agents):
+        for a_id in range(self.n_agents):
             self.trainer[a_id].prep_rollout("cpu")
             params = {
                 "actor": self.trainer[a_id].policy.actor.state_dict(),
                 "critic": self.trainer[a_id].policy.critic.state_dict()
             }
-            if self.trainer[agent_id]._use_valuenorm:
+            if self.trainer[a_id]._use_valuenorm:
                 params["vnorm"] = self.trainer[a_id].value_normalizer.state_dict()
             agents_params.append(params)
         save_dict = {
-            "agent_params": agent_params
+            "agents_params": agents_params
         }
 

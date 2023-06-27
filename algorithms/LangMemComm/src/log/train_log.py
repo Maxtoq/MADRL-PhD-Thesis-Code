@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from tensorboardX import SummaryWriter
 
@@ -87,10 +88,10 @@ class Logger():
 
     def save(self):
         train_df = pd.DataFrame(self.train_data)
-        train_df.to_csv(str(run_dir / 'training_data.csv'))
+        train_df.to_csv(str(self.log_dir_path / 'training_data.csv'))
         if self.do_eval:
             eval_df = pd.DataFrame(self.eval_data)
-            eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
+            eval_df.to_csv(str(self.log_dir_path / 'evaluation_data.csv'))
 
     def save_n_close(self):
         self.save()

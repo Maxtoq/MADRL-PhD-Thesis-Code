@@ -136,7 +136,7 @@ def run():
             logger.save()
 
 
-    env.close()
+    envs.close()
     # Save model and training data
     algo.save(run_dir / "model_ep.pt")
     logger.save_n_close()
