@@ -96,6 +96,6 @@ class Logger():
     def save_n_close(self):
         self.save()
         if self.log_tensorboard:
-            logger.log_tb.export_scalars_to_json(
+            self.log_tb.export_scalars_to_json(
                 str(self.log_dir_path / 'summary.json'))
-            logger.log_tb.close()
+            self.log_tb.close()
