@@ -10,6 +10,8 @@ def _get_env(cfg):
     if "mpe" in cfg.env_name:
         if "Spread" in cfg.env_name:
             from .mpe.scenarios.simple_spread import Scenario
+        if "CoopPush" in cfg.env_name:
+            from .mpe.scenarios.coop_push_corners import Scenario
         scenario = Scenario()
         scenario.make_world()
         env = MultiAgentEnv(scenario, discrete_action=True)
