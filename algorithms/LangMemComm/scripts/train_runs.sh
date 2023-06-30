@@ -1,0 +1,22 @@
+#!/bin/sh
+n_run=11
+experiment_name="mappo"
+n_rollout_threads=32
+n_steps=2000000
+env_name="rel_overgen"
+cuda_device="cuda:0"
+
+for n in $(seq 1 $n_run)
+do
+    printf "Run ${n}/${n_run}\n"
+    seed=$RANDOM
+    comm="python algorithms/LangMemComm/train.py --seed ${seed} \
+    --experiment_name ${experiment_name} \
+    --n_rollout_threads ${n_rollout_threads} \
+    --n_steps ${n_steps} \
+    --env_name ${env_name} \
+    --cuda_device ${cuda_device}"
+    printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
+    eval $comm
+    printf "DONE\n\n"
+done
