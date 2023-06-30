@@ -19,6 +19,9 @@ def _get_env(cfg):
         if "Switch2" in cfg.env_name:
             from .ma_gym.envs.switch.switch_one_corridor import Switch
             env = Switch(n_agents=2, max_steps=cfg.episode_length, clock=False)
+    elif "rel_overgen" in cfg.env_name:
+        from .rel_overgen import RelOvergenEnv
+        env = RelOvergenEnv(40)
     return env
 
 def reset_envs(envs):

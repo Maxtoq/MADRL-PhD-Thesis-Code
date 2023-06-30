@@ -135,7 +135,7 @@ def run():
             algo.save(run_dir / "incremental" / ('model_ep%i.pt' % (step_i)))
             logger.save()
 
-
+    progress.print_end()
     envs.close()
     # Save model and training data
     algo.save(run_dir / "model_ep.pt")
