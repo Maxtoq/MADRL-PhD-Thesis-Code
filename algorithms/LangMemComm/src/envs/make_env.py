@@ -21,7 +21,7 @@ def _get_env(cfg):
             env = Switch(n_agents=2, max_steps=cfg.episode_length, clock=False)
     elif "rel_overgen" in cfg.env_name:
         from .rel_overgen import RelOvergenEnv
-        env = RelOvergenEnv(40)
+        env = RelOvergenEnv(cfg.ro_state_dim)
     return env
 
 def reset_envs(envs):

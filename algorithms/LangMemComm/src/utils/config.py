@@ -275,4 +275,7 @@ def get_config():
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, help="by default None. set the path to pretrained model.")
 
+    # Environment parameters
+    parser.add_argument("--ro_state_dim", type=int, default=30, help="state dimension in the rel_overgen environment.")
+
     return parser
