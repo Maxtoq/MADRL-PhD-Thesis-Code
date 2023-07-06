@@ -276,6 +276,17 @@ def get_config():
     parser.add_argument("--model_dir", type=str, default=None, help="by default None. set the path to pretrained model.")
 
     # Environment parameters
-    parser.add_argument("--ro_state_dim", type=int, default=30, help="state dimension in the rel_overgen environment.")
+    parser.add_argument("--ro_state_dim", type=int, default=40, help="state dimension in the rel_overgen environment.")
+    parser.add_argument("--ro_optim_diff_coeff", type=int, default=30, help="state dimension in the rel_overgen environment.")
+
+    # Intrinsic rewards parameters
+    parser.add_argument("--ir_algo", type=str, default="none")
+    parser.add_argument("--ir_mode", type=str, default="central")
+    parser.add_argument("--ir_enc_dim", type=int, default=32)
+    parser.add_argument("--ir_lr", type=float, default=1e-4)
+    parser.add_argument("--ir_hidden_dim", type=int, default=64)
+    parser.add_argument("--ir_scale_fac", type=float, default=0.5)
+    parser.add_argument("--ir_ridge", type=float, default=0.1)
+    parser.add_argument("--ir_ablation", type=str, default=None)
 
     return parser

@@ -13,6 +13,7 @@ from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
 from src.envs.make_env import make_env, reset_envs
 from src.algorithms.mappo.mappo import MAPPO
+from src.algorithms.mappo.mappo_intrinsic import MAPPO_IR
 
 
 def set_seeds(seed):
@@ -65,8 +66,12 @@ def run():
 
     # Create model
     if "ppo" in cfg.algorithm_name:
-        algo = MAPPO(
-            cfg, n_agents, obs_space, shared_obs_space, act_space, device)
+        if cfg.ir_algo == "none":
+            algo = MAPPO(
+                cfg, n_agents, obs_space, shared_obs_space, act_space, device)
+        else:
+            algo = MAPPO_IR(
+                cfg, n_agents, obs_space, shared_obs_space, act_space, device)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
@@ -82,18 +87,25 @@ def run():
     algo.start_episode(obs, share_obs)
     algo.prep_rollout()
     while step_i < cfg.n_steps:
-    # for step_i in tqdm(range(0, int(cfg.n_steps), cfg.n_rollout_threads)):
         progress.print_progress(step_i)
         # Perform step
         # Get action
         output = algo.get_actions(ep_step_i)
         actions = output[-1]
         # Perform action and get reward and next obs
-        # print(actions)
         obs, rewards, dones, infos = envs.step(actions)
+
+        # Get intrinsic reward if needed
+        if cfg.ir_algo != "none":
+            intr_rewards = algo.get_intrinsic_rewards(obs)
+        else:
+            intr_rewards = 0
+        # print(rewards)
+
         # Insert data into replay buffer
-        # if cfg.env_name == "ma_gym":
         rewards = rewards[..., np.newaxis]
+        # print(rewards)
+        # exit()
         data = (obs, rewards, dones, infos) + output[:-1]
         algo.store(data)
 
@@ -101,10 +113,6 @@ def run():
         done = False
         if dones.all(axis=1).all() or ep_step_i + 1 == cfg.episode_length:
             done = True
-        # print(ep_step_i)
-        # print(dones, dones.all(axis=1))
-        # envs.render()
-        # time.sleep(0.2)
 
         # Save data for logging
         logger.count_returns(ep_step_i, rewards, dones)

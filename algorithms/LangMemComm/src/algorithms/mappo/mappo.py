@@ -448,7 +448,6 @@ class MAPPO():
         :param obs: (numpy.ndarray) first observations
         :param share_obs: (numpy.ndarray) first shared observations
         """
-        
         for a_id in range(self.n_agents):
             self.buffer[a_id].reset_episode()
             if not self.use_centralized_V:
@@ -465,7 +464,6 @@ class MAPPO():
         rnn_states = []
         rnn_states_critic = []
 
-
         for a_id in range(self.n_agents):
             value, action, action_log_prob, rnn_state, rnn_state_critic \
                 = self.trainer[a_id].policy.get_actions(
@@ -476,26 +474,9 @@ class MAPPO():
                     self.buffer[a_id].masks[step_i])
             # [agents, envs, dim]
             values.append(torch2numpy(value))
-            action = torch2numpy(action)
-            # rearrange action
-            # if self.act_space[a_id].__class__.__name__ == 'MultiDiscrete':
-            #     for i in range(self.act_space[a_id].shape):
-            #         uc_action_env = np.eye(
-            #             self.act_space[a_id].high[i]+1)[action[:, i]]
-            #         if i == 0:
-            #             action_env = uc_action_env
-            #         else:
-            #             action_env = np.concatenate(
-            #                 (action_env, uc_action_env), axis=1)
-            # if self.act_space[a_id].__class__.__name__ == 'Discrete':
-            #     action_env = np.squeeze(
-            #         np.eye(self.act_space[a_id].n)[action], 1)
-            # else:
-            #     raise NotImplementedError
-            
+            action = torch2numpy(action)            
 
             actions.append(action)
-            # temp_actions_env.append(action_env)
             action_log_probs.append(torch2numpy(action_log_prob))
             rnn_states.append(torch2numpy(rnn_state))
             rnn_states_critic.append(torch2numpy(rnn_state_critic))
@@ -504,12 +485,6 @@ class MAPPO():
         actions_env = [
             [actions[a_i][e_i] for a_i in range(self.n_agents)] 
             for e_i in range(actions[0].shape[0])]
-        # print(temp_actions_env)
-        # for i in range(self.args.n_rollout_threads):
-        #     one_hot_action_env = []
-        #     for temp_action_env in temp_actions_env:
-        #         one_hot_action_env.append(temp_action_env[i])
-        #     actions_env.append(one_hot_action_env)
 
         values = np.array(values).transpose(1, 0, 2)
         actions = np.array(actions).transpose(1, 0, 2)
@@ -576,10 +551,10 @@ class MAPPO():
             train_infos.append(train_info)
         return train_infos
 
-    def save(self, path):
+    def _get_save_dict(self):
+        self.prep_rollout("cpu")
         agents_params = []
         for a_id in range(self.n_agents):
-            self.trainer[a_id].prep_rollout("cpu")
             params = {
                 "actor": self.trainer[a_id].policy.actor.state_dict(),
                 "critic": self.trainer[a_id].policy.critic.state_dict()
@@ -590,4 +565,9 @@ class MAPPO():
         save_dict = {
             "agents_params": agents_params
         }
+        return save_dict
+
+    def save(self, path):
+        save_dict = self._get_save_dict()
+        torch.save(save_dict, path)
 
