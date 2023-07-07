@@ -1,10 +1,10 @@
 #!/bin/sh
 n_run=11
-experiment_name="mappo_30"
+experiment_name="mappo_50"
 n_rollout_threads=32
 n_steps=5000000
 env_name="rel_overgen"
-ro_optim_diff_coeff=30
+ro_optim_diff_coeff=50
 cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
