@@ -59,20 +59,24 @@ class E3B(IntrinsicReward):
             state_batch (torch.Tensor): dim=(batch_size, state_dim)
         """
         # Encode state
-        enc_state = self.encoder(state_batch).detach()
-        print(enc_state.shape)
-        print(self.inv_cov.shape)
+        enc_state = self.encoder(state_batch).detach().unsqueeze(-1)
         # Compute the intrinsic reward
-        u = torch.mv(self.inv_cov, enc_state)
-        int_reward = torch.dot(enc_state, u)
-        print(int_reward)
-        exit()
+        u = torch.matmul(enc_state.transpose(1, 2), self.inv_cov)
+        int_rewards = torch.matmul(u, enc_state).squeeze()
         # Update covariance matrix
-        torch.outer(u, u, out=self.outer_product_buffer)
-        torch.add(
-            self.inv_cov, self.outer_product_buffer, 
-            alpha=-(1. / (1. + int_reward)), out=self.inv_cov)
-        return int_reward
+        outer_prod = torch.matmul(u.transpose(1, 2), u)
+        batch_size = state_batch.shape[0]
+        if batch_size > 1:
+            self.inv_cov = torch.cat([
+                torch.add(self.inv_cov[e_i], outer_prod[e_i], 
+                    alpha=-(1. / (1. + int_rewards[e_i]))).unsqueeze(0)
+                for e_i in range(batch_size)
+            ])
+        else:
+            torch.add(
+                self.inv_cov, outer_prod, 
+                alpha=-(1. / (1. + int_rewards)), out=self.inv_cov)
+        return int_rewards
     
     def train(self, state_batch, act_batch):
         """
