@@ -1,3 +1,5 @@
+import torch
+
 from .mappo import MAPPO
 from .utils import get_shape_from_obs_space, get_shape_from_act_space
 from ..intrinsic_rewards.e2s_noveld import E2S_NovelD
@@ -14,7 +16,7 @@ class MAPPO_IR(MAPPO):
             args, n_agents, obs_space, shared_obs_space, act_space, device):
         super(MAPPO_IR, self).__init__(
             args, n_agents, obs_space, shared_obs_space, act_space, device)
-        
+        self.device = device
         self.ir_mode = args.ir_mode
         self.ir_algo = args.ir_algo
         if self.ir_algo == "e2s_noveld":
@@ -22,7 +24,6 @@ class MAPPO_IR(MAPPO):
                 obs_dim = get_shape_from_obs_space(shared_obs_space[0])[0]
                 act_dim = sum([get_shape_from_act_space(sp) 
                                 for sp in act_space])
-                print(obs_dim, act_dim)
                 self.ir_model = E2S_NovelD(
                     obs_dim, 
                     act_dim,
@@ -50,6 +51,19 @@ class MAPPO_IR(MAPPO):
             print("Wrong intrinsic reward algo")
             raise NotImplementedError
 
+    def start_episode(self, obs, share_obs, n_episodes=1):
+        super().start_episode(obs, share_obs)
+        if self.ir_mode == "central":
+            self.ir_model.init_new_episode(n_episodes)
+            # Initialise intrinsic reward model with first observation
+            self.ir_model.get_reward(torch.Tensor(share_obs).to(self.device))
+        elif self.ir_mode == "local":
+            # Reshape observations by agents
+            obs = torch.Tensor(obs.transpose((1, 0, 2))).to(self.device)
+            for a_i in range(self.n_agents):
+                self.ir_model[a_i].init_new_episode(n_episodes)
+                self.ir_model[a_i].get_reward(obs[a_i])
+
     def get_intrinsic_rewards(self, next_obs_list):
         """
         Get intrinsic reward of the multi-agent system.
@@ -63,26 +77,40 @@ class MAPPO_IR(MAPPO):
             # Concatenate observations
             print(next_obs_list)
             cat_obs = torch.Tensor(
-                np.concatenate(next_obs_list)).unsqueeze(0).to(self.device)
+                np.concatenate(next_obs_list)).to(self.device)
             print(cat_obs)
             # Get reward
             int_reward = self.ir_model.get_reward(cat_obs)
-            int_rewards = [int_reward] * self.nb_agents
+            int_rewards = [int_reward] * self.n_agents
         elif self.ir_mode == "local":
             int_rewards = []
-            for a_i in range(self.nb_agents):
+            for a_i in range(self.n_agents):
                 obs = torch.Tensor(
-                    next_obs_list[a_i]).unsqueeze(0).to(self.device)
+                    next_obs_list[a_i]).to(self.device)
+                print(obs)
                 int_rewards.append(self.ir_model[a_i].get_reward(obs))
         return int_rewards
 
     def prep_rollout(self, device=None):
+        if device is None:
+            device = self.device
         super().prep_rollout(device)
+        self.device = device
         if self.ir_mode == "central":
             self.ir_model.set_eval(device)
         elif self.ir_mode == "local":
             for a_ir in self.ir_model:
                 a_ir.set_eval(device)
+    
+    def prep_training(self, device=None):
+        if device is None:
+            device = self.device
+        super().prep_training(device)
+        if self.ir_mode == "central":
+            self.int_rew.set_train(device)
+        elif self.ir_mode == "local":
+            for a_int_rew in self.int_rew:
+                a_int_rew.set_train(device)
 
     def _get_ir_params(self):
         if self.ir_mode == "central":

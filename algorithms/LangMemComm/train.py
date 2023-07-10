@@ -75,7 +75,7 @@ def run():
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
-    print(f"                  updates every {cfg.n_steps_per_update} frames")
+    print(f"                  updates every {cfg.n_rollout_threads} episodes")
     print(f"                  with seed {cfg.seed}")
     progress = Progress(cfg.n_steps)
     # Reset env
@@ -84,7 +84,7 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs, share_obs = reset_envs(envs)
-    algo.start_episode(obs, share_obs)
+    algo.start_episode(obs, share_obs, cfg.n_rollout_threads)
     algo.prep_rollout()
     while step_i < cfg.n_steps:
         progress.print_progress(step_i)
@@ -100,12 +100,12 @@ def run():
             intr_rewards = algo.get_intrinsic_rewards(obs)
         else:
             intr_rewards = 0
-        # print(rewards)
+        print(rewards)
 
         # Insert data into replay buffer
         rewards = rewards[..., np.newaxis]
-        # print(rewards)
-        # exit()
+        print(rewards)
+        exit()
         data = (obs, rewards, dones, infos) + output[:-1]
         algo.store(data)
 
@@ -124,7 +124,7 @@ def run():
             step_i += logger.log_train(step_i)
             # Reset env (env, buffer, log)
             obs, share_obs = reset_envs(envs)
-            algo.start_episode(obs, share_obs)
+            algo.start_episode(obs, share_obs, cfg.n_rollout_threads)
             logger.reset_episode()
             algo.prep_rollout()
             ep_step_i = 0

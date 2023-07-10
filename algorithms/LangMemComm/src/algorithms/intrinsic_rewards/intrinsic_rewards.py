@@ -29,12 +29,12 @@ class IntrinsicReward(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def get_reward(self, state):
+    def get_reward(self, state_batch):
         """
         Returns the reward computed from given state.
         Inputs:
-            state (torch.Tensor): State used for computing reward, 
-                dim=(1, state_dim).
+            state_batch (torch.Tensor): States used for computing reward, 
+                dim=(batch_size, state_dim).
         """
         raise NotImplementedError
     
@@ -76,8 +76,8 @@ class NoIntrinsicReward(IntrinsicReward):
     def set_eval(self, device):
         pass
         
-    def get_reward(self, state):
-        return 0.0
+    def get_reward(self, state_batch):
+        return [0.0] * state_batch.shape[0]
     
     def train(self, *args):
         return 0.0

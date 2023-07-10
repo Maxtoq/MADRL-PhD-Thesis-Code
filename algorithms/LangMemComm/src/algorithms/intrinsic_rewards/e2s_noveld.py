@@ -28,11 +28,11 @@ class E2S_NovelD(IntrinsicReward):
             self.e3b = E3B(
                 input_dim, act_dim, enc_dim, hidden_dim, ridge, lr, device)
     
-    def init_new_episode(self):
+    def init_new_episode(self, n_episodes=1):
         if self.rnd is not None:
             self.last_nov = None
         if self.e3b is not None:
-            self.e3b.init_new_episode()
+            self.e3b.init_new_episode(n_episodes)
     
     def set_train(self, device):
         if self.rnd is not None:

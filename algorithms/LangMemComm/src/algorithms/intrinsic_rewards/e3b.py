@@ -20,7 +20,8 @@ class E3B(IntrinsicReward):
             2 * enc_dim, act_dim, hidden_dim, norm_in=False)
         # Inverse covariance matrix
         self.ridge = ridge
-        self.inv_cov = torch.eye(enc_dim).to(device) * (1.0 / self.ridge)
+        self.inv_cov = torch.cat([
+            torch.eye(self.enc_dim).unsqueeze(0) for _ in range(1)])
         self.outer_product_buffer = torch.empty(enc_dim, enc_dim).to(device)
         
         # Optimizers
@@ -31,8 +32,9 @@ class E3B(IntrinsicReward):
             self.inv_dyn.parameters(), 
             lr=lr)
     
-    def init_new_episode(self):
-        self.inv_cov = torch.eye(self.enc_dim).to(self.device)
+    def init_new_episode(self, n_episodes=1):
+        self.inv_cov = torch.cat([
+            torch.eye(self.enc_dim).unsqueeze(0) for _ in range(n_episodes)])
         self.inv_cov *= (1.0 / self.ridge)
 
     def set_train(self, device):
@@ -51,16 +53,20 @@ class E3B(IntrinsicReward):
         self.outer_product_buffer = self.outer_product_buffer.to(device)
         self.device = device
         
-    def get_reward(self, state):
+    def get_reward(self, state_batch):
         """
         Inputs:
-            state (torch.Tensor): dim=(1, state_dim)
+            state_batch (torch.Tensor): dim=(batch_size, state_dim)
         """
         # Encode state
-        enc_state = self.encoder(state).squeeze().detach()
+        enc_state = self.encoder(state_batch).detach()
+        print(enc_state.shape)
+        print(self.inv_cov.shape)
         # Compute the intrinsic reward
         u = torch.mv(self.inv_cov, enc_state)
-        int_reward = torch.dot(enc_state, u).item()
+        int_reward = torch.dot(enc_state, u)
+        print(int_reward)
+        exit()
         # Update covariance matrix
         torch.outer(u, u, out=self.outer_product_buffer)
         torch.add(

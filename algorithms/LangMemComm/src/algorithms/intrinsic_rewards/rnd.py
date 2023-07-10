@@ -45,22 +45,22 @@ class RND(IntrinsicReward):
         self.predictor = self.predictor.to(device)
         self.device = device
         
-    def get_reward(self, state):
+    def get_reward(self, state_batch):
         """
         Get intrinsic reward for the given state.
         Inputs:
-            state (torch.Tensor): State from which to generate the reward,
-                dim=(1, state_dim).
+            state_batch (torch.Tensor): States from which to generate the reward,
+                dim=(batch_size, state_dim).
         Outputs:
-            int_reward (float): Intrinsic reward for the input state.
+            int_reward (float): Intrinsic rewards for the input states.
         """
         # Compute embeddings
-        target = self.target(state)
-        pred = self.predictor(state)
+        target = self.target(state_batch)
+        pred = self.predictor(state_batch)
 
         # Compute novelty
         int_reward = torch.norm(
-            pred.detach() - target.detach(), dim=1, p=2).item()
+            pred.detach() - target.detach(), dim=1, p=2)
         
         return int_reward
     

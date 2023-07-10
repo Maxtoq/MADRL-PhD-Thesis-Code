@@ -29,7 +29,6 @@ class R_MAPPOPolicy:
     """
 
     def __init__(self, args, obs_space, cent_obs_space, act_space, device=torch.device("cpu")):
-        self.train_device = device
         self.lr = args.lr
         self.critic_lr = args.critic_lr
         self.opti_eps = args.opti_eps
@@ -39,8 +38,8 @@ class R_MAPPOPolicy:
         self.share_obs_space = cent_obs_space
         self.act_space = act_space
 
-        self.actor = R_Actor(args, self.obs_space, self.act_space, self.train_device)
-        self.critic = R_Critic(args, self.share_obs_space, self.train_device)
+        self.actor = R_Actor(args, self.obs_space, self.act_space, device)
+        self.critic = R_Critic(args, self.share_obs_space, device)
 
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(),
                                                 lr=self.lr, eps=self.opti_eps,
@@ -148,12 +147,7 @@ class R_MAPPOTrainAlgo():
     :param policy: (R_MAPPO_Policy) policy to update.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
-    def __init__(self,
-                 args,
-                 policy,
-                 device=torch.device("cpu")):
-
-        self.train_device = device
+    def __init__(self, args, policy, device=torch.device("cpu")):
         self.tpdv = dict(dtype=torch.float32, device=device)
         self.policy = policy
 
@@ -181,7 +175,7 @@ class R_MAPPOTrainAlgo():
         if self._use_popart:
             self.value_normalizer = self.policy.critic.v_out
         elif self._use_valuenorm:
-            self.value_normalizer = ValueNorm(1).to(self.train_device)
+            self.value_normalizer = ValueNorm(1).to(device)
         else:
             self.value_normalizer = None
 
@@ -354,17 +348,15 @@ class R_MAPPOTrainAlgo():
  
         return train_info
 
-    def prep_training(self):
+    def prep_training(self, device):
         self.policy.actor.train()
-        self.policy.actor.to(self.train_device)
-        self.policy.actor.tpdv["device"] = self.train_device
+        self.policy.actor.to(device)
+        self.policy.actor.tpdv["device"] = device
         self.policy.critic.train()
-        self.policy.critic.to(self.train_device)
-        self.policy.critic.tpdv["device"] = self.train_device
+        self.policy.critic.to(device)
+        self.policy.critic.tpdv["device"] = device
 
-    def prep_rollout(self, device=None):
-        if device is None:
-            device = self.train_device
+    def prep_rollout(self, device):
         self.policy.actor.eval()
         self.policy.actor.to(device)
         self.policy.actor.tpdv["device"] = device
@@ -392,6 +384,7 @@ class MAPPO():
         self.shared_obs_space = shared_obs_space
         self.act_space = act_space
         self.use_centralized_V = self.args.use_centralized_V
+        self.train_device = device
 
         # Set variant
         if self.args.algorithm_name == "rmappo":
@@ -439,8 +432,14 @@ class MAPPO():
             self.trainer.append(tr)
 
     def prep_rollout(self, device=None):
-        for a_id in range(self.n_agents):
-            self.trainer[a_id].prep_rollout(device)
+        if device is None:
+            device = self.train_device
+        for tr in self.trainer:
+            tr.prep_rollout(device)
+
+    def prep_training(self):
+        for tr in self.trainer:
+            tr.prep_training(self.train_device)
 
     def start_episode(self, obs, share_obs):
         """
@@ -544,9 +543,9 @@ class MAPPO():
         # Compute last value
         self.compute_last_value()
         # Train
+        self.prep_training()
         train_infos = []
         for a_id in range(self.n_agents):
-            self.trainer[a_id].prep_training()
             train_info = self.trainer[a_id].train(self.buffer[a_id])
             train_infos.append(train_info)
         return train_infos
