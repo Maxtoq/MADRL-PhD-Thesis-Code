@@ -86,7 +86,7 @@ class E2S_NovelD(IntrinsicReward):
     def train(self, state_batch, act_batch):
         """
         Inputs:
-            state_batch (torch.Tensor): Batch of states, dim=(episode_length, 
+            state_batch (torch.Tensor): Batch of states, dim=(episode_length + 1,
                 batch_size, state_dim).
             act_batch (torch.Tensor): Batch of actions, dim=(episode_length, 
                 batch_size, action_dim).
@@ -97,7 +97,7 @@ class E2S_NovelD(IntrinsicReward):
             rnd_loss = self.rnd.train(state_batch, act_batch)
         if self.e3b is not None:
             e3b_loss = self.e3b.train(state_batch, act_batch)
-        return rnd_loss + e3b_loss
+        return {"rnd_loss": rnd_loss, "e3b_loss": e3b_loss}
     
     def get_params(self):
         rnd_params = {}

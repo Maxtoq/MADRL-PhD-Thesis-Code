@@ -55,6 +55,8 @@ def run():
     # Create train environment
     # if cfg.env_name == "ma_gym":
     envs = make_env(cfg, cfg.n_rollout_threads)
+    if cfg.env_name == "rel_overgen":
+        cfg.episode_length = cfg.ro_state_dim
     n_agents = envs.n_agents
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
@@ -93,19 +95,21 @@ def run():
         output = algo.get_actions(ep_step_i)
         actions = output[-1]
         # Perform action and get reward and next obs
-        obs, rewards, dones, infos = envs.step(actions)
+        obs, extr_rewards, dones, infos = envs.step(actions)
 
         # Get intrinsic reward if needed
         if cfg.ir_algo != "none":
-            intr_rewards = algo.get_intrinsic_rewards(obs)
+            intr_rewards = np.array(algo.get_intrinsic_rewards(obs))
         else:
-            intr_rewards = 0
-        print(rewards)
+            intr_rewards = np.zeros((cfg.n_rollout_threads, n_agents))
+        rewards = extr_rewards + cfg.ir_coeff * intr_rewards
+
+        # Save data for logging
+        logger.count_returns(
+            ep_step_i, rewards, extr_rewards, intr_rewards, dones)
 
         # Insert data into replay buffer
         rewards = rewards[..., np.newaxis]
-        print(rewards)
-        exit()
         data = (obs, rewards, dones, infos) + output[:-1]
         algo.store(data)
 
@@ -114,14 +118,11 @@ def run():
         if dones.all(axis=1).all() or ep_step_i + 1 == cfg.episode_length:
             done = True
 
-        # Save data for logging
-        logger.count_returns(ep_step_i, rewards, dones)
-
         # If end of episode
         if done:
-            train_infos = algo.train()
+            train_losses = algo.train()
             # Log train data
-            step_i += logger.log_train(step_i)
+            step_i += logger.log_train(step_i, train_losses)
             # Reset env (env, buffer, log)
             obs = envs.reset()
             algo.start_episode(obs, cfg.n_rollout_threads)

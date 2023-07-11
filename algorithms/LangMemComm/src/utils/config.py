@@ -157,8 +157,8 @@ def get_config():
     parser.add_argument("--experiment_name", type=str, default="TEST", help="an identifier to distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
     parser.add_argument("--cuda_device", default=None, type=str)
-    parser.add_argument("--cuda_deterministic",
-                        action='store_false', default=True, help="by default, make sure random seed effective. if set, bypass such function.")
+    parser.add_argument("--cuda_deterministic", action='store_false', default=True, 
+                        help="by default, make sure random seed effective. if set, bypass such function.")
     parser.add_argument("--n_training_threads", type=int,
                         default=1, help="Number of torch threads for training")
     parser.add_argument("--n_rollout_threads", type=int, default=1,
@@ -232,8 +232,8 @@ def get_config():
                         help='entropy term coefficient (default: 0.01)')
     parser.add_argument("--value_loss_coef", type=float,
                         default=1, help='value loss coefficient (default: 0.5)')
-    parser.add_argument("--use_max_grad_norm",
-                        action='store_false', default=True, help="by default, use max norm of gradients. If set, do not use.")
+    parser.add_argument("--use_max_grad_norm", action='store_false', default=True, 
+                        help="by default, use max norm of gradients. If set, do not use.")
     parser.add_argument("--max_grad_norm", type=float, default=10.0,
                         help='max norm of gradients (default: 0.5)')
     parser.add_argument("--use_gae", action='store_false',
@@ -282,6 +282,7 @@ def get_config():
     # Intrinsic rewards parameters
     parser.add_argument("--ir_algo", type=str, default="none")
     parser.add_argument("--ir_mode", type=str, default="central")
+    parser.add_argument("--ir_coeff", type=float, default=1.0)
     parser.add_argument("--ir_enc_dim", type=int, default=32)
     parser.add_argument("--ir_lr", type=float, default=1e-4)
     parser.add_argument("--ir_hidden_dim", type=int, default=64)

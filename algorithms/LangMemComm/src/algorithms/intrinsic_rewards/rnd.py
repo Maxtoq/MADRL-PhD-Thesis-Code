@@ -64,10 +64,10 @@ class RND(IntrinsicReward):
         
         return int_reward
     
-    def train(self, state_batch, act_batch):
+    def train(self, state_batch, _):
         """
         Inputs:
-            state_batch (torch.Tensor): Batch of states, dim=(episode_length, 
+            state_batch (torch.Tensor): Batch of states, dim=(episode_length + 1, 
                 batch_size, state_dim).
         """
         # Encode states

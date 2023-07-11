@@ -81,7 +81,7 @@ class E3B(IntrinsicReward):
     def train(self, state_batch, act_batch):
         """
         Inputs:
-            state_batch (torch.Tensor): Batch of states, dim=(episode_length, 
+            state_batch (torch.Tensor): Batch of states, dim=(episode_length + 1, 
                 batch_size, state_dim).
             act_batch (torch.Tensor): Batch of actions, dim=(episode_length, 
                 batch_size, action_dim).

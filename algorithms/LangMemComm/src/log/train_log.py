@@ -21,10 +21,14 @@ class Logger():
         self.train_data = {
             "Step": [],
             "Episode return": [],
+            "Episode extrinsic return": [],
+            "Episode intrinsic return": [],
             "Success": [],
             "Episode length": []
         }
         self.returns = np.zeros(self.n_parrallel_envs)
+        self.extr_returns = np.zeros(self.n_parrallel_envs)
+        self.intr_returns = np.zeros(self.n_parrallel_envs)
         self.success = [False] * self.n_parrallel_envs
         self.ep_lengths = np.ones(self.n_parrallel_envs) * self.ep_length
 
@@ -40,29 +44,33 @@ class Logger():
 
     def reset_episode(self):
         self.returns = np.zeros(self.n_parrallel_envs)
+        self.extr_returns = np.zeros(self.n_parrallel_envs)
+        self.intr_returns = np.zeros(self.n_parrallel_envs)
         self.success = [False] * self.n_parrallel_envs
         self.ep_lengths = np.ones(self.n_parrallel_envs) * self.ep_length
 
-    def count_returns(self, step, rewards, dones):
+    def count_returns(self, step, rewards, extr_rewards, intr_rewards, dones):
         global_rewards = rewards.mean(axis=1)
+        global_extr_rewards = extr_rewards.mean(axis=1)
+        global_intr_rewards = intr_rewards.mean(axis=1)
         global_dones = dones.all(axis=1)
         for e_i in range(self.n_parrallel_envs):
             if not self.success[e_i]:
-                self.returns[e_i] += global_rewards[e_i, 0]
+                self.returns[e_i] += global_rewards[e_i]
+                self.extr_returns[e_i] += global_extr_rewards[e_i]
+                self.intr_returns[e_i] += global_intr_rewards[e_i]
                 if global_dones[e_i]:
                     self.success[e_i] = True
                     self.ep_lengths[e_i] = step + 1
 
-    def log_train(self, step):
+    def log_train(self, step, train_losses):
         """
         Log training data.
-        :param rewards: (numpy.ndarray) List of rewards in multiple parrallel
-            environments
-        :param dones: (numpy.ndarray) List of dones in multiple parrallel
-            environments
+        :param step: (int) Step number.
+        :param train_losses: (dict/tuple) Dictionaries containing training losses.
 
-        :output tot_steps: (int) number of steps performed in all parallel 
-            environments
+        :output n_don_steps: (int) Number of steps performed in all parallel 
+            environments.
         """
         n_done_steps = 0
         for e_i in range(self.n_parrallel_envs):
@@ -70,6 +78,10 @@ class Logger():
             # Log dict
             self.train_data["Step"].append(n_done_steps + step)
             self.train_data["Episode return"].append(self.returns[e_i])
+            self.train_data["Episode extrinsic return"].append(
+                self.extr_returns[e_i])
+            self.train_data["Episode intrinsic return"].append(
+                self.intr_returns[e_i])
             self.train_data["Success"].append(int(self.success[e_i]))
             self.train_data["Episode length"].append(self.ep_lengths[e_i])
             # Log Tensorboard
@@ -78,6 +90,28 @@ class Logger():
                     'agent0/episode_return', 
                     self.train_data["Episode return"][-1], 
                     self.train_data["Step"][-1])
+                self.log_tb.add_scalar(
+                    'agent0/episode_extrinsic_return', 
+                    self.train_data["Episode extrinsic return"][-1], 
+                    self.train_data["Step"][-1])
+                self.log_tb.add_scalar(
+                    'agent0/episode_intrinsic_return', 
+                    self.train_data["Episode intrinsic return"][-1], 
+                    self.train_data["Step"][-1])
+
+        # Log losses
+        if self.log_tensorboard:
+            if type(train_losses) is tuple:
+                losses = {
+                    "value_loss": np.mean(
+                        [t["value_loss"] for t in train_losses[0]]),
+                    "policy_loss": np.mean(
+                        [t["policy_loss"] for t in train_losses[0]]),
+                    "rnd_loss": train_losses[1]["rnd_loss"],
+                    "e3b_loss": train_losses[1]["e3b_loss"]}
+                self.log_tb.add_scalars(
+                    'agent0/losses', losses, step + n_done_steps)
+
         return int(n_done_steps)
 
     def log_eval(self, step, mean_return, success_rate, mean_ep_len):

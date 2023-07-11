@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from .mappo import MAPPO
 from .utils import get_shape_from_obs_space, get_shape_from_act_space
@@ -52,7 +53,7 @@ class MAPPO_IR(MAPPO):
             raise NotImplementedError
 
     def start_episode(self, obs, n_episodes=1):
-        super().start_episode(obs)
+        super().start_episode(obs, n_episodes)
         if self.ir_mode == "central":
             self.ir_model.init_new_episode(n_episodes)
             # Initialise intrinsic reward model with first observation
@@ -70,9 +71,10 @@ class MAPPO_IR(MAPPO):
         Get intrinsic reward of the multi-agent system.
         Inputs:
             next_obs (numpy.ndarray): Next observations, 
-                dim=(batch_size, n_agents).
+                dim=(batch_size, n_agents, obs_dim).
         Outputs:
-            intr_rewards (list): List of agents' intrinsic rewards.
+            intr_rewards (numpy.ndarray): Intrinsic rewards, 
+                dim=(batch_size, n_agents).
         """
         if self.ir_mode == "central":
             # Concatenate observations
@@ -90,10 +92,26 @@ class MAPPO_IR(MAPPO):
                 intr_rewards.append(
                     self.ir_model[a_i].get_reward(next_obs[a_i]))
             intr_rewards = torch.stack(intr_rewards, dim=1)
-        return intr_rewards
+        return intr_rewards.numpy()
 
     def train(self):
-        
+        mappo_losses = super().train()
+
+        if self.ir_mode == "central":
+            share_obs = torch.Tensor(self.buffer[0].share_obs).to(self.device)
+            share_acts = torch.Tensor(np.concatenate(
+                [buff.actions for buff in self.buffer], axis=-1)).to(self.device)
+            ir_losses = self.ir_model.train(share_obs, share_acts)
+        elif self.ir_mode == "local":
+            losses = [
+                self.ir_model[a_i].train(
+                    torch.Tensor(self.buffer[a_i].obs).to(self.device),
+                    torch.Tensor(self.buffer[a_i].actions).to(self.device))
+                for a_i in range(self.n_agents)]
+            ir_losses = {
+                "rnd_loss": np.mean([l["rnd_loss"] for l in losses]),
+                "e3b_loss": np.mean([l["e3b_loss"] for l in losses])}
+        return mappo_losses, ir_losses
 
     def prep_rollout(self, device=None):
         if device is None:
@@ -108,19 +126,20 @@ class MAPPO_IR(MAPPO):
     
     def prep_training(self, device=None):
         if device is None:
-            device = self.device
-        super().prep_training(device)
+            device = self.train_device
+        super().prep_training()
+        self.device = device
         if self.ir_mode == "central":
-            self.int_rew.set_train(device)
+            self.ir_model.set_train(device)
         elif self.ir_mode == "local":
-            for a_int_rew in self.int_rew:
-                a_int_rew.set_train(device)
+            for a_ir in self.ir_model:
+                a_ir.set_train(device)
 
     def _get_ir_params(self):
         if self.ir_mode == "central":
-            return self.int_rew.get_params()
+            return self.ir_model.get_params()
         elif self.ir_mode == "local":
-            return [a_int_rew.get_params() for a_int_rew in self.int_rew]
+            return [a_ir.get_params() for a_ir in self.ir_model]
 
     def _get_save_dict(self):
         save_dict = super()._get_save_dict()
