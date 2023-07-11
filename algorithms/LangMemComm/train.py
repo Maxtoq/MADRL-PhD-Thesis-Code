@@ -11,7 +11,7 @@ from src.utils.eval import perform_eval
 from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
-from src.envs.make_env import make_env, reset_envs
+from src.envs.make_env import make_env
 from src.algorithms.mappo.mappo import MAPPO
 from src.algorithms.mappo.mappo_intrinsic import MAPPO_IR
 
@@ -62,7 +62,7 @@ def run():
     write_params(run_dir, cfg)
 
     if cfg.do_eval:
-        eval_envs = make_env(cfg, cfg.n_eval_threads, cfg.seed + 1000)
+        eval_envs = make_env(cfg, cfg.n_eval_threads)
 
     # Create model
     if "ppo" in cfg.algorithm_name:
@@ -83,8 +83,9 @@ def run():
     ep_step_i = 0
     last_save_step = 0
     last_eval_step = 0
-    obs, share_obs = reset_envs(envs)
-    algo.start_episode(obs, share_obs, cfg.n_rollout_threads)
+    obs = envs.reset()
+    print(obs)
+    algo.start_episode(obs, cfg.n_rollout_threads)
     algo.prep_rollout()
     while step_i < cfg.n_steps:
         progress.print_progress(step_i)
@@ -123,8 +124,8 @@ def run():
             # Log train data
             step_i += logger.log_train(step_i)
             # Reset env (env, buffer, log)
-            obs, share_obs = reset_envs(envs)
-            algo.start_episode(obs, share_obs, cfg.n_rollout_threads)
+            obs = envs.reset()
+            algo.start_episode(obs, cfg.n_rollout_threads)
             logger.reset_episode()
             algo.prep_rollout()
             ep_step_i = 0

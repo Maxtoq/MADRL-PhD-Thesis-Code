@@ -441,12 +441,12 @@ class MAPPO():
         for tr in self.trainer:
             tr.prep_training(self.train_device)
 
-    def start_episode(self, obs, share_obs):
+    def start_episode(self, obs):
         """
         Initialize the buffer with first observations.
         :param obs: (numpy.ndarray) first observations
-        :param share_obs: (numpy.ndarray) first shared observations
         """
+        share_obs = obs.reshape(obs.shape[0], -1)
         for a_id in range(self.n_agents):
             self.buffer[a_id].reset_episode()
             if not self.use_centralized_V:
@@ -509,10 +509,7 @@ class MAPPO():
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 
-        share_obs = []
-        for o in obs:
-            share_obs.append(list(chain(*o)))
-        share_obs = np.array(share_obs)
+        share_obs = obs.reshape(obs.shape[0], -1)
 
         for a_id in range(self.n_agents):
             if not self.use_centralized_V:

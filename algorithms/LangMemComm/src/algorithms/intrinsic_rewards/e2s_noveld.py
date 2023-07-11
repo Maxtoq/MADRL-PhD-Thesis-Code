@@ -53,9 +53,10 @@ class E2S_NovelD(IntrinsicReward):
             state_batch (torch.Tensor): States from which to generate the 
                 rewards, dim=(batch_size, state_dim).
         Outputs:
-            int_reward (float): Intrinsic rewards for the input state.
+            ir_reward (torch.Tensor): Intrinsic rewards for the input states,
+                dim=(batch_size, 1).
         """
-
+        batch_size = state_batch.shape[0]
         ## NovelD
         if self.rnd is not None:
             # Get RND reward as novelty
@@ -63,22 +64,24 @@ class E2S_NovelD(IntrinsicReward):
 
             # Compute reward
             if self.last_nov is not None:
-                int_reward = max(nov - self.scale_fac * self.last_nov, 0.0)
+                noveld_reward = torch.max(
+                    nov - self.scale_fac * self.last_nov, 
+                    torch.zeros(batch_size))
             else:
-                int_reward = 0.0
+                noveld_reward = torch.Tensor([0.0] * batch_size)
 
             self.last_nov = nov
         else:
-            int_reward = 1.0
+            noveld_reward = torch.Tensor([1.0] * batch_size)
 
         ## E3B
         if self.e3b is not None:
             elliptic_scale = self.e3b.get_reward(state_batch)
-            elliptic_scale = math.sqrt(2 * elliptic_scale)
+            elliptic_scale = torch.sqrt(2 * elliptic_scale)
         else:
-            elliptic_scale = 1.0
+            elliptic_scale = torch.Tensor([1.0] * batch_size)
 
-        return int_reward * elliptic_scale
+        return noveld_reward * elliptic_scale
 
     def train(self, state_batch, act_batch):
         """

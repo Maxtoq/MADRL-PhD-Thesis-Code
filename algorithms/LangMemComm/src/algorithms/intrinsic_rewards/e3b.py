@@ -94,13 +94,6 @@ class E3B(IntrinsicReward):
         inv_dyn_inputs = torch.cat((enc_states_b, enc_next_states_b), dim=-1)
         pred_actions = self.inv_dyn(inv_dyn_inputs)
         # Compute loss
-        # index_act_batch = act_batch.max(dim=-1)[1]
-        # inv_dyn_loss = F.nll_loss(
-        #     F.log_softmax(torch.flatten(pred_actions, 0, 1), dim=-1),
-        #     target=torch.flatten(index_act_batch, 0, 1),
-        #     reduction='none')
-        # inv_dyn_loss = inv_dyn_loss.view_as(index_act_batch)
-        # loss = torch.sum(torch.mean(inv_dyn_loss, dim=1))
         loss = F.mse_loss(pred_actions, act_batch)
         # Backward pass
         self.encoder_optim.zero_grad()

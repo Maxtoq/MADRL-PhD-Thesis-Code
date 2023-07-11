@@ -90,6 +90,11 @@ class RelOvergenEnv:
         dones = [done, done]
         
         return next_states, rewards, dones, None
+
+    def seed(self, seed):
+        print("SEED", seed)
+        random.seed(seed)
+        np.random.seed(seed)
     
     def close(self):
         pass

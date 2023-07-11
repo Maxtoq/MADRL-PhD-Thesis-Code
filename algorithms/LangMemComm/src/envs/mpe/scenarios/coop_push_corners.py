@@ -135,6 +135,10 @@ class Scenario(BaseScenario):
         self._done_flag = False
         # make initial conditions
         self.reset_world()
+
+    def seed(self, seed):
+        np.random.seed(seed)
+        random.seed(seed)
     
     def get_params(self):
         return {

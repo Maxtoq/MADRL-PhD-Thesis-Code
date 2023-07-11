@@ -277,11 +277,8 @@ class MultiAgentEnv(gym.Env):
                     dx.append(np.array([x,y]))
         return dx
 
-    def seed(self, seed=None):
-        if seed is None:
-            np.random.seed(1)
-        else:
-            np.random.seed(seed)
+    def seed(self, seed=1):
+        self.scenario.seed(seed)
 
 
 # vectorized wrapper for a batch of multi-agent environments

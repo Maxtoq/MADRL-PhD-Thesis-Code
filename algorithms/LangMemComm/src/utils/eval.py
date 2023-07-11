@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-from ..envs.make_env import make_env, reset_envs
+from ..envs.make_env import make_env
 
 def perform_eval(args, algo, render=False):
     # Create env
@@ -11,8 +11,8 @@ def perform_eval(args, algo, render=False):
     success = [False] * args.n_eval_threads
     ep_lengths = np.ones(args.n_eval_threads) * args.episode_length
 
-    obs, share_obs = reset_envs(envs)
-    algo.start_episode(obs, share_obs)
+    obs = envs.reset()
+    algo.start_episode(obs, args.n_eval_threads)
     algo.prep_rollout()
     for step_i in range(args.episode_length):
         # Get action

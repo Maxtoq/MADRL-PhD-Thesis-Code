@@ -33,17 +33,17 @@ def reset_envs(envs):
     share_obs = np.array(share_obs)
     return obs, share_obs
 
-def make_env(cfg, n_rollout_threads, seed=None):
+def make_env(cfg, n_threads, seed=None):
     if seed is None:
         seed = cfg.seed
     def get_env_fn(rank):
         def init_env():
             env = _get_env(cfg)
-            # env.seed(seed + rank * 1000)
+            env.seed(seed + rank * 1000)
             return env
         return init_env
-    if n_rollout_threads == 1:
+    if n_threads == 1:
         return DummyVecEnv([get_env_fn(0)])
     else:
         return SubprocVecEnv([
-            get_env_fn(i) for i in range(n_rollout_threads)])
+            get_env_fn(i) for i in range(n_threads)])

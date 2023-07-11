@@ -27,6 +27,10 @@ class Scenario(BaseScenario):
         # make initial conditions
         self.reset_world()
 
+    def seed(self, seed):
+        np.random.seed(seed)
+        random.seed(seed)
+
     def reset_world(self):
         # random properties for agents
         for i, agent in enumerate(self.world.agents):
