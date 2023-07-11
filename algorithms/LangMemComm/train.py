@@ -84,7 +84,6 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs = envs.reset()
-    print(obs)
     algo.start_episode(obs, cfg.n_rollout_threads)
     algo.prep_rollout()
     while step_i < cfg.n_steps:

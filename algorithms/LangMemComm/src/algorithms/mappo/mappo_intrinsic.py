@@ -80,18 +80,20 @@ class MAPPO_IR(MAPPO):
             # Get reward
             int_rewards = self.ir_model.get_reward(
                 torch.Tensor(next_share_obs).to(self.device))
-            print(int_rewards)
-            print(int_rewards.unsqueeze(-1).repeat(1, self.n_agents))
-            exit()
-            intr_rewards = [int_reward] * self.n_agents
+            intr_rewards = int_rewards.unsqueeze(-1).repeat(1, self.n_agents)
         elif self.ir_mode == "local":
             intr_rewards = []
+            # Reshape observations by agents
+            next_obs = torch.Tensor(
+                next_obs.transpose((1, 0, 2))).to(self.device)
             for a_i in range(self.n_agents):
-                obs = torch.Tensor(
-                    next_obs_list[a_i]).to(self.device)
-                print(obs)
-                intr_rewards.append(self.ir_model[a_i].get_reward(obs))
+                intr_rewards.append(
+                    self.ir_model[a_i].get_reward(next_obs[a_i]))
+            intr_rewards = torch.stack(intr_rewards, dim=1)
         return intr_rewards
+
+    def train(self):
+        
 
     def prep_rollout(self, device=None):
         if device is None:
