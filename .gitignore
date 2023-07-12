@@ -549,6 +549,18 @@ models/rel_overgen/mappo_40/*
 models/rel_overgen/mappo_50/*
 !models/rel_overgen/mappo_50/train_data
 
+!models/rel_overgen/mappo_noshare_30
+models/rel_overgen/mappo_noshare_30/*
+!models/rel_overgen/mappo_noshare_30/train_data
+
+!models/rel_overgen/mappo_noshare_40
+models/rel_overgen/mappo_noshare_40/*
+!models/rel_overgen/mappo_noshare_40/train_data
+
+!models/rel_overgen/mappo_noshare_50
+models/rel_overgen/mappo_noshare_50/*
+!models/rel_overgen/mappo_noshare_50/train_data
+
 !models/push_buttons
 models/push_buttons/*
 
