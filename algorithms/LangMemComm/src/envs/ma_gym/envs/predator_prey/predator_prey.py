@@ -72,8 +72,8 @@ class PredatorPrey(gym.Env):
 
         # agent pos (2), prey (25), step (1)
         mask_size = np.prod(self._agent_view_mask)
-        self._obs_high = np.array([1., 1.] + [1.] * mask_size + [1.0], dtype=np.float32)
-        self._obs_low = np.array([0., 0.] + [0.] * mask_size + [0.0], dtype=np.float32)
+        self._obs_high = np.ones(2 + mask_size, dtype=np.float32)
+        self._obs_low = np.zeros(2 + mask_size, dtype=np.float32)
         if self.full_observable:
             self._obs_high = np.tile(self._obs_high, self.n_agents)
             self._obs_low = np.tile(self._obs_low, self.n_agents)
@@ -137,7 +137,7 @@ class PredatorPrey(gym.Env):
                         _prey_pos[row - (pos[0] - 2), col - (pos[1] - 2)] = 1  # get relative position for the prey loc.
 
             _agent_i_obs += _prey_pos.flatten().tolist()  # adding prey pos in observable area
-            _agent_i_obs += [self._step_count / self._max_steps]  # adding time
+            # _agent_i_obs += [self._step_count / self._max_steps]  # adding time
             _obs.append(_agent_i_obs)
 
         if self.full_observable:
@@ -331,7 +331,7 @@ class PredatorPrey(gym.Env):
     def render(self, mode='human'):
         assert (self._step_count is not None), \
             "Call reset before using render method."
-
+        print(self._full_obs)
         img = copy.copy(self._base_img)
         for agent_i in range(self.n_agents):
             for neighbour in self.__get_neighbour_coordinates(self.agent_pos[agent_i]):
