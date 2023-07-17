@@ -34,7 +34,8 @@ class E3B(IntrinsicReward):
     
     def init_new_episode(self, n_episodes=1):
         self.inv_cov = torch.cat([
-            torch.eye(self.enc_dim).unsqueeze(0) for _ in range(n_episodes)])
+            torch.eye(self.enc_dim).unsqueeze(0) for _ in range(n_episodes)
+        ]).to(self.device)
         self.inv_cov *= (1.0 / self.ridge)
 
     def set_train(self, device):

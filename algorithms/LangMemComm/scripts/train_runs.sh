@@ -1,12 +1,11 @@
 #!/bin/sh
 n_run=15
-experiment_name="mappo_noshare_50"
-#experiment_name="TEST"
+experiment_name="mappo_JIM_30"
 n_rollout_threads=32
 n_steps=5000000
 env_name="rel_overgen"
-ro_optim_diff_coeff=50
-ir_algo="none"
+ro_optim_diff_coeff=30
+ir_algo="e2s_noveld"
 ir_mode="central"
 cuda_device="cuda:1"
 

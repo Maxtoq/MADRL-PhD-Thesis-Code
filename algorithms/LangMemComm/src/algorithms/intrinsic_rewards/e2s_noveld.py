@@ -16,6 +16,7 @@ class E2S_NovelD(IntrinsicReward):
                  ablation=None):
         assert ablation in [None, "LLEC", "EEC"], "Wrong ablation name, must be in [None, 'LLEC', 'EEC']"
         self.ablation = ablation
+        self.device = device
         # NovelD parameters
         self.scale_fac = scale_fac
         self.last_nov = None
@@ -39,12 +40,14 @@ class E2S_NovelD(IntrinsicReward):
             self.rnd.set_train(device)
         if self.e3b is not None:
             self.e3b.set_train(device)
+        self.device = device
 
     def set_eval(self, device):
         if self.rnd is not None:
             self.rnd.set_eval(device)
         if self.e3b is not None:
             self.e3b.set_eval(device)
+        self.device = device
         
     def get_reward(self, state_batch):
         """
@@ -66,20 +69,20 @@ class E2S_NovelD(IntrinsicReward):
             if self.last_nov is not None:
                 noveld_reward = torch.max(
                     nov - self.scale_fac * self.last_nov, 
-                    torch.zeros(batch_size))
+                    torch.zeros(batch_size).to(self.device))
             else:
-                noveld_reward = torch.Tensor([0.0] * batch_size)
+                noveld_reward = torch.Tensor([0.0] * batch_size).to(self.device)
 
             self.last_nov = nov
         else:
-            noveld_reward = torch.Tensor([1.0] * batch_size)
+            noveld_reward = torch.Tensor([1.0] * batch_size).to(self.device)
 
         ## E3B
         if self.e3b is not None:
             elliptic_scale = self.e3b.get_reward(state_batch)
             elliptic_scale = torch.sqrt(2 * elliptic_scale)
         else:
-            elliptic_scale = torch.Tensor([1.0] * batch_size)
+            elliptic_scale = torch.Tensor([1.0] * batch_size).to(self.device)
 
         return noveld_reward * elliptic_scale
 

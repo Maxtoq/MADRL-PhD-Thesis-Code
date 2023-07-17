@@ -91,11 +91,11 @@ class Logger():
                     self.train_data["Episode return"][-1], 
                     self.train_data["Step"][-1])
                 self.log_tb.add_scalar(
-                    'agent0/episode_extrinsic_return', 
+                    'agent0/episode_ext_return', 
                     self.train_data["Episode extrinsic return"][-1], 
                     self.train_data["Step"][-1])
                 self.log_tb.add_scalar(
-                    'agent0/episode_intrinsic_return', 
+                    'agent0/episode_int_return', 
                     self.train_data["Episode intrinsic return"][-1], 
                     self.train_data["Step"][-1])
 
@@ -109,8 +109,14 @@ class Logger():
                         [t["policy_loss"] for t in train_losses[0]]),
                     "rnd_loss": train_losses[1]["rnd_loss"],
                     "e3b_loss": train_losses[1]["e3b_loss"]}
-                self.log_tb.add_scalars(
-                    'agent0/losses', losses, step + n_done_steps)
+            else:
+                losses = {
+                    "value_loss": np.mean(
+                        [t["value_loss"] for t in train_losses]),
+                    "policy_loss": np.mean(
+                        [t["policy_loss"] for t in train_losses])}
+            self.log_tb.add_scalars(
+                'agent0/losses', losses, step + n_done_steps)
 
         return int(n_done_steps)
 

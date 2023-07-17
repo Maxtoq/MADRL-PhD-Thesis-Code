@@ -86,8 +86,8 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs = envs.reset()
-    algo.start_episode(obs, cfg.n_rollout_threads)
     algo.prep_rollout()
+    algo.start_episode(obs, cfg.n_rollout_threads)
     while step_i < cfg.n_steps:
         progress.print_progress(step_i)
         # Perform step
@@ -99,7 +99,7 @@ def run():
 
         # Get intrinsic reward if needed
         if cfg.ir_algo != "none":
-            intr_rewards = np.array(algo.get_intrinsic_rewards(obs))
+            intr_rewards = algo.get_intrinsic_rewards(obs)
         else:
             intr_rewards = np.zeros((cfg.n_rollout_threads, n_agents))
         rewards = extr_rewards + cfg.ir_coeff * intr_rewards
@@ -143,6 +143,7 @@ def run():
             last_save_step = step_i
             algo.save(run_dir / "incremental" / ('model_ep%i.pt' % (step_i)))
             logger.save()
+            algo.prep_rollout(device)
 
     progress.print_end()
     envs.close()

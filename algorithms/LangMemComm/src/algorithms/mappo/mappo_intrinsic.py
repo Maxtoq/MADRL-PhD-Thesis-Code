@@ -92,7 +92,7 @@ class MAPPO_IR(MAPPO):
                 intr_rewards.append(
                     self.ir_model[a_i].get_reward(next_obs[a_i]))
             intr_rewards = torch.stack(intr_rewards, dim=1)
-        return intr_rewards.numpy()
+        return intr_rewards.cpu().numpy()
 
     def train(self):
         mappo_losses = super().train()
