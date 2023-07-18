@@ -331,7 +331,7 @@ class PredatorPrey(gym.Env):
     def render(self, mode='human'):
         assert (self._step_count is not None), \
             "Call reset before using render method."
-        print(self._full_obs)
+        # print(self._full_obs)
         img = copy.copy(self._base_img)
         for agent_i in range(self.n_agents):
             for neighbour in self.__get_neighbour_coordinates(self.agent_pos[agent_i]):

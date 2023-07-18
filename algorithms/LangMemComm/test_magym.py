@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 
+from src.envs.parsers.predator_prey import PredatorPrey_Parser
 
 class KeyboardMAS():
 
@@ -39,9 +40,19 @@ gym.envs.register(
     #kwargs={'n_agents': 2, 'full_observable': False, 'step_cost': -0.2} 
     # It has a step cost of -0.2 now
 )
+gym.envs.register(
+    id='PredPrey7x7-v0',
+    entry_point='src.envs.ma_gym.envs.predator_prey:PredatorPrey',
+    kwargs={'grid_shape': (7, 7),
+            'n_agents': 4, 
+            'n_preys': 2} 
+    # It has a step cost of -0.2 now
+)
 
 if __name__ == "__main__":
-    env = gym.make('PredPrey5x5-v0')
+    env = gym.make('PredPrey7x7-v0')
+
+    parser = PredatorPrey_Parser((5, 5))
 
     actor = KeyboardMAS(env.n_agents)
 
@@ -51,9 +62,11 @@ if __name__ == "__main__":
     obs = env.reset()
     while not all(dones):
         env.render()
+        lang_obs = parser.parse_observations(obs)
         print("Observations:")
         for a_i in range(env.n_agents):
             print(f"A{a_i}:", len(obs[a_i]), obs[a_i])
+            print(lang_obs[a_i])
         actions = actor.get_actions()
         #env.action_space.sample()
         obs, rewards, dones, infos = env.step(actions)
