@@ -1,12 +1,12 @@
 #!/bin/sh
 n_run=15
-experiment_name="mappo_JIM_30"
+experiment_name="mappo_LIM_50"
 n_rollout_threads=32
 n_steps=5000000
 env_name="rel_overgen"
-ro_optim_diff_coeff=30
+ro_optim_diff_coeff=50
 ir_algo="e2s_noveld"
-ir_mode="central"
+ir_mode="local"
 cuda_device="cuda:1"
 
 for n in $(seq 1 $n_run)
