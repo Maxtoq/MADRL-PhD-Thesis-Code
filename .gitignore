@@ -573,6 +573,19 @@ models/rel_overgen/mappo_JIM_40/*
 models/rel_overgen/mappo_JIM_50/*
 !models/rel_overgen/mappo_JIM_50/train_data
 
+!models/rel_overgen/mappo_LIM_30
+models/rel_overgen/mappo_LIM_30/*
+!models/rel_overgen/mappo_LIM_30/train_data
+
+!models/rel_overgen/mappo_LIM_40
+models/rel_overgen/mappo_LIM_40/*
+!models/rel_overgen/mappo_LIM_40/train_data
+
+!models/rel_overgen/mappo_LIM_50
+models/rel_overgen/mappo_LIM_50/*
+!models/rel_overgen/mappo_LIM_50/train_data
+
+
 !models/push_buttons
 models/push_buttons/*
 
