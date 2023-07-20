@@ -17,7 +17,7 @@ class R_Actor(nn.Module):
     """
     Actor network class for MAPPO. Outputs actions given observations.
     :param args: (argparse.Namespace) arguments containing relevant model information.
-    :param obs_dim: (int or tuple) observation dim.
+    :param obs_dim: (int or tuple) observation dimension(s).
     :param context_dim: (int) context dimension.
     :param act_dim: (int) action dim.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
@@ -149,10 +149,10 @@ class R_Actor(nn.Module):
 
 class R_Critic(nn.Module):
     """
-    Critic network class for MAPPO. Outputs value function predictions given centralized input (MAPPO) or
-                            local observations (IPPO).
+    Critic network class for MAPPO. Outputs value function predictions given 
+    centralized input (MAPPO) or local observations (IPPO).
     :param args: (argparse.Namespace) arguments containing relevant model information.
-    :param cent_obs_dim: (int or tuple) (centralized) observation dim.
+    :param cent_obs_dim: (int or tuple) (centralized) observation dimension(s).
     :param context_dim: (int) context dimension.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """

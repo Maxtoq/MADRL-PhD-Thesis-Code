@@ -68,7 +68,7 @@ class R_MAPPOPolicy:
         Compute actions and value function predictions for the given inputs.
         :param cent_obs (np.ndarray): centralized input to the critic.
         :param obs (np.ndarray): local agent inputs to the actor.
-        :param context: (torch.Tensor) context encodings.
+        :param context: (np.ndarray/torch.Tensor) context encodings.
         :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.
         :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for critic.
         :param masks: (np.ndarray) denotes points at which RNN states should be reset.
@@ -96,7 +96,7 @@ class R_MAPPOPolicy:
         """
         Get value function predictions.
         :param cent_obs (np.ndarray): centralized input to the critic.
-        :param context: (torch.Tensor) context encodings.
+        :param context: (np.ndarray/torch.Tensor) context encodings.
         :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for
             critic.
         :param masks: (np.ndarray) denotes points at which RNN states should be 
@@ -115,7 +115,7 @@ class R_MAPPOPolicy:
         update.
         :param cent_obs (np.ndarray): centralized input to the critic.
         :param obs (np.ndarray): local agent inputs to the actor.
-        :param context: (torch.Tensor) context encodings.
+        :param context: (np.ndarray/torch.Tensor) context encodings.
         :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.
         :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for critic.
         :param action: (np.ndarray) actions whose log probabilites and entropy
@@ -144,7 +144,7 @@ class R_MAPPOPolicy:
         """
         Compute actions using the given inputs.
         :param obs (np.ndarray): local agent inputs to the actor.
-        :param context: (torch.Tensor) context encodings.
+        :param context: (np.ndarray/torch.Tensor) context encodings.
         :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.
         :param masks: (np.ndarray) denotes points at which RNN states should be reset.
         :param available_actions: (np.ndarray) denotes which actions are 
@@ -197,22 +197,27 @@ class R_MAPPOTrainAlgo():
         else:
             self.value_normalizer = None
 
-    def cal_value_loss(self, values, value_preds_batch, return_batch, active_masks_batch):
+    def cal_value_loss(self, 
+            values, value_preds_batch, return_batch, active_masks_batch):
         """
         Calculate value function loss.
         :param values: (torch.Tensor) value function predictions.
-        :param value_preds_batch: (torch.Tensor) "old" value  predictions from data batch (used for value clip loss)
+        :param value_preds_batch: (torch.Tensor) "old" value  predictions from
+            data batch (used for value clip loss)
         :param return_batch: (torch.Tensor) reward to go returns.
-        :param active_masks_batch: (torch.Tensor) denotes if agent is active or dead at a given timesep.
+        :param active_masks_batch: (torch.Tensor) denotes if agent is active or
+            dead at a given timesep.
 
         :return value_loss: (torch.Tensor) value function loss.
         """
-        value_pred_clipped = value_preds_batch + (values - value_preds_batch).clamp(-self.clip_param,
-                                                                                        self.clip_param)
+        value_pred_clipped = value_preds_batch + \
+            (values - value_preds_batch).clamp(-self.clip_param, self.clip_param)
         if self._use_popart or self._use_valuenorm:
             self.value_normalizer.update(return_batch)
-            error_clipped = self.value_normalizer.normalize(return_batch) - value_pred_clipped
-            error_original = self.value_normalizer.normalize(return_batch) - values
+            error_clipped = self.value_normalizer.normalize(
+                return_batch) - value_pred_clipped
+            error_original = self.value_normalizer.normalize(
+                return_batch) - values
         else:
             error_clipped = return_batch - value_pred_clipped
             error_original = return_batch - values
@@ -230,7 +235,8 @@ class R_MAPPOTrainAlgo():
             value_loss = value_loss_original
 
         if self._use_value_active_masks:
-            value_loss = (value_loss * active_masks_batch).sum() / active_masks_batch.sum()
+            value_loss = (value_loss * active_masks_batch).sum() / \
+                active_masks_batch.sum()
         else:
             value_loss = value_loss.mean()
 
@@ -249,9 +255,11 @@ class R_MAPPOTrainAlgo():
         :return actor_grad_norm: (torch.Tensor) gradient norm from actor update.
         :return imp_weights: (torch.Tensor) importance sampling weights.
         """
-        share_obs_batch, obs_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, \
-        value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, \
-        adv_targ, available_actions_batch = sample
+        share_obs_batch, obs_batch, context_batch, rnn_states_batch, \
+            rnn_states_critic_batch, actions_batch, value_preds_batch, \
+            return_batch, masks_batch, active_masks_batch, \
+            old_action_log_probs_batch, adv_targ, \
+            available_actions_batch = sample
 
         old_action_log_probs_batch = check(old_action_log_probs_batch).to(**self.tpdv)
         adv_targ = check(adv_targ).to(**self.tpdv)
@@ -260,26 +268,26 @@ class R_MAPPOTrainAlgo():
         active_masks_batch = check(active_masks_batch).to(**self.tpdv)
 
         # Reshape to do in a single forward pass for all steps
-        values, action_log_probs, dist_entropy = self.policy.evaluate_actions(share_obs_batch,
-                                                                              obs_batch, 
-                                                                              rnn_states_batch, 
-                                                                              rnn_states_critic_batch, 
-                                                                              actions_batch, 
-                                                                              masks_batch, 
-                                                                              available_actions_batch,
-                                                                              active_masks_batch)
+        values, action_log_probs, dist_entropy = self.policy.evaluate_actions(
+            share_obs_batch, obs_batch, context_batch, rnn_states_batch, 
+            rnn_states_critic_batch, actions_batch, masks_batch, 
+            available_actions_batch,active_masks_batch)
         # actor update
         imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
 
         surr1 = imp_weights * adv_targ
-        surr2 = torch.clamp(imp_weights, 1.0 - self.clip_param, 1.0 + self.clip_param) * adv_targ
+        surr2 = torch.clamp(
+            imp_weights, 
+            1.0 - self.clip_param, 
+            1.0 + self.clip_param) * adv_targ
 
         if self._use_policy_active_masks:
-            policy_action_loss = (-torch.sum(torch.min(surr1, surr2),
-                                             dim=-1,
-                                             keepdim=True) * active_masks_batch).sum() / active_masks_batch.sum()
+            policy_action_loss = (
+                -torch.sum(torch.min(surr1, surr2), dim=-1, keepdim=True) 
+                * active_masks_batch).sum() / active_masks_batch.sum()
         else:
-            policy_action_loss = -torch.sum(torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
+            policy_action_loss = -torch.sum(
+                torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
 
         policy_loss = policy_action_loss
 
@@ -289,27 +297,31 @@ class R_MAPPOTrainAlgo():
             (policy_loss - dist_entropy * self.entropy_coef).backward()
 
         if self._use_max_grad_norm:
-            actor_grad_norm = nn.utils.clip_grad_norm_(self.policy.actor.parameters(), self.max_grad_norm)
+            actor_grad_norm = nn.utils.clip_grad_norm_(
+                self.policy.actor.parameters(), self.max_grad_norm)
         else:
             actor_grad_norm = get_gard_norm(self.policy.actor.parameters())
 
         self.policy.actor_optimizer.step()
 
         # critic update
-        value_loss = self.cal_value_loss(values, value_preds_batch, return_batch, active_masks_batch)
+        value_loss = self.cal_value_loss(
+            values, value_preds_batch, return_batch, active_masks_batch)
 
         self.policy.critic_optimizer.zero_grad()
 
         (value_loss * self.value_loss_coef).backward()
 
         if self._use_max_grad_norm:
-            critic_grad_norm = nn.utils.clip_grad_norm_(self.policy.critic.parameters(), self.max_grad_norm)
+            critic_grad_norm = nn.utils.clip_grad_norm_(
+                self.policy.critic.parameters(), self.max_grad_norm)
         else:
             critic_grad_norm = get_gard_norm(self.policy.critic.parameters())
 
         self.policy.critic_optimizer.step()
 
-        return value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights
+        return value_loss, critic_grad_norm, policy_loss, dist_entropy, \
+            actor_grad_norm, imp_weights
 
     def train(self, buffer, update_actor=True):
         """
@@ -317,10 +329,12 @@ class R_MAPPOTrainAlgo():
         :param buffer: (SharedReplayBuffer) buffer containing training data.
         :param update_actor: (bool) whether to update actor network.
 
-        :return train_info: (dict) contains information regarding training update (e.g. loss, grad norms, etc).
+        :return train_info: (dict) contains information regarding training 
+            update (e.g. loss, grad norms, etc).
         """
         if self._use_popart or self._use_valuenorm:
-            advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(buffer.value_preds[:-1])
+            advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(
+                buffer.value_preds[:-1])
         else:
             advantages = buffer.returns[:-1] - buffer.value_preds[:-1]
         advantages_copy = advantages.copy()
@@ -341,16 +355,20 @@ class R_MAPPOTrainAlgo():
 
         for _ in range(self.ppo_epoch):
             if self._use_recurrent_policy:
-                data_generator = buffer.recurrent_generator(advantages, self.num_mini_batch, self.data_chunk_length)
+                data_generator = buffer.recurrent_generator(
+                    advantages, self.num_mini_batch, self.data_chunk_length)
             elif self._use_naive_recurrent:
-                data_generator = buffer.naive_recurrent_generator(advantages, self.num_mini_batch)
+                data_generator = buffer.naive_recurrent_generator(
+                    advantages, self.num_mini_batch)
             else:
-                data_generator = buffer.feed_forward_generator(advantages, self.num_mini_batch)
+                data_generator = buffer.feed_forward_generator(
+                    advantages, self.num_mini_batch)
 
             for sample in data_generator:
 
-                value_loss, critic_grad_norm, policy_loss, dist_entropy, actor_grad_norm, imp_weights \
-                    = self.ppo_update(sample, update_actor)
+                value_loss, critic_grad_norm, policy_loss, dist_entropy, \
+                    actor_grad_norm, imp_weights = self.ppo_update(
+                    sample, update_actor)
 
                 train_info['value_loss'] += value_loss.item()
                 train_info['policy_loss'] += policy_loss.item()
@@ -383,7 +401,7 @@ class R_MAPPOTrainAlgo():
         self.policy.critic.tpdv["device"] = device
 
 
-class MAPPO():
+class MAPPO:
     """
     Class handling training of MAPPO from paper "The Surprising Effectiveness 
     of PPO in Cooperative Multi-Agent Games" (https://arxiv.org/abs/2103.01955).
@@ -396,12 +414,10 @@ class MAPPO():
     :param device: (torch.device) cuda device used for training
     """
     def __init__(self, 
-            args, n_agents, obs_dim, shared_obs_dim, act_dim, device):
+            args, n_agents, obs_dim, shared_obs_dim, context_dim, act_dim, 
+            device):
         self.args = args
         self.n_agents = n_agents
-        self.obs_dim = obs_dim
-        self.shared_obs_dim = shared_obs_dim
-        self.act_dim = act_dim
         self.use_centralized_V = self.args.use_centralized_V
         self.train_device = device
 
@@ -417,38 +433,37 @@ class MAPPO():
         else:
             raise NotImplementedError
 
-        # Init agent policies
+        # Init agent policies, train algo and buffer
         self.policy = []
-        for a_id in range(self.n_agents):
-            if self.use_centralized_V:
-                shared_obs_dim = self.shared_obs_dim[a_id]
-            else:
-                shared_obs_dim = self.obs_dim[a_id]
-            # policy network
-            po = R_MAPPOPolicy(self.args,
-                self.obs_dim[a_id],
-                shared_obs_dim,
-                self.act_dim[a_id],
-                device=device)
-            self.policy.append(po)
-
         self.trainer = []
         self.buffer = []
         for a_id in range(self.n_agents):
-            # algorithm
-            tr = R_MAPPOTrainAlgo(
-                self.args, self.policy[a_id], device=device)
-            # buffer
             if self.use_centralized_V:
-                shared_obs_dim = self.shared_obs_dim[a_id]
+                shared_obs_dim = shared_obs_dim[a_id]
             else:
-                shared_obs_dim = self.obs_dim[a_id]
-            bu = SeparatedReplayBuffer(self.args, 
-                self.obs_dim[a_id], 
-                shared_obs_dim, 
-                self.act_dim[a_id])
-            self.buffer.append(bu)
+                shared_obs_dim = obs_dim[a_id]
+            # Policy network
+            po = R_MAPPOPolicy(
+                self.args,
+                obs_dim[a_id],
+                shared_obs_dim,
+                act_dim[a_id],
+                device=device)
+            self.policy.append(po)
+
+            # Algorithm
+            tr = R_MAPPOTrainAlgo(
+                self.args, po, device=device)
             self.trainer.append(tr)
+
+            # Buffer
+            bu = SeparatedReplayBuffer(
+                self.args, 
+                obs_dim[a_id], 
+                shared_obs_dim, 
+                context_dim,
+                act_dim[a_id])
+            self.buffer.append(bu)
 
     def prep_rollout(self, device=None):
         if device is None:
