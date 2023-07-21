@@ -9,7 +9,7 @@ env_name="rel_overgen"
 ro_optim_diff_coeff=30
 ir_algo="none"
 ir_mode="central"
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do
@@ -25,7 +25,6 @@ do
     --ro_optim_diff_coeff ${ro_optim_diff_coeff}\
     --ir_algo ${ir_algo}\
     --ir_mode ${ir_mode}\
-    --share_policy\
     --cuda_device ${cuda_device}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm

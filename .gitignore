@@ -541,6 +541,7 @@ models/rel_overgen/qmix_lim_4050/*
 models/rel_overgen/mappo_30/*
 !models/rel_overgen/mappo_30/train_data
 !models/rel_overgen/mappo_30/train_data_1
+!models/rel_overgen/mappo_30/train_data_2
 
 !models/rel_overgen/mappo_40
 models/rel_overgen/mappo_40/*
