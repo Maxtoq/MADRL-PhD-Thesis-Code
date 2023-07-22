@@ -64,7 +64,7 @@ def run():
     write_params(run_dir, cfg)
 
     if cfg.do_eval:
-        eval_envs = make_env(cfg, cfg.n_eval_threads)
+        eval_envs = make_env(cfg, cfg.n_eval_threads, seed=cfg.seed * 10)
 
     # Create model
     if "ppo" in cfg.algorithm_name:
