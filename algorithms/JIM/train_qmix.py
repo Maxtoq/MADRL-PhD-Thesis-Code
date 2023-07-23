@@ -48,6 +48,7 @@ def run(cfg):
     if "rel_overgen.py" in cfg.env_path:
         env = imp.load_source('', cfg.env_path).RelOvergenEnv(
             cfg.state_dim,
+            cfg.ro_n_agents,
             cfg.optimal_reward,
             cfg.optimal_diffusion_coeff,
             cfg.suboptimal_reward,
@@ -55,16 +56,17 @@ def run(cfg):
             cfg.save_visited_states)
         obs_dim = env.obs_dim
         act_dim = env.act_dim
+        nb_agents = cfg.ro_n_agents
     else:
         env = make_env(cfg.env_path, sce_conf, discrete_action=True)
         obs_dim = env.observation_space[0].shape[0]
         act_dim = env.action_space[0].n
+        nb_agents = sce_conf["nb_agents"]
 
     # Save args in txt file
     write_params(run_dir, cfg, env)
 
     # Create model
-    nb_agents = sce_conf["nb_agents"]
     if cfg.intrinsic_reward_algo == "none":
         intrinsic_reward_params = {}
     elif "noveld" == cfg.intrinsic_reward_algo:
@@ -409,6 +411,7 @@ if __name__ == '__main__':
     parser.add_argument("--cuda_device", default=None, type=str)
     # Relative Overgeneralisation environment
     parser.add_argument("--state_dim", type=int, default=50)
+    parser.add_argument("--ro_n_agents", type=int, default=2)
     parser.add_argument("--optimal_reward", type=float, default=12.0)
     parser.add_argument("--optimal_diffusion_coeff", type=float, default=30.0)
     parser.add_argument("--suboptimal_reward", type=float, default=0.0)
