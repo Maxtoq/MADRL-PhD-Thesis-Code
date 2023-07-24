@@ -20,14 +20,14 @@ class RelOvergenEnv:
         self._obs_high = np.ones(state_dim, dtype=np.float32)
         self._obs_low = np.zeros(state_dim, dtype=np.float32)
         self.observation_space = [
-            spaces.Box(self._obs_low, self._obs_high) 
+            spaces.Box(self._obs_low, self._obs_high, dtype=np.float32) 
             for a_i in range(self.n_agents)]
         self._shared_obs_high = np.ones(
             state_dim * self.n_agents, dtype=np.float32)
         self._shared_obs_low = np.zeros(
             state_dim * self.n_agents, dtype=np.float32)
         self.shared_observation_space = [
-            spaces.Box(self._shared_obs_low, self._shared_obs_high) 
+            spaces.Box(self._shared_obs_low, self._shared_obs_high, dtype=np.float32) 
             for a_i in range(self.n_agents)]
         self.action_space = [
             spaces.Discrete(3) for a_i in range(self.n_agents)]
