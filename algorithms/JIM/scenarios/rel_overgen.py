@@ -66,7 +66,7 @@ class RelOvergenEnv:
         #     np.eye(self.state_dim)[self.agents_pos[0]],
         #     np.eye(self.state_dim)[self.agents_pos[1]]]
 
-    def reset(self):
+    def reset(self, init_pos=None):
         for a_i in range(self.n_agents):
             self.agents_pos[a_i] = random.randint(0, self.state_dim - 1)
         self.current_step = 0
