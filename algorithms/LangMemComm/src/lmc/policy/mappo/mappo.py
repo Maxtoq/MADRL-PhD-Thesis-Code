@@ -476,12 +476,11 @@ class MAPPO:
         for tr in self.trainer:
             tr.prep_training(self.train_device)
 
-    def start_episode(self, obs, context, _):
+    def start_episode(self, obs, context):
         """
         Initialize the buffer with first observations.
         :param obs: (numpy.ndarray) first observations
         :param context: (numpy.ndarray) first context encoding
-        :param _: param used only in intrinsic reward version
         """
         share_obs = obs.reshape(obs.shape[0], -1)
         for a_id in range(self.n_agents):
