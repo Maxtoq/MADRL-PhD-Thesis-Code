@@ -6,7 +6,7 @@ from gym import spaces
 class RelOvergenEnv:
 
     def __init__(self, state_dim, n_agents=2,
-                 optim_reward=12, optim_diff_coeff=40, 
+                 optim_reward=12, optim_diff_coeff=30, 
                  suboptim_reward=0, suboptim_diff_coeff=0.08,
                  save_visited_states=False):
         self.obs_dim = state_dim
@@ -27,13 +27,13 @@ class RelOvergenEnv:
         self._shared_obs_low = np.zeros(
             state_dim * self.n_agents, dtype=np.float32)
         self.shared_observation_space = [
-            spaces.Box(self._shared_obs_low, self._shared_obs_high, dtype=np.float32) 
+            spaces.Box(self._shared_obs_low, self._shared_obs_high, 
+                       dtype=np.float32) 
             for a_i in range(self.n_agents)]
         self.action_space = [
             spaces.Discrete(3) for a_i in range(self.n_agents)]
 
-        self.agents_pos = np.zeros(self.n_agents, dtype=np.int8)
-        # [0, 0]
+        self.agents_pos = [0] * self.n_agents
 
         self.optimal_state = [
             int(state_dim / 4) * self.unit, 
@@ -43,8 +43,6 @@ class RelOvergenEnv:
             int(state_dim / 4) * self.unit]
         self.suboptimal_state = [
             10.0 - self.optimal_state[a_i] for a_i in range(self.n_agents)]
-            # 10.0 - self.optimal_state[0], 
-            # 10.0 - self.optimal_state[1]]
         
         self.optim_reward = optim_reward
         self.optim_diff_coeff = optim_diff_coeff
@@ -60,11 +58,8 @@ class RelOvergenEnv:
     def get_obs(self):
         if self.save_visited:
             self.visited_states.append(list(self.agents_pos))
-            # self.visited_states.append(self.agents_pos[:])
         return [np.eye(self.state_dim)[self.agents_pos[a_i]] 
                 for a_i in range(self.n_agents)]
-        #     np.eye(self.state_dim)[self.agents_pos[0]],
-        #     np.eye(self.state_dim)[self.agents_pos[1]]]
 
     def reset(self, init_pos=None):
         for a_i in range(self.n_agents):
@@ -76,13 +71,9 @@ class RelOvergenEnv:
         opti = self.optim_reward - self.optim_diff_coeff * sum([
             (self.states[self.agents_pos[a_i]] - self.optimal_state[a_i]) ** 2
             for a_i in range(self.n_agents)])
-            # (self.states[self.agents_pos[0]] - self.optimal_state[0]) ** 2 + 
-            # (self.states[self.agents_pos[1]] - self.optimal_state[1]) ** 2)
         subopti = self.suboptim_reward - self.suboptim_diff_coeff * sum([
             (self.states[self.agents_pos[a_i]] - self.suboptimal_state[a_i]) ** 2
             for a_i in range(self.n_agents)])
-            # (self.states[self.agents_pos[0]] - self.suboptimal_state[0]) ** 2 + 
-            # (self.states[self.agents_pos[1]] - self.suboptimal_state[1]) ** 2)
         return max(opti, subopti)
 
     def step(self, actions):
@@ -92,10 +83,6 @@ class RelOvergenEnv:
                 self.agents_pos[a_i] += int(onehot_action[0])
             if self.agents_pos[a_i] > 0:
                 self.agents_pos[a_i] -= int(onehot_action[1])
-            # if self.agents_pos[a_i] < 0:
-            #     self.agents_pos[a_i] = 0
-            # elif self.agents_pos[a_i] >= self.state_dim:
-            #     self.agents_pos[a_i] = self.state_dim - 1
         next_states = self.get_obs()
 
         reward = self.compute_reward()
