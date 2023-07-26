@@ -2,8 +2,6 @@ import torch
 import numpy as np
 import torch.nn as nn
 
-from itertools import chain
-
 from .r_actor_critic import R_Actor, R_Critic
 from .utils import update_linear_schedule, get_gard_norm, huber_loss, mse_loss, check
 from .buffer import SeparatedReplayBuffer

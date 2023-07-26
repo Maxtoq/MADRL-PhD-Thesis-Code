@@ -6,7 +6,6 @@ from modules.lang_buffer import LanguageBuffer
 from policy.mappo import MAPPO
 
 
-# TODO Add arguments for language parameters: lang_lr, lang_buffer_size
 
 
 class LanguageLearner:
@@ -62,3 +61,21 @@ class LMC:
                 act_space, device)
 
         self.device = device
+
+    def prep_training(self, device=None):
+        pass
+
+    def prep_rollout(self, device=None):
+        pass
+
+    def start_episode(self, obs):
+        pass
+
+    def comm_n_act(self, obs):
+        pass
+
+    def train(self):
+        pass
+
+    def save(self):
+        pass

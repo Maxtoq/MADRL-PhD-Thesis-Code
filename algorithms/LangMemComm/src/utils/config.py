@@ -290,4 +290,8 @@ def get_config():
     parser.add_argument("--ir_ridge", type=float, default=0.1)
     parser.add_argument("--ir_ablation", type=str, default=None)
 
+    # Language Learning parameters
+    parser.add_argument("--lang_lr", type=float, default=0.007)
+    parser.add_argument("--lang_buffer_size", type=str, default=10000)
+
     return parser
