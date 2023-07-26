@@ -447,6 +447,7 @@ class MAPPO:
                 self.args,
                 obs_dim[a_id],
                 shared_obs_dim,
+                context_dim,
                 act_dim[a_id],
                 device=device)
             self.policy.append(po)
@@ -475,10 +476,11 @@ class MAPPO:
         for tr in self.trainer:
             tr.prep_training(self.train_device)
 
-    def start_episode(self, obs, _):
+    def start_episode(self, obs, context):
         """
         Initialize the buffer with first observations.
         :param obs: (numpy.ndarray) first observations
+        :param context: (numpy.ndarray) first context encoding
         """
         share_obs = obs.reshape(obs.shape[0], -1)
         for a_id in range(self.n_agents):
@@ -487,6 +489,7 @@ class MAPPO:
                 share_obs = np.array(list(obs[:, a_id]))
             self.buffer[a_id].share_obs[0] = share_obs.copy()
             self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
+            self.buffer[a_id].context[0] = np.array(list(context[:, a_id])).copy()
 
     @torch.no_grad()
     def get_actions(self, step_i):
@@ -502,6 +505,7 @@ class MAPPO:
                 = self.trainer[a_id].policy.get_actions(
                     self.buffer[a_id].share_obs[step_i],
                     self.buffer[a_id].obs[step_i],
+                    self.buffer[a_id].context[step_i],
                     self.buffer[a_id].rnn_states[step_i],
                     self.buffer[a_id].rnn_states_critic[step_i],
                     self.buffer[a_id].masks[step_i])
@@ -529,7 +533,7 @@ class MAPPO:
                rnn_states_critic, actions_env
 
     def store(self, data):
-        obs, rewards, dones, infos, values, actions, action_log_probs, \
+        obs, context, rewards, dones, infos, values, actions, action_log_probs, \
             rnn_states, rnn_states_critic = data
 
         rnn_states[dones == True] = np.zeros(
@@ -551,6 +555,7 @@ class MAPPO:
             self.buffer[a_id].insert(
                 share_obs,
                 np.array(list(obs[:, a_id])),
+                context,
                 rnn_states[:, a_id],
                 rnn_states_critic[:, a_id],
                 actions[:, a_id],
@@ -563,7 +568,8 @@ class MAPPO:
     def compute_last_value(self):
         for a_id in range(self.n_agents):
             next_value = self.trainer[a_id].policy.get_values(
-                self.buffer[a_id].share_obs[-1], 
+                self.buffer[a_id].share_obs[-1],
+                self.buffer[a_id].context[-1],
                 self.buffer[a_id].rnn_states_critic[-1],
                 self.buffer[a_id].masks[-1])
             next_value = torch2numpy(next_value)
