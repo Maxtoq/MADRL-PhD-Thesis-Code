@@ -1,7 +1,7 @@
 #!/bin/sh
-n_run=1
+n_run=5
 env="algorithms/JIM/scenarios/rel_overgen.py"
-model_name="qmix_5a_JIM"
+model_name="qmix_4a_15s_JIM"
 sce_conf_path="configs/2a_pol.json"
 n_frames=15000000
 n_explo_frames=15000000
@@ -20,11 +20,11 @@ int_rew_enc_dim=64 # def 16, JIM 90, LIM 30
 int_rew_hidden_dim=256 # def 64, JIM 1024, LIM 256
 scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
-state_dim=40
-optimal_diffusion_coeff=0.6
+state_dim=15
+optimal_diffusion_coeff=1
 suboptimal_diffusion_coeff=0.06
-ro_n_agents=5
-cuda_device="cuda:3"
+ro_n_agents=4
+cuda_device="cuda:2"
 
 for n in $(seq 1 $n_run)
 do
