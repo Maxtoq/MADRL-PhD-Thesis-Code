@@ -448,9 +448,9 @@ class MAPPO():
         for a_id in range(self.n_agents):
             self.buffer[a_id].reset_episode()
             if not self.use_centralized_V:
-                share_obs = np.array(list(obs[:, a_id]))
+                share_obs = obs[:, a_id]
             self.buffer[a_id].share_obs[0] = share_obs.copy()
-            self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
+            self.buffer[a_id].obs[0] = obs[:, a_id].copy()
 
     @torch.no_grad()
     def get_actions(self, step_i):
@@ -511,10 +511,10 @@ class MAPPO():
 
         for a_id in range(self.n_agents):
             if not self.use_centralized_V:
-                share_obs = np.array(list(obs[:, a_id]))
+                share_obs = obs[:, a_id]
             self.buffer[a_id].insert(
                 share_obs,
-                np.array(list(obs[:, a_id])),
+                obs[:, a_id],
                 rnn_states[:, a_id],
                 rnn_states_critic[:, a_id],
                 actions[:, a_id],

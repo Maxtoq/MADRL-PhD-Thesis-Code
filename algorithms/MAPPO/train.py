@@ -55,8 +55,8 @@ def run():
     # Create train environment
     # if cfg.env_name == "ma_gym":
     envs = make_env(cfg, cfg.n_rollout_threads)
-    if cfg.env_name == "rel_overgen":
-        cfg.episode_length = cfg.ro_state_dim
+    # if cfg.env_name == "rel_overgen":
+    #     cfg.episode_length = cfg.ro_state_dim
     n_agents = envs.n_agents
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space

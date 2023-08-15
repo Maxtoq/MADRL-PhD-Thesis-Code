@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=15
+n_run=3
 experiment_name="mappo_30"
 n_rollout_threads=32
 n_steps=5000000
@@ -9,7 +9,7 @@ env_name="rel_overgen"
 ro_optim_diff_coeff=30
 ir_algo="none"
 ir_mode="central"
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
