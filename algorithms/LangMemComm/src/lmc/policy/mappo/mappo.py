@@ -587,7 +587,7 @@ class MAPPO:
             train_infos.append(train_info)
         return train_infos
 
-    def _get_save_dict(self):
+    def get_save_dict(self):
         self.prep_rollout("cpu")
         agents_params = []
         for a_id in range(self.n_agents):
@@ -604,6 +604,6 @@ class MAPPO:
         return save_dict
 
     def save(self, path):
-        save_dict = self._get_save_dict()
+        save_dict = self.get_save_dict()
         torch.save(save_dict, path)
 

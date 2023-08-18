@@ -65,8 +65,8 @@ class OneHotEncoder:
             :param append_EOS (bool): Whether to append the End of Sentence 
                 token to the sentence or not.
         Outputs: 
-            :param encoded_batch (list): List of encoded sentences as Torch 
-                tensors
+            :param encoded_batch (list): List of encoded sentences with onehot
+                vectors for each token
         """
         encoded_batch = []
         for s in sentence_batch:
@@ -119,7 +119,7 @@ class GRUEncoder(nn.Module):
             batch_first=True)
         self.out = nn.Linear(self.hidden_dim, context_dim)
 
-    def forward(self, sentence_batch):
+    def forward(self, enc_sent_batch):
         """
         Transforms sentences into embeddings
         Inputs:
@@ -130,13 +130,16 @@ class GRUEncoder(nn.Module):
                 context_dim)
         """
         # Get one-hot encodings
-        enc = self.word_encoder.encode_batch(sentence_batch)
+        # enc = self.word_encoder.encode_batch(sentence_batch)
 
         # Get order of sententes sorted by length decreasing
-        ids = sorted(range(len(enc)), key=lambda x: len(enc[x]), reverse=True)
+        ids = sorted(
+            range(len(enc_sent_batch)), 
+            key=lambda x: len(enc_sent_batch[x]), 
+            reverse=True)
 
         # Sort the sentences by length
-        sorted_list = [enc[i] for i in ids]
+        sorted_list = [enc_sent_batch[i] for i in ids]
 
         # Pad sentences
         padded = nn.utils.rnn.pad_sequence(
@@ -148,7 +151,7 @@ class GRUEncoder(nn.Module):
             padded, lens, batch_first=True).to(self.device)
 
         # Initial hidden state
-        hidden = torch.zeros(1, len(sentence_batch), self.hidden_dim, 
+        hidden = torch.zeros(1, len(enc_sent_batch), self.hidden_dim, 
                         device=self.device)
 
         # Pass sentences into GRU model

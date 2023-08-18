@@ -37,16 +37,14 @@ class KeyboardMAS():
 gym.envs.register(
     id='PredPrey5x5-v0',
     entry_point='src.envs.ma_gym.envs.predator_prey:PredatorPrey'
-    #kwargs={'n_agents': 2, 'full_observable': False, 'step_cost': -0.2} 
-    # It has a step cost of -0.2 now
+    #kwargs={'n_agents': 2, 'full_observable': False, 'step_cost': -0.2}
 )
 gym.envs.register(
     id='PredPrey7x7-v0',
     entry_point='src.envs.ma_gym.envs.predator_prey:PredatorPrey',
     kwargs={'grid_shape': (7, 7),
             'n_agents': 4, 
-            'n_preys': 2} 
-    # It has a step cost of -0.2 now
+            'n_preys': 2}
 )
 
 if __name__ == "__main__":

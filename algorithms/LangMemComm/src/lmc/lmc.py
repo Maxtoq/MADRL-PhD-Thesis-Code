@@ -1,9 +1,12 @@
+import copy
+import torch
 from torch import nn
 
-from modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
-from modules.obs import ObservationEncoder
-from modules.lang_buffer import LanguageBuffer
-from policy.mappo import MAPPO
+from .modules.lm import OneHotEncoder, GRUEncoder, GRUDecoder
+from .modules.obs import ObservationEncoder
+from .modules.lang_buffer import LanguageBuffer
+from .modules.networks import MLPNetwork
+from .policy.mappo import MAPPO
 
 
 class LanguageLearner:
@@ -19,15 +22,15 @@ class LanguageLearner:
 
         self.word_encoder = OneHotEncoder(vocab)
 
-        self.obs_encoder = ObservationEncoder(
-            obs_dim, args.context_dim, args.hidden_dim)
-        self.lang_encoder = GRUEncoder(context_dim, self.word_encoder)
+        self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
+        self.lang_encoder = GRUEncoder(
+            context_dim, hidden_dim, self.word_encoder)
         self.decoder = GRUDecoder(context_dim, self.word_encoder)
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()
 
-        self.optim = optim.Adam(
+        self.optim = torch.optim.Adam(
             list(self.obs_encoder.parameters()) + 
             list(self.lang_encoder.parameters()) + 
             list(self.decoder.parameters()), 
@@ -121,6 +124,24 @@ class LanguageLearner:
         return clip_loss, dec_loss
 
 
+class CommunicationPolicy:
+
+    def __init__(self, context_dim, hidden_dim, obs_encoder, lang_encoder, decoder):
+        # Pretrained modules
+        self.obs_encoder = obs_encoder
+        self.lang_encoder = lang_encoder
+        self.decoder = decoder
+        # Policy
+        self.context_encoder = MLPNetwork(
+            context_dim * 2, 
+            context_dim, 
+            hidden_dim,
+            n_hidden_layers=0)
+        self.message_gen = copy.deepcopy(self.decoder)
+
+
+
+
 class LMC:
     """
     Language-Memory for Communication using a pre-defined discrete language.
@@ -134,7 +155,7 @@ class LMC:
         # Modules
         self.language_learner = LanguageLearner(
             obs_dim, args.context_dim, args.hidden_dim, vocab)
-        # self.comm_policy = CommunicationPolicy(context_dim, hidden_dim)
+        self.comm_policy = CommunicationPolicy(context_dim, hidden_dim)
         if self.policy_algo == "mappo":
             self.policy = MAPPO(
                 args, n_agents, obs_space, shared_obs_space, args.context_dim,

@@ -113,13 +113,8 @@ def run():
         data = (obs, rewards, dones, infos) + output[:-1]
         algo.store(data)
 
-        # Check for end of episode
-        done = False
-        if dones.all(axis=1).all() or ep_step_i + 1 == cfg.episode_length:
-            done = True
-
         # If end of episode
-        if done:
+        if dones.all(axis=1).all() or ep_step_i + 1 == cfg.episode_length:
             train_losses = algo.train()
             # Log train data
             step_i += logger.log_train(step_i, train_losses)

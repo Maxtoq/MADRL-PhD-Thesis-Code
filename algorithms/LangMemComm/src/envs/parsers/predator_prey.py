@@ -3,8 +3,11 @@ import numpy as np
 
 class PredatorPrey_Parser():
 
-    def __init__(self, grid_shape):
-        self.grid_shape = grid_shape
+    vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
+
+    def __init__(self):
+        # self.obs_range = obs_range
+        pass
 
     def parse_global_state(self, state):
         """
@@ -53,7 +56,6 @@ class PredatorPrey_Parser():
                         if prey_map[y, x] == 1.0]
             sent = []
             for p in prey_pos:
-                print(p)
                 sent.append("Prey")
                 sent.append("Observed")
                 if p[1] < 2:
@@ -64,7 +66,6 @@ class PredatorPrey_Parser():
                     sent.append("West")
                 elif p[0] > 2:
                     sent.append("East")
-                print(sent)
 
             return sent
         else:
