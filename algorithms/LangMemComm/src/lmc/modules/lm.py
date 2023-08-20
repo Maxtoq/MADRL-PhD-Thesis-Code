@@ -119,7 +119,7 @@ class GRUEncoder(nn.Module):
             batch_first=True)
         self.out = nn.Linear(self.hidden_dim, context_dim)
 
-    def forward(self, enc_sent_batch):
+    def forward(self, sent_batch):
         """
         Transforms sentences into embeddings
         Inputs:
@@ -130,7 +130,7 @@ class GRUEncoder(nn.Module):
                 context_dim)
         """
         # Get one-hot encodings
-        # enc = self.word_encoder.encode_batch(sentence_batch)
+        enc_sent_batch = self.word_encoder.encode_batch(sent_batch)
 
         # Get order of sententes sorted by length decreasing
         ids = sorted(
@@ -260,7 +260,6 @@ class GRUDecoder(nn.Module):
             for t_i in range(max_l):
                 # Get prediction
                 output, hidden = self.forward_step(decoder_input, hidden)
-                # print("OUTPUT", output)
 
                 # Add output to list
                 log_probs.append(output.squeeze())

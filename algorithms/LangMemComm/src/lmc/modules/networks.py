@@ -65,7 +65,7 @@ class MLPNetwork(nn.Module):
             print("ERROR in MLPNetwork: bad out_activation_fn with", 
                 out_activation_fn)
             print("     must be in [None, 'tanh']")
-            exit()
+            raise NotImplementedError
         self.out_activ_fn = {
             None: lambda x: x,
             'tanh': nn.Tanh()
