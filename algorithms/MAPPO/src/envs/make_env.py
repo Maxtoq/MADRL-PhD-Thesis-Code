@@ -22,7 +22,11 @@ def _get_env(cfg):
     elif "rel_overgen" in cfg.env_name:
         from .rel_overgen import RelOvergenEnv
         env = RelOvergenEnv(
-            cfg.ro_state_dim, optim_diff_coeff=cfg.ro_optim_diff_coeff)
+            cfg.ro_state_dim, 
+            n_agents=cfg.ro_n_agents,
+            optim_diff_coeff=cfg.ro_optim_diff_coeff, 
+            suboptim_diff_coeff=cfg.ro_suboptim_diff_coeff,
+            save_visited_states=cfg.ro_save_visited_states)
     return env
 
 def reset_envs(envs):
