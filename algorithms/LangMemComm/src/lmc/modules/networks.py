@@ -79,15 +79,18 @@ class MLPNetwork(nn.Module):
                 m, init_method, lambda x: nn.init.constant_(x, 0), gain=gain)
 
         self.mlp = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim), 
+            init_(nn.Linear(input_dim, hidden_dim)), 
             activ_fn,
+            nn.LayerNorm(hidden_dim),
             *[nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim),
-                    activ_fn
+                    init_(nn.Linear(hidden_dim, hidden_dim)),
+                    activ_fn,
+                    nn.LayerNorm(hidden_dim)
                 ) for _ in range(self.n_hidden_layers)],
-            nn.Linear(hidden_dim, out_dim)
+            init_(nn.Linear(hidden_dim, out_dim)),
+            nn.LayerNorm(out_dim)
         )
-        self.mlp.apply(init_)
+        # self.mlp.apply(init_)
 
     def forward(self, X):
         """

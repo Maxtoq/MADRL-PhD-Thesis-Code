@@ -111,13 +111,15 @@ class GRUEncoder(nn.Module):
         super(GRUEncoder, self).__init__()
         self.device = device
         self.word_encoder = word_encoder
+        self.context_dim = context_dim
         self.hidden_dim = hidden_dim
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 
-            self.hidden_dim, 
+            self.context_dim, 
             n_layers,
             batch_first=True)
         self.out = nn.Linear(self.hidden_dim, context_dim)
+        self.norm = nn.LayerNorm(context_dim)
 
     def forward(self, sent_batch):
         """
@@ -151,7 +153,7 @@ class GRUEncoder(nn.Module):
             padded, lens, batch_first=True).to(self.device)
 
         # Initial hidden state
-        hidden = torch.zeros(1, len(enc_sent_batch), self.hidden_dim, 
+        hidden = torch.zeros(1, len(enc_sent_batch), self.context_dim, 
                         device=self.device)
 
         # Pass sentences into GRU model
@@ -161,7 +163,7 @@ class GRUEncoder(nn.Module):
         unsorted_hstates = torch.zeros_like(hidden_states).to(self.device)
         unsorted_hstates[0,ids,:] = hidden_states[0,:,:]
 
-        return self.out(unsorted_hstates)
+        return self.norm(unsorted_hstates)
 
     def get_params(self):
         return {'gru': self.gru.state_dict(),
