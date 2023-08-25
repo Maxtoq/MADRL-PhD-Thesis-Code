@@ -31,7 +31,12 @@ class OneHotEncoder:
         Outputs:
             :param token (str)
         """
-        return self.tokens[index]
+        if type(index) == int:
+            return self.tokens[index]
+        elif type(index) == list:
+            return [self.tokens[i] for i in index]
+        else:
+            raise NotImplementedError("Wrong index type")
 
     def enc2token(self, encoding):
         """
@@ -41,7 +46,12 @@ class OneHotEncoder:
         Outputs:
             :param token (str): Corresponding token.
         """
-        return self.tokens[np.argmax(encoding)]
+        if len(encoding.shape) == 1:
+            return self.tokens[np.argmax(encoding)]
+        elif len(encoding.shape) == 2:
+            return [self.tokens[np.argmax(enconding[i])] for i in range(encoding.shape[0])]
+        else:
+            raise NotImplementedError("Wrong index type")
 
     def get_onehots(self, sentence):
         """

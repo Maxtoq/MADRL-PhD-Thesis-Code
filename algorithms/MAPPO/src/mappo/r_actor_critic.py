@@ -102,11 +102,9 @@ class R_Actor(nn.Module):
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             actor_features, rnn_states = self.rnn(actor_features, rnn_states, masks)
 
-        action_log_probs, dist_entropy = self.act.evaluate_actions(actor_features,
-                                                                   action, available_actions,
-                                                                   active_masks=
-                                                                   active_masks if self._use_policy_active_masks
-                                                                   else None)
+        action_log_probs, dist_entropy = self.act.evaluate_actions(
+            actor_features, action, available_actions, 
+            active_masks= active_masks if self._use_policy_active_masks else None)
 
         return action_log_probs, dist_entropy
 
@@ -149,7 +147,7 @@ class R_Critic(nn.Module):
 
     def forward(self, cent_obs, rnn_states, masks):
         """
-        Compute actions from the given inputs.
+        Compute values from the given inputs.
         :param cent_obs: (np.ndarray / torch.Tensor) observation inputs into network.
         :param rnn_states: (np.ndarray / torch.Tensor) if RNN network, hidden states for RNN.
         :param masks: (np.ndarray / torch.Tensor) mask tensor denoting if RNN states should be reinitialized to zeros.
