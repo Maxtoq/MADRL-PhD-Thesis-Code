@@ -31,12 +31,10 @@ class OneHotEncoder:
         Outputs:
             :param token (str)
         """
-        if type(index) == int:
-            return self.tokens[index]
-        elif type(index) == list:
+        if type(index) in [list, np.ndarray]:
             return [self.tokens[i] for i in index]
         else:
-            raise NotImplementedError("Wrong index type")
+            return self.tokens[index]
 
     def enc2token(self, encoding):
         """
@@ -205,8 +203,8 @@ class GRUDecoder(nn.Module):
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 
             self.hidden_dim, 
-            n_layers,
-            batch_first=True)
+            n_layers)
+            #batch_first=True)
         # Output layer
         self.out = nn.Sequential(
             nn.Linear(self.hidden_dim, self.word_encoder.enc_dim),
