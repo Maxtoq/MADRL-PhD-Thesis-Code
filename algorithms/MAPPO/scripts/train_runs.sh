@@ -1,9 +1,9 @@
 #!/bin/sh
-n_run=5
-experiment_name="mappo_4a_15_1_JIM"
+n_run=4
+experiment_name="rmappo_4a_15_1_JIM"
 n_rollout_threads=32
 n_steps=5000000
-algorithm_name="mappo"
+algorithm_name="rmappo"
 ppo_epoch=15
 env_name="rel_overgen"
 ro_n_agents=4
@@ -14,7 +14,7 @@ ir_mode="central"
 ir_coeff=2.0
 ir_enc_dim=64
 ir_hidden_dim=128
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
