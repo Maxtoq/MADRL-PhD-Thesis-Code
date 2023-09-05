@@ -220,6 +220,7 @@ def get_config():
     parser.add_argument("--weight_decay", type=float, default=0)
 
     # ppo parameters
+    parser.add_argument("--n_warmup_steps", type=int, default=10000)
     parser.add_argument("--ppo_epoch", type=int, default=15,
                         help='number of ppo epochs (default: 15)')
     parser.add_argument("--use_clipped_value_loss",
@@ -275,10 +276,6 @@ def get_config():
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, help="by default None. set the path to pretrained model.")
 
-    # Environment parameters
-    parser.add_argument("--ro_state_dim", type=int, default=40, help="state dimension in the rel_overgen environment.")
-    parser.add_argument("--ro_optim_diff_coeff", type=int, default=30, help="state dimension in the rel_overgen environment.")
-
     # Intrinsic rewards parameters
     parser.add_argument("--ir_algo", type=str, default="none")
     parser.add_argument("--ir_mode", type=str, default="central")
@@ -290,8 +287,13 @@ def get_config():
     parser.add_argument("--ir_ridge", type=float, default=0.1)
     parser.add_argument("--ir_ablation", type=str, default=None)
 
+    # LMC parameters
+    parser.add_argument("--context_dim", type=int, default=16)
+
     # Language Learning parameters
+    parser.add_argument("--lang_hidden_dim", type=int, default=32)
     parser.add_argument("--lang_lr", type=float, default=0.007)
-    parser.add_argument("--lang_buffer_size", type=str, default=10000)
+    parser.add_argument("--lang_n_epochs", type=int, default=2)
+    parser.add_argument("--lang_batch_size", type=int, default=128)
 
     return parser

@@ -25,6 +25,13 @@ def _get_env(cfg):
             cfg.ro_state_dim, optim_diff_coeff=cfg.ro_optim_diff_coeff)
     return env
 
+def _get_parser(cfg):
+    if cfg.env_name == "magym_PredPrey":
+        from .parsers.predator_prey import PredatorPrey_Parser as Parser
+    else:
+        raise NotImplementedError
+    return Parser()
+
 def reset_envs(envs):
     obs = envs.reset()
     share_obs = []
@@ -36,14 +43,18 @@ def reset_envs(envs):
 def make_env(cfg, n_threads, seed=None):
     if seed is None:
         seed = cfg.seed
+
+    parser = _get_parser()
+
     def get_env_fn(rank):
         def init_env():
             env = _get_env(cfg)
             env.seed(seed + rank * 1000)
             return env
         return init_env
+
     if n_threads == 1:
-        return DummyVecEnv([get_env_fn(0)])
+        return DummyVecEnv([get_env_fn(0)]), parser
     else:
         return SubprocVecEnv([
-            get_env_fn(i) for i in range(n_threads)])
+            get_env_fn(i) for i in range(n_threads)]), parser
