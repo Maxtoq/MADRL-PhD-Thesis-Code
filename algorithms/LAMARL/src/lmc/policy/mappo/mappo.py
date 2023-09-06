@@ -22,6 +22,7 @@ class R_MAPPOPolicy:
     MAPPO Policy  class. Wraps actor and critic networks to compute actions and value function predictions.
 
     :param args: (argparse.Namespace) arguments containing relevant model and policy information.
+    TODO: changer les types des obs et act space
     :param obs_dim: (int) observation dimension.
     :param cent_obs_dim: (int) value function input dimension (centralized input for MAPPO, decentralized for IPPO).
     :param context_dim: (int) context dimension.
@@ -30,15 +31,15 @@ class R_MAPPOPolicy:
     """
 
     def __init__(self, 
-            args, obs_dim, cent_obs_dim, context_dim, act_dim, 
+            args, obs_space, cent_obs_space, context_dim, act_space, 
             device=torch.device("cpu")):
         self.lr = args.lr
         self.critic_lr = args.critic_lr
         self.opti_eps = args.opti_eps
         self.weight_decay = args.weight_decay
 
-        self.actor = R_Actor(args, obs_dim, context_dim, act_dim, device)
-        self.critic = R_Critic(args, share_obs_dim, context_dim, device)
+        self.actor = R_Actor(args, obs_space, context_dim, act_space, device)
+        self.critic = R_Critic(args, cent_obs_space, context_dim, device)
 
         self.actor_optimizer = torch.optim.Adam(
             self.actor.parameters(),
@@ -414,7 +415,7 @@ class MAPPO:
     :param device: (torch.device) cuda device used for training
     """
     def __init__(self, 
-            args, n_agents, obs_dim, shared_obs_dim, context_dim, act_dim, 
+            args, n_agents, obs_space, shared_obs_space, context_dim, act_space, 
             device):
         self.args = args
         self.n_agents = n_agents
@@ -422,16 +423,16 @@ class MAPPO:
         self.train_device = device
 
         # Set variant
-        if self.args.algorithm_name == "rmappo":
+        if self.args.policy_algo == "rmappo":
             self.args.use_recurrent_policy = True
             self.args.use_naive_recurrent_policy = False
-        elif self.args.algorithm_name == "mappo":
+        elif self.args.policy_algo == "mappo":
             self.args.use_recurrent_policy = False 
             self.args.use_naive_recurrent_policy = False
-        elif self.args.algorithm_name == "ippo":
+        elif self.args.policy_algo == "ippo":
             self.use_centralized_V = False
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Bad param given for policy_algo.")
 
         # Init agent policies, train algo and buffer
         self.policy = []
@@ -439,16 +440,16 @@ class MAPPO:
         self.buffer = []
         for a_id in range(self.n_agents):
             if self.use_centralized_V:
-                shared_obs_dim = shared_obs_dim[a_id]
+                sos = shared_obs_space[a_id]
             else:
-                shared_obs_dim = obs_dim[a_id]
+                sos = obs_space[a_id]
             # Policy network
             po = R_MAPPOPolicy(
                 self.args,
-                obs_dim[a_id],
-                shared_obs_dim,
+                obs_space[a_id],
+                sos,
                 context_dim,
-                act_dim[a_id],
+                act_space[a_id],
                 device=device)
             self.policy.append(po)
 
@@ -460,10 +461,10 @@ class MAPPO:
             # Buffer
             bu = SeparatedReplayBuffer(
                 self.args, 
-                obs_dim[a_id], 
-                shared_obs_dim, 
+                obs_space[a_id], 
+                sos, 
                 context_dim,
-                act_dim[a_id])
+                act_space[a_id])
             self.buffer.append(bu)
 
     def prep_rollout(self, device=None):
@@ -489,10 +490,11 @@ class MAPPO:
                 share_obs = np.array(list(obs[:, a_id]))
             self.buffer[a_id].share_obs[0] = share_obs.copy()
             self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
-            self.buffer[a_id].context[0] = np.array(list(context[:, a_id])).copy()
+            self.buffer[a_id].context[0] = np.array(
+                list(context[:, a_id])).copy()
 
     @torch.no_grad()
-    def get_actions(self, step_i):
+    def get_actions(self):
         values = []
         actions = []
         temp_actions_env = []
@@ -503,12 +505,7 @@ class MAPPO:
         for a_id in range(self.n_agents):
             value, action, action_log_prob, rnn_state, rnn_state_critic \
                 = self.trainer[a_id].policy.get_actions(
-                    self.buffer[a_id].share_obs[step_i],
-                    self.buffer[a_id].obs[step_i],
-                    self.buffer[a_id].context[step_i],
-                    self.buffer[a_id].rnn_states[step_i],
-                    self.buffer[a_id].rnn_states_critic[step_i],
-                    self.buffer[a_id].masks[step_i])
+                    *self.buffer[a_id].get_act_params())
             # [agents, envs, dim]
             values.append(torch2numpy(value))
             action = torch2numpy(action)            
@@ -518,11 +515,6 @@ class MAPPO:
             rnn_states.append(torch2numpy(rnn_state))
             rnn_states_critic.append(torch2numpy(rnn_state_critic))
 
-        # [envs, agents, dim]
-        actions_env = [
-            [actions[a_i][e_i] for a_i in range(self.n_agents)] 
-            for e_i in range(actions[0].shape[0])]
-
         values = np.array(values).transpose(1, 0, 2)
         actions = np.array(actions).transpose(1, 0, 2)
         action_log_probs = np.array(action_log_probs).transpose(1, 0, 2)
@@ -530,7 +522,7 @@ class MAPPO:
         rnn_states_critic = np.array(rnn_states_critic).transpose(1, 0, 2, 3)
 
         return values, actions, action_log_probs, rnn_states, \
-               rnn_states_critic, actions_env
+               rnn_states_critic
 
     def store(self, data):
         obs, context, rewards, dones, infos, values, actions, action_log_probs, \

@@ -91,3 +91,45 @@ class PredatorPrey_Parser():
 
             sentences.append(s)
         return sentences
+
+    def _gen_perfect_message(self, agent_obs):
+        m = []
+        pos = agent_obs[:2]
+        prey_map = np.array(agent_obs[2:]).reshape((5, 5))
+
+        d = np.array([-2/6, -1/6, 0, 1/6, 2/6])
+        rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
+        abs_prey_pos = pos + rel_prey_pos
+
+        for prey_pos in abs_prey_pos:
+            p = ["Prey", "Located"]
+
+            if prey_pos[0] <= 0.25:
+                p.append("North")
+            elif prey_pos[0] >= 0.75:
+                p.append("South")
+            if prey_pos[1] <= 0.25:
+                p.append("West")
+            elif prey_pos[1] >= 0.75:
+                p.append("East")
+
+            if len(p) == 2:
+                p.append("Center")
+
+            m.extend(p)
+        
+        return m
+
+    def get_perfect_messages(self, obs):
+        """
+        Recurrent method for generating perfect messages corresponding to
+        given observations.
+        :param obs (np.ndarray): Batch of observations
+        """
+        out = []
+        for e_i in range(obs.shape[0]):
+            env_out = []
+            for a_i in range(obs.shape[1]):
+                env_out.append(self._gen_perfect_message(obs[e_i, a_i]))
+            out.append(env_out)
+        return out

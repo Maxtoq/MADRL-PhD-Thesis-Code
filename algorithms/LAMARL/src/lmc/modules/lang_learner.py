@@ -41,7 +41,7 @@ class LanguageLearner:
             list(self.decoder.parameters()), 
             lr=lr)
 
-        self.buffer = LanguageBuffer(lang_buffer_size)
+        self.buffer = LanguageBuffer(buffer_size)
 
     def prep_rollout(self, device=None):
         if device is None:

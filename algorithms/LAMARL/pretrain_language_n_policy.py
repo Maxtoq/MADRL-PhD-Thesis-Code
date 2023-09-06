@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from src.utils.config import get_config
 from src.utils.eval import perform_eval
+from src.utils.utils import set_seeds, set_cuda_device
 from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
@@ -73,7 +74,7 @@ def run():
     n_agents = envs.n_agents
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
-    act_space = act_dim = envs.action_space
+    act_space = envs.action_space
     write_params(run_dir, cfg)
 
     if cfg.do_eval:
@@ -90,7 +91,6 @@ def run():
     progress = Progress(cfg.n_steps)
     # Reset env
     step_i = 0
-    ep_step_i = 0
     last_save_step = 0
     last_eval_step = 0
     obs = envs.reset()
@@ -98,20 +98,20 @@ def run():
     model.start_episode(obs)
     while step_i < cfg.n_steps:
         progress.print_progress(step_i)
+        # Parse obs
+        parsed_obs = parser.get_perfect_messages(obs)
         # Perform step
         # Get action
-        output = model.get_actions(ep_step_i)
-        actions = output[-1]
+        output = model.comm_n_act(obs, parsed_obs)
+        actions = output[1]
+        messages = output[-1]
         # Perform action and get reward and next obs
         obs, extr_rewards, dones, infos = envs.step(actions)
 
-        # Get intrinsic reward if needed
-        if cfg.ir_algo != "none":
-            intr_rewards = algo.get_intrinsic_rewards(obs)
-        else:
-            intr_rewards = np.zeros((cfg.n_rollout_threads, n_agents))
-        rewards = extr_rewards + cfg.ir_coeff * intr_rewards
+        # Save data for logging
+        logger.count_returns(ep_step_i, rewards, dones)
 
+    envs.close()
 
 if __name__ == '__main__':
     run()

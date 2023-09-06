@@ -60,7 +60,7 @@ def run():
     n_agents = envs.n_agents
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
-    act_space = act_dim = envs.action_space
+    act_space = envs.action_space
     write_params(run_dir, cfg)
 
     if cfg.do_eval:

@@ -1,8 +1,11 @@
 import copy
 import torch
+import numpy as np
+
 from torch import nn
 
 from .modules.lang_learner import LanguageLearner
+from .modules.comm_policy import PerfectComm
 from .policy.mappo.mappo import MAPPO
 
 
@@ -27,9 +30,13 @@ class LMC:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        self.comm_policy = None # CommunicationPolicy(context_dim, hidden_dim)
+        if args.comm_policy_algo == "perfect_comm":
+            self.comm_policy = PerfectComm(self.lang_learner)
+            # CommunicationPolicy(context_dim, hidden_dim)
+        else:
+            raise NotImplementedError("Bad name given for communication policy algo.")
 
-        if self.policy_algo == "mappo":
+        if args.policy_algo == "mappo":
             self.policy = MAPPO(
                 args, n_agents, obs_space, shared_obs_space, args.context_dim,
                 act_space, device)
@@ -45,11 +52,17 @@ class LMC:
         self.policy.prep_rollout(device)
 
     def start_episode(self, obs):
-        context = np.zeros_like(obs)
-        self.policy.start_episode(obs, context)
+        context = np.zeros((obs.shape[0], self.n_agents, self.context_dim))
+        self.policy.start_episode(obs, context)                
 
-    def comm_n_act(self, obs):
-        pass
+    def comm_n_act(self, obs, perfect_messages=None):
+        # Get actions
+        pol_outputs = self.policy.get_actions()
+        # Get messages
+        broadcasts, next_contexts = self.comm_policy.comm_step(
+            obs, perfect_messages)
+
+        return pol_outputs + (next_contexts, broadcasts)
 
     def train(self):
         pass

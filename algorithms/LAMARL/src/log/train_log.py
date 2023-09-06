@@ -21,14 +21,10 @@ class Logger():
         self.train_data = {
             "Step": [],
             "Episode return": [],
-            "Episode extrinsic return": [],
-            "Episode intrinsic return": [],
             "Success": [],
             "Episode length": []
         }
         self.returns = np.zeros(self.n_parrallel_envs)
-        self.extr_returns = np.zeros(self.n_parrallel_envs)
-        self.intr_returns = np.zeros(self.n_parrallel_envs)
         self.success = [False] * self.n_parrallel_envs
         self.ep_lengths = np.ones(self.n_parrallel_envs) * self.ep_length
 
@@ -44,15 +40,11 @@ class Logger():
 
     def reset_episode(self):
         self.returns = np.zeros(self.n_parrallel_envs)
-        self.extr_returns = np.zeros(self.n_parrallel_envs)
-        self.intr_returns = np.zeros(self.n_parrallel_envs)
         self.success = [False] * self.n_parrallel_envs
         self.ep_lengths = np.ones(self.n_parrallel_envs) * self.ep_length
 
-    def count_returns(self, step, rewards, extr_rewards, intr_rewards, dones):
+    def count_returns(self, step, rewards, dones):
         global_rewards = rewards.mean(axis=1)
-        global_extr_rewards = extr_rewards.mean(axis=1)
-        global_intr_rewards = intr_rewards.mean(axis=1)
         global_dones = dones.all(axis=1)
         for e_i in range(self.n_parrallel_envs):
             if not self.success[e_i]:

@@ -151,7 +151,7 @@ def get_config():
         description='onpolicy', formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # prepare parameters
-    parser.add_argument("--algorithm_name", type=str,
+    parser.add_argument("--policy_algo", type=str,
                         default='mappo', choices=["mappo", "rmappo", "ippo"])
 
     parser.add_argument("--experiment_name", type=str, default="TEST", help="an identifier to distinguish different experiment.")
@@ -171,7 +171,7 @@ def get_config():
                         help='Number of environment steps between training updates (default: 100)')
 
     # env parameters
-    parser.add_argument("--env_name", type=str, default='magym_Switch2', help="specify the names of environment and the task")
+    parser.add_argument("--env_name", type=str, default='magym_PredPrey', help="specify the names of environment and the task")
 
     # replay buffer parameters
     parser.add_argument("--episode_length", type=int,
@@ -295,5 +295,8 @@ def get_config():
     parser.add_argument("--lang_lr", type=float, default=0.007)
     parser.add_argument("--lang_n_epochs", type=int, default=2)
     parser.add_argument("--lang_batch_size", type=int, default=128)
+
+    # Communication parameters
+    parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm")
 
     return parser

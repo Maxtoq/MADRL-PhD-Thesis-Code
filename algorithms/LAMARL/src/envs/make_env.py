@@ -6,23 +6,31 @@ from itertools import chain
 from .env_wrappers import DummyVecEnv, SubprocVecEnv
 from .mpe.environment import MultiAgentEnv
 
+
 def _get_env(cfg):
-    if "mpe" in cfg.env_name:
-        if "Spread" in cfg.env_name:
-            from .mpe.scenarios.simple_spread import Scenario
-        if "CoopPush" in cfg.env_name:
-            from .mpe.scenarios.coop_push_corners import Scenario
-        scenario = Scenario()
-        scenario.make_world()
-        env = MultiAgentEnv(scenario, discrete_action=True)
-    elif "magym" in cfg.env_name:
-        if "Switch2" in cfg.env_name:
-            from .ma_gym.envs.switch.switch_one_corridor import Switch
-            env = Switch(n_agents=2, max_steps=cfg.episode_length, clock=False)
-    elif "rel_overgen" in cfg.env_name:
-        from .rel_overgen import RelOvergenEnv
-        env = RelOvergenEnv(
-            cfg.ro_state_dim, optim_diff_coeff=cfg.ro_optim_diff_coeff)
+    # if "mpe" in cfg.env_name:
+    #     if "Spread" in cfg.env_name:
+    #         from .mpe.scenarios.simple_spread import Scenario
+    #     if "CoopPush" in cfg.env_name:
+    #         from .mpe.scenarios.coop_push_corners import Scenario
+    #     scenario = Scenario()
+    #     scenario.make_world()
+    #     env = MultiAgentEnv(scenario, discrete_action=True)
+    # elif "magym" in cfg.env_name:
+    #     if "Switch2" in cfg.env_name:
+    #         from .ma_gym.envs.switch.switch_one_corridor import Switch
+    #         env = Switch(n_agents=2, max_steps=cfg.episode_length, clock=False)
+    # elif "rel_overgen" in cfg.env_name:
+    #     from .rel_overgen import RelOvergenEnv
+    #     env = RelOvergenEnv(
+    #         cfg.ro_state_dim, optim_diff_coeff=cfg.ro_optim_diff_coeff)
+    if cfg.env_name == "magym_PredPrey":
+        from .ma_gym.envs.predator_prey.predator_prey import PredatorPrey
+        env = PredatorPrey(
+            n_agents=4, 
+            grid_shape=(7, 7), 
+            n_preys=2, 
+            max_steps=cfg.episode_length)
     return env
 
 def _get_parser(cfg):
@@ -44,7 +52,7 @@ def make_env(cfg, n_threads, seed=None):
     if seed is None:
         seed = cfg.seed
 
-    parser = _get_parser()
+    parser = _get_parser(cfg)
 
     def get_env_fn(rank):
         def init_env():

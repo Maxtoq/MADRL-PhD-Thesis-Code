@@ -23,7 +23,7 @@ class R_Actor(nn.Module):
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
     def __init__(self, 
-            args, obs_dim, context_dim, act_dim, device=torch.device("cpu")):
+            args, obs_space, context_dim, act_space, device=torch.device("cpu")):
         super(R_Actor, self).__init__()
         self.hidden_size = args.hidden_size
 
@@ -33,14 +33,8 @@ class R_Actor(nn.Module):
         self._recurrent_N = args.recurrent_N
         self.tpdv = dict(dtype=torch.float32, device=device)
 
-        if type(obs_dim) is tuple:
-            base = CNNBase
-        elif type(obs_dim) is int:
-            base = MLPBase
-        else:
-            print("Wrong observation dimension.")
-            raise NotImplementedError
-        self.obs_encoder = base(args, obs_dim)
+        obs_dim = get_shape_from_obs_space(obs_space)
+        self.obs_encoder = MLPBase(args, obs_dim)
 
         # [LMC] Add dimension of context encoding
         input_encoding_dim = self.hidden_size + context_dim
@@ -56,7 +50,7 @@ class R_Actor(nn.Module):
                 args.use_orthogonal, args.use_ReLU)
 
         self.act = ACTLayer(
-            act_dim, self.hidden_size, args.use_orthogonal, args.gain)
+            act_space, self.hidden_size, args.use_orthogonal, args.gain)
 
         self.to(device)
 
@@ -77,11 +71,12 @@ class R_Actor(nn.Module):
         :return action_log_probs: (torch.Tensor) log probabilities of taken actions.
         :return rnn_states: (torch.Tensor) updated RNN hidden states.
         """
-        obs = check(obs).to(**self.tpdv)
-        rnn_states = check(rnn_states).to(**self.tpdv)
-        masks = check(masks).to(**self.tpdv)
+        obs = torch.from_numpy(obs).to(**self.tpdv)
+        context = torch.from_numpy(context).to(**self.tpdv)
+        rnn_states = torch.from_numpy(rnn_states).to(**self.tpdv)
+        masks = torch.from_numpy(masks).to(**self.tpdv)
         if available_actions is not None:
-            available_actions = check(available_actions).to(**self.tpdv)
+            available_actions = torch.from_numpy(available_actions).to(**self.tpdv)
 
         obs_enc = self.obs_encoder(obs)
 
@@ -117,15 +112,16 @@ class R_Actor(nn.Module):
         :return action_log_probs: (torch.Tensor) log probabilities of the input actions.
         :return dist_entropy: (torch.Tensor) action distribution entropy for the given inputs.
         """
-        obs = check(obs).to(**self.tpdv)
-        rnn_states = check(rnn_states).to(**self.tpdv)
-        action = check(action).to(**self.tpdv)
-        masks = check(masks).to(**self.tpdv)
+        obs = torch.from_numpy(obs).to(**self.tpdv)
+        context = torch.from_numpy(context).to(**self.tpdv)
+        rnn_states = torch.from_numpy(rnn_states).to(**self.tpdv)
+        action = torch.from_numpy(action).to(**self.tpdv)
+        masks = torch.from_numpy(masks).to(**self.tpdv)
         if available_actions is not None:
-            available_actions = check(available_actions).to(**self.tpdv)
+            available_actions = torch.from_numpy(available_actions).to(**self.tpdv)
 
         if active_masks is not None:
-            active_masks = check(active_masks).to(**self.tpdv)
+            active_masks = torch.from_numpy(active_masks).to(**self.tpdv)
 
         actor_features = self.obs_encoder(obs)
 
@@ -157,7 +153,7 @@ class R_Critic(nn.Module):
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
     def __init__(self, 
-            args, cent_obs_dim, context_dim, device=torch.device("cpu")):
+            args, cent_obs_space, context_dim, device=torch.device("cpu")):
         super(R_Critic, self).__init__()
         self.hidden_size = args.hidden_size
         self._use_naive_recurrent_policy = args.use_naive_recurrent_policy
@@ -167,14 +163,8 @@ class R_Critic(nn.Module):
         self.tpdv = dict(dtype=torch.float32, device=device)
         init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][args.use_orthogonal]
 
-        if type(cent_obs_dim) is tuple:
-            base = CNNBase
-        elif type(cent_obs_dim) is int:
-            base = MLPBase
-        else:
-            print("Wrong observation dimension.")
-            raise NotImplementedError
-        self.obs_encoder = base(args, cent_obs_dim)
+        cent_obs_dim = get_shape_from_obs_space(cent_obs_space)
+        self.obs_encoder = MLPBase(args, cent_obs_dim)
 
         # [LMC] Add dimension of context encoding
         input_encoding_dim = self.hidden_size + context_dim
@@ -210,9 +200,10 @@ class R_Critic(nn.Module):
         :return values: (torch.Tensor) value function predictions.
         :return rnn_states: (torch.Tensor) updated RNN hidden states.
         """
-        cent_obs = check(cent_obs).to(**self.tpdv)
-        rnn_states = check(rnn_states).to(**self.tpdv)
-        masks = check(masks).to(**self.tpdv)
+        cent_obs = torch.from_numpy(cent_obs).to(**self.tpdv)
+        context = torch.from_numpy(context).to(**self.tpdv)
+        rnn_states = torch.from_numpy(rnn_states).to(**self.tpdv)
+        masks = torch.from_numpy(masks).to(**self.tpdv)
 
         obs_enc = self.obs_encoder(cent_obs)
 
