@@ -165,7 +165,7 @@ def get_config():
                         help="Number of parallel envs for training rollouts")
     parser.add_argument("--n_eval_threads", type=int, default=1,
                         help="Number of parallel envs for evaluating rollouts")
-    parser.add_argument("--n_steps", type=int, default=10e6,
+    parser.add_argument("--n_steps", type=int, default=int(10e6),
                         help='Number of environment steps to train (default: 10e6)')
     parser.add_argument("--n_steps_per_update", type=int, default=100,
                         help='Number of environment steps between training updates (default: 100)')

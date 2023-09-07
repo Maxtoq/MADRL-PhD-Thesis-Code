@@ -525,8 +525,8 @@ class MAPPO:
                rnn_states_critic
 
     def store(self, data):
-        obs, context, rewards, dones, infos, values, actions, action_log_probs, \
-            rnn_states, rnn_states_critic = data
+        obs, rewards, dones, infos, values, actions, action_log_probs, \
+            rnn_states, rnn_states_critic, context = data
 
         rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),

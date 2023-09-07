@@ -52,8 +52,9 @@ class LMC:
         self.policy.prep_rollout(device)
 
     def start_episode(self, obs):
+        # TODO: Ne pas mettre zeros pour le context sauf toute première step
         context = np.zeros((obs.shape[0], self.n_agents, self.context_dim))
-        self.policy.start_episode(obs, context)                
+        self.policy.start_episode(obs, context)
 
     def comm_n_act(self, obs, perfect_messages=None):
         # Get actions
@@ -63,6 +64,9 @@ class LMC:
             obs, perfect_messages)
 
         return pol_outputs + (next_contexts, broadcasts)
+
+    def store_exp(self, data):
+        self.policy.store(data)
 
     def train(self):
         pass

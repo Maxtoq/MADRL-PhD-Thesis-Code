@@ -4,7 +4,7 @@ import torch
 import random
 import numpy as np
 
-from tqdm import tqdm
+from tqdm import trange
 
 from src.utils.config import get_config
 from src.utils.eval import perform_eval
@@ -88,28 +88,44 @@ def run():
     print(f"Starting training for {cfg.n_steps} frames")
     print(f"                  updates every {cfg.n_rollout_threads} episodes")
     print(f"                  with seed {cfg.seed}")
-    progress = Progress(cfg.n_steps)
     # Reset env
-    step_i = 0
     last_save_step = 0
     last_eval_step = 0
     obs = envs.reset()
     model.prep_rollout()
     model.start_episode(obs)
-    while step_i < cfg.n_steps:
-        progress.print_progress(step_i)
-        # Parse obs
-        parsed_obs = parser.get_perfect_messages(obs)
-        # Perform step
-        # Get action
-        output = model.comm_n_act(obs, parsed_obs)
-        actions = output[1]
-        messages = output[-1]
-        # Perform action and get reward and next obs
-        obs, extr_rewards, dones, infos = envs.step(actions)
+    n_steps_per_update = cfg.n_rollout_threads * cfg.episode_length
+    for u_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=10):
+        for s_i in range(cfg.episode_length):
+            # Parse obs
+            parsed_obs = parser.get_perfect_messages(obs)
+            # Perform step
+            # Get action
+            output = model.comm_n_act(obs, parsed_obs)
+            actions = output[1]
+            messages = output[-1]
+            # Perform action and get reward and next obs
+            obs, rewards, dones, infos = envs.step(actions)
 
-        # Save data for logging
-        logger.count_returns(ep_step_i, rewards, dones)
+            # TODO: reset context vector for envs that are done
+            print(dones.all(axis=1))
+
+            # Save data for logging
+            logger.count_returns(u_i + s_i, rewards, dones)
+
+            # Insert data into replay buffer
+            rewards = rewards[..., np.newaxis]
+            data = (obs, rewards, dones, infos) + output[:-1]
+            model.store_exp(data)
+
+        # Training
+        train_losses = model.train()
+        # Log train data
+        logger.log_losses(train_losses, u_i + s_i + 1)
+        model.start_episode(obs)
+        model.prep_rollout()
+        return
+
 
     envs.close()
 
