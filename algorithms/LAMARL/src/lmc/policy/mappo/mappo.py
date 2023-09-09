@@ -491,7 +491,7 @@ class MAPPO:
             self.buffer[a_id].share_obs[0] = share_obs.copy()
             self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
             self.buffer[a_id].context[0] = np.array(
-                list(context[:, a_id])).copy()
+                list(context)).copy()
 
     @torch.no_grad()
     def get_actions(self):
@@ -535,7 +535,7 @@ class MAPPO:
             ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
             dtype=np.float32)
         masks = np.ones(
-            (self.args.n_rollout_threads, self.n_agents, 1), dtype=np.float32)
+            (self.args.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 

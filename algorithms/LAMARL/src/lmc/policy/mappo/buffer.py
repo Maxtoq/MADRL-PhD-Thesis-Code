@@ -17,7 +17,7 @@ def _cast(x):
 class SeparatedReplayBuffer(object):
     def __init__(self, args, obs_space, share_obs_space, context_dim, act_space):
         self.episode_length = args.episode_length
-        self.n_rollout_threads = args.n_rollout_threads
+        self.n_parallel_envs = args.n_parallel_envs
         self.rnn_hidden_size = args.hidden_size
         self.recurrent_N = args.recurrent_N
         self.gamma = args.gamma
@@ -39,49 +39,49 @@ class SeparatedReplayBuffer(object):
 
         if act_space.__class__.__name__ == 'Discrete':
             self.available_actions = np.ones(
-                (self.episode_length + 1, self.n_rollout_threads, self.act_dim), 
+                (self.episode_length + 1, self.n_parallel_envs, self.act_dim), 
                 dtype=np.float32)
         else:
             self.available_actions = None
 
         self.share_obs = np.zeros(
             (self.episode_length + 1, 
-             self.n_rollout_threads, 
+             self.n_parallel_envs, 
              self.share_obs_dim),
             dtype=np.float32)
         self.obs = np.zeros(
-            (self.episode_length + 1, self.n_rollout_threads, self.obs_dim),
+            (self.episode_length + 1, self.n_parallel_envs, self.obs_dim),
             dtype=np.float32)
         self.context = np.zeros(
-            (self.episode_length + 1, self.n_rollout_threads, self.context_dim),
+            (self.episode_length + 1, self.n_parallel_envs, self.context_dim),
             dtype=np.float32)
 
         self.rnn_states = np.zeros(
             (self.episode_length + 1, 
-             self.n_rollout_threads, 
+             self.n_parallel_envs, 
              self.recurrent_N, 
              self.rnn_hidden_size), 
             dtype=np.float32)
         self.rnn_states_critic = np.zeros_like(self.rnn_states)
 
         self.value_preds = np.zeros(
-            (self.episode_length + 1, self.n_rollout_threads, 1),
+            (self.episode_length + 1, self.n_parallel_envs, 1),
             dtype=np.float32)
         self.returns = np.zeros(
-            (self.episode_length + 1, self.n_rollout_threads, 1),
+            (self.episode_length + 1, self.n_parallel_envs, 1),
             dtype=np.float32)
 
         self.actions = np.zeros(
-            (self.episode_length, self.n_rollout_threads, self.act_dim),
+            (self.episode_length, self.n_parallel_envs, self.act_dim),
             dtype=np.float32)
         self.action_log_probs = np.zeros(
-            (self.episode_length, self.n_rollout_threads, self.act_dim),
+            (self.episode_length, self.n_parallel_envs, self.act_dim),
             dtype=np.float32)
         self.rewards = np.zeros(
-            (self.episode_length, self.n_rollout_threads, 1), dtype=np.float32)
+            (self.episode_length, self.n_parallel_envs, 1), dtype=np.float32)
         
         self.masks = np.ones(
-            (self.episode_length + 1, self.n_rollout_threads, 1), 
+            (self.episode_length + 1, self.n_parallel_envs, 1), 
             dtype=np.float32)
         self.bad_masks = np.ones_like(self.masks)
         self.active_masks = np.ones_like(self.masks)
@@ -89,21 +89,21 @@ class SeparatedReplayBuffer(object):
         self.step = 0
     
     def reset_episode(self):
-        self.share_obs = np.zeros((self.episode_length + 1, self.n_rollout_threads, self.share_obs_dim), dtype=np.float32)
-        self.obs = np.zeros((self.episode_length + 1, self.n_rollout_threads, self.obs_dim), dtype=np.float32)
-        self.context = np.zeros((self.episode_length + 1, self.n_rollout_threads, self.context_dim), dtype=np.float32)
-        self.rnn_states = np.zeros((self.episode_length + 1, self.n_rollout_threads, self.recurrent_N, self.rnn_hidden_size), dtype=np.float32)
+        self.share_obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.share_obs_dim), dtype=np.float32)
+        self.obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.obs_dim), dtype=np.float32)
+        self.context = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.context_dim), dtype=np.float32)
+        self.rnn_states = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.recurrent_N, self.rnn_hidden_size), dtype=np.float32)
         self.rnn_states_critic = np.zeros_like(self.rnn_states)
-        self.value_preds = np.zeros((self.episode_length + 1, self.n_rollout_threads, 1), dtype=np.float32)
-        self.returns = np.zeros((self.episode_length + 1, self.n_rollout_threads, 1), dtype=np.float32)
-        self.actions = np.zeros((self.episode_length, self.n_rollout_threads, self.act_dim), dtype=np.float32)
-        self.action_log_probs = np.zeros((self.episode_length, self.n_rollout_threads, self.act_dim), dtype=np.float32)
-        self.rewards = np.zeros((self.episode_length, self.n_rollout_threads, 1), dtype=np.float32)
-        self.masks = np.ones((self.episode_length + 1, self.n_rollout_threads, 1), dtype=np.float32)
+        self.value_preds = np.zeros((self.episode_length + 1, self.n_parallel_envs, 1), dtype=np.float32)
+        self.returns = np.zeros((self.episode_length + 1, self.n_parallel_envs, 1), dtype=np.float32)
+        self.actions = np.zeros((self.episode_length, self.n_parallel_envs, self.act_dim), dtype=np.float32)
+        self.action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.act_dim), dtype=np.float32)
+        self.rewards = np.zeros((self.episode_length, self.n_parallel_envs, 1), dtype=np.float32)
+        self.masks = np.ones((self.episode_length + 1, self.n_parallel_envs, 1), dtype=np.float32)
         self.bad_masks = np.ones_like(self.masks)
         self.active_masks = np.ones_like(self.masks)
         if self.available_actions is not None:
-            self.available_actions = np.ones((self.episode_length + 1, self.n_rollout_threads, self.act_dim), dtype=np.float32)
+            self.available_actions = np.ones((self.episode_length + 1, self.n_parallel_envs, self.act_dim), dtype=np.float32)
         self.step = 0
 
     def get_act_params(self):
@@ -178,15 +178,15 @@ class SeparatedReplayBuffer(object):
                     self.returns[step] = self.returns[step + 1] * self.gamma * self.masks[step + 1] + self.rewards[step]
 
     def feed_forward_generator(self, advantages, num_mini_batch=None, mini_batch_size=None):
-        episode_length, n_rollout_threads = self.rewards.shape[0:2]
-        batch_size = n_rollout_threads * episode_length
+        episode_length, n_parallel_envs = self.rewards.shape[0:2]
+        batch_size = n_parallel_envs * episode_length
 
         if mini_batch_size is None:
             assert batch_size >= num_mini_batch, (
                 "PPO requires the number of processes ({}) "
                 "* number of steps ({}) = {} "
                 "to be greater than or equal to the number of PPO mini batches ({})."
-                "".format(n_rollout_threads, episode_length, n_rollout_threads * episode_length,
+                "".format(n_parallel_envs, episode_length, n_parallel_envs * episode_length,
                           num_mini_batch))
             mini_batch_size = batch_size // num_mini_batch
 
@@ -195,6 +195,8 @@ class SeparatedReplayBuffer(object):
 
         share_obs = self.share_obs[:-1].reshape(-1, *self.share_obs.shape[2:])
         obs = self.obs[:-1].reshape(-1, *self.obs.shape[2:])
+        print(self.context.shape)
+        if self.
         context = self.context[:-1].reshape(-1, *self.context.shape[2:])
         rnn_states = self.rnn_states[:-1].reshape(-1, *self.rnn_states.shape[2:])
         rnn_states_critic = self.rnn_states_critic[:-1].reshape(-1, *self.rnn_states_critic.shape[2:])
@@ -233,14 +235,14 @@ class SeparatedReplayBuffer(object):
             yield share_obs_batch, obs_batch, context_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
 
     def naive_recurrent_generator(self, advantages, num_mini_batch):
-        n_rollout_threads = self.rewards.shape[1]
-        assert n_rollout_threads >= num_mini_batch, (
+        n_parallel_envs = self.rewards.shape[1]
+        assert n_parallel_envs >= num_mini_batch, (
             "PPO requires the number of processes ({}) "
             "to be greater than or equal to the number of "
-            "PPO mini batches ({}).".format(n_rollout_threads, num_mini_batch))
-        num_envs_per_batch = n_rollout_threads // num_mini_batch
-        perm = torch.randperm(n_rollout_threads).numpy()
-        for start_ind in range(0, n_rollout_threads, num_envs_per_batch):
+            "PPO mini batches ({}).".format(n_parallel_envs, num_mini_batch))
+        num_envs_per_batch = n_parallel_envs // num_mini_batch
+        perm = torch.randperm(n_parallel_envs).numpy()
+        for start_ind in range(0, n_parallel_envs, num_envs_per_batch):
             share_obs_batch = []
             obs_batch = []
             context_batch = []
@@ -311,15 +313,15 @@ class SeparatedReplayBuffer(object):
             yield share_obs_batch, obs_batch, context_batch, rnn_states_batch, rnn_states_critic_batch, actions_batch, value_preds_batch, return_batch, masks_batch, active_masks_batch, old_action_log_probs_batch, adv_targ, available_actions_batch
 
     def recurrent_generator(self, advantages, num_mini_batch, data_chunk_length):
-        episode_length, n_rollout_threads = self.rewards.shape[0:2]
-        batch_size = n_rollout_threads * episode_length
+        episode_length, n_parallel_envs = self.rewards.shape[0:2]
+        batch_size = n_parallel_envs * episode_length
         data_chunks = batch_size // data_chunk_length  # [C=r*T/L]
         mini_batch_size = data_chunks // num_mini_batch
 
-        assert episode_length * n_rollout_threads >= data_chunk_length, (
+        assert episode_length * n_parallel_envs >= data_chunk_length, (
             "PPO requires the number of processes ({}) * episode length ({}) "
             "to be greater than or equal to the number of "
-            "data chunk length ({}).".format(n_rollout_threads, episode_length, data_chunk_length))
+            "data chunk length ({}).".format(n_parallel_envs, episode_length, data_chunk_length))
         assert data_chunks >= 2, ("need larger batch size")
 
         rand = torch.randperm(data_chunks).numpy()

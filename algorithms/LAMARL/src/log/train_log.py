@@ -15,7 +15,7 @@ class Logger():
         self.log_dir_path = log_dir_path
         self.max_ep_length = args.episode_length
         self.log_tensorboard = args.log_tensorboard
-        self.n_parrallel_envs = args.n_rollout_threads
+        self.n_parrallel_envs = args.n_parallel_envs
         self.do_eval = args.do_eval
 
         self.train_data = {
@@ -76,20 +76,21 @@ class Logger():
 
     def log_losses(self, losses, step):
         if self.log_tensorboard:
-            if type(train_losses) is tuple:
+            if type(losses) is tuple:
                 losses = {
                     "value_loss": np.mean(
-                        [t["value_loss"] for t in train_losses[0]]),
+                        [t["value_loss"] for t in losses[0]]),
                     "policy_loss": np.mean(
-                        [t["policy_loss"] for t in train_losses[0]]),
-                    "rnd_loss": train_losses[1]["rnd_loss"],
-                    "e3b_loss": train_losses[1]["e3b_loss"]}
+                        [t["policy_loss"] for t in losses[0]]),
+                    "rnd_loss": losses[1]["rnd_loss"],
+                    "e3b_loss": losses[1]["e3b_loss"]}
             else:
+                print(losses)
                 losses = {
                     "value_loss": np.mean(
-                        [t["value_loss"] for t in train_losses]),
+                        [t["value_loss"] for t in losses]),
                     "policy_loss": np.mean(
-                        [t["policy_loss"] for t in train_losses])}
+                        [t["policy_loss"] for t in losses])}
             self.log_tb.add_scalars(
                 'agent0/losses', losses, step)
 

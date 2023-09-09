@@ -20,7 +20,7 @@ def get_config():
             by default, make sure random seed effective. if set, bypass such function.
         --n_training_threads <int>
             number of training threads working in parallel. by default 1
-        --n_rollout_threads <int>
+        --n_parallel_envs <int>
             number of parallel envs for training rollout. by default 32
         --n_eval_rollout_threads <int>
             number of parallel envs for evaluating rollout. by default 1
@@ -161,7 +161,7 @@ def get_config():
                         help="by default, make sure random seed effective. if set, bypass such function.")
     parser.add_argument("--n_training_threads", type=int,
                         default=1, help="Number of torch threads for training")
-    parser.add_argument("--n_rollout_threads", type=int, default=1,
+    parser.add_argument("--n_parallel_envs", type=int, default=1,
                         help="Number of parallel envs for training rollouts")
     parser.add_argument("--n_eval_threads", type=int, default=1,
                         help="Number of parallel envs for evaluating rollouts")
@@ -297,6 +297,7 @@ def get_config():
     parser.add_argument("--lang_batch_size", type=int, default=128)
 
     # Communication parameters
-    parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm")
+    parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm",
+                        choices=["perfect_comm", "no_comm"])
 
     return parser

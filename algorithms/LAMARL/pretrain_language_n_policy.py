@@ -69,7 +69,7 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
-    envs, parser = make_env(cfg, cfg.n_rollout_threads)
+    envs, parser = make_env(cfg, cfg.n_parallel_envs)
     
     n_agents = envs.n_agents
     obs_space = envs.observation_space
@@ -86,7 +86,7 @@ def run():
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
-    print(f"                  updates every {cfg.n_rollout_threads} episodes")
+    print(f"                  updates every {cfg.n_parallel_envs} episodes")
     print(f"                  with seed {cfg.seed}")
     # Reset env
     last_save_step = 0
@@ -94,7 +94,7 @@ def run():
     obs = envs.reset()
     model.prep_rollout()
     model.start_episode(obs)
-    n_steps_per_update = cfg.n_rollout_threads * cfg.episode_length
+    n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for u_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=10):
         for s_i in range(cfg.episode_length):
             # Parse obs
@@ -107,8 +107,9 @@ def run():
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
-            # TODO: reset context vector for envs that are done
-            print(dones.all(axis=1))
+            env_done = dones.all(axis=1)
+            if True in env_done:
+                model.reset_context(env_done)
 
             # Save data for logging
             logger.count_returns(u_i + s_i, rewards, dones)

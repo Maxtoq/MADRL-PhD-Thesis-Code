@@ -54,7 +54,7 @@ def run():
     
     # Create train environment
     # if cfg.env_name == "ma_gym":
-    envs = make_env(cfg, cfg.n_rollout_threads)
+    envs = make_env(cfg, cfg.n_parallel_envs)
     if cfg.env_name == "rel_overgen":
         cfg.episode_length = cfg.ro_state_dim
     n_agents = envs.n_agents
@@ -77,7 +77,7 @@ def run():
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
-    print(f"                  updates every {cfg.n_rollout_threads} episodes")
+    print(f"                  updates every {cfg.n_parallel_envs} episodes")
     print(f"                  with seed {cfg.seed}")
     progress = Progress(cfg.n_steps)
     # Reset env
@@ -87,7 +87,7 @@ def run():
     last_eval_step = 0
     obs = envs.reset()
     algo.prep_rollout()
-    algo.start_episode(obs, cfg.n_rollout_threads)
+    algo.start_episode(obs, cfg.n_parallel_envs)
     while step_i < cfg.n_steps:
         progress.print_progress(step_i)
         # Perform step
@@ -101,7 +101,7 @@ def run():
         if cfg.ir_algo != "none":
             intr_rewards = algo.get_intrinsic_rewards(obs)
         else:
-            intr_rewards = np.zeros((cfg.n_rollout_threads, n_agents))
+            intr_rewards = np.zeros((cfg.n_parallel_envs, n_agents))
         rewards = extr_rewards + cfg.ir_coeff * intr_rewards
 
         # Save data for logging
@@ -120,7 +120,7 @@ def run():
             step_i += logger.log_train(step_i, train_losses)
             # Reset env (env, buffer, log)
             obs = envs.reset()
-            algo.start_episode(obs, cfg.n_rollout_threads)
+            algo.start_episode(obs, cfg.n_parallel_envs)
             logger.reset_episode()
             algo.prep_rollout()
             ep_step_i = 0
