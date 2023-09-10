@@ -92,18 +92,17 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs = envs.reset()
-    model.prep_rollout()
     model.start_episode(obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
-    for u_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=10):
-        for s_i in range(cfg.episode_length):
+    for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=10):
+        model.prep_rollout()
+        for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
             # Perform step
             # Get action
-            output = model.comm_n_act(obs, parsed_obs)
-            actions = output[1]
-            messages = output[-1]
+            values, actions, action_log_probs, rnn_states, rnn_states_critic, \
+                messages = model.comm_n_act(obs, parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
@@ -112,22 +111,33 @@ def run():
                 model.reset_context(env_done)
 
             # Save data for logging
-            logger.count_returns(u_i + s_i, rewards, dones)
+            logger.count_returns(s_i + ep_s_i, rewards, dones)
 
             # Insert data into replay buffer
             rewards = rewards[..., np.newaxis]
-            data = (obs, rewards, dones, infos) + output[:-1]
-            model.store_exp(data)
+            model.store_exp(obs, rewards, dones, infos, values, 
+                actions, action_log_probs, rnn_states, rnn_states_critic)
 
         # Training
         train_losses = model.train()
         # Log train data
-        logger.log_losses(train_losses, u_i + s_i + 1)
+        logger.log_losses(train_losses, s_i + ep_s_i + 1)
         model.start_episode(obs)
-        model.prep_rollout()
-        return
+    
+        # Eval
+        if cfg.do_eval and s_i - last_eval_step > cfg.eval_interval:
+            print("EVAL")
+            last_eval_step = s_i
+            mean_return, success_rate, mean_ep_len = perform_eval(cfg, algo)
+            logger.log_eval(step_i, mean_return, success_rate, mean_ep_len)
+            logger.save()
 
-
+        # Save
+        if s_i - last_save_step > cfg.save_interval:
+            print("SAVE")
+            last_save_step = s_i
+            model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
+            
     envs.close()
 
 if __name__ == '__main__':

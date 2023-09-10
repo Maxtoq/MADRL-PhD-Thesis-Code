@@ -39,7 +39,7 @@ def get_shape_from_obs_space(obs_space):
 
 def get_shape_from_act_space(act_space):
     if act_space.__class__.__name__ == 'Discrete':
-        act_shape = act_space.n
+        act_shape = 1 #act_space.n
     elif act_space.__class__.__name__ == "MultiDiscrete":
         act_shape = act_space.shape
     elif act_space.__class__.__name__ == "Box":

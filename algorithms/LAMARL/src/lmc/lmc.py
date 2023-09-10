@@ -51,7 +51,7 @@ class LMC:
                 act_space[0], device)
 
         self.message_context = np.zeros(
-            (self.n_parallel_envs, self.n_agents, self.context_dim))
+            (self.n_parallel_envs, self.context_dim))
 
     def prep_training(self):
         self.lang_learner.prep_training()
@@ -62,14 +62,15 @@ class LMC:
         self.policy.prep_rollout(device)
 
     def start_episode(self, obs):
-        print(obs.shape, self.message_context.shape)
-        policy_input = np.concatenate((obs, self.message_context), axis=-1)
-        shared_obs = obs.reshape(obs.shape[0], -1)
-        critic_input = np.concatenate(
-            (shared_obs, self.message_context[:, 0]), axis=-1)
-        self.policy.start_episode(policy_input, critic_input)
-        print(policy_input.shape)
-        exit()
+        shared_obs = np.concatenate(
+            (obs.reshape(obs.shape[0], -1), self.message_context), 
+            axis=-1)
+        obs = np.concatenate(
+            (obs, self.message_context.reshape(
+                self.n_parallel_envs, 1, self.context_dim).repeat(
+                    self.n_agents, axis=1)), 
+            axis=-1)
+        self.policy.start_episode(obs, shared_obs)
 
     def comm_n_act(self, obs, perfect_messages=None):
         # Get actions
@@ -83,8 +84,8 @@ class LMC:
         else:
             next_contexts, broadcasts = self.message_context, []
 
-        # TODO Finish this 
-        return values, actions, action_log_probs, rnn_states, rnn_states_critic, next_contexts, broadcasts
+        return values, actions, action_log_probs, rnn_states, \
+               rnn_states_critic, broadcasts
 
     def reset_context(self, env_dones):
         """
@@ -93,10 +94,21 @@ class LMC:
         self.message_context = \
             self.message_context * (1 - env_dones)[..., np.newaxis]
 
-    def store_exp(self, data):
-        self.policy.store(data)
+    def store_exp(self, obs, rewards, dones, infos, values, 
+            actions, action_log_probs, rnn_states, rnn_states_critic):
+        shared_obs = np.concatenate(
+            (obs.reshape(obs.shape[0], -1), self.message_context), 
+            axis=-1)
+        obs = np.concatenate(
+            (obs, self.message_context.reshape(
+                self.n_parallel_envs, 1, self.context_dim).repeat(
+                    self.n_agents, axis=1)), 
+            axis=-1)
+        self.policy.store(obs, shared_obs, rewards, dones, infos, values, 
+            actions, action_log_probs, rnn_states, rnn_states_critic)
 
     def train(self):
+        self.prep_training()
         # Train policy
         pol_losses = self.policy.train()
         # Train language
@@ -104,4 +116,6 @@ class LMC:
         return pol_losses
 
     def save(self):
-        pass
+        policy_dict = self.policy.get_save_dict()
+        print(policy_dict)
+        exit()

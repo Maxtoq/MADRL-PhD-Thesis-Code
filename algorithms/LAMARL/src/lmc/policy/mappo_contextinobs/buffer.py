@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from collections import defaultdict
 
-from .utils import check, get_shape_from_obs_space, get_shape_from_act_space
+from .utils import check, get_shape_from_act_space
 
 ##########################################################################
 # Code modified from https://github.com/marlbenchmark/on-policy
@@ -28,17 +28,12 @@ class SeparatedReplayBuffer(object):
         self._use_proper_time_limits = args.use_proper_time_limits
         self.obs_dim = obs_dim
         self.shared_obs_dim = shared_obs_dim
+        self.act_space = act_space
         self.act_dim = get_shape_from_act_space(act_space)
-
-        # if type(self.obs_shape[-1]) == list:
-        #     self.obs_shape = self.obs_shape[:1]
-
-        # if type(self.shared_obs_shape[-1]) == list:
-        #     self.shared_obs_shape = self.shared_obs_shape[:1]
 
         if act_space.__class__.__name__ == 'Discrete':
             self.available_actions = np.ones(
-                (self.episode_length + 1, self.n_parallel_envs, self.act_dim), 
+                (self.episode_length + 1, self.n_parallel_envs, act_space.n), 
                 dtype=np.float32)
         else:
             self.available_actions = None
@@ -98,7 +93,7 @@ class SeparatedReplayBuffer(object):
         self.bad_masks = np.ones_like(self.masks)
         self.active_masks = np.ones_like(self.masks)
         if self.available_actions is not None:
-            self.available_actions = np.ones((self.episode_length + 1, self.n_parallel_envs, self.act_dim), dtype=np.float32)
+            self.available_actions = np.ones((self.episode_length + 1, self.n_parallel_envs, self.act_space.n), dtype=np.float32)
         self.step = 0
 
     def get_act_params(self):

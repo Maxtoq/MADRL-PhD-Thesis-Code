@@ -85,7 +85,6 @@ class Logger():
                     "rnd_loss": losses[1]["rnd_loss"],
                     "e3b_loss": losses[1]["e3b_loss"]}
             else:
-                print(losses)
                 losses = {
                     "value_loss": np.mean(
                         [t["value_loss"] for t in losses]),

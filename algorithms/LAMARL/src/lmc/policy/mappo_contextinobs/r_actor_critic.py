@@ -35,9 +35,6 @@ class R_Actor(nn.Module):
         #obs_dim = get_shape_from_obs_space(obs_space)
         self.obs_encoder = MLPBase(args, obs_dim)
 
-        # # [LMC] Add dimension of context encoding
-        # input_encoding_dim = self.hidden_size + context_dim
-
         # Add encoding layer
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             self.rnn_encoder = RNNLayer(
@@ -77,9 +74,6 @@ class R_Actor(nn.Module):
 
         actor_features = self.obs_encoder(obs)
 
-        # # [LMC] Concatenate incoming context encoding
-        # actor_features = torch.cat((obs_enc, context), dim=-1)
-
         # Encode actor_features
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             actor_features, rnn_states = self.rnn_encoder(
@@ -109,20 +103,16 @@ class R_Actor(nn.Module):
         :return dist_entropy: (torch.Tensor) action distribution entropy for the given inputs.
         """
         obs = torch.from_numpy(obs).to(**self.tpdv)
-        context = torch.from_numpy(context).to(**self.tpdv)
         rnn_states = torch.from_numpy(rnn_states).to(**self.tpdv)
         action = torch.from_numpy(action).to(**self.tpdv)
         masks = torch.from_numpy(masks).to(**self.tpdv)
         if available_actions is not None:
             available_actions = torch.from_numpy(available_actions).to(**self.tpdv)
 
-        if active_masks is not None:
-            active_masks = torch.from_numpy(active_masks).to(**self.tpdv)
+        # if active_masks is not None:
+        #     active_masks = torch.from_numpy(active_masks).to(**self.tpdv)
 
         actor_features = self.obs_encoder(obs)
-
-        #  # [LMC] Concatenate incoming context encoding
-        # actor_features = torch.cat((obs_enc, context), dim=-1)
 
         # Encode actor_features
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
@@ -161,9 +151,6 @@ class R_Critic(nn.Module):
         # cent_obs_dim = get_shape_from_obs_space(cent_obs_space)
         self.obs_encoder = MLPBase(args, cent_obs_dim)
 
-        # # [LMC] Add dimension of context encoding
-        # input_encoding_dim = self.hidden_size + context_dim
-
         # Add encoding layer
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             self.rnn_encoder = RNNLayer(
@@ -184,7 +171,7 @@ class R_Critic(nn.Module):
 
         self.to(device)
 
-    def forward(self, cent_obs, context, rnn_states, masks):
+    def forward(self, cent_obs, rnn_states, masks):
         """
         Compute actions from the given inputs.
         :param cent_obs: (np.ndarray / torch.Tensor) observation inputs into network.
@@ -199,9 +186,6 @@ class R_Critic(nn.Module):
         masks = torch.from_numpy(masks).to(**self.tpdv)
 
         critic_features = self.obs_encoder(cent_obs)
-
-        # # [LMC] Concatenate incoming context encoding
-        # critic_features = torch.cat((obs_enc, context), dim=-1)
 
         # Add encoding layer
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:

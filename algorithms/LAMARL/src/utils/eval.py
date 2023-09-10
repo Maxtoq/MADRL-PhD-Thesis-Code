@@ -3,36 +3,35 @@ import numpy as np
 
 from ..envs.make_env import make_env
 
-def perform_eval(args, algo, render=False):
-    # Create env
-    envs = make_env(args, args.n_eval_threads, args.seed + 1000)
-
+def perform_eval(args, model, envs, parser, render=False):
     returns = np.zeros(args.n_eval_threads)
     success = [False] * args.n_eval_threads
     ep_lengths = np.ones(args.n_eval_threads) * args.episode_length
 
     obs = envs.reset()
-    algo.start_episode(obs, args.n_eval_threads)
-    algo.prep_rollout()
-    for step_i in range(args.episode_length):
-        # Get action
-        output = algo.get_actions(step_i)
-        actions = output[-1]
-        # Perform action and get reward and next obs
-        obs, rewards, dones, infos = envs.step(actions)
+    model.prep_rollout()
+    model.start_episode(obs)
+    for s_i in range(cfg.episode_length):
+            # Parse obs
+            parsed_obs = parser.get_perfect_messages(obs)
+            # Perform step
+            # Get action
+            _, actions, _, _, _, messages = model.comm_n_act(obs, parsed_obs)
+            # Perform action and get reward and next obs
+            obs, rewards, dones, _ = envs.step(actions)
 
-        global_rewards = rewards.mean(axis=1)
-        global_dones = dones.all(axis=1)
-        for e_i in range(args.n_eval_threads):
-            if not success[e_i]:
-                returns[e_i] += global_rewards[e_i]
-                if global_dones[e_i]:
-                    success[e_i] = True
-                    ep_lengths[e_i] = step_i + 1
+            global_rewards = rewards.mean(axis=1)
+            global_dones = dones.all(axis=1)
+            for e_i in range(args.n_eval_threads):
+                if not success[e_i]:
+                    returns[e_i] += global_rewards[e_i]
+                    if global_dones[e_i]:
+                        success[e_i] = True
+                        ep_lengths[e_i] = step_i + 1
 
-        if render and args.n_eval_threads == 1:
-            envs.render()
-            time.sleep(0.1)
+            if render and args.n_eval_threads == 1:
+                envs.render()
+                time.sleep(0.1)
 
     mean_return = np.mean(returns)
     success_rate = np.mean(success)
