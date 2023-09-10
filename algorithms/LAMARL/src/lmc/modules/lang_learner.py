@@ -154,3 +154,11 @@ class LanguageLearner:
         mean_sim = sum(mean_sims) / len(mean_sims)
         
         return clip_loss, dec_loss, mean_sim
+
+    def get_save_dict(self):
+        save_dict = {
+            "obs_encoder": self.obs_encoder.state_dict(),
+            "lang_encoder": self.lang_encoder.state_dict(),
+            "decoder": self.decoder.state_dict(),
+            "optim": self.optim.state_dict()}
+        return save_dict

@@ -263,7 +263,7 @@ def get_config():
                         help='log training data in tensorboard')
 
     # eval parameters
-    parser.add_argument("--do_eval", action='store_true', default=False, help="controls if we evaluate agents accross training.")
+    parser.add_argument("--do_eval", action='store_false', default=True, help="controls if we evaluate agents accross training.")
     parser.add_argument("--eval_interval", type=int, default=10000, help="number of steps between evaluations.")
     parser.add_argument("--eval_episodes", type=int, default=32, help="number of episodes of a single evaluation.")
 

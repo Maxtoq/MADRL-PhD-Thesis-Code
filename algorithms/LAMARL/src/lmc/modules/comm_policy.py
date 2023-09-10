@@ -238,9 +238,6 @@ class CommPPO_MLP:
         
     def reset_episode(self):
         self.last_comm = None
-    
-    def save(self, path):
-        pass
         
     @torch.no_grad()
     def get_messages(self, obs):
@@ -409,6 +406,12 @@ class CommPPO_MLP:
         # Return messages and lang_context
         return messages, lang_context, rewards, losses
 
+    def get_save_dict(self):
+        save_dict = {
+            "context_encoder": self.context_encoder.state_dict(),
+            "comm_policy": self.comm_policy.state_dict()}
+        return save_dict
+
 
 class PerfectComm:
 
@@ -453,3 +456,6 @@ class PerfectComm:
         next_contexts = self.lang_learner.encode_sentences(broadcasts)
 
         return broadcasts, next_contexts.detach().cpu().numpy()
+
+    def get_save_dict(self):
+        return {}

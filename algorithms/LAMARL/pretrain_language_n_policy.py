@@ -78,7 +78,7 @@ def run():
     write_params(run_dir, cfg)
 
     if cfg.do_eval:
-        eval_envs = make_env(cfg, cfg.n_eval_threads)
+        eval_envs, eval_parser = make_env(cfg, cfg.n_eval_threads)
 
     # Create model
     model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
@@ -94,7 +94,7 @@ def run():
     obs = envs.reset()
     model.start_episode(obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
-    for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=10):
+    for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout()
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
@@ -102,7 +102,7 @@ def run():
             # Perform step
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \
-                messages = model.comm_n_act(obs, parsed_obs)
+                next_contexts, messages = model.comm_n_act(obs, parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
@@ -126,19 +126,21 @@ def run():
     
         # Eval
         if cfg.do_eval and s_i - last_eval_step > cfg.eval_interval:
-            print("EVAL")
             last_eval_step = s_i
-            mean_return, success_rate, mean_ep_len = perform_eval(cfg, algo)
-            logger.log_eval(step_i, mean_return, success_rate, mean_ep_len)
+            mean_return, success_rate, mean_ep_len = perform_eval(
+                cfg, model, eval_envs, eval_parser)
+            logger.log_eval(s_i, mean_return, success_rate, mean_ep_len)
             logger.save()
 
         # Save
         if s_i - last_save_step > cfg.save_interval:
-            print("SAVE")
             last_save_step = s_i
             model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
             
     envs.close()
+    # Save model and training data
+    model.save(run_dir / "model_ep.pt")
+    logger.save_n_close()
 
 if __name__ == '__main__':
     run()

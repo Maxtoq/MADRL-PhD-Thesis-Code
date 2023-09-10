@@ -8,15 +8,17 @@ def perform_eval(args, model, envs, parser, render=False):
     success = [False] * args.n_eval_threads
     ep_lengths = np.ones(args.n_eval_threads) * args.episode_length
 
+    eval_message_context = np.zeros((args.n_eval_threads, model.context_dim))
     obs = envs.reset()
     model.prep_rollout()
-    model.start_episode(obs)
-    for s_i in range(cfg.episode_length):
+    model.start_episode(obs, eval_message_context)
+    for s_i in range(args.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
             # Perform step
             # Get action
-            _, actions, _, _, _, messages = model.comm_n_act(obs, parsed_obs)
+            _, actions, _, _, _, eval_message_context, messages = \
+                model.comm_n_act(obs, parsed_obs, eval_message_context)
             # Perform action and get reward and next obs
             obs, rewards, dones, _ = envs.step(actions)
 
@@ -27,7 +29,7 @@ def perform_eval(args, model, envs, parser, render=False):
                     returns[e_i] += global_rewards[e_i]
                     if global_dones[e_i]:
                         success[e_i] = True
-                        ep_lengths[e_i] = step_i + 1
+                        ep_lengths[e_i] = s_i + 1
 
             if render and args.n_eval_threads == 1:
                 envs.render()
