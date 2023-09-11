@@ -38,8 +38,6 @@ def get_config():
             the max length of episode in the buffer. 
     
     Network parameters:
-        --share_policy
-            by default True, all agents will share the same network; set to make training agents use different policies. 
         --use_centralized_V
             by default True, use centralized training mode; or else will decentralized training mode.
         --stacked_frames <int>
@@ -178,8 +176,6 @@ def get_config():
                         default=100, help="Max length for any episode")
 
     # network parameters
-    parser.add_argument("--share_policy", action='store_false',
-                        default=True, help='Whether agent share the same policy')
     parser.add_argument("--use_centralized_V", action='store_false',
                         default=True, help="Whether to use centralized V function")
     parser.add_argument("--stacked_frames", type=int, default=1,
@@ -299,5 +295,11 @@ def get_config():
     # Communication parameters
     parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm",
                         choices=["perfect_comm", "no_comm"])
+
+    # MA_GYM parameters
+    parser.add_argument("--magym_n_agents", type=int, default=4)
+    parser.add_argument("--magym_env_size", type=int, default=7)
+    parser.add_argument("--magym_obs_range", type=int, default=5)
+    parser.add_argument("--magym_n_preys", type=int, default=2)
 
     return parser

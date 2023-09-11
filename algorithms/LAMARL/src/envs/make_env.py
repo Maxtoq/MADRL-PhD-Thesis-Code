@@ -27,9 +27,10 @@ def _get_env(cfg):
     if cfg.env_name == "magym_PredPrey":
         from .ma_gym.envs.predator_prey.predator_prey import PredatorPrey
         env = PredatorPrey(
-            n_agents=4, 
-            grid_shape=(7, 7), 
-            n_preys=2, 
+            n_agents=cfg.magym_n_agents, 
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+            n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length)
     return env
 
@@ -38,7 +39,7 @@ def _get_parser(cfg):
         from .parsers.predator_prey import PredatorPrey_Parser as Parser
     else:
         raise NotImplementedError
-    return Parser()
+    return Parser(cfg)
 
 def reset_envs(envs):
     obs = envs.reset()

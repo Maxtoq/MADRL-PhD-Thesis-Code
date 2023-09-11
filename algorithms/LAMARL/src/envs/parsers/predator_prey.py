@@ -5,9 +5,9 @@ class PredatorPrey_Parser():
 
     vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
 
-    def __init__(self):
+    def __init__(self, args):
         # self.obs_range = obs_range
-        pass
+        self.env_size = args.magym_env_size
 
     def parse_global_state(self, state):
         """
@@ -97,7 +97,12 @@ class PredatorPrey_Parser():
         pos = agent_obs[:2]
         prey_map = np.array(agent_obs[2:]).reshape((5, 5))
 
-        d = np.array([-2/6, -1/6, 0, 1/6, 2/6])
+        d = np.array([
+            -2 / self.env_size, 
+            -1 / self.env_size, 
+            0, 
+            1 / self.env_size, 
+            2 / self.env_size])
         rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
         abs_prey_pos = pos + rel_prey_pos
 

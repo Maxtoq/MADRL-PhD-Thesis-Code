@@ -1,32 +1,33 @@
 #!/bin/sh
-n_run=15
-experiment_name="mappo_30"
-n_rollout_threads=32
-n_steps=5000000
-algorithm_name="mappo"
+n_run=2
+experiment_name="mappo_no_comm_9x9"
+n_parallel_envs=32
+n_steps=2000000
+policy_algo="mappo"
 ppo_epoch=15
-env_name="rel_overgen"
-ro_optim_diff_coeff=30
-ir_algo="none"
-ir_mode="central"
-cuda_device="cuda:1"
+entropy_coef=0.5
+env_name="magym_PredPrey"
+episode_length=100
+comm_policy_algo="no_comm"
+magym_env_size=9
+cuda_device="cuda:2"
 
 for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
-    comm="python algorithms/LangMemComm/train.py --seed ${seed}\
+    comm="python algorithms/LAMARL/pretrain_language_n_policy.py --seed ${seed}\
     --experiment_name ${experiment_name}\
-    --n_rollout_threads ${n_rollout_threads}\
+    --n_parallel_envs ${n_parallel_envs}\
     --n_steps ${n_steps}\
-    --algorithm_name ${algorithm_name}\
+    --policy_algo ${policy_algo}\
     --ppo_epoch ${ppo_epoch}\
+    --entropy_coef ${entropy_coef}\
     --env_name ${env_name}\
-    --ro_optim_diff_coeff ${ro_optim_diff_coeff}\
-    --ir_algo ${ir_algo}\
-    --ir_mode ${ir_mode}\
-    --share_policy\
-    --cuda_device ${cuda_device}"
+    --episode_length ${episode_length}\
+    --cuda_device ${cuda_device}\
+    --comm_policy_algo ${comm_policy_algo}\
+    --magym_env_size ${magym_env_size}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"
