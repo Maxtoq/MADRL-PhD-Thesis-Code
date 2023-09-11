@@ -99,6 +99,8 @@ def run():
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
+            # Store language inputs in buffer
+            model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \

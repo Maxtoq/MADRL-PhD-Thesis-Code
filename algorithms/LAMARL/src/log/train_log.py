@@ -77,19 +77,21 @@ class Logger():
     def log_losses(self, losses, step):
         if self.log_tensorboard:
             if type(losses) is tuple:
+                pol_losses, lang_losses = losses
                 losses = {
                     "value_loss": np.mean(
-                        [t["value_loss"] for t in losses[0]]),
+                        [a_l["value_loss"] for a_l in pol_losses]),
                     "policy_loss": np.mean(
-                        [t["policy_loss"] for t in losses[0]]),
-                    "rnd_loss": losses[1]["rnd_loss"],
-                    "e3b_loss": losses[1]["e3b_loss"]}
+                        [a_l["policy_loss"] for a_l in pol_losses]),
+                    "clip_loss": lang_losses[0], 
+                    "capt_loss": lang_losses[1], 
+                    "mean_sim": lang_losses[2]}
             else:
                 losses = {
                     "value_loss": np.mean(
-                        [t["value_loss"] for t in losses]),
+                        [a_l["value_loss"] for t in losses]),
                     "policy_loss": np.mean(
-                        [t["policy_loss"] for t in losses])}
+                        [a_l["policy_loss"] for t in losses])}
             self.log_tb.add_scalars(
                 'agent0/losses', losses, step)
 

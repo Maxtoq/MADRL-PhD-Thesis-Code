@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from torch import nn
 
 from .lm import OneHotEncoder, GRUEncoder, GRUDecoder
@@ -92,7 +93,7 @@ class LanguageLearner:
 
     def compute_losses(self, obs_batch, sent_batch):
         # Encode observations
-        obs_tensor = torch.Tensor(np.array(obs_batch))
+        obs_tensor = torch.from_numpy(np.array(obs_batch, dtype=np.float32))
         obs_context_batch = self.obs_encoder(obs_tensor)
 
         # Encode sentences
@@ -144,8 +145,8 @@ class LanguageLearner:
             tot_loss.backward()
             self.optim.step()
 
-            clip_losses.append(clip_loss.item() / batch_size)
-            dec_losses.append(dec_loss.item() / batch_size)
+            clip_losses.append(clip_loss.item() / self.batch_size)
+            dec_losses.append(dec_loss.item() / self.batch_size)
             mean_sims.append(mean_sim.item())
         
         

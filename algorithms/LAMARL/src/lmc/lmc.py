@@ -116,13 +116,23 @@ class LMC:
         self.policy.store(obs, shared_obs, rewards, dones, infos, values, 
             actions, action_log_probs, rnn_states, rnn_states_critic)
 
+    def store_language_inputs(self, obs, parsed_obs):
+        obs = obs.reshape(-1, obs.shape[-1])
+        parsed_obs = [
+            sent for env_sent in parsed_obs for sent in env_sent 
+            if len(sent) > 0]
+        self.lang_learner.store(obs, parsed_obs)
+
     def train(self):
         self.prep_training()
         # Train policy
         pol_losses = self.policy.train()
-        # TODO Train language
-        
-        return pol_losses
+        # Train language
+        if self.comm_policy is not None:
+            lang_losses = self.lang_learner.train()
+            return pol_losses, lang_losses
+        else:
+            return pol_losses
 
     def save(self, path):
         save_dict = self.policy.get_save_dict()
