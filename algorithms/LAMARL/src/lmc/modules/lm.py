@@ -252,7 +252,7 @@ class GRUDecoder(nn.Module):
 
         hidden = context_batch.unsqueeze(0)
         last_tokens = torch.Tensor(self.word_encoder.SOS_ENC).view(
-            1, 1, -1).float().repeat(1, batch_size, 1)
+            1, 1, -1).float().repeat(1, batch_size, 1).to(self.device)
 
         tokens = []
         decoder_outputs = []
@@ -265,15 +265,16 @@ class GRUDecoder(nn.Module):
 
             # Sample next tokens
             if teacher_forcing:
-                last_tokens = torch.zeros_like(last_tokens)
+                last_tokens = torch.zeros_like(last_tokens).to(self.device)
                 for b_i in range(batch_size):
                     if t_i < target_encs[b_i].size(0):
-                        last_tokens[0, b_i] = target_encs[b_i][t_i]                
+                        last_tokens[0, b_i] = target_encs[b_i][t_i]
             else:
                 _, topi = outputs.topk(1)
                 topi = topi.squeeze()
                 last_tokens = torch.Tensor(
-                    self.word_encoder.token_encodings[topi]).unsqueeze(0)
+                    self.word_encoder.token_encodings[topi]).unsqueeze(0).to(
+                        self.device)
 
                 for b_i in range(batch_size):
                     if topi[b_i] == self.word_encoder.EOS_ID:
@@ -285,7 +286,7 @@ class GRUDecoder(nn.Module):
                 if all(sent_finished):
                     break
                     
-        decoder_outputs = torch.concatenate(decoder_outputs, axis=0).transpose(0, 1)
+        decoder_outputs = torch.cat(decoder_outputs, axis=0).transpose(0, 1)
 
         return decoder_outputs, sentences
 

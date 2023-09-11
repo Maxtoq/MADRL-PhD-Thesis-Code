@@ -14,7 +14,7 @@ class LanguageLearner:
     Observation Encoder and the Decoder. 
     """
 
-    def __init__(self, obs_dim, context_dim, hidden_dim, vocab, device, 
+    def __init__(self, obs_dim, context_dim, hidden_dim, vocab, device="cpu", 
                  lr=0.007, n_epochs=2, batch_size=128, temp=1.0, 
                  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
                  buffer_size=100000):
@@ -49,18 +49,24 @@ class LanguageLearner:
             device = self.train_device
         self.obs_encoder.eval()
         self.obs_encoder.to(device)
+        self.obs_encoder.device = device
         self.lang_encoder.eval()
         self.lang_encoder.to(device)
+        self.lang_encoder.device = device
         self.decoder.eval()
         self.decoder.to(device)
+        self.decoder.device = device
 
     def prep_training(self):
         self.obs_encoder.train()
         self.obs_encoder.to(self.train_device)
+        self.obs_encoder.device = self.train_device
         self.lang_encoder.train()
         self.lang_encoder.to(self.train_device)
+        self.lang_encoder.device = self.train_device
         self.decoder.train()
         self.decoder.to(self.train_device)
+        self.decoder.device = self.train_device
     
     def store(self, obs, sent):
         self.buffer.store(obs, sent)
@@ -109,7 +115,7 @@ class LanguageLearner:
         mean_sim = sim.diag().mean()
 
         # Compute CLIP loss
-        labels = torch.arange(len(obs_batch))
+        labels = torch.arange(len(obs_batch)).to(self.train_device)
         loss_o = self.clip_loss(sim, labels)
         loss_l = self.clip_loss(sim.t(), labels)
         clip_loss = (loss_o + loss_l) / 2
@@ -123,7 +129,7 @@ class LanguageLearner:
         # Compute Captioning loss
         dec_loss = 0
         for d_o, e_t in zip(decoder_outputs, encoded_targets):
-            e_t = torch.argmax(e_t, dim=1)
+            e_t = torch.argmax(e_t, dim=1).to(self.train_device)
             dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
         
         return clip_loss, dec_loss, mean_sim

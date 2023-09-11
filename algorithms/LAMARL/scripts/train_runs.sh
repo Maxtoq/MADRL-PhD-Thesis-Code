@@ -1,16 +1,16 @@
 #!/bin/sh
-n_run=2
-experiment_name="mappo_no_comm_9x9"
+n_run=3
+experiment_name="mappo_perfectcomm_9x9"
 n_parallel_envs=32
 n_steps=2000000
 policy_algo="mappo"
 ppo_epoch=15
-entropy_coef=0.5
+entropy_coef=0.2
 env_name="magym_PredPrey"
 episode_length=100
-comm_policy_algo="no_comm"
+comm_policy_algo="perfect_comm"
 magym_env_size=9
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
 do

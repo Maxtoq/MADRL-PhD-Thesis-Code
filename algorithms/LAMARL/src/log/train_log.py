@@ -89,9 +89,9 @@ class Logger():
             else:
                 losses = {
                     "value_loss": np.mean(
-                        [a_l["value_loss"] for t in losses]),
+                        [a_l["value_loss"] for a_l in losses]),
                     "policy_loss": np.mean(
-                        [a_l["policy_loss"] for t in losses])}
+                        [a_l["policy_loss"] for a_l in losses])}
             self.log_tb.add_scalars(
                 'agent0/losses', losses, step)
 
