@@ -58,10 +58,11 @@ def run(cfg):
         act_dim = env.act_dim
         nb_agents = cfg.ro_n_agents
     else:
-        env = make_env(cfg.env_path, sce_conf, discrete_action=True)
+        env = make_env(cfg, sce_conf, discrete_action=True)
         obs_dim = env.observation_space[0].shape[0]
         act_dim = env.action_space[0].n
-        nb_agents = sce_conf["nb_agents"]
+        nb_agents = env.n_agents if hasattr(env, 'n_agents') \
+            else sce_conf["nb_agents"]
 
     # Save args in txt file
     write_params(run_dir, cfg, env)
@@ -208,7 +209,10 @@ def run(cfg):
         actions, qnets_hidden_states = qmix.get_actions(
             obs, last_actions, qnets_hidden_states, explore=True)
         last_actions = actions
-        actions = [a.cpu().squeeze().data.numpy() for a in actions]
+        if "magym" in cfg.env_path:
+            actions = [a.cpu().argmax(-1) for a in actions]
+        else:
+            actions = [a.cpu().squeeze().data.numpy() for a in actions]
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
         # Compute intrinsic rewards
@@ -308,7 +312,7 @@ def run(cfg):
         # Evaluation
         if cfg.eval_every is not None and (step_i + 1) % cfg.eval_every == 0:
             eval_return, eval_success_rate, eval_ep_len = perform_eval_scenar(
-                env, qmix, cfg.episode_length, recurrent=True)
+                cfg, env, qmix, recurrent=True)
             eval_data_dict["Step"].append(step_i + 1)
             eval_data_dict["Mean return"].append(eval_return)
             eval_data_dict["Success rate"].append(eval_success_rate)
@@ -419,6 +423,12 @@ if __name__ == '__main__':
                         default=0.08)
     parser.add_argument("--save_visited_states", action="store_true",
                          default=False)
+
+    # MA_GYM parameters
+    parser.add_argument("--magym_n_agents", type=int, default=4)
+    parser.add_argument("--magym_env_size", type=int, default=9)
+    parser.add_argument("--magym_obs_range", type=int, default=5)
+    parser.add_argument("--magym_n_preys", type=int, default=2)
 
     config = parser.parse_args()
 

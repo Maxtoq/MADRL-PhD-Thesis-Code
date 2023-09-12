@@ -1,19 +1,19 @@
 #!/bin/sh
-n_run=5
-env="algorithms/JIM/scenarios/rel_overgen.py"
-model_name="qmix_4a_40_07_JIM"
+n_run=1
+env="algorithms/JIM/scenarios/magym_PredPrey.py"
+model_name="qmix_JIM_9x9"
 sce_conf_path="configs/2a_pol.json"
-n_frames=15000000
-n_explo_frames=10000000
-episode_length=200 # def 100
-frames_per_update=200
-eval_every=200000
+n_frames=1000000
+n_explo_frames=800000
+episode_length=100 # def 100
+frames_per_update=100
+eval_every=10000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
-init_explo_rate=0.1
+init_explo_rate=0.3
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="central"
 intrinsic_reward_algo="e2snoveld"
-int_reward_coeff=1.0
+int_reward_coeff=0.01
 int_reward_decay_fn="constant"
 gamma=0.99
 int_rew_enc_dim=64 # def 16, JIM 90, LIM 30
@@ -24,7 +24,7 @@ state_dim=40
 optimal_diffusion_coeff=0.7
 suboptimal_diffusion_coeff=0.08
 ro_n_agents=4
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 for n in $(seq 1 $n_run)
 do
