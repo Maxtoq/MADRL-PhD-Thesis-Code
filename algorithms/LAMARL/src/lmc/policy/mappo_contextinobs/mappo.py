@@ -36,6 +36,7 @@ class R_MAPPOPolicy:
         self.critic_lr = args.critic_lr
         self.opti_eps = args.opti_eps
         self.weight_decay = args.weight_decay
+        self.warming_up = False
 
         self.actor = R_Actor(args, obs_dim, act_space, device)
         self.critic = R_Critic(args, cent_obs_dim, device)
@@ -60,6 +61,16 @@ class R_MAPPOPolicy:
             self.actor_optimizer, episode, episodes, self.lr)
         update_linear_schedule(
             self.critic_optimizer, episode, episodes, self.critic_lr)
+
+    def warmup_lr(self, warmup):
+        if warmup != self.warming_up:
+            lr = self.lr * 0.01 if warmup else self.lr
+            for param_group in self.actor_optimizer.param_groups:
+                param_group['lr'] = lr
+            for param_group in self.critic_optimizer.param_groups:
+                param_group['lr'] = lr
+            self.warming_up = warmup
+            
 
     def get_actions(self, 
             cent_obs, obs, rnn_states_actor, rnn_states_critic, masks,
@@ -325,7 +336,7 @@ class R_MAPPOTrainAlgo():
         return value_loss, critic_grad_norm, policy_loss, dist_entropy, \
             actor_grad_norm, imp_weights
 
-    def train(self, buffer, update_actor=True):
+    def train(self, buffer, update_actor=True, warmup=False):
         """
         Perform a training update using minibatch GD.
         :param buffer: (SharedReplayBuffer) buffer containing training data.
@@ -334,6 +345,7 @@ class R_MAPPOTrainAlgo():
         :return train_info: (dict) contains information regarding training 
             update (e.g. loss, grad norms, etc).
         """
+        self.policy.warmup_lr(warmup)
         if self._use_popart or self._use_valuenorm:
             advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(
                 buffer.value_preds[:-1])
@@ -557,14 +569,15 @@ class MAPPO:
             self.buffer[a_id].compute_returns(
                 next_value, self.trainer[a_id].value_normalizer)
 
-    def train(self):
+    def train(self, warmup=False):
         # Compute last value
         self.compute_last_value()
         # Train
         self.prep_training()
         train_infos = []
         for a_id in range(self.n_agents):
-            train_info = self.trainer[a_id].train(self.buffer[a_id])
+            train_info = self.trainer[a_id].train(
+                self.buffer[a_id], warmup=warmup)
             train_infos.append(train_info)
         return train_infos
 
