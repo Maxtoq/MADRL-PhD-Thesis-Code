@@ -320,6 +320,9 @@ def run(cfg):
             # Save eval data
             eval_df = pd.DataFrame(eval_data_dict)
             eval_df.to_csv(str(run_dir / 'evaluation_data.csv'))
+            # Reset environment
+            obs = env.reset()
+            qmix.reset_int_reward(obs)
 
         # Save model
         if (step_i + 1) % cfg.save_interval == 0:
@@ -426,7 +429,7 @@ if __name__ == '__main__':
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)
-    parser.add_argument("--magym_env_size", type=int, default=9)
+    parser.add_argument("--magym_env_size", type=int, default=7)
     parser.add_argument("--magym_obs_range", type=int, default=5)
     parser.add_argument("--magym_n_preys", type=int, default=2)
 
