@@ -121,7 +121,7 @@ def run():
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
         # Training
-        train_losses = model.train()
+        train_losses = model.train(s_i + ep_s_i + 1)
         # Log train data
         logger.log_losses(train_losses, s_i + ep_s_i + 1)
         model.start_episode(obs)

@@ -20,6 +20,7 @@ class LMC:
         self.n_agents = n_agents
         self.context_dim = args.context_dim
         self.n_parallel_envs = args.n_parallel_envs
+        self.n_warmup_steps = args.n_warmup_steps
         self.device = device
 
         # Modules
@@ -123,10 +124,11 @@ class LMC:
             if len(sent) > 0]
         self.lang_learner.store(obs, parsed_obs)
 
-    def train(self):
+    def train(self, step):
         self.prep_training()
         # Train policy
-        pol_losses = self.policy.train()
+        warmup = step < self.n_warmup_steps
+        pol_losses = self.policy.train(warmup)
         # Train language
         if self.comm_policy is not None:
             lang_losses = self.lang_learner.train()
