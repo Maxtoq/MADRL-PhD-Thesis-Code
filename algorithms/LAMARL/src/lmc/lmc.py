@@ -66,7 +66,9 @@ class LMC:
             message_context = eval_message_context
         else:
             message_context = self.message_context
+
         n_parallel_envs = obs.shape[0]
+
         shared_obs = np.concatenate(
             (obs.reshape(n_parallel_envs, -1), message_context), 
             axis=-1)
@@ -78,28 +80,38 @@ class LMC:
         return obs, shared_obs
 
     def start_episode(self, obs, eval_message_context=None):
-        obs, shared_obs = self._make_obs(obs, eval_message_context)
-        self.policy.start_episode(obs, shared_obs)
+        # obs, shared_obs = self._make_obs(obs, eval_message_context)
+        self.policy.start_episode() #obs, shared_obs)
 
     def comm_n_act(self, obs, perfect_messages=None, eval_message_context=None):
+        # Get messages
+        if self.comm_policy is not None:
+            broadcasts, lang_contexts = self.comm_policy.comm_step(
+                obs, perfect_messages)
+            if eval_message_context is None:
+                self.message_context = lang_contexts
+        else:
+            if eval_message_context is None:
+                lang_contexts = self.message_context
+            else:
+                lang_contexts = eval_message_context
+            broadcasts = []
+
+        # Store policy inputs in policy buffer
+        obs, shared_obs = self._make_obs(obs)
+        self.policy.store_obs(obs, shared_obs)
+
         # Get actions
         values, actions, action_log_probs, rnn_states, rnn_states_critic = \
             self.policy.get_actions()
-        # Get messages
-        if self.comm_policy is not None:
-            broadcasts, next_contexts = self.comm_policy.comm_step(
-                obs, perfect_messages)
-            if eval_message_context is None:
-                self.message_context = next_contexts
-        else:
-            if eval_message_context is None:
-                next_contexts = self.message_context
-            else:
-                next_contexts = eval_message_context
-            broadcasts = []
 
         return values, actions, action_log_probs, rnn_states, \
-               rnn_states_critic, broadcasts, next_contexts
+               rnn_states_critic, broadcasts, lang_contexts
+
+    def reward_comm(self, env_rewards):
+        if self.comm_policy is not None:
+            
+            self.comm_policy.store_rewards()
 
     def reset_context(self, env_dones=None):
         """
@@ -111,11 +123,11 @@ class LMC:
             self.message_context = \
                 self.message_context * (1 - env_dones)[..., np.newaxis]
 
-    def store_exp(self, obs, rewards, dones, infos, values, 
+    def store_exp(self, rewards, dones, infos, values, 
             actions, action_log_probs, rnn_states, rnn_states_critic):
-        obs, shared_obs = self._make_obs(obs)
-        self.policy.store(obs, shared_obs, rewards, dones, infos, values, 
-            actions, action_log_probs, rnn_states, rnn_states_critic)
+        self.policy.store_act(
+            rewards, dones, infos, values, actions, action_log_probs, 
+            rnn_states, rnn_states_critic)
 
     def store_language_inputs(self, obs, parsed_obs):
         obs = obs.reshape(-1, obs.shape[-1])

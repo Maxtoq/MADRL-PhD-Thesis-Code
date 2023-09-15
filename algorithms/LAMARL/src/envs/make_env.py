@@ -28,8 +28,7 @@ def _get_env(cfg):
         from .ma_gym.envs.predator_prey.predator_prey import PredatorPrey
         env = PredatorPrey(
             n_agents=cfg.magym_n_agents, 
-            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length)
     return env

@@ -108,6 +108,9 @@ def run():
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
+            # Reward communication
+            model.reward_comm(rewards)
+
             env_done = dones.all(axis=1)
             if True in env_done:
                 model.reset_context(env_done)
@@ -117,7 +120,7 @@ def run():
 
             # Insert data into replay buffer
             rewards = rewards[..., np.newaxis]
-            model.store_exp(obs, rewards, dones, infos, values, 
+            model.store_exp(rewards, dones, infos, values, 
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
         # Training

@@ -451,7 +451,7 @@ class MAPPO:
         self.policy = []
         self.trainer = []
         self.buffer = []
-        for a_id in range(self.n_agents):
+        for a_i in range(self.n_agents):
             if self.use_centralized_V:
                 shared_obs_dim = cent_obs_dim
             else:
@@ -488,17 +488,17 @@ class MAPPO:
         for tr in self.trainer:
             tr.prep_training(self.train_device)
 
-    def start_episode(self, obs, shared_obs):
-        """
-        Initialize the buffer with first observations.
-        :param obs: (numpy.ndarray) first observations
-        """
-        for a_id in range(self.n_agents):
-            self.buffer[a_id].reset_episode()
-            if not self.use_centralized_V:
-                shared_obs = np.array(list(obs[:, a_id]))
-            self.buffer[a_id].shared_obs[0] = shared_obs.copy()
-            self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
+    def start_episode(self):
+        # """
+        # Initialize the buffer with first observations.
+        # :param obs: (numpy.ndarray) first observations
+        # """
+        for a_i in range(self.n_agents):
+            self.buffer[a_i].reset_episode()
+            # if not self.use_centralized_V:
+            #     shared_obs = np.array(list(obs[:, a_i]))
+            # self.buffer[a_i].shared_obs[0] = shared_obs.copy()
+            # self.buffer[a_i].obs[0] = np.array(list(obs[:, a_i])).copy()
 
     @torch.no_grad()
     def get_actions(self):
@@ -509,10 +509,10 @@ class MAPPO:
         rnn_states = []
         rnn_states_critic = []
 
-        for a_id in range(self.n_agents):
+        for a_i in range(self.n_agents):
             value, action, action_log_prob, rnn_state, rnn_state_critic \
-                = self.trainer[a_id].policy.get_actions(
-                    *self.buffer[a_id].get_act_params())
+                = self.trainer[a_i].policy.get_actions(
+                    *self.buffer[a_i].get_act_params())
             # [agents, envs, dim]
             values.append(torch2numpy(value))
             action = torch2numpy(action)            
@@ -531,7 +531,15 @@ class MAPPO:
         return values, actions, action_log_probs, rnn_states, \
                rnn_states_critic
 
-    def store(self, obs, shared_obs, rewards, dones, infos, values, actions, 
+    def store_obs(self, obs, shared_obs):
+        for a_i in range(self.n_agents):
+            if not self.use_centralized_V:
+                shared_obs = np.array(list(obs[:, a_i]))
+            self.buffer[a_i].insert_obs(
+                np.array(list(obs[:, a_i])).copy(),
+                shared_obs.copy())
+
+    def store_act(self, rewards, dones, infos, values, actions, 
             action_log_probs, rnn_states, rnn_states_critic):
         rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
@@ -544,30 +552,28 @@ class MAPPO:
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 
-        for a_id in range(self.n_agents):
-            if not self.use_centralized_V:
-                shared_obs = np.array(list(obs[:, a_id]))
-            self.buffer[a_id].insert(
-                shared_obs,
-                np.array(list(obs[:, a_id])),
-                rnn_states[:, a_id],
-                rnn_states_critic[:, a_id],
-                actions[:, a_id],
-                action_log_probs[:, a_id],
-                values[:, a_id],
-                rewards[:, a_id],
-                masks[:, a_id])
+        for a_i in range(self.n_agents):
+            # if not self.use_centralized_V:
+            #     shared_obs = np.array(list(obs[:, a_i]))
+            self.buffer[a_i].insert_act(
+                rnn_states[:, a_i],
+                rnn_states_critic[:, a_i],
+                actions[:, a_i],
+                action_log_probs[:, a_i],
+                values[:, a_i],
+                rewards[:, a_i],
+                masks[:, a_i])
 
     @torch.no_grad()
     def compute_last_value(self):
-        for a_id in range(self.n_agents):
-            next_value = self.trainer[a_id].policy.get_values(
-                self.buffer[a_id].shared_obs[-1],
-                self.buffer[a_id].rnn_states_critic[-1],
-                self.buffer[a_id].masks[-1])
+        for a_i in range(self.n_agents):
+            next_value = self.trainer[a_i].policy.get_values(
+                self.buffer[a_i].shared_obs[-1],
+                self.buffer[a_i].rnn_states_critic[-1],
+                self.buffer[a_i].masks[-1])
             next_value = torch2numpy(next_value)
-            self.buffer[a_id].compute_returns(
-                next_value, self.trainer[a_id].value_normalizer)
+            self.buffer[a_i].compute_returns(
+                next_value, self.trainer[a_i].value_normalizer)
 
     def train(self, warmup=False):
         # Compute last value
@@ -575,22 +581,22 @@ class MAPPO:
         # Train
         self.prep_training()
         train_infos = []
-        for a_id in range(self.n_agents):
-            train_info = self.trainer[a_id].train(
-                self.buffer[a_id], warmup=warmup)
+        for a_i in range(self.n_agents):
+            train_info = self.trainer[a_i].train(
+                self.buffer[a_i], warmup=warmup)
             train_infos.append(train_info)
         return train_infos
 
     def get_save_dict(self):
         self.prep_rollout("cpu")
         agents_params = []
-        for a_id in range(self.n_agents):
+        for a_i in range(self.n_agents):
             params = {
-                "actor": self.trainer[a_id].policy.actor.state_dict(),
-                "critic": self.trainer[a_id].policy.critic.state_dict()
+                "actor": self.trainer[a_i].policy.actor.state_dict(),
+                "critic": self.trainer[a_i].policy.critic.state_dict()
             }
-            if self.trainer[a_id]._use_valuenorm:
-                params["vnorm"] = self.trainer[a_id].value_normalizer.state_dict()
+            if self.trainer[a_i]._use_valuenorm:
+                params["vnorm"] = self.trainer[a_i].value_normalizer.state_dict()
             agents_params.append(params)
         save_dict = {
             "agents_params": agents_params
