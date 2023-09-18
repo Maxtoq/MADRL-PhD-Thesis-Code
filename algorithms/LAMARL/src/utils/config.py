@@ -161,8 +161,8 @@ def get_config():
                         default=1, help="Number of torch threads for training")
     parser.add_argument("--n_parallel_envs", type=int, default=1,
                         help="Number of parallel envs for training rollouts")
-    parser.add_argument("--n_eval_threads", type=int, default=1,
-                        help="Number of parallel envs for evaluating rollouts")
+    # parser.add_argument("--n_eval_threads", type=int, default=1,
+    #                     help="Number of parallel envs for evaluating rollouts")
     parser.add_argument("--n_steps", type=int, default=int(10e6),
                         help='Number of environment steps to train (default: 10e6)')
     parser.add_argument("--n_steps_per_update", type=int, default=100,
@@ -261,7 +261,6 @@ def get_config():
     # eval parameters
     parser.add_argument("--do_eval", action='store_false', default=True, help="controls if we evaluate agents accross training.")
     parser.add_argument("--eval_interval", type=int, default=10000, help="number of steps between evaluations.")
-    parser.add_argument("--eval_episodes", type=int, default=32, help="number of episodes of a single evaluation.")
 
     # render parameters
     parser.add_argument("--save_gifs", action='store_true', default=False, help="by default, do not save render video. If set, save video.")
@@ -294,7 +293,18 @@ def get_config():
 
     # Communication parameters
     parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm",
-                        choices=["perfect_comm", "no_comm"])
+                        choices=["ppo_mlp", "perfect_comm", "no_comm"])
+    parser.add_argument("--comm_lr", type=float, default=0.0005)
+    parser.add_argument("--comm_gamma", type=float, default=0.99)
+    parser.add_argument("--comm_hidden_dim", type=int, default=64)
+    parser.add_argument("--comm_n_epochs", type=int, default=16)
+    parser.add_argument("--comm_max_sent_len", type=int, default=12)
+    parser.add_argument("--comm_ppo_clip_param", type=float, default=0.2)
+    parser.add_argument("--comm_entropy_coef", type=float, default=0.01)
+    parser.add_argument("--comm_vloss_coef", type=float, default=0.5)
+    parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
+    parser.add_argument("--comm_max_grad_norm", type=float, default=10.0)
+    parser.add_argument("--comm_n_mini_batch", type=int, default=2)
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)

@@ -4,11 +4,11 @@ import numpy as np
 from ..envs.make_env import make_env
 
 def perform_eval(args, model, envs, parser, render=False):
-    returns = np.zeros(args.n_eval_threads)
-    success = [False] * args.n_eval_threads
-    ep_lengths = np.ones(args.n_eval_threads) * args.episode_length
+    returns = np.zeros(args.n_parallel_envs)
+    success = [False] * args.n_parallel_envs
+    ep_lengths = np.ones(args.n_parallel_envs) * args.episode_length
 
-    eval_message_context = np.zeros((args.n_eval_threads, model.context_dim))
+    eval_message_context = np.zeros((args.n_parallel_envs, model.context_dim))
     obs = envs.reset()
     model.prep_rollout()
     model.start_episode(obs, eval_message_context)
@@ -24,14 +24,14 @@ def perform_eval(args, model, envs, parser, render=False):
 
             global_rewards = rewards.mean(axis=1)
             global_dones = dones.all(axis=1)
-            for e_i in range(args.n_eval_threads):
+            for e_i in range(args.n_parallel_envs):
                 if not success[e_i]:
                     returns[e_i] += global_rewards[e_i]
                     if global_dones[e_i]:
                         success[e_i] = True
                         ep_lengths[e_i] = s_i + 1
 
-            if render and args.n_eval_threads == 1:
+            if render and args.n_parallel_envs == 1:
                 envs.render()
                 time.sleep(0.1)
 

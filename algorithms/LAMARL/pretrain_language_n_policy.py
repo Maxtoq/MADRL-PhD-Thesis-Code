@@ -78,7 +78,7 @@ def run():
     write_params(run_dir, cfg)
 
     if cfg.do_eval:
-        eval_envs, eval_parser = make_env(cfg, cfg.n_eval_threads)
+        eval_envs, eval_parser = make_env(cfg, cfg.n_parallel_envs)
 
     # Create model
     model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
@@ -104,7 +104,7 @@ def run():
             # Perform step
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \
-                next_contexts, messages = model.comm_n_act(obs, parsed_obs)
+                messages = model.comm_n_act(obs, parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 

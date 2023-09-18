@@ -5,7 +5,7 @@ import numpy as np
 from torch import nn
 
 from .modules.lang_learner import LanguageLearner
-from .modules.comm_policy import PerfectComm
+from .modules.comm_policy import PerfectComm, CommPPO_MLP
 from .policy.mappo_contextinobs.mappo import MAPPO
 from .policy.mappo_contextinobs.utils import get_shape_from_obs_space
 
@@ -34,14 +34,16 @@ class LMC:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        if args.comm_policy_algo == "perfect_comm":
+        self.comm_pol_algo = args.comm_policy_algo
+        if self.comm_pol_algo == "ppo_mlp":
+            self.comm_policy = CommPPO_MLP(args, n_agents, self.lang_learner)
+        elif self.comm_pol_algo == "perfect_comm":
             self.comm_policy = PerfectComm(self.lang_learner)
-        elif args.comm_policy_algo == "no_comm":
+        elif self.comm_pol_algo == "no_comm":
             self.comm_policy = None
             self.context_dim = 0
         else:
             raise NotImplementedError("Bad name given for communication policy algo.")
-
 
         if args.policy_algo == "mappo":
             obs_dim = get_shape_from_obs_space(obs_space[0])
@@ -61,44 +63,36 @@ class LMC:
         self.lang_learner.prep_rollout(device)
         self.policy.prep_rollout(device)
 
-    def _make_obs(self, obs, eval_message_context=None):
-        if eval_message_context is not None:
-            message_context = eval_message_context
-        else:
-            message_context = self.message_context
-
+    def _make_obs(self, obs, message_contexts):
         n_parallel_envs = obs.shape[0]
 
         shared_obs = np.concatenate(
-            (obs.reshape(n_parallel_envs, -1), message_context), 
+            (obs.reshape(n_parallel_envs, -1), message_contexts), 
             axis=-1)
         obs = np.concatenate(
-            (obs, message_context.reshape(
+            (obs, message_contexts.reshape(
                 n_parallel_envs, 1, self.context_dim).repeat(
                     self.n_agents, axis=1)), 
             axis=-1)
         return obs, shared_obs
 
-    def start_episode(self, obs, eval_message_context=None):
+    def start_episode(self):
         # obs, shared_obs = self._make_obs(obs, eval_message_context)
         self.policy.start_episode() #obs, shared_obs)
 
     def comm_n_act(self, obs, perfect_messages=None, eval_message_context=None):
         # Get messages
         if self.comm_policy is not None:
-            broadcasts, lang_contexts = self.comm_policy.comm_step(
-                obs, perfect_messages)
-            if eval_message_context is None:
-                self.message_context = lang_contexts
+            broadcasts, lang_contexts, klpretrain_rewards = \
+                self.comm_policy.comm_step(obs, perfect_messages)
+            # if eval_message_context is None:
+            #     self.message_context = lang_contexts
         else:
-            if eval_message_context is None:
-                lang_contexts = self.message_context
-            else:
-                lang_contexts = eval_message_context
+            lang_contexts = np.zeros((self.n_parallel_envs, 0))
             broadcasts = []
 
         # Store policy inputs in policy buffer
-        obs, shared_obs = self._make_obs(obs)
+        obs, shared_obs = self._make_obs(obs, lang_contexts)
         self.policy.store_obs(obs, shared_obs)
 
         # Get actions
@@ -106,16 +100,16 @@ class LMC:
             self.policy.get_actions()
 
         return values, actions, action_log_probs, rnn_states, \
-               rnn_states_critic, broadcasts, lang_contexts
+               rnn_states_critic, broadcasts
 
     def reward_comm(self, env_rewards):
         if self.comm_policy is not None:
-            
+
             self.comm_policy.store_rewards()
 
-    def reset_context(self, env_dones=None):
+    def reset_context(self, env_dones=None, new_context=None):
         """
-        :param env_dones (list(bool)): Done state for each parallel environment.
+        :param env_dones (np.ndarray): Done state for each parallel environment.
         """
         if env_dones is None:
             self.message_context = np.zeros((n_parallel_envs, self.context_dim))

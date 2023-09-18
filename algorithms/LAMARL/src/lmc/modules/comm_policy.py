@@ -15,10 +15,9 @@ def torch2numpy(x):
 
 class CommBuffer_MLP:
     
-    def __init__(self, context_dim, hidden_dim, max_sent_len, token_dim, 
-            gamma=0.99, n_mini_batch=2):
+    def __init__(self, context_dim, max_sent_len, token_dim, gamma=0.99, 
+            n_mini_batch=2):
         self.context_dim = context_dim
-        self.hidden_dim = hidden_dim
         self.max_sent_len = max_sent_len
         self.token_dim = token_dim
         assert gamma <= 1
@@ -216,51 +215,42 @@ class CommPPO_MLP:
     the quality of the current state (previous hidden state).
     It is trained using PPO, fine-tuning a pretrained policy.
     """
-    def __init__(self, n_agents, context_dim, hidden_dim, lang_learner, 
-                 lr=0.0005, ep_len=10, max_sent_len=12, n_envs=1, gamma=0.99,
-                 n_epochs=16, clip_coef=0.2, entropy_coef=0.01, vloss_coef=0.5, 
-                 klpretrain_coef=0.01, max_grad_norm=10.0, n_mini_batch=2):
+    def __init__(self, args, n_agents, lang_learner):
         self.n_agents = n_agents
-        self.context_dim = context_dim
-        self.hidden_dim = hidden_dim
-        self.n_envs = n_envs
-        self.n_epochs = n_epochs
-        self.clip_coef = clip_coef
-        self.entropy_coef = entropy_coef
-        self.vloss_coef = vloss_coef
-        self.klpretrain_coef = klpretrain_coef
-        self.max_grad_norm = max_grad_norm
-        self.n_mini_batch = n_mini_batch
+        self.n_envs = args.n_parallel_envs
+        self.n_epochs = args.comm_n_epochs
+        self.ppo_clip_param = args.comm_ppo_clip_param
+        self.entropy_coef = args.comm_entropy_coef
+        self.vloss_coef = args.comm_vloss_coef
+        self.klpretrain_coef = args.comm_klpretrain_coef
+        self.max_grad_norm = args.comm_max_grad_norm
+        self.n_mini_batch = args.comm_n_mini_batch
         
         self.lang_learner = lang_learner
         
         self.context_encoder = MLPNetwork(
-            2 * context_dim, context_dim, norm_in=False)
+            2 * args.context_dim, args.context_dim, norm_in=False)
         
         self.comm_policy = TextActorCritic(
             lang_learner.word_encoder, 
             lang_learner.decoder, 
-            context_dim, 
-            max_sent_len)
+            args.context_dim, 
+            args.comm_max_sent_len)
         
         self.optim = torch.optim.Adam(
             list(self.comm_policy.parameters()) + \
             list(self.context_encoder.parameters()), 
-            lr=lr, eps=1e-5)
+            lr=args.comm_lr, eps=1e-5)
         
         self.buffer = CommBuffer_MLP(
-            context_dim, 
-            hidden_dim, 
-            max_sent_len, 
+            args.context_dim,
+            args.comm_max_sent_len, 
             self.lang_learner.word_encoder.enc_dim,
-            gamma,
-            n_mini_batch)
+            args.comm_gamma,
+            self.n_mini_batch)
         
-        self.last_comm = None
-        self.last_lang_context = None
-        
-    def reset_episode(self):
-        self.last_comm = None
+        self.lang_context = torch.zeros(
+            (self.n_envs, args.context_dim))
         
     @torch.no_grad()
     def get_messages(self, obs):
@@ -279,18 +269,21 @@ class CommPPO_MLP:
         obs_context = []
         obs = torch.Tensor(obs).view(self.n_envs * self.n_agents, -1)
         obs_context = self.lang_learner.encode_observations(obs)
+
+        # TODO Enlever lang_context de cette classe et le faire venir du main, pour pouvoir gérer l'évaluation.
+        # Repeat lang_contexts for each agent in envs
+        lang_context = self.lang_context.repeat(
+            1, self.n_agents).reshape(self.n_envs * self.n_agents, -1)
         
         # if self.last_comm is not None:
         #     sentences = list(itertools.chain.from_iterable(self.last_comm))
         #     lang_context = self.lang_learner.encode_sentences(sentences)
         # else:
         #     lang_context = torch.zeros_like(obs_context)
-        if self.last_lang_context is None:
-            self.last_lang_context = torch.zeros_like(obs_context)
-            
+        # if self.lang_context is None:
+        #     self.lang_context = torch.zeros_like(obs_context)
+
         input_context = torch.cat((obs_context, lang_context), dim=-1)
-        # Flatten rollout and agent dimensions
-        #input_context = input_context.view(self.n_envs * self.n_agents, 2 * self.context_dim)
         
         # Encode contexts
         comm_context = self.context_encoder(input_context).unsqueeze(0)
@@ -315,11 +308,19 @@ class CommPPO_MLP:
             masks)
         
         # Arrange sentences by env
-        self.last_comm = [
-            sentences[e_i * self.n_agents:(e_i + 1) * self.n_agents] 
-            for e_i in range(self.n_envs)]
+        # broadcasts = [
+        #     sentences[e_i * self.n_agents:(e_i + 1) * self.n_agents] 
+        #     for e_i in range(self.n_envs)]
+        broadcasts = []
+        for e_i in range(self.n_envs):
+            env_broadcast = []
+            for a_i in range(self.n_agents):
+                env_broadcast.extend(sentences.pop(0))
+            broadcasts.append(env_broadcast)
+
+        self.lang_context = self.lang_learner.encode_sentences(broadcasts)
         
-        return self.last_comm, lang_context, klpretrain_rewards
+        return broadcasts, self.lang_context, klpretrain_rewards
         
     @torch.no_grad()
     def _get_pretrain_probs(self, context_batch, token_batch):
@@ -350,7 +351,7 @@ class CommPPO_MLP:
             -1, token_batch.argmax(-1).unsqueeze(-1))
         return ref_token_log_probs
     
-    def _store_rewards(self, message_rewards, klpretrain_rewards):
+    def store_rewards(self, message_rewards, klpretrain_rewards):
         """
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 
@@ -390,7 +391,7 @@ class CommPPO_MLP:
         ratio = (new_token_log_probs - token_log_probs).exp()
         pol_loss1 = -advantages * ratio
         pol_loss2 = -advantages * torch.clamp(
-            ratio, 1 - self.clip_coef, 1 + self.clip_coef)
+            ratio, 1 - self.ppo_clip_param, 1 + self.ppo_clip_param)
         pol_loss = torch.max(pol_loss1, pol_loss2).mean()
         
         # Entropy loss
@@ -434,7 +435,7 @@ class CommPPO_MLP:
             
         return losses
     
-    def comm_step(self, obs):
+    def comm_step(self, obs, perfect_messages=None):
         # Get messages
         messages, lang_context, klpretrain_rewards = self.get_messages(obs)
         
@@ -504,6 +505,16 @@ class PerfectComm:
         next_contexts = self.lang_learner.encode_sentences(broadcasts)
 
         return broadcasts, next_contexts.detach().cpu().numpy()
+
+    def store_rewards(self, message_rewards, klpretrain_rewards):
+        """
+        Send rewards for each sentences to the buffer to compute returns.
+        :param message_rewards (np.ndarray): Rewards for each generated 
+            sentence, dim=(batch_size, )
+        :param klpretrain_rewards (np.ndarray): Penalties for diverging from 
+            pre-trained decoder, dim=(seq_len, batch_size, 1)
+        """
+        pass
 
     def get_save_dict(self):
         return {}
