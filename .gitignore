@@ -675,3 +675,12 @@ models/coop_push_corners_new/qmix_jim_pol/*
 !models/coop_push_corners_new/qmix_lim_pol
 models/coop_push_corners_new/qmix_lim_pol/*
 !models/coop_push_corners_new/qmix_lim_pol/train_data
+
+!models/magym_PredPrey
+models/magym_PredPrey/*
+
+!models/magym_PredPrey/mappo_perfectcomm_9x9
+models/magym_PredPrey/mappo_perfectcomm_9x9/*
+!models/magym_PredPrey/mappo_perfectcomm_9x9/train_data
+
+
