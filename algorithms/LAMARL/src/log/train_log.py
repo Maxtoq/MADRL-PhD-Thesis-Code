@@ -71,7 +71,7 @@ class Logger():
                 if self.ep_lengths[e_i] < self.max_ep_length:
                     self.success[e_i] = True
                 self._store_episode(e_i, step)
-                step += 1
+                step += self.ep_lengths[e_i]
                 self._reset_env(e_i)
 
     def log_losses(self, losses, step):
