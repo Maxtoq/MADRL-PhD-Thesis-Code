@@ -92,7 +92,8 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs = envs.reset()
-    model.start_episode(obs)
+    lang_contexts = model.reset_context()
+    model.start_episode()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout()
@@ -104,16 +105,17 @@ def run():
             # Perform step
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \
-                messages = model.comm_n_act(obs, parsed_obs)
+                messages, lang_contexts = model.comm_n_act(
+                    obs, lang_contexts, parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
             # Reward communication
             model.reward_comm(rewards)
 
-            env_done = dones.all(axis=1)
-            if True in env_done:
-                model.reset_context(env_done)
+            env_dones = dones.all(axis=1)
+            if True in env_dones:
+                lang_contexts = model.reset_context(lang_contexts, env_dones)
 
             # Save data for logging
             logger.count_returns(s_i + ep_s_i, rewards, dones)
@@ -127,7 +129,7 @@ def run():
         train_losses = model.train(s_i + ep_s_i + 1)
         # Log train data
         logger.log_losses(train_losses, s_i + ep_s_i + 1)
-        model.start_episode(obs)
+        model.start_episode()
     
         # Eval
         if cfg.do_eval and s_i - last_eval_step > cfg.eval_interval:

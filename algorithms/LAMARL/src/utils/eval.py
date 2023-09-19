@@ -8,17 +8,17 @@ def perform_eval(args, model, envs, parser, render=False):
     success = [False] * args.n_parallel_envs
     ep_lengths = np.ones(args.n_parallel_envs) * args.episode_length
 
-    eval_message_context = np.zeros((args.n_parallel_envs, model.context_dim))
     obs = envs.reset()
+    lang_contexts = model.reset_context()
     model.prep_rollout()
-    model.start_episode(obs, eval_message_context)
+    model.start_episode()
     for s_i in range(args.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
             # Perform step
             # Get action
-            _, actions, _, _, _, eval_message_context, messages = \
-                model.comm_n_act(obs, parsed_obs, eval_message_context)
+            _, actions, _, _, _, messages, lang_contexts = \
+                model.comm_n_act(obs, lang_contexts, parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, _ = envs.step(actions)
 

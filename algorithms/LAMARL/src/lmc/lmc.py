@@ -77,16 +77,13 @@ class LMC:
         return obs, shared_obs
 
     def start_episode(self):
-        # obs, shared_obs = self._make_obs(obs, eval_message_context)
-        self.policy.start_episode() #obs, shared_obs)
+        self.policy.start_episode()
 
-    def comm_n_act(self, obs, perfect_messages=None, eval_message_context=None):
+    def comm_n_act(self, obs, lang_contexts, perfect_messages=None):
         # Get messages
         if self.comm_policy is not None:
-            broadcasts, lang_contexts, klpretrain_rewards = \
-                self.comm_policy.comm_step(obs, perfect_messages)
-            # if eval_message_context is None:
-            #     self.message_context = lang_contexts
+            broadcasts, lang_contexts = self.comm_policy.comm_step(
+                obs, lang_contexts, perfect_messages)
         else:
             lang_contexts = np.zeros((self.n_parallel_envs, 0))
             broadcasts = []
@@ -100,22 +97,32 @@ class LMC:
             self.policy.get_actions()
 
         return values, actions, action_log_probs, rnn_states, \
-               rnn_states_critic, broadcasts
+               rnn_states_critic, broadcasts, lang_contexts
 
     def reward_comm(self, env_rewards):
+        # TODO Do
         if self.comm_policy is not None:
+            pass
+            #self.comm_policy.store_rewards()
 
-            self.comm_policy.store_rewards()
+    def reset_context(self, current_lang_contexts=None, env_dones=None):
+        """
+        Returns reset language contexts.
+        :param current_lang_contexts (np.ndarray): default None, if not 
+            provided return zero-filled contexts, if provided return contexts
+            with zeros where the env is done.
+        :param env_dones (np.ndarray): Done state for each parallel environment,
+            default None, must be provided if current_lang_contexts is.
 
-    def reset_context(self, env_dones=None, new_context=None):
+        :return lang_contexts (np.ndaray): new language contexts.
         """
-        :param env_dones (np.ndarray): Done state for each parallel environment.
-        """
-        if env_dones is None:
-            self.message_context = np.zeros((n_parallel_envs, self.context_dim))
+        if current_lang_contexts is None:
+            return np.zeros(
+                (self.n_parallel_envs, self.context_dim), dtype=np.float32)
         else:
-            self.message_context = \
-                self.message_context * (1 - env_dones)[..., np.newaxis]
+            assert env_dones is not None, "env_dones must be provided if current_lang_contexts is."
+            return current_lang_contexts * (1 - env_dones).astype(
+                np.float32)[..., np.newaxis]
 
     def store_exp(self, rewards, dones, infos, values, 
             actions, action_log_probs, rnn_states, rnn_states_critic):

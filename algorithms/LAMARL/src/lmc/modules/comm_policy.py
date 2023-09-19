@@ -249,11 +249,11 @@ class CommPPO_MLP:
             args.comm_gamma,
             self.n_mini_batch)
         
-        self.lang_context = torch.zeros(
-            (self.n_envs, args.context_dim))
+        # self.lang_context = torch.zeros(
+        #     (self.n_envs, args.context_dim))
         
     @torch.no_grad()
-    def get_messages(self, obs):
+    def get_messages(self, obs, lang_contexts):
         """
         Perform a communication step: encodes obs and previous messages and
         generates messages for this step.
@@ -270,10 +270,11 @@ class CommPPO_MLP:
         obs = torch.Tensor(obs).view(self.n_envs * self.n_agents, -1)
         obs_context = self.lang_learner.encode_observations(obs)
 
-        # TODO Enlever lang_context de cette classe et le faire venir du main, pour pouvoir gérer l'évaluation.
         # Repeat lang_contexts for each agent in envs
-        lang_context = self.lang_context.repeat(
-            1, self.n_agents).reshape(self.n_envs * self.n_agents, -1)
+        # lang_contexts = lang_contexts.repeat(1, self.n_agents).reshape(
+        #     self.n_envs * self.n_agents, -1)
+        lang_contexts = torch.from_numpy(lang_contexts.repeat(
+            self.n_agents, 0).reshape(self.n_envs * self.n_agents, -1))
         
         # if self.last_comm is not None:
         #     sentences = list(itertools.chain.from_iterable(self.last_comm))
@@ -283,7 +284,7 @@ class CommPPO_MLP:
         # if self.lang_context is None:
         #     self.lang_context = torch.zeros_like(obs_context)
 
-        input_context = torch.cat((obs_context, lang_context), dim=-1)
+        input_context = torch.cat((obs_context, lang_contexts), dim=-1)
         
         # Encode contexts
         comm_context = self.context_encoder(input_context).unsqueeze(0)
@@ -318,9 +319,32 @@ class CommPPO_MLP:
                 env_broadcast.extend(sentences.pop(0))
             broadcasts.append(env_broadcast)
 
-        self.lang_context = self.lang_learner.encode_sentences(broadcasts)
+        new_lang_contexts = self.lang_learner.encode_sentences(
+            broadcasts).cpu().numpy()
         
-        return broadcasts, self.lang_context, klpretrain_rewards
+        return broadcasts, new_lang_contexts, klpretrain_rewards
+    
+    def comm_step(self, obs, lang_contexts, perfect_messages=None):
+        # Get messages
+        messages, new_lang_contexts, klpretrain_rewards = self.get_messages(
+            obs, lang_contexts)
+        
+        # Get rewards
+        # TODO: add real rewards
+        # message_rewards = np.zeros(self.n_envs * self.n_agents)
+        # rewards = {
+        #     "comm": message_rewards.mean(),
+        #     "klpretrain": klpretrain_rewards.mean()}
+        
+        # TODO Add store rewards and train
+        # Store rewards
+        # self._store_rewards(message_rewards, klpretrain_rewards)
+        
+        # Train
+        #losses = self.train()
+        
+        # Return messages and lang_context
+        return messages, new_lang_contexts #, rewards, losses
         
     @torch.no_grad()
     def _get_pretrain_probs(self, context_batch, token_batch):
@@ -434,26 +458,6 @@ class CommPPO_MLP:
             losses[k] /= (self.n_epochs * self.n_mini_batch)
             
         return losses
-    
-    def comm_step(self, obs, perfect_messages=None):
-        # Get messages
-        messages, lang_context, klpretrain_rewards = self.get_messages(obs)
-        
-        # Get rewards
-        # TODO: add real rewards
-        # message_rewards = np.zeros(self.n_envs * self.n_agents)
-        # rewards = {
-        #     "comm": message_rewards.mean(),
-        #     "klpretrain": klpretrain_rewards.mean()}
-        
-        # Store rewards
-        # self._store_rewards(message_rewards, klpretrain_rewards)
-        
-        # Train
-        losses = self.train()
-        
-        # Return messages and lang_context
-        return messages, lang_context #, rewards, losses
 
     def get_save_dict(self):
         save_dict = {
@@ -486,7 +490,7 @@ class PerfectComm:
             filtered_broadcast.append(env_broadcast)
         return filtered_broadcast
 
-    def comm_step(self, obs, perfect_messages):
+    def comm_step(self, obs, lang_contexts, perfect_messages):
         """
         Perform a communication step.
         :param obs (np.ndarray): Observations.
