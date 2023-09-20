@@ -305,6 +305,7 @@ def get_config():
     parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
     parser.add_argument("--comm_max_grad_norm", type=float, default=10.0)
     parser.add_argument("--comm_n_mini_batch", type=int, default=2)
+    parser.add_argument("--comm_token_penalty", type=float, default=0.1)
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)

@@ -111,7 +111,7 @@ def run():
             obs, rewards, dones, infos = envs.step(actions)
 
             # Reward communication
-            model.reward_comm(rewards)
+            model.eval_comm(rewards)
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
