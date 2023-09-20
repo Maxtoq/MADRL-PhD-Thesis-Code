@@ -118,7 +118,7 @@ def run():
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
             # Save data for logging
-            logger.count_returns(s_i + ep_s_i, rewards, dones)
+            logger.count_returns(s_i, rewards, dones)
 
             # Insert data into replay buffer
             rewards = rewards[..., np.newaxis]
@@ -126,22 +126,23 @@ def run():
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
         # Training
-        train_losses = model.train(s_i + ep_s_i + 1)
+        train_losses = model.train(s_i + n_steps_per_update)
         # Log train data
-        logger.log_losses(train_losses, s_i + ep_s_i + 1)
+        logger.log_losses(train_losses, s_i + n_steps_per_update)
         model.start_episode()
     
         # Eval
-        if cfg.do_eval and s_i - last_eval_step > cfg.eval_interval:
-            last_eval_step = s_i
+        if cfg.do_eval and s_i + n_steps_per_update - last_eval_step > \
+                cfg.eval_interval:
+            last_eval_step = s_i + n_steps_per_update
             mean_return, success_rate, mean_ep_len = perform_eval(
                 cfg, model, eval_envs, eval_parser)
             logger.log_eval(s_i, mean_return, success_rate, mean_ep_len)
             logger.save()
 
         # Save
-        if s_i - last_save_step > cfg.save_interval:
-            last_save_step = s_i
+        if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
+            last_save_step = s_i + n_steps_per_update
             model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
             
     envs.close()
