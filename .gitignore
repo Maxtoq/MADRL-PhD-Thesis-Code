@@ -683,4 +683,8 @@ models/magym_PredPrey/*
 models/magym_PredPrey/mappo_perfectcomm_9x9/*
 !models/magym_PredPrey/mappo_perfectcomm_9x9/train_data
 
-
+!models/magym_PredPrey/mappo_perfectcomm_8x8
+models/magym_PredPrey/mappo_perfectcomm_8x8/*
+!models/magym_PredPrey/mappo_perfectcomm_8x8/run10
+models/magym_PredPrey/mappo_perfectcomm_8x8/run10/*
+!models/magym_PredPrey/mappo_perfectcomm_8x8/run10/model_ep.pt

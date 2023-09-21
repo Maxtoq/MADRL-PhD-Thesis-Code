@@ -1,7 +1,7 @@
 #!/bin/sh
-n_run=3
+n_run=5
 env="algorithms/JIM/scenarios/rel_overgen.py"
-model_name="qmix_4a_40_09_JIM"
+model_name="qmix_4a_40_09"
 sce_conf_path="configs/2a_pol.json"
 n_frames=12000000
 n_explo_frames=10000000
@@ -12,7 +12,7 @@ eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.1
 epsilon_decay_fn="linear"
 intrinsic_reward_mode="central"
-intrinsic_reward_algo="e2snoveld"
+intrinsic_reward_algo="none"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
