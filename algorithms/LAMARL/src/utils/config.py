@@ -312,4 +312,7 @@ def get_config():
     parser.add_argument("--magym_env_size", type=int, default=7)
     parser.add_argument("--magym_n_preys", type=int, default=2)
 
+    # Fine-tune parameters
+    parser.add_argument("--pretrained_model_path", type=str, default=None)
+
     return parser

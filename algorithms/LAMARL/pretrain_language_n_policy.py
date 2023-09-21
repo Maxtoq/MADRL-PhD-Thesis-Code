@@ -16,41 +16,6 @@ from src.envs.make_env import make_env
 from src.lmc.lmc import LMC
 
 
-
-
-def pretrain_language(env, parser, actor, lang_learner, n_steps=10000, print_progress=True):
-    if print_progress:
-        progress = Progress(n_steps)
-    
-    clip_losses, capt_losses, mean_sims = [], [], []
-    step_i = 0
-    obs = env.reset()
-    while step_i < n_steps:
-        if print_progress:
-            progress.print_progress(step_i)
-        # Parse obs
-        sent = parser.parse_observations(obs)
-        # Store in buffer
-        lang_learner.store(obs, sent)
-        # Sample actions
-        actions = actor.get_actions()
-        # Env step
-        obs, rewards, dones, infos = env.step(actions)
-        # End of episode
-        if all(dones):
-            clip_loss, capt_loss, mean_sim = lang_learner.train()
-            if np.isnan(clip_loss) or np.isnan(capt_loss) or np.isnan(mean_sim):
-                print("nan")
-                return 1
-            clip_losses.append(clip_loss)
-            capt_losses.append(capt_loss)
-            mean_sims.append(mean_sim)
-            obs = env.reset()
-        step_i += 1
-    env.close()
-    return clip_losses, capt_losses, mean_sims
-
-
 def run():
      # Load config
     parser = get_config()

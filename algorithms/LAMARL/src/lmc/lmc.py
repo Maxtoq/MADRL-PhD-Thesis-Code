@@ -15,7 +15,7 @@ class LMC:
     Language-Memory for Communication using a pre-defined discrete language.
     """
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 vocab, device):
+                 vocab, device="cpu"):
         self.args = args
         self.n_agents = n_agents
         self.context_dim = args.context_dim
@@ -108,17 +108,13 @@ class LMC:
 
     def eval_comm(self, env_rewards):
         if self.comm_policy is not None:
-            print("MESSAGES", self.last_messages, len(self.last_messages))
-            print("Env rewards", env_rewards, env_rewards.shape)
-            print("klpretrain", self.last_klpretrain_rewards, self.last_klpretrain_rewards.shape, type(self.last_klpretrain_rewards))
             token_penalties = np.ones_like(
                 self.last_klpretrain_rewards) * -self.token_penalty
-            print("PENALTIES", token_penalties)
+
             token_rewards = self.klpretrain_coef * self.last_klpretrain_rewards \
                              + token_penalties
-            print("REWARDS", token_rewards, token_rewards.shape)
+
             self.comm_policy.store_rewards(env_rewards.flatten(), token_rewards)
-            #self.comm_policy.store_rewards()
 
     def reset_context(self, current_lang_contexts=None, env_dones=None):
         """
@@ -165,8 +161,14 @@ class LMC:
             return pol_losses
 
     def save(self, path):
+        self.prep_rollout("cpu")
         save_dict = self.policy.get_save_dict()
         save_dict.update(self.lang_learner.get_save_dict())
         if self.comm_policy is not None:
             save_dict.update(self.comm_policy.get_save_dict())
         torch.save(save_dict, path)
+
+    def load(self, path):
+        save_dict = torch.load(path, map_location=torch.device('cpu'))
+        self.policy.load_params(save_dict["agents_params"])
+        self.lang_learner.load_params(save_dict)

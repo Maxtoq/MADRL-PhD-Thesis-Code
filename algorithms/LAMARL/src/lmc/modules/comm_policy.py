@@ -62,8 +62,6 @@ class CommBuffer_MLP:
             self.returns[s_i] = self.returns[s_i + 1] * self.gamma + \
                 step_rewards[s_i]
         self.returns = self.returns[..., np.newaxis]
-        print(self.returns, self.returns.shape)
-        exit()
         
     def recurrent_generator(self):
         """
@@ -250,9 +248,6 @@ class CommPPO_MLP:
             args.comm_gamma,
             self.n_mini_batch)
         
-        # self.lang_context = torch.zeros(
-        #     (self.n_envs, args.context_dim))
-        
     @torch.no_grad()
     def get_messages(self, obs, lang_contexts):
         """
@@ -318,17 +313,6 @@ class CommPPO_MLP:
         new_lang_contexts = self.lang_learner.encode_sentences(
             broadcasts).cpu().numpy()
         
-        # Get rewards
-        # TODO: add real rewards
-        # message_rewards = np.zeros(self.n_envs * self.n_agents)
-        # rewards = {
-        #     "comm": message_rewards.mean(),
-        #     "klpretrain": klpretrain_rewards.mean()}
-        
-        # TODO Add store rewards and train
-        # Store rewards
-        # self._store_rewards(message_rewards, klpretrain_rewards)
-        
         # Train
         #losses = self.train()
         
@@ -368,11 +352,10 @@ class CommPPO_MLP:
         """
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 
-            sentence, dim=(batch_size, )
-        :param klpretrain_rewards (np.ndarray): Penalties for diverging from 
-            pre-trained decoder, dim=(seq_len, batch_size, 1)
+            sentence, dim=(n_agents * n_envs, )
+        :param token_rewards (np.ndarray): Penalties for diverging from 
+            pre-trained decoder, dim=(seq_len, n_agents * n_envs, 1)
         """
-        print(self.buffer.masks, self.buffer.masks.shape)
         len_sentences = np.sum(self.buffer.masks, axis=0, dtype=int)
         step_rewards = np.zeros_like(self.buffer.masks)
         # Set final reward to final token of each sentence
@@ -383,7 +366,6 @@ class CommPPO_MLP:
         
         # Clean masked rewards
         step_rewards = step_rewards * self.buffer.masks
-        print(step_rewards, step_rewards.shape)
         
         self.buffer.compute_returns(step_rewards)
         
@@ -499,10 +481,9 @@ class PerfectComm:
         # Compute next context
         next_contexts = self.lang_learner.encode_sentences(broadcasts)
 
-        # TODO ajouter les returns pour fit commppo
-        return broadcasts, next_contexts.detach().cpu().numpy()
+        return broadcasts, None, next_contexts.detach().cpu().numpy(), None
 
-    def store_rewards(self, message_rewards, klpretrain_rewards):
+    def store_rewards(self, message_rewards, token_rewards):
         """
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 

@@ -603,6 +603,16 @@ class MAPPO:
         }
         return save_dict
 
+    def load_params(self, agent_params):
+        for a_i in range(self.n_agents):
+            self.trainer[a_i].policy.actor.load_state_dict(
+                agent_params[a_i]["actor"])
+            self.trainer[a_i].policy.critic.load_state_dict(
+                agent_params[a_i]["critic"])
+            if self.trainer[a_i]._use_valuenorm:
+                self.trainer[a_i].value_normalizer.load_state_dict(
+                    agent_params[a_i]["vnorm"])
+
     def save(self, path):
         save_dict = self.get_save_dict()
         torch.save(save_dict, path)
