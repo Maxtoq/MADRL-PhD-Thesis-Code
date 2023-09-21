@@ -21,6 +21,8 @@ class LMC:
         self.context_dim = args.context_dim
         self.n_parallel_envs = args.n_parallel_envs
         self.n_warmup_steps = args.n_warmup_steps
+        self.token_penalty = args.comm_token_penalty
+        self.klpretrain_coef = args.comm_klpretrain_coef
         self.device = device
 
         # Modules
@@ -53,7 +55,8 @@ class LMC:
                 shared_obs_dim + self.context_dim,
                 act_space[0], device)
 
-        self.message_context = np.zeros((self.n_parallel_envs, self.context_dim))
+        self.last_messages = None
+        self.last_klpretrain_rewards = None
 
     def prep_training(self):
         self.lang_learner.prep_training()
@@ -82,11 +85,15 @@ class LMC:
     def comm_n_act(self, obs, lang_contexts, perfect_messages=None):
         # Get messages
         if self.comm_policy is not None:
-            broadcasts, lang_contexts = self.comm_policy.comm_step(
-                obs, lang_contexts, perfect_messages)
+            broadcasts, messages, lang_contexts, klpretrain_rewards = \
+                self.comm_policy.comm_step(obs, lang_contexts, perfect_messages)
         else:
             lang_contexts = np.zeros((self.n_parallel_envs, 0))
             broadcasts = []
+
+        # Save messages and klpretrain_rewards for communication evaluation
+        self.last_messages = messages
+        self.last_klpretrain_rewards = klpretrain_rewards
 
         # Store policy inputs in policy buffer
         obs, shared_obs = self._make_obs(obs, lang_contexts)
@@ -99,10 +106,18 @@ class LMC:
         return values, actions, action_log_probs, rnn_states, \
                rnn_states_critic, broadcasts, lang_contexts
 
-    def reward_comm(self, env_rewards):
-        # TODO Do
+    def eval_comm(self, env_rewards):
         if self.comm_policy is not None:
-            pass
+            print("MESSAGES", self.last_messages, len(self.last_messages))
+            print("Env rewards", env_rewards, env_rewards.shape)
+            print("klpretrain", self.last_klpretrain_rewards, self.last_klpretrain_rewards.shape, type(self.last_klpretrain_rewards))
+            token_penalties = np.ones_like(
+                self.last_klpretrain_rewards) * -self.token_penalty
+            print("PENALTIES", token_penalties)
+            token_rewards = self.klpretrain_coef * self.last_klpretrain_rewards \
+                             + token_penalties
+            print("REWARDS", token_rewards, token_rewards.shape)
+            self.comm_policy.store_rewards(env_rewards.flatten(), token_rewards)
             #self.comm_policy.store_rewards()
 
     def reset_context(self, current_lang_contexts=None, env_dones=None):

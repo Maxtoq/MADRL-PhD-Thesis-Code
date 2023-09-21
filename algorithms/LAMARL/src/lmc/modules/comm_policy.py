@@ -62,6 +62,8 @@ class CommBuffer_MLP:
             self.returns[s_i] = self.returns[s_i + 1] * self.gamma + \
                 step_rewards[s_i]
         self.returns = self.returns[..., np.newaxis]
+        print(self.returns, self.returns.shape)
+        exit()
         
     def recurrent_generator(self):
         """
@@ -222,7 +224,6 @@ class CommPPO_MLP:
         self.ppo_clip_param = args.comm_ppo_clip_param
         self.entropy_coef = args.comm_entropy_coef
         self.vloss_coef = args.comm_vloss_coef
-        self.klpretrain_coef = args.comm_klpretrain_coef
         self.max_grad_norm = args.comm_max_grad_norm
         self.n_mini_batch = args.comm_n_mini_batch
         
@@ -271,18 +272,8 @@ class CommPPO_MLP:
         obs_context = self.lang_learner.encode_observations(obs)
 
         # Repeat lang_contexts for each agent in envs
-        # lang_contexts = lang_contexts.repeat(1, self.n_agents).reshape(
-        #     self.n_envs * self.n_agents, -1)
         lang_contexts = torch.from_numpy(lang_contexts.repeat(
             self.n_agents, 0).reshape(self.n_envs * self.n_agents, -1))
-        
-        # if self.last_comm is not None:
-        #     sentences = list(itertools.chain.from_iterable(self.last_comm))
-        #     lang_context = self.lang_learner.encode_sentences(sentences)
-        # else:
-        #     lang_context = torch.zeros_like(obs_context)
-        # if self.lang_context is None:
-        #     self.lang_context = torch.zeros_like(obs_context)
 
         input_context = torch.cat((obs_context, lang_contexts), dim=-1)
         
@@ -290,7 +281,7 @@ class CommPPO_MLP:
         comm_context = self.context_encoder(input_context).unsqueeze(0)
         
         # Generate messages
-        tokens, token_log_probs, value_preds, masks, sentences = \
+        tokens, token_log_probs, value_preds, masks, messages = \
             self.comm_policy.gen_messages(comm_context)
         
         # Compute KL-pretrain rewards
@@ -308,26 +299,24 @@ class CommPPO_MLP:
             value_preds, 
             masks)
         
-        # Arrange sentences by env
-        # broadcasts = [
-        #     sentences[e_i * self.n_agents:(e_i + 1) * self.n_agents] 
-        #     for e_i in range(self.n_envs)]
+        return messages, klpretrain_rewards.squeeze()
+    
+    @torch.no_grad()
+    def comm_step(self, obs, lang_contexts, perfect_messages=None):
+        # Get messages
+        messages, klpretrain_rewards = self.get_messages(
+            obs, lang_contexts)
+        
+        # Arrange messages by env
         broadcasts = []
         for e_i in range(self.n_envs):
             env_broadcast = []
             for a_i in range(self.n_agents):
-                env_broadcast.extend(sentences.pop(0))
+                env_broadcast.extend(messages[e_i * self.n_agents + a_i])
             broadcasts.append(env_broadcast)
 
         new_lang_contexts = self.lang_learner.encode_sentences(
             broadcasts).cpu().numpy()
-        
-        return broadcasts, new_lang_contexts, klpretrain_rewards
-    
-    def comm_step(self, obs, lang_contexts, perfect_messages=None):
-        # Get messages
-        messages, new_lang_contexts, klpretrain_rewards = self.get_messages(
-            obs, lang_contexts)
         
         # Get rewards
         # TODO: add real rewards
@@ -344,7 +333,7 @@ class CommPPO_MLP:
         #losses = self.train()
         
         # Return messages and lang_context
-        return messages, new_lang_contexts #, rewards, losses
+        return broadcasts, messages, new_lang_contexts, klpretrain_rewards
         
     @torch.no_grad()
     def _get_pretrain_probs(self, context_batch, token_batch):
@@ -375,7 +364,7 @@ class CommPPO_MLP:
             -1, token_batch.argmax(-1).unsqueeze(-1))
         return ref_token_log_probs
     
-    def store_rewards(self, message_rewards, klpretrain_rewards):
+    def store_rewards(self, message_rewards, token_rewards):
         """
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 
@@ -383,16 +372,18 @@ class CommPPO_MLP:
         :param klpretrain_rewards (np.ndarray): Penalties for diverging from 
             pre-trained decoder, dim=(seq_len, batch_size, 1)
         """
+        print(self.buffer.masks, self.buffer.masks.shape)
         len_sentences = np.sum(self.buffer.masks, axis=0, dtype=int)
         step_rewards = np.zeros_like(self.buffer.masks)
         # Set final reward to final token of each sentence
         step_rewards[len_sentences - 1, list(range(message_rewards.shape[0]))] = \
             message_rewards
         # Add klpretrain penalty
-        step_rewards[1:] += self.klpretrain_coef * klpretrain_rewards.squeeze(-1)
+        step_rewards[1:] += token_rewards
         
         # Clean masked rewards
         step_rewards = step_rewards * self.buffer.masks
+        print(step_rewards, step_rewards.shape)
         
         self.buffer.compute_returns(step_rewards)
         
@@ -508,6 +499,7 @@ class PerfectComm:
         # Compute next context
         next_contexts = self.lang_learner.encode_sentences(broadcasts)
 
+        # TODO ajouter les returns pour fit commppo
         return broadcasts, next_contexts.detach().cpu().numpy()
 
     def store_rewards(self, message_rewards, klpretrain_rewards):
