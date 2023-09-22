@@ -107,7 +107,7 @@ class LMC:
                rnn_states_critic, broadcasts, lang_contexts
 
     def eval_comm(self, env_rewards):
-        if self.comm_policy is not None:
+        if self.comm_policy in ["ppo_mlp"]:
             token_penalties = np.ones_like(
                 self.last_klpretrain_rewards) * -self.token_penalty
 
