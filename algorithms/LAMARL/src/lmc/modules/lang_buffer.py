@@ -31,6 +31,6 @@ class LanguageBuffer:
                 continue
             else:
                 obs_batch.append(obs)
-                sent_batch.append(sent.split(" "))
+                sent_batch.append(sent.split(" ") if sent != '' else [])
                 nb_sampled += 1
         return obs_batch, sent_batch

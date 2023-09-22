@@ -144,8 +144,7 @@ class LMC:
     def store_language_inputs(self, obs, parsed_obs):
         obs = obs.reshape(-1, obs.shape[-1])
         parsed_obs = [
-            sent for env_sent in parsed_obs for sent in env_sent 
-            if len(sent) > 0]
+            sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
 
     def train(self, step):

@@ -38,7 +38,7 @@ def _get_parser(cfg):
         from .parsers.predator_prey import PredatorPrey_Parser as Parser
     else:
         raise NotImplementedError
-    return Parser(cfg)
+    return Parser(cfg.magym_env_size)
 
 def reset_envs(envs):
     obs = envs.reset()

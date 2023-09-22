@@ -5,8 +5,8 @@ class PredatorPrey_Parser():
 
     vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, args):
-        self.env_size = args.magym_env_size
+    def __init__(self, env_size):
+        self.env_size = env_size
 
     def parse_global_state(self, state):
         """
