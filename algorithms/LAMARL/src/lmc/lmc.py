@@ -116,6 +116,8 @@ class LMC:
 
             self.comm_policy.store_rewards(env_rewards.flatten(), token_rewards)
 
+            print((self.last_messages))
+            print(self.last_klpretrain_rewards.shape)
             return token_rewards.mean(axis=-1)
 
     def train_comm(self):

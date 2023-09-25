@@ -31,7 +31,7 @@ def run():
             elif r in ["y", "Y"]:
                 print("ok then...")
 
-    pretrained_model_path = cfg.pretrained_model_path
+    pretrained_model_path = cfg.FT_pretrained_model_path
     if pretrained_model_path is None:
         print("Must provide path of pretrained model.")
         exit()
@@ -107,6 +107,8 @@ def run():
             comm_losses = model.train_comm()
 
             # Log communication reward and loss
+            print(cfg.n_parallel_envs)
+            print(mean_token_return, len(mean_token_return))
             logger.log_comm(
                 s_i + ep_s_i * cfg.n_parallel_envs, 
                 mean_token_return, comm_losses)
@@ -117,7 +119,7 @@ def run():
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
         # Training
-        if not cfg.fix_policy:
+        if s_i + n_steps_per_update > cfg.FT_n_steps_fix_policy:
             train_losses = model.train(s_i + n_steps_per_update, train_lang=False)
             # Log train data
             logger.log_losses(train_losses, s_i + n_steps_per_update)

@@ -313,7 +313,7 @@ def get_config():
     parser.add_argument("--magym_n_preys", type=int, default=2)
 
     # Fine-tune parameters
-    parser.add_argument("--pretrained_model_path", type=str, default=None)
-    parser.add_argument("--fix_policy", default=False, action="store_true")
+    parser.add_argument("--FT_pretrained_model_path", type=str, default=None)
+    parser.add_argument("--FT_n_steps_fix_policy", type=int, default=10000)
 
     return parser

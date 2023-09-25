@@ -1,4 +1,5 @@
 venv/*
+venv3.8/*
 models/*
 old_models/*
 !models/coop_push_scenario_closed
