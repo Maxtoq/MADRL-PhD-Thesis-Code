@@ -117,9 +117,10 @@ def run():
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
         # Training
-        train_losses = model.train(s_i + n_steps_per_update, train_lang=False)
-        # Log train data
-        logger.log_losses(train_losses, s_i + n_steps_per_update)
+        if not cfg.fix_policy:
+            train_losses = model.train(s_i + n_steps_per_update, train_lang=False)
+            # Log train data
+            logger.log_losses(train_losses, s_i + n_steps_per_update)
 
         # Reset policy buffer
         model.start_episode()

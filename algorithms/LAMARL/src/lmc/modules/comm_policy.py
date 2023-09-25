@@ -432,8 +432,16 @@ class CommPPO_MLP:
     def get_save_dict(self):
         save_dict = {
             "context_encoder": self.context_encoder.state_dict(),
-            "comm_policy": self.comm_policy.state_dict()}
+            "comm_policy": self.comm_policy.state_dict(),
+            "comm_optim": self.optim.state_dict()}
         return save_dict
+
+    def load_params(self, save_dict):
+        self.lang_learner.load_params(save_dict)
+        if "context_encoder" in save_dict:
+            self.context_encoder.load_state_dict(save_dict["context_encoder"])
+            self.comm_policy.load_state_dict(save_dict["comm_policy"])
+            self.optim.load_state_dict(save_dict["comm_optim"])
 
 
 class PerfectComm:

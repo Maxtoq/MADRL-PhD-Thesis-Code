@@ -176,6 +176,5 @@ class LMC:
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.policy.load_params(save_dict["agents_params"])
         self.lang_learner.load_params(save_dict)
-        # TODO: load comm params
-        # if self.comm_policy is not None:
-        #     self.comm_policy.load_params(save_dict)
+        if self.comm_pol_algo in ["ppo_mlp"]:
+            self.comm_policy.load_params(save_dict)

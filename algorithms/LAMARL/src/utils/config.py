@@ -314,5 +314,6 @@ def get_config():
 
     # Fine-tune parameters
     parser.add_argument("--pretrained_model_path", type=str, default=None)
+    parser.add_argument("--fix_policy", default=False, action="store_true")
 
     return parser
