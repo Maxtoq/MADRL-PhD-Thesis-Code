@@ -62,7 +62,7 @@ def run():
 
     # Create model
     model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
-                parser.vocab)
+                parser.vocab, device)
 
     # Load params
     model.load(pretrained_model_path)
@@ -101,26 +101,25 @@ def run():
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
             # Reward communication
-            mean_token_return = model.eval_comm(rewards)
+            mean_token_reward = model.eval_comm(rewards)
 
             # Train comm
             comm_losses = model.train_comm()
 
             # Log communication reward and loss
-            print(cfg.n_parallel_envs)
-            print(mean_token_return, len(mean_token_return))
             logger.log_comm(
                 s_i + ep_s_i * cfg.n_parallel_envs, 
-                mean_token_return, comm_losses)
+                mean_token_reward, comm_losses)
 
             # Insert data into replay buffer
             rewards = rewards[..., np.newaxis]
             model.store_exp(rewards, dones, infos, values, 
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
-        # Training
+        # Training policy
         if s_i + n_steps_per_update > cfg.FT_n_steps_fix_policy:
-            train_losses = model.train(s_i + n_steps_per_update, train_lang=False)
+            train_losses = model.train(
+                s_i + n_steps_per_update, train_lang=False)
             # Log train data
             logger.log_losses(train_losses, s_i + n_steps_per_update)
 

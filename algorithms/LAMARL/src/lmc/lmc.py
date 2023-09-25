@@ -38,7 +38,7 @@ class LMC:
 
         self.comm_pol_algo = args.comm_policy_algo
         if self.comm_pol_algo == "ppo_mlp":
-            self.comm_policy = CommPPO_MLP(args, n_agents, self.lang_learner)
+            self.comm_policy = CommPPO_MLP(args, n_agents, self.lang_learner, device)
         elif self.comm_pol_algo == "perfect_comm":
             self.comm_policy = PerfectComm(self.lang_learner)
         elif self.comm_pol_algo == "no_comm":
@@ -65,6 +65,7 @@ class LMC:
     def prep_rollout(self, device=None):
         self.lang_learner.prep_rollout(device)
         self.policy.prep_rollout(device)
+        self.comm_policy.prep_rollout(device)
 
     def _make_obs(self, obs, message_contexts):
         n_parallel_envs = obs.shape[0]
@@ -116,9 +117,7 @@ class LMC:
 
             self.comm_policy.store_rewards(env_rewards.flatten(), token_rewards)
 
-            print((self.last_messages))
-            print(self.last_klpretrain_rewards.shape)
-            return token_rewards.mean(axis=-1)
+            return token_rewards.mean()
 
     def train_comm(self):
         return self.comm_policy.train()

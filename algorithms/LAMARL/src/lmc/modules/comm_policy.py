@@ -63,7 +63,7 @@ class CommBuffer_MLP:
                 step_rewards[s_i]
         self.returns = self.returns[..., np.newaxis]
         
-    def recurrent_generator(self):
+    def generator(self):
         """
         Randomise experiences and yields mini-batches to train.
         """
@@ -92,10 +92,11 @@ class CommBuffer_MLP:
 class TextActorCritic(nn.Module):
     
     def __init__(self, word_encoder, pretrained_decoder, context_dim, 
-            max_sent_len):
+            max_sent_len, device):
         super(TextActorCritic, self).__init__()
         self.word_encoder = word_encoder
         self.max_sent_len = max_sent_len
+        self.device = device
         # RNN encoder
         self.gru = copy.deepcopy(pretrained_decoder.gru)
         # Policy and value heads
@@ -112,7 +113,7 @@ class TextActorCritic(nn.Module):
         hidden = context_batch
         last_tokens = torch.tensor(
             np.array([[self.word_encoder.SOS_ENC]])).float().repeat(
-                1, batch_size, 1)
+                1, batch_size, 1).to(self.device)
         
         batch_tokens = []
         batch_token_log_probs = []
@@ -134,14 +135,14 @@ class TextActorCritic(nn.Module):
             # Sample next token
             _, topi = log_probs.topk(1)
             topi = topi.squeeze()
-            tokens = self.word_encoder.token_encodings[topi]
+            tokens = self.word_encoder.token_encodings[topi.cpu()]
             
             # Make token_log_prob
             token_log_probs = log_probs.gather(-1, topi.reshape(1, -1, 1))
             
             # Make mask: 1 if last token is not EOS and last mask is not 0
             masks = (
-                np.where(last_topi == self.word_encoder.EOS_ID, 0.0, 1.0) * \
+                np.where(last_topi.cpu() == self.word_encoder.EOS_ID, 0.0, 1.0) * \
                 np.where(batch_masks[-1] == 0.0, 0.0, 1.0))
             last_topi = topi
             
@@ -160,7 +161,7 @@ class TextActorCritic(nn.Module):
             batch_value_preds.append(torch2numpy(value_preds))
             batch_masks.append(masks)
             
-            last_tokens = torch.Tensor(tokens).unsqueeze(0)
+            last_tokens = torch.Tensor(tokens).unsqueeze(0).to(self.device)
             
         # Compute last value
         _, hidden = self.gru(last_tokens, hidden)
@@ -192,9 +193,9 @@ class TextActorCritic(nn.Module):
         # Add SOS token
         sos_tensor = torch.Tensor(
             np.array([self.word_encoder.SOS_ENC])).repeat(
-                1, context_batch.shape[1], 1)
-        input_tokens = torch.cat((sos_tensor, token_batch))
-        
+                1, context_batch.shape[1], 1).to(self.device)
+        input_tokens = torch.cat((sos_tensor, token_batch)).to(self.device)
+
         outputs, _ = self.gru(input_tokens, context_batch)
         
         # Get log_probs and entropy
@@ -215,7 +216,7 @@ class CommPPO_MLP:
     the quality of the current state (previous hidden state).
     It is trained using PPO, fine-tuning a pretrained policy.
     """
-    def __init__(self, args, n_agents, lang_learner):
+    def __init__(self, args, n_agents, lang_learner, device="cpu"):
         self.n_agents = n_agents
         self.n_envs = args.n_parallel_envs
         self.n_epochs = args.comm_n_epochs
@@ -224,6 +225,7 @@ class CommPPO_MLP:
         self.vloss_coef = args.comm_vloss_coef
         self.max_grad_norm = args.comm_max_grad_norm
         self.n_mini_batch = args.comm_n_mini_batch
+        self.device = device
         
         self.lang_learner = lang_learner
         
@@ -234,7 +236,8 @@ class CommPPO_MLP:
             lang_learner.word_encoder, 
             lang_learner.decoder, 
             args.context_dim, 
-            args.comm_max_sent_len)
+            args.comm_max_sent_len,
+            device)
         
         self.optim = torch.optim.Adam(
             list(self.comm_policy.parameters()) + \
@@ -247,6 +250,22 @@ class CommPPO_MLP:
             self.lang_learner.word_encoder.enc_dim,
             args.comm_gamma,
             self.n_mini_batch)
+
+    def prep_rollout(self, device=None):
+        if device is None:
+            device = self.device
+        self.context_encoder.eval()
+        self.context_encoder.to(device)
+        self.comm_policy.eval()
+        self.comm_policy.to(device)
+        self.comm_policy.device = device
+
+    def prep_training(self):
+        self.context_encoder.train()
+        self.context_encoder.to(self.device)
+        self.comm_policy.train()
+        self.comm_policy.to(self.device)
+        self.comm_policy.device = self.device
         
     @torch.no_grad()
     def get_messages(self, obs, lang_contexts):
@@ -268,7 +287,8 @@ class CommPPO_MLP:
 
         # Repeat lang_contexts for each agent in envs
         lang_contexts = torch.from_numpy(lang_contexts.repeat(
-            self.n_agents, 0).reshape(self.n_envs * self.n_agents, -1))
+            self.n_agents, 0).reshape(self.n_envs * self.n_agents, -1)).to(
+                self.device)
 
         input_context = torch.cat((obs_context, lang_contexts), dim=-1)
         
@@ -332,12 +352,12 @@ class CommPPO_MLP:
         :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
             batch_size, 1)
         """
-        token_batch = torch.from_numpy(token_batch)
+        token_batch = torch.from_numpy(token_batch).to(self.device)
         # Add SOS token
-        sos_token = np.tile(
+        sos_token = torch.Tensor(np.tile(
             self.lang_learner.word_encoder.SOS_ENC, 
-            (1, context_batch.shape[1], 1))
-        input_tokens = torch.Tensor(np.concatenate((sos_token, token_batch)))
+            (1, context_batch.shape[1], 1))).to(self.device)
+        input_tokens = torch.cat((sos_token, token_batch))
         
         ref_log_probs, _ = self.lang_learner.decoder.forward_step(
             input_tokens, context_batch)
@@ -370,11 +390,11 @@ class CommPPO_MLP:
         input_context, generated_tokens, token_log_probs, value_preds, returns, \
             advantages, masks = batch
         
-        input_context = torch.from_numpy(input_context)
-        generated_tokens = torch.from_numpy(generated_tokens)
-        token_log_probs = torch.from_numpy(token_log_probs)
-        advantages = torch.from_numpy(advantages)
-        returns = torch.from_numpy(returns)
+        input_context = torch.from_numpy(input_context).to(self.device)
+        generated_tokens = torch.from_numpy(generated_tokens).to(self.device)
+        token_log_probs = torch.from_numpy(token_log_probs).to(self.device)
+        advantages = torch.from_numpy(advantages).to(self.device)
+        returns = torch.from_numpy(returns).to(self.device)
         
         # Evaluate generated tokens
         comm_context = self.context_encoder(input_context).unsqueeze(0)
@@ -410,22 +430,25 @@ class CommPPO_MLP:
         return pol_loss, entropy_loss, val_loss
     
     def train(self):
+        self.prep_training()
         losses = {
-            "policy_loss": 0,
-            "entropy_loss": 0,
-            "value_loss": 0}
+            "comm_policy_loss": 0,
+            "comm_entropy_loss": 0,
+            "comm_value_loss": 0}
         for e_i in range(self.n_epochs):
-            data_generator = self.buffer.recurrent_generator()
+            data_generator = self.buffer.generator()
             
             for train_batch in data_generator:
                 pol_loss, entropy_loss, val_loss = self.ppo_update(train_batch)
                 
-                losses["policy_loss"] += pol_loss.item()
-                losses["entropy_loss"] += entropy_loss.item()
-                losses["value_loss"] += val_loss.item()
+                losses["comm_policy_loss"] += pol_loss.item()
+                losses["comm_entropy_loss"] += entropy_loss.item()
+                losses["comm_value_loss"] += val_loss.item()
         
         for k in losses.keys():
             losses[k] /= (self.n_epochs * self.n_mini_batch)
+        
+        self.prep_rollout()
             
         return losses
 

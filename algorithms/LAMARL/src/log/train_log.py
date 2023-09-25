@@ -81,17 +81,15 @@ class Logger():
                 self._reset_env(e_i)
 
     def log_comm(self, step, mean_return, losses):
-        for e_i in range(self.n_parrallel_envs):
-            self.comm_data["Step"].append(step)
-            self.comm_data["Message return"].append(mean_return[e_i])
-            step += 1
+        self.comm_data["Step"].append(step)
+        self.comm_data["Message return"].append(mean_return)    
 
-            # Log Tensorboard
-            if self.log_tensorboard:
-                self.log_tb.add_scalar(
-                    'agent0/comm_reward', 
-                    self.comm_data["Message return"][-1], 
-                    self.comm_data["Step"][-1])
+        # Log Tensorboard
+        if self.log_tensorboard:
+            self.log_tb.add_scalar(
+                'agent0/comm_reward', 
+                self.comm_data["Message return"][-1], 
+                self.comm_data["Step"][-1])
         
         # Log Tensorboard
         if self.log_tensorboard:
@@ -99,6 +97,7 @@ class Logger():
                 'agent0/losses', losses, step)
 
     def log_losses(self, losses, step):
+        print(losses)
         if self.log_tensorboard:
             if type(losses) is tuple:
                 pol_losses, lang_losses = losses
