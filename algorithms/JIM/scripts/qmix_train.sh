@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=5
+n_run=4
 env="algorithms/JIM/scenarios/rel_overgen.py"
 model_name="qmix_4a_40_09"
 sce_conf_path="configs/2a_pol.json"
@@ -25,7 +25,7 @@ optimal_diffusion_coeff=0.9
 suboptimal_diffusion_coeff=0.08
 ro_n_agents=4
 magym_env_size=8
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 source venv/bin/activate
 
