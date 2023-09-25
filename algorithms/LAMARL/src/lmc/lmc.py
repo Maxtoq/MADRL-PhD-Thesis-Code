@@ -107,7 +107,7 @@ class LMC:
                rnn_states_critic, broadcasts, lang_contexts
 
     def eval_comm(self, env_rewards):
-        if self.comm_policy in ["ppo_mlp"]:
+        if self.comm_pol_algo in ["ppo_mlp"]:
             token_penalties = np.ones_like(
                 self.last_klpretrain_rewards) * -self.token_penalty
 
@@ -115,6 +115,11 @@ class LMC:
                              + token_penalties
 
             self.comm_policy.store_rewards(env_rewards.flatten(), token_rewards)
+
+            return token_rewards.mean(axis=-1)
+
+    def train_comm(self):
+        return self.comm_policy.train()
 
     def reset_context(self, current_lang_contexts=None, env_dones=None):
         """
@@ -147,13 +152,13 @@ class LMC:
             sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
 
-    def train(self, step):
+    def train(self, step, train_lang=True):
         self.prep_training()
         # Train policy
         warmup = step < self.n_warmup_steps
         pol_losses = self.policy.train(warmup)
         # Train language
-        if self.comm_policy is not None:
+        if self.comm_policy is not None and train_lang:
             lang_losses = self.lang_learner.train()
             return pol_losses, lang_losses
         else:
@@ -171,3 +176,6 @@ class LMC:
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.policy.load_params(save_dict["agents_params"])
         self.lang_learner.load_params(save_dict)
+        # TODO: load comm params
+        # if self.comm_policy is not None:
+        #     self.comm_policy.load_params(save_dict)

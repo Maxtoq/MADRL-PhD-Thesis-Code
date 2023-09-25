@@ -28,6 +28,11 @@ class Logger():
         self.success = [False] * self.n_parrallel_envs
         self.ep_lengths = np.zeros(self.n_parrallel_envs)
 
+        self.comm_data = {
+            "Step": [],
+            "Message return": []
+        }
+
         self.eval_data = {
             "Step": [],
             "Mean return": [],
@@ -70,9 +75,28 @@ class Logger():
             if global_dones[e_i]:
                 if self.ep_lengths[e_i] < self.max_ep_length:
                     self.success[e_i] = True
+                # TODO: fix ça en mettant step dans la classe pour garder un vrai compte du nombre de steps terminées
                 step += self.ep_lengths[e_i]
                 self._store_episode(e_i, step)
                 self._reset_env(e_i)
+
+    def log_comm(self, step, mean_return, losses):
+        for e_i in range(self.n_parrallel_envs):
+            self.comm_data["Step"].append(step)
+            self.comm_data["Message return"].append(mean_return[e_i])
+            step += 1
+
+            # Log Tensorboard
+            if self.log_tensorboard:
+                self.log_tb.add_scalar(
+                    'agent0/comm_reward', 
+                    self.comm_data["Message return"][-1], 
+                    self.comm_data["Step"][-1])
+        
+        # Log Tensorboard
+        if self.log_tensorboard:
+            self.log_tb.add_scalars(
+                'agent0/losses', losses, step)
 
     def log_losses(self, losses, step):
         if self.log_tensorboard:
@@ -104,6 +128,9 @@ class Logger():
     def save(self):
         train_df = pd.DataFrame(self.train_data)
         train_df.to_csv(str(self.log_dir_path / 'training_data.csv'))
+        if len(self.comm_data["Step"]) > 0:
+            comm_df = pd.DataFrame(self.comm_data)
+            comm_df.to_csv(str(self.log_dir_path / 'comm_data.csv'))
         if self.do_eval:
             eval_df = pd.DataFrame(self.eval_data)
             eval_df.to_csv(str(self.log_dir_path / 'evaluation_data.csv'))

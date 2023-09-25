@@ -294,7 +294,7 @@ class CommPPO_MLP:
             value_preds, 
             masks)
         
-        return messages, klpretrain_rewards.squeeze()
+        return messages, klpretrain_rewards.squeeze(-1)
     
     @torch.no_grad()
     def comm_step(self, obs, lang_contexts, perfect_messages=None):
@@ -312,9 +312,6 @@ class CommPPO_MLP:
 
         new_lang_contexts = self.lang_learner.encode_sentences(
             broadcasts).cpu().numpy()
-        
-        # Train
-        #losses = self.train()
         
         # Return messages and lang_context
         return broadcasts, messages, new_lang_contexts, klpretrain_rewards
@@ -492,6 +489,9 @@ class PerfectComm:
             pre-trained decoder, dim=(seq_len, batch_size, 1)
         """
         pass
+
+    def train(self):
+        return {}
 
     def get_save_dict(self):
         return {}
