@@ -97,6 +97,7 @@ class TextActorCritic(nn.Module):
         self.word_encoder = word_encoder
         self.max_sent_len = max_sent_len
         self.device = device
+        # TODO add topk param handle
         self.train_topk = train_topk
         # RNN encoder
         self.gru = copy.deepcopy(pretrained_decoder.gru)
