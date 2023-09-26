@@ -2,15 +2,17 @@
 n_run=1
 experiment_name="FT_fixpol_8x8"
 n_parallel_envs=32
-n_steps=5000000
+n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
 comm_policy_algo="ppo_mlp"
+comm_lr=0.0001
+comm_n_mini_batch=4
 FT_pretrained_model_path="models/magym_PredPrey/mappo_perfectcomm_8x8/run18/model_ep.pt"
-FT_n_steps_fix_policy=4000000
+FT_n_steps_fix_policy=8000000
 # lang_lr=0.0009 # default 0.0007
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
@@ -34,6 +36,8 @@ do
     --episode_length ${episode_length}\
     --cuda_device ${cuda_device}\
     --comm_policy_algo ${comm_policy_algo}\
+    --comm_lr ${comm_lr}\
+    --comm_n_mini_batch ${comm_n_mini_batch}\
     --FT_pretrained_model_path ${FT_pretrained_model_path}\
     --FT_n_steps_fix_policy ${FT_n_steps_fix_policy}\
     --magym_env_size ${magym_env_size}"

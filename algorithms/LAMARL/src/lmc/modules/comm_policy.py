@@ -385,6 +385,8 @@ class CommPPO_MLP:
         step_rewards = step_rewards * self.buffer.masks
         
         self.buffer.compute_returns(step_rewards)
+
+        return step_rewards.sum() / self.buffer.masks.sum()
         
     def ppo_update(self, batch):
         input_context, generated_tokens, token_log_probs, value_preds, returns, \

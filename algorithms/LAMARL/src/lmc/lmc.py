@@ -115,9 +115,10 @@ class LMC:
             token_rewards = self.klpretrain_coef * self.last_klpretrain_rewards \
                              + token_penalties
 
-            self.comm_policy.store_rewards(env_rewards.flatten(), token_rewards)
+            tot_mean_rewards = self.comm_policy.store_rewards(
+                env_rewards.flatten(), token_rewards)
 
-            return token_rewards.mean()
+            return token_rewards.mean(), tot_mean_rewards
 
     def train_comm(self):
         return self.comm_policy.train()
