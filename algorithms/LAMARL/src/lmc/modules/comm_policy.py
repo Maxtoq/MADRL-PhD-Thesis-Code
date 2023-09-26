@@ -92,11 +92,12 @@ class CommBuffer_MLP:
 class TextActorCritic(nn.Module):
     
     def __init__(self, word_encoder, pretrained_decoder, context_dim, 
-            max_sent_len, device):
+            max_sent_len, device, train_topk=1):
         super(TextActorCritic, self).__init__()
         self.word_encoder = word_encoder
         self.max_sent_len = max_sent_len
         self.device = device
+        self.train_topk = train_topk
         # RNN encoder
         self.gru = copy.deepcopy(pretrained_decoder.gru)
         # Policy and value heads
@@ -237,7 +238,8 @@ class CommPPO_MLP:
             lang_learner.decoder, 
             args.context_dim, 
             args.comm_max_sent_len,
-            device)
+            device,
+            args.comm_train_topk)
         
         self.optim = torch.optim.Adam(
             list(self.comm_policy.parameters()) + \
