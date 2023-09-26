@@ -374,6 +374,9 @@ class CommPPO_MLP:
             sentence, dim=(n_agents * n_envs, )
         :param token_rewards (np.ndarray): Penalties for diverging from 
             pre-trained decoder, dim=(seq_len, n_agents * n_envs, 1)
+
+        :return mean_message_return (float): Average return of evaluated 
+            messages.
         """
         len_sentences = np.sum(self.buffer.masks, axis=0, dtype=int)
         step_rewards = np.zeros_like(self.buffer.masks)
@@ -385,10 +388,10 @@ class CommPPO_MLP:
         
         # Clean masked rewards
         step_rewards = step_rewards * self.buffer.masks
-        
+
         self.buffer.compute_returns(step_rewards)
 
-        return step_rewards.sum() / self.buffer.masks.sum()
+        return step_rewards.sum() / step_rewards.shape[1]
         
     def ppo_update(self, batch):
         input_context, generated_tokens, token_log_probs, value_preds, returns, \

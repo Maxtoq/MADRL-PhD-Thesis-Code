@@ -101,7 +101,7 @@ def run():
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
             # Reward communication
-            mean_token_reward, tot_mean_reward = model.eval_comm(rewards)
+            mean_message_return = model.eval_comm(rewards)
 
             # Train comm
             comm_losses = model.train_comm()
@@ -109,7 +109,7 @@ def run():
             # Log communication reward and loss
             logger.log_comm(
                 s_i + ep_s_i * cfg.n_parallel_envs, 
-                mean_token_reward, tot_mean_reward, comm_losses)
+                mean_message_return, comm_losses)
 
             # Insert data into replay buffer
             rewards = rewards[..., np.newaxis]

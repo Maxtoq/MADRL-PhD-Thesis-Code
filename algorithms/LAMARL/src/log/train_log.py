@@ -30,7 +30,7 @@ class Logger():
 
         self.comm_data = {
             "Step": [],
-            "Mean token reward": []
+            "Mean message return": []
         }
 
         self.eval_data = {
@@ -80,19 +80,15 @@ class Logger():
                 self._store_episode(e_i, step)
                 self._reset_env(e_i)
 
-    def log_comm(self, step, mean_reward, tot_mean_reward, losses):
+    def log_comm(self, step, mean_message_return, losses):
         self.comm_data["Step"].append(step)
-        self.comm_data["Mean token reward"].append(mean_reward)    
+        self.comm_data["Mean message return"].append(mean_message_return)    
 
         # Log Tensorboard
         if self.log_tensorboard:
             self.log_tb.add_scalar(
                 'agent0/comm_reward', 
-                self.comm_data["Mean token reward"][-1], 
-                self.comm_data["Step"][-1])
-            self.log_tb.add_scalar(
-                'agent0/comm_reward_with_env', 
-                tot_mean_reward, 
+                self.comm_data["Mean message return"][-1], 
                 self.comm_data["Step"][-1])
         
         # Log Tensorboard
