@@ -1,5 +1,9 @@
 venv/*
 venv3.8/*
+*.pyc
+*/*/*/__pycache__/
+*/*/__pycache__/
+*/__pycache__/
 models/*
 old_models/*
 !models/coop_push_scenario_closed
