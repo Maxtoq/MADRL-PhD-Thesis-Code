@@ -118,6 +118,7 @@ class TextActorCritic(nn.Module):
                 1, batch_size, 1).to(self.device)
         
         batch_tokens = []
+        batch_log_probs = []
         batch_token_log_probs = []
         batch_value_preds = []
         batch_masks = [np.ones(batch_size)]
@@ -159,6 +160,7 @@ class TextActorCritic(nn.Module):
                         self.word_encoder.index2token(topi[b_i]))
             
             batch_tokens.append(tokens)
+            batch_log_probs.append(torch2numpy(log_probs))
             batch_token_log_probs.append(torch2numpy(token_log_probs))
             batch_value_preds.append(torch2numpy(value_preds))
             batch_masks.append(masks)
@@ -171,11 +173,12 @@ class TextActorCritic(nn.Module):
         batch_value_preds.append(torch2numpy(value_preds))
         
         tokens = np.stack(batch_tokens, dtype=np.float32)
+        log_probs = np.concatenate(batch_log_probs)
         token_log_probs = np.concatenate(batch_token_log_probs)
         value_preds = np.concatenate(batch_value_preds)
         masks = np.stack(batch_masks)
         
-        return tokens, token_log_probs, value_preds, masks, sentences
+        return tokens, token_log_probs, value_preds, masks, sentences, log_probs
     
     def evaluate_tokens(self, context_batch, token_batch):
         """
@@ -271,6 +274,35 @@ class CommPPO_MLP:
         self.comm_policy.device = self.device
         
     @torch.no_grad()
+    def _get_pretrain_probs(self, context_batch, token_batch):
+        """
+        Get reference token log-probalities from pre-trained decoder.
+        :param context_batch (np.ndarray): Batch of communication contexts
+            (initial hidden state of gru), dim=(1, batch_size, context_dim)
+        :param token_batch (np.ndarray): Batch of generated tokens, 
+            dim=(seq_len, batch_size, token_dim)
+        
+        :return token_log_probs (torch.Tensor): Log-probabilities of given 
+            tokens, dim=(seq_len, batch_size, 1)
+        :return entropy (torch.Tensor): Entropy of the output probabilities, 
+            dim=(1)
+        :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
+            batch_size, 1)
+        """
+        token_batch = torch.from_numpy(token_batch).to(self.device)
+        # Add SOS token
+        sos_token = torch.Tensor(np.tile(
+            self.lang_learner.word_encoder.SOS_ENC, 
+            (1, context_batch.shape[1], 1))).to(self.device)
+        input_tokens = torch.cat((sos_token, token_batch[:-1]))
+
+        ref_log_probs, _ = self.lang_learner.decoder.forward_step(
+            input_tokens, context_batch)
+        # ref_token_log_probs = ref_log_probs.gather(
+        #     -1, token_batch.argmax(-1).unsqueeze(-1))
+        return ref_log_probs
+        
+    @torch.no_grad()
     def get_messages(self, obs, lang_contexts):
         """
         Perform a communication step: encodes obs and previous messages and
@@ -299,15 +331,19 @@ class CommPPO_MLP:
         comm_context = self.context_encoder(input_context).unsqueeze(0)
         
         # Generate messages
-        tokens, token_log_probs, value_preds, masks, messages = \
+        tokens, token_log_probs, value_preds, masks, messages, log_probs = \
             self.comm_policy.gen_messages(comm_context)
         
         # Compute KL-pretrain rewards
         # Get reference token_log_probs from pretrained decoder
-        ref_token_log_probs = self._get_pretrain_probs(comm_context, tokens)
+        ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
+        # # Compute KL divergence
+        # klpretrain_rewards = -(
+        #     token_log_probs - torch2numpy(ref_token_log_probs))
+        # Get reference log_probs from pretrained decoder
+        # ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
         # Compute KL divergence
-        klpretrain_rewards = -(
-            token_log_probs - torch2numpy(ref_token_log_probs))
+        kl = (log_probs - torch2numpy(ref_log_probs)).sum(-1)
         
         # Store experiences in buffer
         self.buffer.store_gen(
@@ -317,7 +353,7 @@ class CommPPO_MLP:
             value_preds, 
             masks)
         
-        return messages, klpretrain_rewards.squeeze(-1)
+        return messages, kl
     
     @torch.no_grad()
     def comm_step(self, obs, lang_contexts, perfect_messages=None):
@@ -338,35 +374,6 @@ class CommPPO_MLP:
         
         # Return messages and lang_context
         return broadcasts, messages, new_lang_contexts, klpretrain_rewards
-        
-    @torch.no_grad()
-    def _get_pretrain_probs(self, context_batch, token_batch):
-        """
-        Get reference token log-probalities from pre-trained decoder.
-        :param context_batch (np.ndarray): Batch of communication contexts
-            (initial hidden state of gru), dim=(1, batch_size, context_dim)
-        :param token_batch (np.ndarray): Batch of generated tokens, 
-            dim=(seq_len, batch_size, token_dim)
-        
-        :return token_log_probs (torch.Tensor): Log-probabilities of given 
-            tokens, dim=(seq_len, batch_size, 1)
-        :return entropy (torch.Tensor): Entropy of the output probabilities, 
-            dim=(1)
-        :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
-            batch_size, 1)
-        """
-        token_batch = torch.from_numpy(token_batch).to(self.device)
-        # Add SOS token
-        sos_token = torch.Tensor(np.tile(
-            self.lang_learner.word_encoder.SOS_ENC, 
-            (1, context_batch.shape[1], 1))).to(self.device)
-        input_tokens = torch.cat((sos_token, token_batch))
-        
-        ref_log_probs, _ = self.lang_learner.decoder.forward_step(
-            input_tokens, context_batch)
-        ref_token_log_probs = ref_log_probs.gather(
-            -1, token_batch.argmax(-1).unsqueeze(-1))
-        return ref_token_log_probs
     
     def store_rewards(self, message_rewards, token_rewards):
         """
