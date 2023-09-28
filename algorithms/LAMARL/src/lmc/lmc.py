@@ -23,6 +23,7 @@ class LMC:
         self.n_warmup_steps = args.n_warmup_steps
         self.token_penalty = args.comm_token_penalty
         self.klpretrain_coef = args.comm_klpretrain_coef
+        self.env_reward_coef = args.comm_env_reward_coef
         self.device = device
 
         # Modules
@@ -109,6 +110,7 @@ class LMC:
 
     def eval_comm(self, env_rewards):
         if self.comm_pol_algo in ["ppo_mlp"]:
+            env_rewards *= self.env_reward_coef
             token_penalties = np.ones_like(
                 self.last_klpretrain_rewards) * -self.token_penalty
 

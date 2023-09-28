@@ -380,8 +380,8 @@ class CommPPO_MLP:
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 
             sentence, dim=(n_agents * n_envs, )
-        :param token_rewards (np.ndarray): Penalties for diverging from 
-            pre-trained decoder, dim=(seq_len, n_agents * n_envs, 1)
+        :param token_rewards (np.ndarray): Rewards for each generated token, 
+            dim=(seq_len, n_agents * n_envs, 1)
 
         :return mean_message_return (float): Average return of evaluated 
             messages.
