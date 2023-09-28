@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_fixpol_8x8"
+experiment_name="FT_fixpol_001KL_env"
 n_parallel_envs=32
 n_steps=10000000
 policy_algo="mappo"
@@ -11,17 +11,17 @@ episode_length=100
 comm_policy_algo="ppo_mlp"
 comm_lr=0.00001 # default 0.0005
 comm_n_mini_batch=4 # default 2
-comm_klpretrain_coef=1.0 # default 0.01
 comm_train_topk=3 # default 1, TODO
+comm_klpretrain_coef=0.01 # default 0.01
 comm_token_penalty=0.0 # default 0.1
-comm_env_reward_coef=0.0 # default 1.0
+comm_env_reward_coef=1.0 # default 1.0
 FT_pretrained_model_path="models/magym_PredPrey/mappo_perfectcomm_8x8/run18/model_ep.pt"
 FT_n_steps_fix_policy=9000000
 # lang_lr=0.0009 # default 0.0007
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:2"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 

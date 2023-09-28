@@ -353,7 +353,7 @@ class CommPPO_MLP:
             value_preds, 
             masks)
         
-        return messages, kl
+        return messages, -kl
     
     @torch.no_grad()
     def comm_step(self, obs, lang_contexts, perfect_messages=None):
