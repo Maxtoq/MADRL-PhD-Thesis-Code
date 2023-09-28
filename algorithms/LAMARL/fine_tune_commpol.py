@@ -101,7 +101,7 @@ def run():
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
             # Reward communication
-            mean_message_return = model.eval_comm(rewards)
+            mean_message_return = model.eval_comm(values.squeeze(-1))#rewards)
 
             # Train comm
             comm_losses = model.train_comm()

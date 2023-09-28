@@ -110,6 +110,7 @@ class LMC:
 
     def eval_comm(self, env_rewards):
         if self.comm_pol_algo in ["ppo_mlp"]:
+            print(env_rewards, env_rewards.shape)
             env_rewards *= self.env_reward_coef
             token_penalties = np.ones_like(
                 self.last_klpretrain_rewards) * -self.token_penalty
