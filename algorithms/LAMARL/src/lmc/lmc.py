@@ -108,10 +108,9 @@ class LMC:
         return values, actions, action_log_probs, rnn_states, \
                rnn_states_critic, broadcasts, lang_contexts
 
-    def eval_comm(self, env_rewards):
+    def eval_comm(self, message_rewards):
         if self.comm_pol_algo in ["ppo_mlp"]:
-            print(env_rewards, env_rewards.shape)
-            env_rewards *= self.env_reward_coef
+            message_rewards *= self.env_reward_coef
             token_penalties = np.ones_like(
                 self.last_klpretrain_rewards) * -self.token_penalty
 
@@ -119,7 +118,7 @@ class LMC:
                              + token_penalties
 
             mean_message_return = self.comm_policy.store_rewards(
-                env_rewards.flatten(), token_rewards)
+                message_rewards.flatten(), token_rewards)
 
             return mean_message_return
 

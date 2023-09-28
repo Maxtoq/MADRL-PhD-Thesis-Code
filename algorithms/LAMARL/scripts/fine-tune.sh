@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_fixpol_001KL_env"
+experiment_name="FT_fixpol_001KL_value"
 n_parallel_envs=32
 n_steps=10000000
 policy_algo="mappo"
@@ -21,7 +21,7 @@ FT_n_steps_fix_policy=9000000
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
