@@ -600,6 +600,10 @@ models/rel_overgen/qmix_4a_40_09/*
 models/rel_overgen/qmix_4a_40_09_JIM/*
 !models/rel_overgen/qmix_4a_40_09_JIM/train_data
 
+!models/rel_overgen/qmix_4a_40_09_LIM
+models/rel_overgen/qmix_4a_40_09_LIM/*
+!models/rel_overgen/qmix_4a_40_09_LIM/train_data
+
 
 !models/push_buttons
 models/push_buttons/*
