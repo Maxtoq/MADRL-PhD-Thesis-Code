@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=2
+n_run=1
 env="algorithms/JIM/scenarios/rel_overgen.py"
 model_name="qmix_4a_40_09_LIM"
 sce_conf_path="configs/2a_pol.json"
