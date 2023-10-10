@@ -328,7 +328,7 @@ class CommPPO_MLP:
         input_context = torch.cat((obs_context, lang_contexts), dim=-1)
         
         # Encode contexts
-        comm_context = self.context_encoder(input_context).unsqueeze(0)
+        comm_context = obs_context # self.context_encoder(input_context).unsqueeze(0)
         
         # Generate messages
         tokens, token_log_probs, value_preds, masks, messages, log_probs = \
@@ -338,10 +338,6 @@ class CommPPO_MLP:
         # Get reference token_log_probs from pretrained decoder
         ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
         # # Compute KL divergence
-        # klpretrain_rewards = -(
-        #     token_log_probs - torch2numpy(ref_token_log_probs))
-        # Get reference log_probs from pretrained decoder
-        # ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
         # Compute KL divergence
         kl = (log_probs - torch2numpy(ref_log_probs)).sum(-1)
         
