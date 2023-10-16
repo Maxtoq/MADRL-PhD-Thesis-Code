@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="TESTWARMUPFT_fixpol_nocommenc_noenv_lr1e-4_nepo32"
+experiment_name="FT_fixpol_nocommenc_noenv_lr1e-4_nepo32"
 n_parallel_envs=32
 n_steps=10000000
 policy_algo="mappo"
@@ -11,7 +11,7 @@ episode_length=100
 comm_policy_algo="ppo_mlp"
 comm_lr=0.0001 # default 0.0005
 comm_n_epochs=32 # default 16
-comm_n_warmup_steps=1000000 # default 100000
+comm_n_warmup_steps=100000 # default 100000
 comm_n_mini_batch=2 # default 2
 comm_train_topk=3 # default 1, TODO
 comm_klpretrain_coef=1.0 # default 0.01

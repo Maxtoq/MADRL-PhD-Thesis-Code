@@ -11,6 +11,28 @@ from src.lmc.modules.networks import MLPNetwork
 
 def torch2numpy(x):
     return x.detach().cpu().numpy()
+
+
+# class Tester:
+
+#     def __init__(self):
+#         self.test_output = None
+
+#     def test(self, module, input_tensor, name, rec_input=None):
+#         if rec_input is not None:
+#             _, test = module(rec_input, torch.ones_like(input_tensor))
+#         else:
+#             test = module(torch.ones_like(input_tensor))
+
+#         if self.test_output is None:
+#             self.test_output = test
+#         else:
+#             if not torch.all(torch.eq(self.test_output, test)):
+#                 torch.set_printoptions(profile="full")
+#                 print(name, "TEST FAILED:", self.test_output[0], test[0])
+#                 exit()
+#             else:
+#                 print(name, "Test ok")
     
 
 class CommBuffer_MLP:
@@ -104,9 +126,6 @@ class TextActorCritic(nn.Module):
         # Policy and value heads
         self.actor = copy.deepcopy(pretrained_decoder.out)
         self.critic = nn.Linear(context_dim, 1)
-
-        # TESTNOLEARNING
-        self.test = None
             
     def gen_messages(self, context_batch):
         """
@@ -131,21 +150,6 @@ class TextActorCritic(nn.Module):
         for t_i in range(self.max_sent_len):
             # Encode with RNN
             _, hidden = self.gru(last_tokens, hidden)
-
-            # TESTNOLEARNING
-            tok = torch.tensor(
-                np.array([[self.word_encoder.SOS_ENC]])).float().repeat(
-                    1, batch_size, 1).to(self.device)
-            _, test = self.gru(tok, torch.ones_like(hidden))
-            if self.test is None:
-                self.test = test
-            else:
-                if not torch.all(torch.eq(self.test, test)):
-                    torch.set_printoptions(profile="full")
-                    print("Different tests:", self.test[0], test[0])
-                    exit()
-                else:
-                    print("Test ok")
             
             # Get token predictions from actor
             log_probs = self.actor(hidden)
@@ -279,16 +283,11 @@ class CommPPO_MLP:
 
     def warmup_lr(self, warmup):
         if warmup != self.warming_up:
-            # TEST: lr to 0 in warmup
-            lr = self.lr * 0.0 if warmup else self.lr
+            lr = self.lr * 0.001 if warmup else self.lr
             if warmup:
                 print("WARMING UP", lr)
             else:
                 print("STOP WARMING UP", lr)
-            # for param_group in self.actor_optimizer.param_groups:
-            #     param_group['lr'] = lr
-            # for param_group in self.critic_optimizer.param_groups:
-            #     param_group['lr'] = lr
             for param_group in self.optim.param_groups:
                 param_group['lr'] = lr
             self.warming_up = warmup
@@ -334,6 +333,7 @@ class CommPPO_MLP:
 
         ref_log_probs, _ = self.lang_learner.decoder.forward_step(
             input_tokens, context_batch)
+        
         return ref_log_probs
         
     @torch.no_grad()
@@ -471,7 +471,7 @@ class CommPPO_MLP:
             self.comm_policy.parameters(), self.max_grad_norm)
         nn.utils.clip_grad_norm_(
             self.context_encoder.parameters(), self.max_grad_norm)
-        #self.optim.step()
+        self.optim.step()
         
         return pol_loss, entropy_loss, val_loss
     
@@ -512,6 +512,9 @@ class CommPPO_MLP:
             self.context_encoder.load_state_dict(save_dict["context_encoder"])
             self.comm_policy.load_state_dict(save_dict["comm_policy"])
             self.optim.load_state_dict(save_dict["comm_optim"])
+        else: # Starting fine-tuning from pretrained language learner
+            self.comm_policy.gru = copy.deepcopy(self.lang_learner.decoder.gru)
+            self.comm_policy.actor = copy.deepcopy(self.lang_learner.decoder.out)
 
 
 class PerfectComm:
