@@ -104,7 +104,7 @@ def run():
             mean_message_return = model.eval_comm(values.squeeze(-1))#rewards)
 
             # Train comm
-            comm_losses = model.train_comm()
+            comm_losses = model.train_comm(s_i)
 
             # Log communication reward and loss
             logger.log_comm(

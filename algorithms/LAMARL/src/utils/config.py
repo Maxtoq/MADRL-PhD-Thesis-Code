@@ -299,6 +299,7 @@ def get_config():
     parser.add_argument("--comm_lr", type=float, default=0.0005)
     parser.add_argument("--comm_gamma", type=float, default=0.99)
     parser.add_argument("--comm_n_epochs", type=int, default=16)
+    parser.add_argument("--comm_n_warmup_steps", type=int, default=100000)
     parser.add_argument("--comm_ppo_clip_param", type=float, default=0.2)
     parser.add_argument("--comm_entropy_coef", type=float, default=0.01)
     parser.add_argument("--comm_vloss_coef", type=float, default=0.5)

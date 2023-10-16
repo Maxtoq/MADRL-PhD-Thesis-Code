@@ -21,6 +21,7 @@ class LMC:
         self.context_dim = args.context_dim
         self.n_parallel_envs = args.n_parallel_envs
         self.n_warmup_steps = args.n_warmup_steps
+        self.comm_n_warmup_steps = args.comm_n_warmup_steps
         self.token_penalty = args.comm_token_penalty
         self.klpretrain_coef = args.comm_klpretrain_coef
         self.env_reward_coef = args.comm_env_reward_coef
@@ -122,8 +123,9 @@ class LMC:
 
             return mean_message_return
 
-    def train_comm(self):
-        return self.comm_policy.train()
+    def train_comm(self, step):
+        warmup = step < self.comm_n_warmup_steps
+        return self.comm_policy.train(warmup)
 
     def reset_context(self, current_lang_contexts=None, env_dones=None):
         """

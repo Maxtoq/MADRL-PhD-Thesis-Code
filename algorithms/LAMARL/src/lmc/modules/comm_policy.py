@@ -104,6 +104,9 @@ class TextActorCritic(nn.Module):
         # Policy and value heads
         self.actor = copy.deepcopy(pretrained_decoder.out)
         self.critic = nn.Linear(context_dim, 1)
+
+        # TESTNOLEARNING
+        self.test = None
             
     def gen_messages(self, context_batch):
         """
@@ -128,6 +131,21 @@ class TextActorCritic(nn.Module):
         for t_i in range(self.max_sent_len):
             # Encode with RNN
             _, hidden = self.gru(last_tokens, hidden)
+
+            # TESTNOLEARNING
+            tok = torch.tensor(
+                np.array([[self.word_encoder.SOS_ENC]])).float().repeat(
+                    1, batch_size, 1).to(self.device)
+            _, test = self.gru(tok, torch.ones_like(hidden))
+            if self.test is None:
+                self.test = test
+            else:
+                if not torch.all(torch.eq(self.test, test)):
+                    torch.set_printoptions(profile="full")
+                    print("Different tests:", self.test[0], test[0])
+                    exit()
+                else:
+                    print("Test ok")
             
             # Get token predictions from actor
             log_probs = self.actor(hidden)
@@ -224,6 +242,7 @@ class CommPPO_MLP:
     def __init__(self, args, n_agents, lang_learner, device="cpu"):
         self.n_agents = n_agents
         self.n_envs = args.n_parallel_envs
+        self.lr = args.comm_lr
         self.n_epochs = args.comm_n_epochs
         self.ppo_clip_param = args.comm_ppo_clip_param
         self.entropy_coef = args.comm_entropy_coef
@@ -231,6 +250,7 @@ class CommPPO_MLP:
         self.max_grad_norm = args.comm_max_grad_norm
         self.n_mini_batch = args.comm_n_mini_batch
         self.device = device
+        self.warming_up = False
         
         self.lang_learner = lang_learner
         
@@ -248,7 +268,7 @@ class CommPPO_MLP:
         self.optim = torch.optim.Adam(
             list(self.comm_policy.parameters()) + \
             list(self.context_encoder.parameters()), 
-            lr=args.comm_lr, eps=1e-5)
+            lr=self.lr, eps=1e-5)
         
         self.buffer = CommBuffer_MLP(
             args.context_dim,
@@ -256,6 +276,22 @@ class CommPPO_MLP:
             self.lang_learner.word_encoder.enc_dim,
             args.comm_gamma,
             self.n_mini_batch)
+
+    def warmup_lr(self, warmup):
+        if warmup != self.warming_up:
+            # TEST: lr to 0 in warmup
+            lr = self.lr * 0.0 if warmup else self.lr
+            if warmup:
+                print("WARMING UP", lr)
+            else:
+                print("STOP WARMING UP", lr)
+            # for param_group in self.actor_optimizer.param_groups:
+            #     param_group['lr'] = lr
+            # for param_group in self.critic_optimizer.param_groups:
+            #     param_group['lr'] = lr
+            for param_group in self.optim.param_groups:
+                param_group['lr'] = lr
+            self.warming_up = warmup
 
     def prep_rollout(self, device=None):
         if device is None:
@@ -298,8 +334,6 @@ class CommPPO_MLP:
 
         ref_log_probs, _ = self.lang_learner.decoder.forward_step(
             input_tokens, context_batch)
-        # ref_token_log_probs = ref_log_probs.gather(
-        #     -1, token_batch.argmax(-1).unsqueeze(-1))
         return ref_log_probs
         
     @torch.no_grad()
@@ -328,7 +362,7 @@ class CommPPO_MLP:
         input_context = torch.cat((obs_context, lang_contexts), dim=-1)
         
         # Encode contexts
-        comm_context = obs_context # self.context_encoder(input_context).unsqueeze(0)
+        comm_context = obs_context.unsqueeze(0) # NOCOMMENC self.context_encoder(input_context).unsqueeze(0)
         
         # Generate messages
         tokens, token_log_probs, value_preds, masks, messages, log_probs = \
@@ -408,7 +442,8 @@ class CommPPO_MLP:
         returns = torch.from_numpy(returns).to(self.device)
         
         # Evaluate generated tokens
-        comm_context = self.context_encoder(input_context).unsqueeze(0)
+        # NOCOMMENC comm_context = self.context_encoder(input_context).unsqueeze(0)
+        comm_context = input_context[:, :16].unsqueeze(0).contiguous()
         new_token_log_probs, entropy, new_value_preds = \
             self.comm_policy.evaluate_tokens(comm_context, generated_tokens)
             
@@ -436,11 +471,12 @@ class CommPPO_MLP:
             self.comm_policy.parameters(), self.max_grad_norm)
         nn.utils.clip_grad_norm_(
             self.context_encoder.parameters(), self.max_grad_norm)
-        self.optim.step()
+        #self.optim.step()
         
         return pol_loss, entropy_loss, val_loss
     
-    def train(self):
+    def train(self, warmup=False):
+        self.warmup_lr(warmup)
         self.prep_training()
         losses = {
             "comm_policy_loss": 0,

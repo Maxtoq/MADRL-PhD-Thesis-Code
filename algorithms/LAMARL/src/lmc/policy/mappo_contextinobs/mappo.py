@@ -70,7 +70,6 @@ class R_MAPPOPolicy:
             for param_group in self.critic_optimizer.param_groups:
                 param_group['lr'] = lr
             self.warming_up = warmup
-            
 
     def get_actions(self, 
             cent_obs, obs, rnn_states_actor, rnn_states_critic, masks,
