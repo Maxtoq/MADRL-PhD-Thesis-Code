@@ -83,12 +83,14 @@ def run():
         for ep_s_i in range(cfg.episode_length):
             # # Parse obs
             # parsed_obs = parser.get_perfect_messages(obs)
+            # print("PARSED", parsed_obs)
             # # Store language inputs in buffer
             # model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \
                 messages, lang_contexts = model.comm_n_act(obs, lang_contexts)
+            # print("MESSAGES", messages)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 

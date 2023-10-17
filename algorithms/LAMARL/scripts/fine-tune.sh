@@ -23,7 +23,7 @@ FT_n_steps_fix_policy=11000000
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 

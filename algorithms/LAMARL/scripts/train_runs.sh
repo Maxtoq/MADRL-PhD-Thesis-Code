@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="mappo_perfectcomm_8x8"
+experiment_name="TESTmappo_perfectcomm_8x8"
 n_parallel_envs=32
 n_steps=5000000
 policy_algo="mappo"

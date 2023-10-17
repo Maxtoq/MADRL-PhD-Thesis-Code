@@ -13,26 +13,93 @@ def torch2numpy(x):
     return x.detach().cpu().numpy()
 
 
-# class Tester:
+class PerfectComm:
 
-#     def __init__(self):
-#         self.test_output = None
+    def __init__(self, lang_learner, prob_send_message=0.2):
+        self.lang_learner = lang_learner
+        self.prob_send_message = prob_send_message
 
-#     def test(self, module, input_tensor, name, rec_input=None):
-#         if rec_input is not None:
-#             _, test = module(rec_input, torch.ones_like(input_tensor))
-#         else:
-#             test = module(torch.ones_like(input_tensor))
+    def _rand_filter_messages(self, messages):
+        """
+        Randomly filter out perfect messages.
+        :param messages (list(list(list(str)))): Perfect messages, ordered by
+            environment, by agent.
 
-#         if self.test_output is None:
-#             self.test_output = test
-#         else:
-#             if not torch.all(torch.eq(self.test_output, test)):
-#                 torch.set_printoptions(profile="full")
-#                 print(name, "TEST FAILED:", self.test_output[0], test[0])
-#                 exit()
-#             else:
-#                 print(name, "Test ok")
+        :return filtered_broadcast (list(list(str))): Filtered message to 
+            broadcast, one for each environment.
+        """
+        filtered_broadcast = []
+        for env_messages in messages:
+            env_broadcast = []
+            for message in env_messages:
+                if random.random() < self.prob_send_message:
+                    env_broadcast.extend(message)
+            filtered_broadcast.append(env_broadcast)
+        return filtered_broadcast
+
+    def comm_step(self, obs, lang_contexts, perfect_messages):
+        """
+        Perform a communication step.
+        :param obs (np.ndarray): Observations.
+        :param perfect messages (list(list(list(str)))): Perfect messages,
+            ordered by environment, by agent.
+
+        :return broadcasts (list(list(str))): Broadcasted messages for each
+            environment.
+        :return next_contents (np.ndarray): Language contexts for next step,
+            dim=(n_envs, context_dim).
+        """
+        # Determines the content of the broadcasted message
+        broadcasts = self._rand_filter_messages(perfect_messages)
+        
+        # Compute next context
+        next_contexts = self.lang_learner.encode_sentences(broadcasts)
+
+        return broadcasts, None, next_contexts.detach().cpu().numpy(), None
+
+    def store_rewards(self, message_rewards, token_rewards):
+        """
+        Send rewards for each sentences to the buffer to compute returns.
+        :param message_rewards (np.ndarray): Rewards for each generated 
+            sentence, dim=(batch_size, )
+        :param klpretrain_rewards (np.ndarray): Penalties for diverging from 
+            pre-trained decoder, dim=(seq_len, batch_size, 1)
+        """
+        pass
+
+    def train(self):
+        return {}
+
+    def get_save_dict(self):
+        return {}
+
+    def prep_rollout(self, device=None):
+        pass
+
+    def prep_training(self):
+        pass
+
+
+class Tester:
+
+    def __init__(self):
+        self.test_output = None
+
+    def test(self, module, input_tensor, name, rec_input=None):
+        if rec_input is not None:
+            _, test = module(rec_input, torch.ones_like(input_tensor))
+        else:
+            test = module(torch.ones_like(input_tensor))
+
+        if self.test_output is None:
+            self.test_output = test
+        else:
+            if not torch.all(torch.eq(self.test_output, test)):
+                torch.set_printoptions(profile="full")
+                print(name, "TEST FAILED:", self.test_output[0], test[0])
+                exit()
+            else:
+                print(name, "Test ok")
     
 
 class CommBuffer_MLP:
@@ -396,7 +463,7 @@ class CommPPO_MLP:
         for e_i in range(self.n_envs):
             env_broadcast = []
             for a_i in range(self.n_agents):
-                env_broadcast.extend(messages[e_i * self.n_agents + a_i])
+                env_broadcast.extend(messages[e_i * self.n_agents + a_i][:-1])
             broadcasts.append(env_broadcast)
 
         new_lang_contexts = self.lang_learner.encode_sentences(
@@ -515,64 +582,3 @@ class CommPPO_MLP:
         else: # Starting fine-tuning from pretrained language learner
             self.comm_policy.gru = copy.deepcopy(self.lang_learner.decoder.gru)
             self.comm_policy.actor = copy.deepcopy(self.lang_learner.decoder.out)
-
-
-class PerfectComm:
-
-    def __init__(self, lang_learner, prob_send_message=0.2):
-        self.lang_learner = lang_learner
-        self.prob_send_message = prob_send_message
-
-    def _rand_filter_messages(self, messages):
-        """
-        Randomly filter out perfect messages.
-        :param messages (list(list(list(str)))): Perfect messages, ordered by
-            environment, by agent.
-
-        :return filtered_broadcast (list(list(str))): Filtered message to 
-            broadcast, one for each environment.
-        """
-        filtered_broadcast = []
-        for env_messages in messages:
-            env_broadcast = []
-            for message in env_messages:
-                if random.random() < self.prob_send_message:
-                    env_broadcast.extend(message)
-            filtered_broadcast.append(env_broadcast)
-        return filtered_broadcast
-
-    def comm_step(self, obs, lang_contexts, perfect_messages):
-        """
-        Perform a communication step.
-        :param obs (np.ndarray): Observations.
-        :param perfect messages (list(list(list(str)))): Perfect messages,
-            ordered by environment, by agent.
-
-        :return broadcasts (list(list(str))): Broadcasted messages for each
-            environment.
-        :return next_contents (np.ndarray): Language contexts for next step,
-            dim=(n_envs, context_dim).
-        """
-        # Determines the content of the broadcasted message
-        broadcasts = self._rand_filter_messages(perfect_messages)
-        
-        # Compute next context
-        next_contexts = self.lang_learner.encode_sentences(broadcasts)
-
-        return broadcasts, None, next_contexts.detach().cpu().numpy(), None
-
-    def store_rewards(self, message_rewards, token_rewards):
-        """
-        Send rewards for each sentences to the buffer to compute returns.
-        :param message_rewards (np.ndarray): Rewards for each generated 
-            sentence, dim=(batch_size, )
-        :param klpretrain_rewards (np.ndarray): Penalties for diverging from 
-            pre-trained decoder, dim=(seq_len, batch_size, 1)
-        """
-        pass
-
-    def train(self):
-        return {}
-
-    def get_save_dict(self):
-        return {}
