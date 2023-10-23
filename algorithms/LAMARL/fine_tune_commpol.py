@@ -89,7 +89,8 @@ def run():
             # Perform step
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \
-                messages, lang_contexts = model.comm_n_act(obs, lang_contexts)
+                messages, lang_contexts = model.comm_n_act(
+                    obs, lang_contexts) #, parsed_obs) # TEST with perfect messages
             # print("MESSAGES", messages)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
@@ -99,7 +100,6 @@ def run():
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
-                break
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
             # Reward communication

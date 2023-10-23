@@ -80,26 +80,25 @@ class PerfectComm:
         pass
 
 
-class Tester:
+# class Tester:
 
-    def __init__(self):
-        self.test_output = None
+#     def __init__(self):
+#         self.test_output = None
 
-    def test(self, module, input_tensor, name, rec_input=None):
-        if rec_input is not None:
-            _, test = module(rec_input, torch.ones_like(input_tensor))
-        else:
-            test = module(torch.ones_like(input_tensor))
+#     def test(self, module, input_tensor, name, rec_input=None):
+#         if rec_input is not None:
+#             _, test = module(rec_input, torch.ones_like(input_tensor))
+#         else:
+#             test = module(torch.ones_like(input_tensor))
 
-        if self.test_output is None:
-            self.test_output = test
-        else:
-            if not torch.all(torch.eq(self.test_output, test)):
-                torch.set_printoptions(profile="full")
-                print(name, "TEST FAILED:", self.test_output[0], test[0])
-                exit()
-            else:
-                print(name, "Test ok")
+#         if self.test_output is None:
+#             self.test_output = test
+#         else:
+#             if not torch.all(torch.eq(self.test_output, test)):
+#                 torch.set_printoptions(profile="full")
+#                 print(name, "output CHANGED")
+#             else:
+#                 print(name, "output not changed")
     
 
 class CommBuffer_MLP:
@@ -348,9 +347,39 @@ class CommPPO_MLP:
             args.comm_gamma,
             self.n_mini_batch)
 
+    #     self._TEST_param_equal()
+
+    # def _TEST_param_equal(self):
+    #     self.init_gru.to(self.comm_policy.device)
+    #     self.init_actor.to(self.comm_policy.device)
+    #     for pt, ft in zip(
+    #             self.lang_learner.decoder.gru.parameters(), self.comm_policy.gru.parameters()):
+    #         if pt.data.ne(ft.data).sum() > 0:
+    #             print("GRU NOT EQUAL to finetune")
+    #         else:
+    #             print("GRU equal to finetune")
+    #     for it, ft in zip(
+    #             self.init_gru.parameters(), self.comm_policy.gru.parameters()):
+    #         if it.data.ne(ft.data).sum() > 0:
+    #             print("GRU CHANGED since start")
+    #         else:
+    #             print("GRU didn't change since start")
+    #     for pt, ft in zip(
+    #             self.lang_learner.decoder.out.parameters(), self.comm_policy.actor.parameters()):
+    #         if pt.data.ne(ft.data).sum() > 0:
+    #             print("OUT NOT EQUAL to finetune")
+    #         else:
+    #             print("OUT equal to finetune")
+    #     for it, ft in zip(
+    #             self.init_actor.parameters(), self.comm_policy.actor.parameters()):
+    #         if it.data.ne(ft.data).sum() > 0:
+    #             print("ACTOR CHANGED since start")
+    #         else:
+    #             print("ACTOR didn't change since start")
+
     def warmup_lr(self, warmup):
         if warmup != self.warming_up:
-            lr = self.lr * 0.001 if warmup else self.lr
+            lr = self.lr * 0.01 if warmup else self.lr
             if warmup:
                 print("WARMING UP", lr)
             else:
@@ -451,12 +480,29 @@ class CommPPO_MLP:
             masks)
         
         return messages, -kl
+
+    # def _rand_filter_messages(self, messages):
+    #     """
+    #     Randomly filter out perfect messages.
+    #     :param messages (list(list(list(str)))): Perfect messages, ordered by
+    #         environment, by agent.
+
+    #     :return filtered_broadcast (list(list(str))): Filtered message to 
+    #         broadcast, one for each environment.
+    #     """
+    #     filtered_broadcast = []
+    #     for env_messages in messages:
+    #         env_broadcast = []
+    #         for message in env_messages:
+    #             if random.random() < 0.2:
+    #                 env_broadcast.extend(message)
+    #         filtered_broadcast.append(env_broadcast)
+    #     return filtered_broadcast
     
     @torch.no_grad()
     def comm_step(self, obs, lang_contexts, perfect_messages=None):
         # Get messages
-        messages, klpretrain_rewards = self.get_messages(
-            obs, lang_contexts)
+        messages, klpretrain_rewards = self.get_messages(obs, lang_contexts)
         
         # Arrange messages by env
         broadcasts = []
@@ -468,6 +514,10 @@ class CommPPO_MLP:
 
         new_lang_contexts = self.lang_learner.encode_sentences(
             broadcasts).cpu().numpy()
+
+        # # TEST with perfect messages
+        # broadcasts = self._rand_filter_messages(perfect_messages)
+        # new_lang_contexts = self.lang_learner.encode_sentences(broadcasts).detach().cpu().numpy()
         
         # Return messages and lang_context
         return broadcasts, messages, new_lang_contexts, klpretrain_rewards
@@ -496,7 +546,16 @@ class CommPPO_MLP:
 
         self.buffer.compute_returns(step_rewards)
 
-        return step_rewards.sum() / step_rewards.shape[1]
+        mean_step_rewards = step_rewards.sum() / step_rewards.shape[1]
+
+        rewards = {
+            "kl_reward": token_rewards.mean(),
+            "env_reward": message_rewards.mean(),
+            "token_reward": step_rewards.sum() / step_rewards.shape[1]
+        }
+
+        # return step_rewards.sum() / step_rewards.shape[1]
+        return rewards
         
     def ppo_update(self, batch):
         input_context, generated_tokens, token_log_probs, value_preds, returns, \
@@ -527,7 +586,7 @@ class CommPPO_MLP:
         # Value loss
         val_loss = ((new_value_preds - returns) ** 2).mean()
         
-        # Final loss
+        # Final PPO loss
         loss = pol_loss - self.entropy_coef * entropy_loss + \
                 self.vloss_coef * val_loss
         
@@ -539,7 +598,7 @@ class CommPPO_MLP:
         nn.utils.clip_grad_norm_(
             self.context_encoder.parameters(), self.max_grad_norm)
         self.optim.step()
-        
+
         return pol_loss, entropy_loss, val_loss
     
     def train(self, warmup=False):
@@ -580,5 +639,7 @@ class CommPPO_MLP:
             self.comm_policy.load_state_dict(save_dict["comm_policy"])
             self.optim.load_state_dict(save_dict["comm_optim"])
         else: # Starting fine-tuning from pretrained language learner
-            self.comm_policy.gru = copy.deepcopy(self.lang_learner.decoder.gru)
-            self.comm_policy.actor = copy.deepcopy(self.lang_learner.decoder.out)
+            self.comm_policy.gru.load_state_dict(
+                self.lang_learner.decoder.gru.state_dict())
+            self.comm_policy.actor.load_state_dict(
+                self.lang_learner.decoder.out.state_dict())

@@ -80,21 +80,18 @@ class Logger():
                 self._store_episode(e_i, step)
                 self._reset_env(e_i)
 
-    def log_comm(self, step, mean_message_return, losses):
+    def log_comm(self, step, comm_rewards, losses):
         self.comm_data["Step"].append(step)
-        self.comm_data["Mean message return"].append(mean_message_return)    
+        self.comm_data["Mean message return"].append(
+            comm_rewards["token_reward"])    
 
         # Log Tensorboard
         if self.log_tensorboard:
-            self.log_tb.add_scalar(
-                'agent0/comm_reward', 
-                self.comm_data["Mean message return"][-1], 
-                self.comm_data["Step"][-1])
+            self.log_tb.add_scalars('agent0/comm_reward', comm_rewards, step)
         
         # Log Tensorboard
         if self.log_tensorboard:
-            self.log_tb.add_scalars(
-                'agent0/losses', losses, step)
+            self.log_tb.add_scalars('agent0/losses', losses, step)
 
     def log_losses(self, losses, step):
         if self.log_tensorboard:
