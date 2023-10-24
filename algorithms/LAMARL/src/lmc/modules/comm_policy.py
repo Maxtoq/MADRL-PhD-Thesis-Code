@@ -569,7 +569,7 @@ class CommPPO_MLP:
         rewards = {
             "kl_reward": token_rewards.mean(),
             "env_reward": message_rewards.mean(),
-            "token_reward": step_rewards.sum() / step_rewards.shape[1]
+            "token_reward": step_rewards.sum() / self.buffer.masks.sum()
         }
 
         # return step_rewards.sum() / step_rewards.shape[1]
