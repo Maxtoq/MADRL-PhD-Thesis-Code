@@ -102,6 +102,8 @@ def run():
             if True in env_dones:
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
+            # print("parsed_obs", parsed_obs)
+            # print("messages", messages)
             # Reward communication
             mean_message_return = model.eval_comm(values.squeeze(-1))#rewards)
 

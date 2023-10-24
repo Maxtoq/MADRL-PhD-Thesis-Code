@@ -469,7 +469,10 @@ class CommPPO_MLP:
         ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
         # # Compute KL divergence
         # Compute KL divergence
-        kl = (log_probs - torch2numpy(ref_log_probs)).sum(-1)
+        kl = (np.exp(log_probs) * (log_probs - torch2numpy(ref_log_probs))).sum(-1)
+        # print()
+        # print(kl)
+        # exit()
         
         # Store experiences in buffer
         self.buffer.store_gen(
@@ -533,20 +536,35 @@ class CommPPO_MLP:
         :return mean_message_return (float): Average return of evaluated 
             messages.
         """
+        # print("message_rewards", message_rewards, message_rewards.shape)
+        # print("token_rewards", token_rewards, token_rewards.shape)
+        token_rewards *= self.buffer.masks[1:]
+        # print("token_rewards", token_rewards, token_rewards.shape)
+
         len_sentences = np.sum(self.buffer.masks, axis=0, dtype=int)
         step_rewards = np.zeros_like(self.buffer.masks)
+        # print("step_rewards", step_rewards, step_rewards.shape)
         # Set final reward to final token of each sentence
         step_rewards[len_sentences - 1, list(range(message_rewards.shape[0]))] = \
             message_rewards
+        # print("step_rewards", step_rewards, step_rewards.shape)
         # Add klpretrain penalty
         step_rewards[1:] += token_rewards
+        # print("step_rewards", step_rewards, step_rewards.shape)
         
         # Clean masked rewards
-        step_rewards = step_rewards * self.buffer.masks
+        step_rewards *= self.buffer.masks
+        # print("buffer.masks", self.buffer.masks)
+        # print("step_rewards", step_rewards, step_rewards.shape)
 
         self.buffer.compute_returns(step_rewards)
 
-        mean_step_rewards = step_rewards.sum() / step_rewards.shape[1]
+        # print("kl_reward", token_rewards.mean())
+        # print("token_reward", step_rewards.sum() / self.buffer.masks.sum())
+        # print("returns", self.buffer.returns, self.buffer.returns.shape)
+        # exit()
+
+        # mean_step_rewards = step_rewards.sum() / step_rewards.shape[1]
 
         rewards = {
             "kl_reward": token_rewards.mean(),
