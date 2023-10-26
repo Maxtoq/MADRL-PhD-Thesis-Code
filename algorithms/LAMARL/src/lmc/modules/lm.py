@@ -4,6 +4,14 @@ import torch
 from torch import nn
 
 
+def init_rnn_params(rnn, gain=1.0, bias=0.0):
+    for name, param in rnn.named_parameters():
+        if "bias" in name:
+            nn.init.constant_(param, bias)
+        elif "weight" in name:
+            nn.init.orthogonal_(param, gain)
+
+
 class OneHotEncoder:
     """
     Class managing the vocabulary and its one-hot encodings
@@ -126,6 +134,7 @@ class GRUEncoder(nn.Module):
             self.context_dim, 
             n_layers,
             batch_first=True)
+        init_rnn_params(self.gru)
         self.out = nn.Linear(self.hidden_dim, context_dim)
         self.norm = nn.LayerNorm(context_dim)
 
@@ -204,7 +213,7 @@ class GRUDecoder(nn.Module):
             self.word_encoder.enc_dim, 
             self.hidden_dim, 
             n_layers)
-            #batch_first=True)
+        init_rnn_params(self.gru)
         # Output layer
         self.out = nn.Sequential(
             nn.Linear(self.hidden_dim, self.word_encoder.enc_dim),

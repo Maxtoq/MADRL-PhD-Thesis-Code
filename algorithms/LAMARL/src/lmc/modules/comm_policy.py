@@ -6,7 +6,7 @@ import numpy as np
 
 from torch import nn
 
-from src.lmc.modules.networks import MLPNetwork
+from src.lmc.modules.networks import MLPNetwork, init
 
 
 def torch2numpy(x):
@@ -191,7 +191,7 @@ class TextActorCritic(nn.Module):
         self.gru = copy.deepcopy(pretrained_decoder.gru)
         # Policy and value heads
         self.actor = copy.deepcopy(pretrained_decoder.out)
-        self.critic = nn.Linear(context_dim, 1)
+        self.critic = init(nn.Linear(context_dim, 1), gain=0.01)
             
     def gen_messages(self, context_batch):
         """
@@ -346,36 +346,6 @@ class CommPPO_MLP:
             self.lang_learner.word_encoder.enc_dim,
             args.comm_gamma,
             self.n_mini_batch)
-
-    #     self._TEST_param_equal()
-
-    # def _TEST_param_equal(self):
-    #     self.init_gru.to(self.comm_policy.device)
-    #     self.init_actor.to(self.comm_policy.device)
-    #     for pt, ft in zip(
-    #             self.lang_learner.decoder.gru.parameters(), self.comm_policy.gru.parameters()):
-    #         if pt.data.ne(ft.data).sum() > 0:
-    #             print("GRU NOT EQUAL to finetune")
-    #         else:
-    #             print("GRU equal to finetune")
-    #     for it, ft in zip(
-    #             self.init_gru.parameters(), self.comm_policy.gru.parameters()):
-    #         if it.data.ne(ft.data).sum() > 0:
-    #             print("GRU CHANGED since start")
-    #         else:
-    #             print("GRU didn't change since start")
-    #     for pt, ft in zip(
-    #             self.lang_learner.decoder.out.parameters(), self.comm_policy.actor.parameters()):
-    #         if pt.data.ne(ft.data).sum() > 0:
-    #             print("OUT NOT EQUAL to finetune")
-    #         else:
-    #             print("OUT equal to finetune")
-    #     for it, ft in zip(
-    #             self.init_actor.parameters(), self.comm_policy.actor.parameters()):
-    #         if it.data.ne(ft.data).sum() > 0:
-    #             print("ACTOR CHANGED since start")
-    #         else:
-    #             print("ACTOR didn't change since start")
 
     def warmup_lr(self, warmup):
         if warmup != self.warming_up:

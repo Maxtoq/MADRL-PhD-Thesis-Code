@@ -1,7 +1,10 @@
 from torch import nn
 
 
-def init(module, weight_init, bias_init, gain=1):
+def init(module, 
+         weight_init=nn.init.orthogonal_, 
+         bias_init=lambda x: nn.init.constant_(x, 0), 
+         gain=1):
     if hasattr(module, 'weight'):
         weight_init(module.weight.data, gain=gain)
     if hasattr(module, 'bias'):
@@ -90,7 +93,6 @@ class MLPNetwork(nn.Module):
             init_(nn.Linear(hidden_dim, out_dim)),
             nn.LayerNorm(out_dim)
         )
-        # self.mlp.apply(init_)
 
     def forward(self, X):
         """
