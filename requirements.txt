@@ -29,8 +29,8 @@ GitPython==3.1.18
 google-auth==1.35.0
 google-auth-oauthlib==0.4.6
 grpcio==1.51.1
-gym==0.20.0
-gym-notices==0.0.8
+gym
+gym-notices
 idna==3.4
 importlib-metadata==6.0.0
 importlib-resources==5.12.0
@@ -54,7 +54,6 @@ jupyterlab-pygments==0.2.2
 jupyterlab-widgets==3.0.5
 keyboard==0.13.5
 kiwisolver==1.4.4
--e git+https://github.com/koulanurag/ma-gym.git@bac1ee6a7889d450f3248f6e05c7aaa6a5a7384d#egg=ma_gym
 Markdown==3.4.1
 MarkupSafe==2.1.2
 matplotlib==3.7.0
@@ -70,12 +69,7 @@ notebook==6.5.2
 notebook_shim==0.2.2
 numpy==1.24.1
 numpy-stl==3.0.0
-nvidia-cublas-cu11==11.10.3.66
-nvidia-cuda-nvrtc-cu11==11.7.99
-nvidia-cuda-runtime-cu11==11.7.99
-nvidia-cudnn-cu11==8.5.0.96
 oauthlib==3.2.2
--e git+https://github.com/marlbenchmark/on-policy.git@79f6591882088a0f583f7a4bcba44041141f25f5#egg=onpolicy
 packaging==23.0
 pandas==1.1.5
 pandocfilters==1.5.0
