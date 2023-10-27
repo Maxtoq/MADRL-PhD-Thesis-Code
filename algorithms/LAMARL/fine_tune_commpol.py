@@ -9,6 +9,7 @@ from tqdm import trange
 from src.utils.config import get_config
 from src.utils.eval import perform_eval
 from src.utils.utils import set_seeds, set_cuda_device
+from src.log.comm_logs import CommunicationLogger
 from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
@@ -42,6 +43,7 @@ def run():
 
     # Init logger
     logger = Logger(cfg, log_dir)
+    comm_logger = CommunicationLogger(log_dir)
 
     set_seeds(cfg.seed)
 
@@ -62,7 +64,7 @@ def run():
 
     # Create model
     model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
-                parser.vocab, device)
+                parser.vocab, comm_logger, device)
 
     # Load params
     model.load(pretrained_model_path)
@@ -81,8 +83,8 @@ def run():
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout()
         for ep_s_i in range(cfg.episode_length):
-            # # Parse obs
-            # parsed_obs = parser.get_perfect_messages(obs)
+            # Parse obs
+            parsed_obs = parser.get_perfect_messages(obs)
             # print("PARSED", parsed_obs)
             # # Store language inputs in buffer
             # model.store_language_inputs(obs, parsed_obs)
@@ -90,8 +92,7 @@ def run():
             # Get action
             values, actions, action_log_probs, rnn_states, rnn_states_critic, \
                 messages, lang_contexts = model.comm_n_act(
-                    obs, lang_contexts) #, parsed_obs) # TEST with perfect messages
-            # print("MESSAGES", messages)
+                    obs, lang_contexts, parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
@@ -102,8 +103,6 @@ def run():
             if True in env_dones:
                 lang_contexts = model.reset_context(lang_contexts, env_dones)
 
-            # print("parsed_obs", parsed_obs)
-            # print("messages", messages)
             # Reward communication
             mean_message_return = model.eval_comm(values.squeeze(-1))#rewards)
 

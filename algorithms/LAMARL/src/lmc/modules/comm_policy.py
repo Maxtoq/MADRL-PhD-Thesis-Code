@@ -40,7 +40,11 @@ class PerfectComm:
     def comm_step(self, obs, lang_contexts, perfect_messages):
         """
         Perform a communication step.
-        :param obs (np.ndarray): Observations.
+
+        :param obs (np.ndarray): Observations, dim=(n_parallel_envs, n_agents, 
+            obs_dim).
+        :param lang_contexts (np.ndarray): Language contexts from last step,
+            dim=(n_parallel_envs, context_dim).
         :param perfect messages (list(list(list(str)))): Perfect messages,
             ordered by environment, by agent.
 
@@ -60,6 +64,7 @@ class PerfectComm:
     def store_rewards(self, message_rewards, token_rewards):
         """
         Send rewards for each sentences to the buffer to compute returns.
+
         :param message_rewards (np.ndarray): Rewards for each generated 
             sentence, dim=(batch_size, )
         :param klpretrain_rewards (np.ndarray): Penalties for diverging from 
@@ -243,7 +248,7 @@ class TextActorCritic(nn.Module):
             
             # Add decoded tokens to sentences
             for b_i in range(batch_size):
-                if masks[b_i]:
+                if masks[b_i] and topi[b_i] != self.word_encoder.EOS_ID:
                     sentences[b_i].append(
                         self.word_encoder.index2token(topi[b_i]))
             
@@ -437,12 +442,8 @@ class CommPPO_MLP:
         # Compute KL-pretrain rewards
         # Get reference token_log_probs from pretrained decoder
         ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
-        # # Compute KL divergence
         # Compute KL divergence
         kl = (np.exp(log_probs) * (log_probs - torch2numpy(ref_log_probs))).sum(-1)
-        # print()
-        # print(kl)
-        # exit()
         
         # Store experiences in buffer
         self.buffer.store_gen(
@@ -479,11 +480,14 @@ class CommPPO_MLP:
         
         # Arrange messages by env
         broadcasts = []
+        messages_by_env = []
         for e_i in range(self.n_envs):
             env_broadcast = []
             for a_i in range(self.n_agents):
-                env_broadcast.extend(messages[e_i * self.n_agents + a_i][:-1])
+                env_broadcast.extend(messages[e_i * self.n_agents + a_i])
             broadcasts.append(env_broadcast)
+            messages_by_env.append(messages[
+                e_i * self.n_agents:e_i * self.n_agents + self.n_agents])
 
         new_lang_contexts = self.lang_learner.encode_sentences(
             broadcasts).cpu().numpy()
@@ -493,7 +497,8 @@ class CommPPO_MLP:
         # new_lang_contexts = self.lang_learner.encode_sentences(broadcasts).detach().cpu().numpy()
         
         # Return messages and lang_context
-        return broadcasts, messages, new_lang_contexts, klpretrain_rewards
+        return broadcasts, messages_by_env, new_lang_contexts, \
+               klpretrain_rewards
     
     def store_rewards(self, message_rewards, token_rewards):
         """
@@ -610,7 +615,7 @@ class CommPPO_MLP:
             losses[k] /= (self.n_epochs * self.n_mini_batch)
         
         self.prep_rollout()
-            
+
         return losses
 
     def get_save_dict(self):
