@@ -257,6 +257,7 @@ def get_config():
     # log parameters
     parser.add_argument("--log_tensorboard", action='store_false', default=True, 
                         help='log training data in tensorboard')
+    parser.add_argument("--log_communication", action='store_true', default=False)
 
     # eval parameters
     parser.add_argument("--do_eval", action='store_false', default=True, help="controls if we evaluate agents accross training.")

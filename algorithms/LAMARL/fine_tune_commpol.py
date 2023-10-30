@@ -43,7 +43,10 @@ def run():
 
     # Init logger
     logger = Logger(cfg, log_dir)
-    comm_logger = CommunicationLogger(log_dir)
+    if cfg.log_communication:
+        comm_logger = CommunicationLogger(log_dir)
+    else:
+        comm_logger = None
 
     set_seeds(cfg.seed)
 
@@ -119,6 +122,9 @@ def run():
             model.store_exp(rewards, dones, infos, values, 
                 actions, action_log_probs, rnn_states, rnn_states_critic)
 
+        if comm_logger is not None:
+            comm_logger.save()
+
         # Training policy
         if s_i + n_steps_per_update > cfg.FT_n_steps_fix_policy:
             train_losses = model.train(
@@ -147,6 +153,7 @@ def run():
     # Save model and training data
     model.save(run_dir / "model_ep.pt")
     logger.save_n_close()
+    comm_logger.save()
 
 if __name__ == '__main__':
     run()

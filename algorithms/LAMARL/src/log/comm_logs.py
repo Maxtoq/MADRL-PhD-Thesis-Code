@@ -1,40 +1,55 @@
+import os
+import csv
+import json
 
 
 class CommunicationLogger:
 
     def __init__(self, save_dir):
-        self.save_dir = save_dir
-
         self.observations = []
         self.generated_messages = []
         self.perfect_messages = []
-        self.message_kl_pens = []
-        self.message_rewards = []
+        self.broadcasts = []
+        self.kl_pens = []
+        self.env_rewards = []
+
+        # Create csv file
+        self.csv_path = os.path.join(save_dir, "comm_logs.csv")
+        with open(self.csv_path, 'w', newline='') as f:
+            w = csv.writer(f)
+            w.writerow([
+                "Generated Message", 
+                "Perfect Message", 
+                "Broadcasted Message",
+                "KL Penalty",
+                "Env Reward",
+                "Observation"])
 
     def store_messages(self, 
-            obs, gen_mess=None, perf_mess=None, kl_pen=None):
+            obs, gen_mess, perf_mess, broadcasts, kl_pen):
         """
         Store messages and corresponding observations.
 
         :param obs (np.ndarray): Observations for each agent in each parallel 
             environment, dim=(n_parallel_envs, n_agents, obs_dim).
         :param gen_mess (list(list(list(str)))): Generated messages, ordered by
-            parallel environment, default None.
-        :param perf_mess (list(list(list(str)))): "Perfect" messages, ordered by
-            parallel environment, default None.
+            parallel environment.
+        :param perf_mess (list(list(str))): "Perfect" messages, ordered by
+            parallel environment.
+        :param broadcasts (list(list(list(str)))): Broadcasted messages, one per
+            parallel environment.
         :param kl_pen (np.ndarray): Sum of KL penalties for each messages,
             dim=(n_parallel_envs * n_agents, )
         """
-        self.observations.append(obs)
-        if gen_mess is not None:
-            self.generated_messages.append(gen_mess)
-        if perf_mess is not None:
-            self.perfect_messages.append(perf_mess)
-        if kl_pen is not None:
-            n_parallel_envs = obs.shape[0]
-            n_agents = obs.shape[1]
-            self.message_kl_pens.append(
-                kl_pen.reshape(n_parallel_envs, n_agents))
+        n_parallel_envs = obs.shape[0]
+        n_agents = obs.shape[1]
+        self.observations += obs.reshape(
+            n_parallel_envs * n_agents, -1).tolist()
+        for e_i in range(n_parallel_envs):
+            self.generated_messages += gen_mess[e_i]
+            self.perfect_messages += perf_mess[e_i]
+            self.broadcasts += [broadcasts[e_i]] * n_agents
+        self.kl_pens += kl_pen.tolist()
 
     def store_rewards(self, rewards):
         """
@@ -43,8 +58,41 @@ class CommunicationLogger:
         :param rewards (np.ndarray): Rewards for each message in each parallel
             environment, dim=(n_parallel_envs, n_agents).
         """
-        self.message_rewards.append(rewards)
+        n_parallel_envs = rewards.shape[0]
+        n_agents = rewards.shape[1]
+        self.env_rewards += rewards.flatten().tolist()
 
     def save(self):
-        # TODO checker qu'on a bien log tout, et save dans un fichier
-        pass
+        # print(self.observations, len(self.observations))
+        # print(self.generated_messages, len(self.generated_messages))
+        # print(self.perfect_messages, len(self.perfect_messages))
+        # print(self.broadcasts, len(self.broadcasts))
+        # print(self.kl_pens, len(self.kl_pens))
+        # print(self.env_rewards, len(self.env_rewards))
+        with open(self.csv_path, 'a', newline='') as f:
+            w = csv.writer(f)
+            for o, gm, pm, br, kl, er in zip(
+                    self.observations, 
+                    self.generated_messages,
+                    self.perfect_messages,
+                    self.broadcasts,
+                    self.kl_pens,
+                    self.env_rewards):
+                w.writerow([
+                    " ".join(gm),
+                    " ".join(pm),
+                    " ".join(br),
+                    str(kl),
+                    str(er),
+                    " ".join(str(o_i) for o_i in o)])
+        
+        self.observations = []
+        self.generated_messages = []
+        self.perfect_messages = []
+        self.broadcasts = []
+        self.kl_pens = []
+        self.env_rewards = []
+        # exit()
+
+        # with open(os.path.join(self.save_dir, "comm_logs.json"), "r+"):
+        #     pass

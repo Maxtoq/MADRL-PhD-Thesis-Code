@@ -125,7 +125,10 @@ class LMC:
         # Log communication
         if self.comm_logger is not None:
             self.comm_logger.store_messages(
-                obs, messages, perfect_messages, kl_penalties.sum(0))
+                obs, messages, 
+                perfect_messages, 
+                broadcasts, 
+                kl_penalties.sum(0))
 
         # Save messages and kl_penalties for communication evaluation
         # self.last_messages = messages
