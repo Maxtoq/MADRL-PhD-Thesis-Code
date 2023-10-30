@@ -63,12 +63,6 @@ class CommunicationLogger:
         self.env_rewards += rewards.flatten().tolist()
 
     def save(self):
-        # print(self.observations, len(self.observations))
-        # print(self.generated_messages, len(self.generated_messages))
-        # print(self.perfect_messages, len(self.perfect_messages))
-        # print(self.broadcasts, len(self.broadcasts))
-        # print(self.kl_pens, len(self.kl_pens))
-        # print(self.env_rewards, len(self.env_rewards))
         with open(self.csv_path, 'a', newline='') as f:
             w = csv.writer(f)
             for o, gm, pm, br, kl, er in zip(
@@ -92,7 +86,3 @@ class CommunicationLogger:
         self.broadcasts = []
         self.kl_pens = []
         self.env_rewards = []
-        # exit()
-
-        # with open(os.path.join(self.save_dir, "comm_logs.json"), "r+"):
-        #     pass

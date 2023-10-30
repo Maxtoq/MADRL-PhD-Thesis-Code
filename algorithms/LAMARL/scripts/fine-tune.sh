@@ -52,7 +52,8 @@ do
     --comm_env_reward_coef ${comm_env_reward_coef}\
     --FT_pretrained_model_path ${FT_pretrained_model_path}\
     --FT_n_steps_fix_policy ${FT_n_steps_fix_policy}\
-    --magym_env_size ${magym_env_size}"
+    --magym_env_size ${magym_env_size}\
+    --log_communication"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"
