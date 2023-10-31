@@ -6,8 +6,8 @@ from torch import nn
 
 from .modules.lang_learner import LanguageLearner
 from .modules.comm_policy import PerfectComm, CommPPO_MLP
-from .policy.mappo_contextinobs.mappo import MAPPO
-from .policy.mappo_contextinobs.utils import get_shape_from_obs_space
+from .policy.mappo.mappo import MAPPO
+from .policy.mappo.utils import get_shape_from_obs_space
 
 
 class LMC:

@@ -25,21 +25,21 @@ class R_MAPPOPolicy:
     TODO: changer les types des obs et act space
     :param obs_dim: (int) observation dimension.
     :param cent_obs_dim: (int) value function input dimension (centralized input for MAPPO, decentralized for IPPO).
-    :param context_dim: (int) context dimension.
     :param action_dim: (int) action dimension.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
 
     def __init__(self, 
-            args, obs_space, cent_obs_space, context_dim, act_space, 
+            args, obs_dim, cent_obs_dim, act_space, 
             device=torch.device("cpu")):
         self.lr = args.lr
         self.critic_lr = args.critic_lr
         self.opti_eps = args.opti_eps
         self.weight_decay = args.weight_decay
+        self.warming_up = False
 
-        self.actor = R_Actor(args, obs_space, context_dim, act_space, device)
-        self.critic = R_Critic(args, cent_obs_space, context_dim, device)
+        self.actor = R_Actor(args, obs_dim, act_space, device)
+        self.critic = R_Critic(args, cent_obs_dim, device)
 
         self.actor_optimizer = torch.optim.Adam(
             self.actor.parameters(),
@@ -62,14 +62,22 @@ class R_MAPPOPolicy:
         update_linear_schedule(
             self.critic_optimizer, episode, episodes, self.critic_lr)
 
+    def warmup_lr(self, warmup):
+        if warmup != self.warming_up:
+            lr = self.lr * 0.01 if warmup else self.lr
+            for param_group in self.actor_optimizer.param_groups:
+                param_group['lr'] = lr
+            for param_group in self.critic_optimizer.param_groups:
+                param_group['lr'] = lr
+            self.warming_up = warmup
+
     def get_actions(self, 
-            cent_obs, obs, context, rnn_states_actor, rnn_states_critic, masks,
+            cent_obs, obs, rnn_states_actor, rnn_states_critic, masks,
             available_actions=None, deterministic=False):
         """
         Compute actions and value function predictions for the given inputs.
         :param cent_obs (np.ndarray): centralized input to the critic.
         :param obs (np.ndarray): local agent inputs to the actor.
-        :param context: (np.ndarray/torch.Tensor) context encodings.
         :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.
         :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for critic.
         :param masks: (np.ndarray) denotes points at which RNN states should be reset.
@@ -85,19 +93,18 @@ class R_MAPPOPolicy:
         :return rnn_states_critic: (torch.Tensor) updated critic network RNN states.
         """
         actions, action_log_probs, rnn_states_actor = self.actor(
-            obs, context, rnn_states_actor, masks, available_actions, 
+            obs, rnn_states_actor, masks, available_actions, 
             deterministic)
 
         values, rnn_states_critic = self.critic(
-            cent_obs, context, rnn_states_critic, masks)
+            cent_obs, rnn_states_critic, masks)
         return values, actions, action_log_probs, rnn_states_actor, \
             rnn_states_critic
 
-    def get_values(self, cent_obs, context, rnn_states_critic, masks):
+    def get_values(self, cent_obs, rnn_states_critic, masks):
         """
         Get value function predictions.
         :param cent_obs (np.ndarray): centralized input to the critic.
-        :param context: (np.ndarray/torch.Tensor) context encodings.
         :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for
             critic.
         :param masks: (np.ndarray) denotes points at which RNN states should be 
@@ -105,64 +112,68 @@ class R_MAPPOPolicy:
 
         :return values: (torch.Tensor) value function predictions.
         """
-        values, _ = self.critic(cent_obs, context, rnn_states_critic, masks)
+        values, _ = self.critic(cent_obs, rnn_states_critic, masks)
         return values
 
     def evaluate_actions(self, 
-            cent_obs, obs, context, rnn_states_actor, rnn_states_critic, 
+            cent_obs, obs, rnn_states_actor, rnn_states_critic, 
             action, masks, available_actions=None, active_masks=None):
         """
         Get action logprobs / entropy and value function predictions for actor
         update.
         :param cent_obs (np.ndarray): centralized input to the critic.
         :param obs (np.ndarray): local agent inputs to the actor.
-        :param context: (np.ndarray/torch.Tensor) context encodings.
-        :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.
-        :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for critic.
+        :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for 
+            actor.
+        :param rnn_states_critic: (np.ndarray) if critic is RNN, RNN states for
+            critic.
         :param action: (np.ndarray) actions whose log probabilites and entropy
             to compute.
-        :param masks: (np.ndarray) denotes points at which RNN states should be reset.
+        :param masks: (np.ndarray) denotes points at which RNN states should be
+            reset.
         :param available_actions: (np.ndarray) denotes which actions are 
             available to agent (if None, all actions available).
         :param active_masks: (torch.Tensor) denotes whether an agent is active 
             or dead.
 
         :return values: (torch.Tensor) value function predictions.
-        :return action_log_probs: (torch.Tensor) log probabilities of the input actions.
+        :return action_log_probs: (torch.Tensor) log probabilities of the input
+            actions.
         :return dist_entropy: (torch.Tensor) action distribution entropy for
             the given inputs.
         """
         action_log_probs, dist_entropy = self.actor.evaluate_actions(
-            obs, context, rnn_states_actor, action, masks, available_actions,
+            obs, rnn_states_actor, action, masks, available_actions, 
             active_masks)
 
-        values, _ = self.critic(cent_obs, context, rnn_states_critic, masks)
+        values, _ = self.critic(cent_obs, rnn_states_critic, masks)
         return values, action_log_probs, dist_entropy
 
     def act(self, 
-            obs, context, rnn_states_actor, masks, 
+            obs, rnn_states_actor, masks, 
             available_actions=None, deterministic=False):
         """
         Compute actions using the given inputs.
         :param obs (np.ndarray): local agent inputs to the actor.
-        :param context: (np.ndarray/torch.Tensor) context encodings.
-        :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for actor.
-        :param masks: (np.ndarray) denotes points at which RNN states should be reset.
+        :param rnn_states_actor: (np.ndarray) if actor is RNN, RNN states for
+            actor.
+        :param masks: (np.ndarray) denotes points at which RNN states should be
+            reset.
         :param available_actions: (np.ndarray) denotes which actions are 
             available to agent (if None, all actions available)
         :param deterministic: (bool) whether the action should be mode of 
             distribution or should be sampled.
         """
         actions, _, rnn_states_actor = self.actor(
-            obs, context, rnn_states_actor, masks, available_actions, 
-            deterministic)
+            obs, rnn_states_actor, masks, available_actions, deterministic)
         return actions, rnn_states_actor
 
 
 class R_MAPPOTrainAlgo():
     """
     Trainer class for MAPPO to update policies.
-    :param args: (argparse.Namespace) arguments containing relevant model, policy, and env information.
+    :param args: (argparse.Namespace) arguments containing relevant model, 
+        policy, and env information.
     :param policy: (R_MAPPO_Policy) policy to update.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
@@ -256,7 +267,7 @@ class R_MAPPOTrainAlgo():
         :return actor_grad_norm: (torch.Tensor) gradient norm from actor update.
         :return imp_weights: (torch.Tensor) importance sampling weights.
         """
-        share_obs_batch, obs_batch, context_batch, rnn_states_batch, \
+        shared_obs_batch, obs_batch, rnn_states_batch, \
             rnn_states_critic_batch, actions_batch, value_preds_batch, \
             return_batch, masks_batch, active_masks_batch, \
             old_action_log_probs_batch, adv_targ, \
@@ -270,7 +281,7 @@ class R_MAPPOTrainAlgo():
 
         # Reshape to do in a single forward pass for all steps
         values, action_log_probs, dist_entropy = self.policy.evaluate_actions(
-            share_obs_batch, obs_batch, context_batch, rnn_states_batch, 
+            shared_obs_batch, obs_batch, rnn_states_batch, 
             rnn_states_critic_batch, actions_batch, masks_batch, 
             available_actions_batch,active_masks_batch)
         # actor update
@@ -324,7 +335,7 @@ class R_MAPPOTrainAlgo():
         return value_loss, critic_grad_norm, policy_loss, dist_entropy, \
             actor_grad_norm, imp_weights
 
-    def train(self, buffer, update_actor=True):
+    def train(self, buffer, update_actor=True, warmup=False):
         """
         Perform a training update using minibatch GD.
         :param buffer: (SharedReplayBuffer) buffer containing training data.
@@ -333,6 +344,7 @@ class R_MAPPOTrainAlgo():
         :return train_info: (dict) contains information regarding training 
             update (e.g. loss, grad norms, etc).
         """
+        self.policy.warmup_lr(warmup)
         if self._use_popart or self._use_valuenorm:
             advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(
                 buffer.value_preds[:-1])
@@ -408,15 +420,14 @@ class MAPPO:
     of PPO in Cooperative Multi-Agent Games" (https://arxiv.org/abs/2103.01955).
     :param args: (argparse.Namespace) all arguments for training
     :param n_agents: (int) number of agents
-    :param obs_dim: (list(int)) observation dimensions, for each agent
-    :param shared_obs_dim: (list(int)) shared observation dimensions, for each
-        agent
-    :param act_dim: (list(int)) action dimensions, for each agent
+    :param obs_dim: (int) observation dimensions, for each agent
+    :param cent_obs_dim: (int) centralized observation dimensions, for 
+        each agent
+    :param act_space: (gym.Space) action dimensions, for each agent
     :param device: (torch.device) cuda device used for training
     """
     def __init__(self, 
-            args, n_agents, obs_space, shared_obs_space, context_dim, act_space, 
-            device):
+            args, n_agents, obs_dim, cent_obs_dim, act_space, device):
         self.args = args
         self.n_agents = n_agents
         self.use_centralized_V = self.args.use_centralized_V
@@ -438,18 +449,17 @@ class MAPPO:
         self.policy = []
         self.trainer = []
         self.buffer = []
-        for a_id in range(self.n_agents):
+        for a_i in range(self.n_agents):
             if self.use_centralized_V:
-                sos = shared_obs_space[a_id]
+                shared_obs_dim = cent_obs_dim
             else:
-                sos = obs_space[a_id]
+                shared_obs_dim = obs_dim
             # Policy network
             po = R_MAPPOPolicy(
                 self.args,
-                obs_space[a_id],
-                sos,
-                context_dim,
-                act_space[a_id],
+                obs_dim,
+                shared_obs_dim,
+                act_space,
                 device=device)
             self.policy.append(po)
 
@@ -461,10 +471,9 @@ class MAPPO:
             # Buffer
             bu = SeparatedReplayBuffer(
                 self.args, 
-                obs_space[a_id], 
-                sos, 
-                context_dim,
-                act_space[a_id])
+                obs_dim, 
+                shared_obs_dim,
+                act_space)
             self.buffer.append(bu)
 
     def prep_rollout(self, device=None):
@@ -477,21 +486,17 @@ class MAPPO:
         for tr in self.trainer:
             tr.prep_training(self.train_device)
 
-    def start_episode(self, obs, context):
-        """
-        Initialize the buffer with first observations.
-        :param obs: (numpy.ndarray) first observations
-        :param context: (numpy.ndarray) first context encoding
-        """
-        share_obs = obs.reshape(obs.shape[0], -1)
-        for a_id in range(self.n_agents):
-            self.buffer[a_id].reset_episode()
-            if not self.use_centralized_V:
-                share_obs = np.array(list(obs[:, a_id]))
-            self.buffer[a_id].share_obs[0] = share_obs.copy()
-            self.buffer[a_id].obs[0] = np.array(list(obs[:, a_id])).copy()
-            self.buffer[a_id].context[0] = np.array(
-                list(context)).copy()
+    def start_episode(self):
+        # """
+        # Initialize the buffer with first observations.
+        # :param obs: (numpy.ndarray) first observations
+        # """
+        for a_i in range(self.n_agents):
+            self.buffer[a_i].reset_episode()
+            # if not self.use_centralized_V:
+            #     shared_obs = np.array(list(obs[:, a_i]))
+            # self.buffer[a_i].shared_obs[0] = shared_obs.copy()
+            # self.buffer[a_i].obs[0] = np.array(list(obs[:, a_i])).copy()
 
     @torch.no_grad()
     def get_actions(self):
@@ -502,10 +507,10 @@ class MAPPO:
         rnn_states = []
         rnn_states_critic = []
 
-        for a_id in range(self.n_agents):
+        for a_i in range(self.n_agents):
             value, action, action_log_prob, rnn_state, rnn_state_critic \
-                = self.trainer[a_id].policy.get_actions(
-                    *self.buffer[a_id].get_act_params())
+                = self.trainer[a_i].policy.get_actions(
+                    *self.buffer[a_i].get_act_params())
             # [agents, envs, dim]
             values.append(torch2numpy(value))
             action = torch2numpy(action)            
@@ -524,10 +529,16 @@ class MAPPO:
         return values, actions, action_log_probs, rnn_states, \
                rnn_states_critic
 
-    def store(self, data):
-        obs, rewards, dones, infos, values, actions, action_log_probs, \
-            rnn_states, rnn_states_critic, context = data
+    def store_obs(self, obs, shared_obs):
+        for a_i in range(self.n_agents):
+            if not self.use_centralized_V:
+                shared_obs = np.array(list(obs[:, a_i]))
+            self.buffer[a_i].insert_obs(
+                np.array(list(obs[:, a_i])).copy(),
+                shared_obs.copy())
 
+    def store_act(self, rewards, dones, infos, values, actions, 
+            action_log_probs, rnn_states, rnn_states_critic):
         rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
             dtype=np.float32)
@@ -539,61 +550,66 @@ class MAPPO:
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 
-        share_obs = obs.reshape(obs.shape[0], -1)
-
-        for a_id in range(self.n_agents):
-            if not self.use_centralized_V:
-                share_obs = np.array(list(obs[:, a_id]))
-            self.buffer[a_id].insert(
-                share_obs,
-                np.array(list(obs[:, a_id])),
-                context,
-                rnn_states[:, a_id],
-                rnn_states_critic[:, a_id],
-                actions[:, a_id],
-                action_log_probs[:, a_id],
-                values[:, a_id],
-                rewards[:, a_id],
-                masks[:, a_id])
+        for a_i in range(self.n_agents):
+            # if not self.use_centralized_V:
+            #     shared_obs = np.array(list(obs[:, a_i]))
+            self.buffer[a_i].insert_act(
+                rnn_states[:, a_i],
+                rnn_states_critic[:, a_i],
+                actions[:, a_i],
+                action_log_probs[:, a_i],
+                values[:, a_i],
+                rewards[:, a_i],
+                masks[:, a_i])
 
     @torch.no_grad()
     def compute_last_value(self):
-        for a_id in range(self.n_agents):
-            next_value = self.trainer[a_id].policy.get_values(
-                self.buffer[a_id].share_obs[-1],
-                self.buffer[a_id].context[-1],
-                self.buffer[a_id].rnn_states_critic[-1],
-                self.buffer[a_id].masks[-1])
+        for a_i in range(self.n_agents):
+            next_value = self.trainer[a_i].policy.get_values(
+                self.buffer[a_i].shared_obs[-1],
+                self.buffer[a_i].rnn_states_critic[-1],
+                self.buffer[a_i].masks[-1])
             next_value = torch2numpy(next_value)
-            self.buffer[a_id].compute_returns(
-                next_value, self.trainer[a_id].value_normalizer)
+            self.buffer[a_i].compute_returns(
+                next_value, self.trainer[a_i].value_normalizer)
 
-    def train(self):
+    def train(self, warmup=False):
         # Compute last value
         self.compute_last_value()
         # Train
         self.prep_training()
         train_infos = []
-        for a_id in range(self.n_agents):
-            train_info = self.trainer[a_id].train(self.buffer[a_id])
+        for a_i in range(self.n_agents):
+            train_info = self.trainer[a_i].train(
+                self.buffer[a_i], warmup=warmup)
             train_infos.append(train_info)
         return train_infos
 
     def get_save_dict(self):
         self.prep_rollout("cpu")
         agents_params = []
-        for a_id in range(self.n_agents):
+        for a_i in range(self.n_agents):
             params = {
-                "actor": self.trainer[a_id].policy.actor.state_dict(),
-                "critic": self.trainer[a_id].policy.critic.state_dict()
+                "actor": self.trainer[a_i].policy.actor.state_dict(),
+                "critic": self.trainer[a_i].policy.critic.state_dict()
             }
-            if self.trainer[a_id]._use_valuenorm:
-                params["vnorm"] = self.trainer[a_id].value_normalizer.state_dict()
+            if self.trainer[a_i]._use_valuenorm:
+                params["vnorm"] = self.trainer[a_i].value_normalizer.state_dict()
             agents_params.append(params)
         save_dict = {
             "agents_params": agents_params
         }
         return save_dict
+
+    def load_params(self, agent_params):
+        for a_i in range(self.n_agents):
+            self.trainer[a_i].policy.actor.load_state_dict(
+                agent_params[a_i]["actor"])
+            self.trainer[a_i].policy.critic.load_state_dict(
+                agent_params[a_i]["critic"])
+            if self.trainer[a_i]._use_valuenorm:
+                self.trainer[a_i].value_normalizer.load_state_dict(
+                    agent_params[a_i]["vnorm"])
 
     def save(self, path):
         save_dict = self.get_save_dict()

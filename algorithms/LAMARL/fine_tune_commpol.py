@@ -24,13 +24,8 @@ def run():
 
     # Check comm_pol param is right
     if cfg.comm_policy_algo in ["no_comm", "perfect_comm"]:
-        r = None
-        while r not in ["", "n", "N", "y", "Y"]:
-            r = input("WARNING: Fine-tuning communication with a non-parametric communication policy? REALLY? (y/N)")
-            if r in ["n", "N", ""]:
-                exit()
-            elif r in ["y", "Y"]:
-                print("ok then...")
+        print("ERROR: Fine-tuning must be done with parametric communication policy. Change comm_policy_algo parameter.")
+        exit()
 
     pretrained_model_path = cfg.FT_pretrained_model_path
     if pretrained_model_path is None:
