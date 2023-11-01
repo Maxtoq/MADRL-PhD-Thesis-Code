@@ -14,7 +14,7 @@ from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
 from src.envs.make_env import make_env
-from src.lmc.lmc import LMC
+from src.lmc.lmc_context import LMC
 
 
 def run():
@@ -24,7 +24,7 @@ def run():
 
     # Check comm_pol param is right
     if cfg.comm_policy_algo in ["no_comm", "perfect_comm"]:
-        print("ERROR: Fine-tuning must be done with parametric communication policy. Change comm_policy_algo parameter.")
+        print("ERROR: Fine-tuning must be done with parametric communication policy. Change comm_policy_algo argument.")
         exit()
 
     pretrained_model_path = cfg.FT_pretrained_model_path

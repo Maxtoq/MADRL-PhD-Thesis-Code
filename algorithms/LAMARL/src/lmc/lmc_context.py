@@ -5,7 +5,7 @@ import numpy as np
 from torch import nn
 
 from .modules.lang_learner import LanguageLearner
-from .modules.comm_policy import PerfectComm, CommPPO_MLP
+from .modules.comm_policy_context import CommPol_Context
 from .policy.mappo.mappo import MAPPO
 from .policy.mappo.utils import get_shape_from_obs_space
 
@@ -39,16 +39,19 @@ class LMC:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        self.comm_pol_algo = args.comm_policy_algo
-        if self.comm_pol_algo == "ppo_mlp":
-            self.comm_policy = CommPPO_MLP(args, n_agents, self.lang_learner, device)
-        elif self.comm_pol_algo == "perfect_comm":
-            self.comm_policy = PerfectComm(self.lang_learner)
-        elif self.comm_pol_algo == "no_comm":
-            self.comm_policy = None
-            self.context_dim = 0
-        else:
-            raise NotImplementedError("Bad name given for communication policy algo.")
+        # self.comm_pol_algo = args.comm_policy_algo
+        # if self.comm_pol_algo == "ppo_mlp":
+        #     self.comm_policy = CommPPO_MLP(args, n_agents, self.lang_learner, device)
+        # elif self.comm_pol_algo == "perfect_comm":
+        #     self.comm_policy = PerfectComm(self.lang_learner)
+        # elif self.comm_pol_algo == "no_comm":
+        #     self.comm_policy = None
+        #     self.context_dim = 0
+        # else:
+        #     raise NotImplementedError("Bad name given for communication policy algo.")
+
+        self.comm_policy = CommPol_Context(
+            args, self.n_agents, self.lang_learner, device)
 
         if args.policy_algo == "mappo":
             obs_dim = get_shape_from_obs_space(obs_space[0])
@@ -153,18 +156,18 @@ class LMC:
         if self.comm_logger is not None:
             self.comm_logger.store_rewards(message_rewards)
         # Evaluate communication
-        if self.comm_pol_algo in ["ppo_mlp"]:
-            message_rewards *= self.env_reward_coef
-            token_penalties = np.ones_like(
-                self.last_kl_penalties) * -self.token_penalty
+        # if self.comm_pol_algo in ["ppo_mlp"]:
+        message_rewards *= self.env_reward_coef
+        token_penalties = np.ones_like(
+            self.last_kl_penalties) * -self.token_penalty
 
-            token_rewards = self.klpretrain_coef * self.last_kl_penalties \
-                             + token_penalties
+        token_rewards = self.klpretrain_coef * self.last_kl_penalties \
+                            + token_penalties
 
-            mean_message_return = self.comm_policy.store_rewards(
-                message_rewards.flatten(), token_rewards)
+        mean_message_return = self.comm_policy.store_rewards(
+            message_rewards.flatten(), token_rewards)
 
-            return mean_message_return
+        return mean_message_return
 
     def train_comm(self, step):
         warmup = step < self.comm_n_warmup_steps
@@ -226,5 +229,5 @@ class LMC:
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.policy.load_params(save_dict["agents_params"])
         self.lang_learner.load_params(save_dict)
-        if self.comm_pol_algo in ["ppo_mlp"]:
-            self.comm_policy.load_params(save_dict)
+        # if self.comm_pol_algo in ["ppo_mlp"]:
+        #     self.comm_policy.load_params(save_dict)

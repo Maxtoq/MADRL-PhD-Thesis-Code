@@ -8,7 +8,7 @@ from torch import nn
 from gym import spaces
 
 from src.lmc.modules.networks import MLPNetwork, init
-from src.lmc.modules.policy.mappo.mappo import MAPPO
+from src.lmc.policy.mappo.mappo import MAPPO
 
 
 def torch2numpy(x):
@@ -167,8 +167,8 @@ class CommPol_Context:
         low = np.full(context_dim, -np.inf)
         high = np.full(context_dim, np.inf)
         act_space = spaces.Box(low, high)
-        self.context_encoder = MAPPO(
-            args, n_agents, input_dim, input_dim * n_agents, device)
+        self.context_encoder_policy = MAPPO(
+            args, n_agents, input_dim, input_dim * n_agents, act_space, device)
         
         # self.context_encoder = MLPNetwork(
         #     2 * args.context_dim, args.context_dim, norm_in=False)
@@ -193,60 +193,47 @@ class CommPol_Context:
         #     args.comm_gamma,
         #     self.n_mini_batch)
 
-    def warmup_lr(self, warmup):
-        if warmup != self.warming_up:
-            lr = self.lr * 0.01 if warmup else self.lr
-            if warmup:
-                print("WARMING UP", lr)
-            else:
-                print("STOP WARMING UP", lr)
-            for param_group in self.optim.param_groups:
-                param_group['lr'] = lr
-            self.warming_up = warmup
-
     def prep_rollout(self, device=None):
         if device is None:
             device = self.device
-        self.context_encoder.eval()
-        self.context_encoder.to(device)
-        self.comm_policy.eval()
-        self.comm_policy.to(device)
-        self.comm_policy.device = device
+        self.context_encoder_policy.prep_rollout(device)
+        # self.comm_policy.eval()
+        # self.comm_policy.to(device)
+        # self.comm_policy.device = device
 
     def prep_training(self):
-        self.context_encoder.train()
-        self.context_encoder.to(self.device)
-        self.comm_policy.train()
-        self.comm_policy.to(self.device)
-        self.comm_policy.device = self.device
+        self.context_encoder_policy.prep_training()
+        # self.comm_policy.train()
+        # self.comm_policy.to(self.device)
+        # self.comm_policy.device = self.device
         
-    @torch.no_grad()
-    def _get_pretrain_probs(self, context_batch, token_batch):
-        """
-        Get reference token log-probalities from pre-trained decoder.
-        :param context_batch (np.ndarray): Batch of communication contexts
-            (initial hidden state of gru), dim=(1, batch_size, context_dim)
-        :param token_batch (np.ndarray): Batch of generated tokens, 
-            dim=(seq_len, batch_size, token_dim)
+    # @torch.no_grad()
+    # def _get_pretrain_probs(self, context_batch, token_batch):
+    #     """
+    #     Get reference token log-probalities from pre-trained decoder.
+    #     :param context_batch (np.ndarray): Batch of communication contexts
+    #         (initial hidden state of gru), dim=(1, batch_size, context_dim)
+    #     :param token_batch (np.ndarray): Batch of generated tokens, 
+    #         dim=(seq_len, batch_size, token_dim)
         
-        :return token_log_probs (torch.Tensor): Log-probabilities of given 
-            tokens, dim=(seq_len, batch_size, 1)
-        :return entropy (torch.Tensor): Entropy of the output probabilities, 
-            dim=(1)
-        :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
-            batch_size, 1)
-        """
-        token_batch = torch.from_numpy(token_batch).to(self.device)
-        # Add SOS token
-        sos_token = torch.Tensor(np.tile(
-            self.lang_learner.word_encoder.SOS_ENC, 
-            (1, context_batch.shape[1], 1))).to(self.device)
-        input_tokens = torch.cat((sos_token, token_batch[:-1]))
+    #     :return token_log_probs (torch.Tensor): Log-probabilities of given 
+    #         tokens, dim=(seq_len, batch_size, 1)
+    #     :return entropy (torch.Tensor): Entropy of the output probabilities, 
+    #         dim=(1)
+    #     :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
+    #         batch_size, 1)
+    #     """
+    #     token_batch = torch.from_numpy(token_batch).to(self.device)
+    #     # Add SOS token
+    #     sos_token = torch.Tensor(np.tile(
+    #         self.lang_learner.word_encoder.SOS_ENC, 
+    #         (1, context_batch.shape[1], 1))).to(self.device)
+    #     input_tokens = torch.cat((sos_token, token_batch[:-1]))
 
-        ref_log_probs, _ = self.lang_learner.decoder.forward_step(
-            input_tokens, context_batch)
+    #     ref_log_probs, _ = self.lang_learner.decoder.forward_step(
+    #         input_tokens, context_batch)
         
-        return ref_log_probs
+    #     return ref_log_probs
         
     @torch.no_grad()
     def get_messages(self, obs, lang_contexts):
@@ -274,7 +261,9 @@ class CommPol_Context:
         input_context = torch.cat((obs_context, lang_contexts), dim=-1)
         
         # Encode contexts
-        comm_context = obs_context.unsqueeze(0) # NOCOMMENC self.context_encoder(input_context).unsqueeze(0)
+        print(input_context, input_context.shape)
+        exit()
+        comm_context = self.comm_encoder_policy.get_actions()
         
         # Generate messages
         tokens, token_log_probs, value_preds, masks, messages, log_probs = \
@@ -391,49 +380,49 @@ class CommPol_Context:
         # return step_rewards.sum() / step_rewards.shape[1]
         return rewards
         
-    def ppo_update(self, batch):
-        input_context, generated_tokens, token_log_probs, value_preds, returns, \
-            advantages, masks = batch
+    # def ppo_update(self, batch):
+    #     input_context, generated_tokens, token_log_probs, value_preds, returns, \
+    #         advantages, masks = batch
         
-        input_context = torch.from_numpy(input_context).to(self.device)
-        generated_tokens = torch.from_numpy(generated_tokens).to(self.device)
-        token_log_probs = torch.from_numpy(token_log_probs).to(self.device)
-        advantages = torch.from_numpy(advantages).to(self.device)
-        returns = torch.from_numpy(returns).to(self.device)
+    #     input_context = torch.from_numpy(input_context).to(self.device)
+    #     generated_tokens = torch.from_numpy(generated_tokens).to(self.device)
+    #     token_log_probs = torch.from_numpy(token_log_probs).to(self.device)
+    #     advantages = torch.from_numpy(advantages).to(self.device)
+    #     returns = torch.from_numpy(returns).to(self.device)
         
-        # Evaluate generated tokens
-        # NOCOMMENC comm_context = self.context_encoder(input_context).unsqueeze(0)
-        comm_context = input_context[:, :16].unsqueeze(0).contiguous()
-        new_token_log_probs, entropy, new_value_preds = \
-            self.comm_policy.evaluate_tokens(comm_context, generated_tokens)
+    #     # Evaluate generated tokens
+    #     # NOCOMMENC comm_context = self.context_encoder(input_context).unsqueeze(0)
+    #     comm_context = input_context[:, :16].unsqueeze(0).contiguous()
+    #     new_token_log_probs, entropy, new_value_preds = \
+    #         self.comm_policy.evaluate_tokens(comm_context, generated_tokens)
             
-        # Policy Loss
-        ratio = (new_token_log_probs - token_log_probs).exp()
-        pol_loss1 = -advantages * ratio
-        pol_loss2 = -advantages * torch.clamp(
-            ratio, 1 - self.ppo_clip_param, 1 + self.ppo_clip_param)
-        pol_loss = torch.max(pol_loss1, pol_loss2).mean()
+    #     # Policy Loss
+    #     ratio = (new_token_log_probs - token_log_probs).exp()
+    #     pol_loss1 = -advantages * ratio
+    #     pol_loss2 = -advantages * torch.clamp(
+    #         ratio, 1 - self.ppo_clip_param, 1 + self.ppo_clip_param)
+    #     pol_loss = torch.max(pol_loss1, pol_loss2).mean()
         
-        # Entropy loss
-        entropy_loss = entropy.mean()
+    #     # Entropy loss
+    #     entropy_loss = entropy.mean()
         
-        # Value loss
-        val_loss = ((new_value_preds - returns) ** 2).mean()
+    #     # Value loss
+    #     val_loss = ((new_value_preds - returns) ** 2).mean()
         
-        # Final PPO loss
-        loss = pol_loss - self.entropy_coef * entropy_loss + \
-                self.vloss_coef * val_loss
+    #     # Final PPO loss
+    #     loss = pol_loss - self.entropy_coef * entropy_loss + \
+    #             self.vloss_coef * val_loss
         
-        # Update
-        self.optim.zero_grad()
-        loss.backward()
-        nn.utils.clip_grad_norm_(
-            self.comm_policy.parameters(), self.max_grad_norm)
-        nn.utils.clip_grad_norm_(
-            self.context_encoder.parameters(), self.max_grad_norm)
-        self.optim.step()
+    #     # Update
+    #     self.optim.zero_grad()
+    #     loss.backward()
+    #     nn.utils.clip_grad_norm_(
+    #         self.comm_policy.parameters(), self.max_grad_norm)
+    #     nn.utils.clip_grad_norm_(
+    #         self.context_encoder.parameters(), self.max_grad_norm)
+    #     self.optim.step()
 
-        return pol_loss, entropy_loss, val_loss
+    #     return pol_loss, entropy_loss, val_loss
     
     def train(self, warmup=False):
         self.warmup_lr(warmup)
@@ -461,19 +450,19 @@ class CommPol_Context:
 
     def get_save_dict(self):
         save_dict = {
-            "context_encoder": self.context_encoder.state_dict(),
-            "comm_policy": self.comm_policy.state_dict(),
-            "comm_optim": self.optim.state_dict()}
+            "context_encoder": self.context_encoder_policy.get_save_dict()}
+            # "comm_policy": self.comm_policy.state_dict(),
+            # "comm_optim": self.optim.state_dict()}
         return save_dict
 
     def load_params(self, save_dict):
         self.lang_learner.load_params(save_dict)
-        if "context_encoder" in save_dict:
-            self.context_encoder.load_state_dict(save_dict["context_encoder"])
-            self.comm_policy.load_state_dict(save_dict["comm_policy"])
-            self.optim.load_state_dict(save_dict["comm_optim"])
-        else: # Starting fine-tuning from pretrained language learner
-            self.comm_policy.gru.load_state_dict(
-                self.lang_learner.decoder.gru.state_dict())
-            self.comm_policy.actor.load_state_dict(
-                self.lang_learner.decoder.out.state_dict())
+        # if "context_encoder" in save_dict:
+        #     self.context_encoder.load_state_dict(save_dict["context_encoder"])
+        #     self.comm_policy.load_state_dict(save_dict["comm_policy"])
+        #     self.optim.load_state_dict(save_dict["comm_optim"])
+        # else: # Starting fine-tuning from pretrained language learner
+        #     self.comm_policy.gru.load_state_dict(
+        #         self.lang_learner.decoder.gru.state_dict())
+        #     self.comm_policy.actor.load_state_dict(
+        #         self.lang_learner.decoder.out.state_dict())
