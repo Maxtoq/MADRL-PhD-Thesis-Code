@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
 experiment_name="FT_nocommenc"
-n_parallel_envs=128
+n_parallel_envs=3
 n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15

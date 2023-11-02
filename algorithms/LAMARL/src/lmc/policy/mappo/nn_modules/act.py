@@ -85,7 +85,7 @@ class ACTLayer(nn.Module):
             action_logits = self.action_out(x, available_actions)
             actions = action_logits.mode() if deterministic else action_logits.sample() 
             action_log_probs = action_logits.log_probs(actions)
-        
+
         return actions, action_log_probs
 
     def get_probs(self, x, available_actions=None):
