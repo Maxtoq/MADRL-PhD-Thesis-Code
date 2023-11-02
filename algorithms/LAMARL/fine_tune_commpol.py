@@ -153,7 +153,8 @@ def run():
     # Save model and training data
     model.save(run_dir / "model_ep.pt")
     logger.save_n_close()
-    comm_logger.save()
+    if comm_logger is not None:
+        comm_logger.save()
 
 if __name__ == '__main__':
     run()

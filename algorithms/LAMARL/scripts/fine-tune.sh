@@ -9,7 +9,8 @@ entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
 comm_policy_algo="ppo_mlp"
-comm_lr=0.0001 # default 0.0005
+comm_lr=0.00001 # default 0.0005
+comm_gamma=1.0 # default 0.99
 comm_n_epochs=32 # default 16
 comm_n_warmup_steps=100000 # default 100000
 comm_n_mini_batch=8 # default 2
@@ -43,6 +44,7 @@ do
     --cuda_device ${cuda_device}\
     --comm_policy_algo ${comm_policy_algo}\
     --comm_lr ${comm_lr}\
+    --comm_gamma ${comm_gamma}\
     --comm_n_epochs ${comm_n_epochs}\
     --comm_n_warmup_steps ${comm_n_warmup_steps}\
     --comm_n_mini_batch ${comm_n_mini_batch}\
