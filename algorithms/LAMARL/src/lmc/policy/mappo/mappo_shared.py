@@ -26,105 +26,77 @@ class MAPPO:
             args, n_agents, obs_dim, cent_obs_dim, act_space, device):
         self.args = args
         self.n_agents = n_agents
+        self.n_parallel_envs = args["n_parallel_envs"]
+        self.recurrent_N = args["recurrent_N"]
         self.use_centralized_V = self.args.use_centralized_V
         self.train_device = device
 
         # Set variant
-        if self.args.policy_algo == "rmappo":
-            self.args.use_recurrent_policy = True
-            self.args.use_naive_recurrent_policy = False
-        elif self.args.policy_algo == "mappo":
-            self.args.use_recurrent_policy = False 
-            self.args.use_naive_recurrent_policy = False
-        elif self.args.policy_algo == "ippo":
+        if self.args["policy_algo"] == "rmappo":
+            self.args["use_recurrent_policy"] = True
+            self.args["use_naive_recurrent_policy"] = False
+        elif self.args["policy_algo"] == "mappo":
+            self.args["use_recurrent_policy"] = False 
+            self.args["use_naive_recurrent_policy"] = False
+        elif self.args["policy_algo"] == "ippo":
             self.use_centralized_V = False
         else:
             raise NotImplementedError("Bad param given for policy_algo.")
 
-        # Init agent policies, train algo and buffer
-        self.policy = R_MAPPOPolicy(self.args, obs_dim, shared_obs_dim)
-        self.policy = []
-        self.trainer = []
-        self.buffer = []
-        for a_i in range(self.n_agents):
-            if self.use_centralized_V:
-                shared_obs_dim = cent_obs_dim
-            else:
-                shared_obs_dim = obs_dim
-            # Policy network
-            po = R_MAPPOPolicy(
-                self.args,
-                obs_dim,
-                shared_obs_dim,
-                act_space,
-                device=device)
-            self.policy.append(po)
+        # Policy
+        if self.use_centralized_V:
+            shared_obs_dim = cent_obs_dim
+        else:
+            shared_obs_dim = obs_dim
+        self.policy = R_MAPPOPolicy(
+            self.args, obs_dim, shared_obs_dim, act_space, device)
 
-            # Algorithm
-            tr = R_MAPPOTrainAlgo(
-                self.args, po, device=device)
-            self.trainer.append(tr)
+        # Train algorithm
+        self.trainer = R_MAPPOTrainAlgo(self.args, self.policy, device)
 
-            # Buffer
-            bu = SeparatedReplayBuffer(
-                self.args, 
-                obs_dim, 
-                shared_obs_dim,
-                act_space)
-            self.buffer.append(bu)
+        # Replay buffer
+        self.buffer = SharedReplayBuffer(
+            self.args, n_agents, obs_dim, shared_obs_dim, act_space)
 
     def prep_rollout(self, device=None):
         if device is None:
             device = self.train_device
-        for tr in self.trainer:
-            tr.prep_rollout(device)
+        self.trainer.prep_rollout(device)
 
     def prep_training(self):
-        for tr in self.trainer:
-            tr.prep_training(self.train_device)
+        self.trainer.prep_training(self.train_device)
 
     def start_episode(self):
-        # """
-        # Initialize the buffer with first observations.
-        # :param obs: (numpy.ndarray) first observations
-        # """
-        for a_i in range(self.n_agents):
-            self.buffer[a_i].reset_episode()
-            # if not self.use_centralized_V:
-            #     shared_obs = np.array(list(obs[:, a_i]))
-            # self.buffer[a_i].shared_obs[0] = shared_obs.copy()
-            # self.buffer[a_i].obs[0] = np.array(list(obs[:, a_i])).copy()
+        self.buffer.reset_episode()
 
     @torch.no_grad()
     def get_actions(self):
-        values = []
-        actions = []
-        temp_actions_env = []
-        action_log_probs = []
-        rnn_states = []
-        rnn_states_critic = []
+        shared_obs, obs, rnn_states, critic_rnn_states, masks \
+            = self.buffer.get_act_params()
 
-        for a_i in range(self.n_agents):
-            value, action, action_log_prob, rnn_state, rnn_state_critic \
-                = self.trainer[a_i].policy.get_actions(
-                    *self.buffer[a_i].get_act_params())
-            # [agents, envs, dim]
-            values.append(torch2numpy(value))
-            action = torch2numpy(action)            
+        values, actions, action_log_probs, rnn_states, critic_rnn_states \
+            = self.trainer.policy.get_actions(
+                np.concatenate(shared_obs),
+                np.concatenate(obs), 
+                np.concatenate(rnn_states), 
+                np.concatenate(critic_rnn_states), 
+                np.concatenate(masks))
 
-            actions.append(action)
-            action_log_probs.append(torch2numpy(action_log_prob))
-            rnn_states.append(torch2numpy(rnn_state))
-            rnn_states_critic.append(torch2numpy(rnn_state_critic))
-
-        values = np.array(values).transpose(1, 0, 2)
-        actions = np.array(actions).transpose(1, 0, 2)
-        action_log_probs = np.array(action_log_probs).transpose(1, 0, 2)
-        rnn_states = np.array(rnn_states).transpose(1, 0, 2, 3)
-        rnn_states_critic = np.array(rnn_states_critic).transpose(1, 0, 2, 3)
+        values = np.reshape(
+            torch2numpy(values), (self.n_parallel_envs, n_agents, -1))
+        actions = np.reshape(
+            torch2numpy(actions), (self.n_parallel_envs, n_agents, -1))
+        action_log_probs = np.reshape(
+            torch2numpy(action_log_probs), (self.n_parallel_envs, n_agents, -1))
+        rnn_states = np.reshape(
+            torch2numpy(rnn_states), 
+            (self.n_parallel_envs, n_agents, self.recurrent_N, -1))
+        critic_rnn_states = np.reshape(
+            torch2numpy(critic_rnn_states), 
+            (self.n_parallel_envs, n_agents, self.recurrent_N, -1))
 
         return values, actions, action_log_probs, rnn_states, \
-               rnn_states_critic
+               critic_rnn_states
 
     def store_obs(self, obs, shared_obs):
         for a_i in range(self.n_agents):
@@ -137,13 +109,17 @@ class MAPPO:
     def store_act(self, rewards, dones, infos, values, actions, 
             action_log_probs, rnn_states, rnn_states_critic):
         rnn_states[dones == True] = np.zeros(
-            ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
+            ((dones == True).sum(), 
+             self.args["recurrent_N"], 
+             self.args["hidden_size"]),
             dtype=np.float32)
         rnn_states_critic[dones == True] = np.zeros(
-            ((dones == True).sum(), self.args.recurrent_N, self.args.hidden_size),
+            ((dones == True).sum(), 
+             self.args["recurrent_N"], 
+             self.args["hidden_size"]),
             dtype=np.float32)
         masks = np.ones(
-            (self.args.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+            (self.args["n_parallel_envs"], self.n_agents, 1), dtype=np.float32)
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 
