@@ -62,7 +62,7 @@ def run():
 
     # Create model
     model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
-                parser.vocab, comm_logger, device)
+                parser.vocab, device, comm_logger)
 
     # Load params
     model.load(pretrained_model_path)

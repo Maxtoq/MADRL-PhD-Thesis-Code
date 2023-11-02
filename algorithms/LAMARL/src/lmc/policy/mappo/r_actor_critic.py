@@ -16,7 +16,7 @@ from .nn_modules.popart import PopArt
 class R_Actor(nn.Module):
     """
     Actor network class for MAPPO. Outputs actions given observations.
-    :param args: (argparse.Namespace) arguments containing relevant model information.
+    :param args: (dict) arguments containing relevant model information.
     :param obs_dim: (int or tuple) observation dimension(s).
     :param act_dim: (int) action dim.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
@@ -24,12 +24,12 @@ class R_Actor(nn.Module):
     def __init__(self, 
             args, obs_dim, act_space, device=torch.device("cpu")):
         super(R_Actor, self).__init__()
-        self.hidden_size = args.hidden_size
+        self.hidden_size = args["hidden_size"]
 
-        self._use_policy_active_masks = args.use_policy_active_masks
-        self._use_naive_recurrent_policy = args.use_naive_recurrent_policy
-        self._use_recurrent_policy = args.use_recurrent_policy
-        self._recurrent_N = args.recurrent_N
+        self._use_policy_active_masks = args["use_policy_active_masks"]
+        self._use_naive_recurrent_policy = args["use_naive_recurrent_policy"]
+        self._use_recurrent_policy = args["use_recurrent_policy"]
+        self._recurrent_N = args["recurrent_N"]
         self.tpdv = dict(dtype=torch.float32, device=device)
 
         #obs_dim = get_shape_from_obs_space(obs_space)
@@ -39,14 +39,14 @@ class R_Actor(nn.Module):
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             self.rnn_encoder = RNNLayer(
                 self.hidden_size, self.hidden_size, self._recurrent_N, 
-                args.use_orthogonal)
+                args["use_orthogonal"])
         else:
             self.mlp_encoder = MLPNet(
                 self.hidden_size, self.hidden_size, 1, 
-                args.use_orthogonal, args.use_ReLU)
+                args["use_orthogonal"], args["use_ReLU"])
 
         self.act = ACTLayer(
-            act_space, self.hidden_size, args.use_orthogonal, args.gain)
+            act_space, self.hidden_size, args["use_orthogonal"], args["gain"])
 
         self.to(device)
 
@@ -133,20 +133,20 @@ class R_Critic(nn.Module):
     """
     Critic network class for MAPPO. Outputs value function predictions given 
     centralized input (MAPPO) or local observations (IPPO).
-    :param args: (argparse.Namespace) arguments containing relevant model information.
+    :param args: (dict) arguments containing relevant model information.
     :param cent_obs_dim: (int or tuple) (centralized) observation dimension(s).
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
     def __init__(self, 
             args, cent_obs_dim, device=torch.device("cpu")):
         super(R_Critic, self).__init__()
-        self.hidden_size = args.hidden_size
-        self._use_naive_recurrent_policy = args.use_naive_recurrent_policy
-        self._use_recurrent_policy = args.use_recurrent_policy
-        self._recurrent_N = args.recurrent_N
-        self._use_popart = args.use_popart
+        self.hidden_size = args["hidden_size"]
+        self._use_naive_recurrent_policy = args["use_naive_recurrent_policy"]
+        self._use_recurrent_policy = args["use_recurrent_policy"]
+        self._recurrent_N = args["recurrent_N"]
+        self._use_popart = args["use_popart"]
         self.tpdv = dict(dtype=torch.float32, device=device)
-        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][args.use_orthogonal]
+        init_method = [nn.init.xavier_uniform_, nn.init.orthogonal_][args["use_orthogonal"]]
 
         # cent_obs_dim = get_shape_from_obs_space(cent_obs_space)
         self.obs_encoder = MLPBase(args, cent_obs_dim)
@@ -155,11 +155,11 @@ class R_Critic(nn.Module):
         if self._use_naive_recurrent_policy or self._use_recurrent_policy:
             self.rnn_encoder = RNNLayer(
                 self.hidden_size, self.hidden_size, self._recurrent_N, 
-                args.use_orthogonal)
+                args["use_orthogonal"])
         else:
             self.mlp_encoder = MLPNet(
                 self.hidden_size, self.hidden_size, 1, 
-                args.use_orthogonal, args.use_ReLU)
+                args["use_orthogonal"], args["use_ReLU"])
 
         def init_(m):
             return init(m, init_method, lambda x: nn.init.constant_(x, 0))

@@ -43,17 +43,17 @@ class MLPBase(nn.Module):
     def __init__(self, args, obs_dim):
         super(MLPBase, self).__init__()
 
-        self._use_feature_normalization = args.use_feature_normalization
-        self._stacked_frames = args.stacked_frames
-        self._layer_N = args.layer_N
-        self.hidden_size = args.hidden_size
+        self._use_feature_normalization = args["use_feature_normalization"]
+        self._stacked_frames = args["stacked_frames"]
+        self._layer_N = args["layer_N"]
+        self.hidden_size = args["hidden_size"]
 
         if self._use_feature_normalization:
             self.feature_norm = nn.LayerNorm(obs_dim)
 
         self.mlp = MLPNet(
-            obs_dim, self.hidden_size, self._layer_N, args.use_orthogonal, 
-            args.use_ReLU)
+            obs_dim, self.hidden_size, self._layer_N, args["use_orthogonal"], 
+            args["use_ReLU"])
 
     def forward(self, x):
         if self._use_feature_normalization:

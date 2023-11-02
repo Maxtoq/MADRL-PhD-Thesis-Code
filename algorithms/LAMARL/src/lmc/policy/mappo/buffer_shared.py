@@ -23,16 +23,16 @@ class SharedReplayBuffer(object):
     """
 
     def __init__(self, args, n_agents, obs_dim, shared_obs_dim, act_space):
-        self.episode_length = args.episode_length
-        self.n_rollout_threads = args.n_rollout_threads
-        self.hidden_size = args.hidden_size
-        self.recurrent_N = args.recurrent_N
-        self.gamma = args.gamma
-        self.gae_lambda = args.gae_lambda
-        self._use_gae = args.use_gae
-        self._use_popart = args.use_popart
-        self._use_valuenorm = args.use_valuenorm
-        self._use_proper_time_limits = args.use_proper_time_limits
+        self.episode_length = args["episode_length"]
+        self.n_rollout_threads = args["n_parallel_envs"]
+        self.hidden_size = args["hidden_size"]
+        self.recurrent_N = args["recurrent_N"]
+        self.gamma = args["gamma"]
+        self.gae_lambda = args["gae_lambda"]
+        self._use_gae = args["use_gae"]
+        self._use_popart = args["use_popart"]
+        self._use_valuenorm = args["use_valuenorm"]
+        self._use_proper_time_limits = args["use_proper_time_limits"]
         self.obs_dim = obs_dim
         self.shared_obs_dim = shared_obs_dim
         self.act_space = act_space

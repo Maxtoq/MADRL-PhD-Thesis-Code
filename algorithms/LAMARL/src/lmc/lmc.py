@@ -6,8 +6,9 @@ from torch import nn
 
 from .modules.lang_learner import LanguageLearner
 from .modules.comm_policy import PerfectComm, CommPPO_MLP
-from .policy.mappo.mappo import MAPPO
+from .policy.mappo.mappo_separated import MAPPO
 from .policy.mappo.utils import get_shape_from_obs_space
+from .utils import get_mappo_args
 
 
 class LMC:
@@ -15,7 +16,7 @@ class LMC:
     Language-Memory for Communication using a pre-defined discrete language.
     """
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 vocab, comm_logger=None, device="cpu"):
+                 vocab, device="cpu", comm_logger=None):
         self.args = args
         self.n_agents = n_agents
         self.context_dim = args.context_dim
@@ -50,11 +51,12 @@ class LMC:
         else:
             raise NotImplementedError("Bad name given for communication policy algo.")
 
+        policy_args = get_mappo_args(args)
         if args.policy_algo == "mappo":
             obs_dim = get_shape_from_obs_space(obs_space[0])
             shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
             self.policy = MAPPO(
-                args, n_agents, obs_dim + self.context_dim, 
+                policy_args, n_agents, obs_dim + self.context_dim, 
                 shared_obs_dim + self.context_dim,
                 act_space[0], device)
 

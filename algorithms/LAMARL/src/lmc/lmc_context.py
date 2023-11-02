@@ -15,7 +15,7 @@ class LMC:
     Language-Memory for Communication using a pre-defined discrete language.
     """
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 vocab, comm_logger=None, device="cpu"):
+                 vocab, device="cpu", comm_logger=None):
         self.args = args
         self.n_agents = n_agents
         self.context_dim = args.context_dim
