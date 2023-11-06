@@ -6,7 +6,7 @@ from torch import nn
 
 from .modules.lang_learner import LanguageLearner
 from .modules.comm_policy import PerfectComm, CommPPO_MLP
-from .policy.mappo.mappo_separated import MAPPO
+from .policy.mappo.mappo_shared import MAPPO
 from .policy.mappo.utils import get_shape_from_obs_space
 from .utils import get_mappo_args
 
@@ -56,9 +56,12 @@ class LMC:
             obs_dim = get_shape_from_obs_space(obs_space[0])
             shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
             self.policy = MAPPO(
-                policy_args, n_agents, obs_dim + self.context_dim, 
+                policy_args, 
+                n_agents, 
+                obs_dim + self.context_dim, 
                 shared_obs_dim + self.context_dim,
-                act_space[0], device)
+                act_space[0], 
+                device)
 
         # self.last_messages = None
         self.last_kl_penalties = None
@@ -207,7 +210,7 @@ class LMC:
         self.prep_training()
         # Train policy
         warmup = step < self.n_warmup_steps
-        pol_losses = self.policy.train(warmup)
+        pol_losses = [self.policy.train(warmup)]
         # TODO Add train comm_pol
         # Train language
         if self.comm_policy is not None and train_lang:

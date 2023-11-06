@@ -57,9 +57,12 @@ class LMC:
             obs_dim = get_shape_from_obs_space(obs_space[0])
             shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
             self.policy = MAPPO(
-                args, n_agents, obs_dim + self.context_dim, 
+                args, 
+                n_agents, 
+                obs_dim + self.context_dim, 
                 shared_obs_dim + self.context_dim,
-                act_space[0], device)
+                act_space[0],
+                device)
 
         # self.last_messages = None
         self.last_kl_penalties = None

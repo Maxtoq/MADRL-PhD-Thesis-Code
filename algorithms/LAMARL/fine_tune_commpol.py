@@ -14,7 +14,7 @@ from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
 from src.envs.make_env import make_env
-from src.lmc.lmc_context import LMC
+from src.lmc.lmc import LMC
 
 
 def run():
@@ -105,7 +105,11 @@ def run():
             mean_message_return = model.eval_comm(values.squeeze(-1))#rewards)
 
             # Train comm
-            comm_losses = model.train_comm(s_i)
+            # comm_losses = model.train_comm(s_i)
+            comm_losses = [{
+            "comm_policy_loss": 0,
+            "comm_entropy_loss": 0,
+            "comm_value_loss": 0}]
 
             # Log communication reward and loss
             logger.log_comm(

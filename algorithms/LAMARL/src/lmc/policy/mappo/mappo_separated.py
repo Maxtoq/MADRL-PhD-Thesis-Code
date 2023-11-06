@@ -17,13 +17,13 @@ class MAPPO:
     :param args: (dict) all arguments for training
     :param n_agents: (int) number of agents
     :param obs_dim: (int) observation dimensions, for each agent
-    :param cent_obs_dim: (int) centralized observation dimensions, for 
+    :param shared_obs_dim: (int) centralized observation dimensions, for 
         each agent
     :param act_space: (gym.Space) action dimensions, for each agent
     :param device: (torch.device) cuda device used for training
     """
     def __init__(self, 
-            args, n_agents, obs_dim, cent_obs_dim, act_space, device):
+            args, n_agents, obs_dim, shared_obs_dim, act_space, device):
         self.args = args
         self.n_agents = n_agents
         self.use_centralized_V = self.args["use_centralized_V"]
@@ -47,14 +47,14 @@ class MAPPO:
         self.buffer = []
         for a_i in range(self.n_agents):
             if self.use_centralized_V:
-                shared_obs_dim = cent_obs_dim
+                sod = shared_obs_dim
             else:
-                shared_obs_dim = obs_dim
+                sod = obs_dim
             # Policy network
             po = R_MAPPOPolicy(
                 self.args,
                 obs_dim,
-                shared_obs_dim,
+                sod,
                 act_space,
                 device=device)
             self.policy.append(po)
@@ -68,7 +68,7 @@ class MAPPO:
             bu = SeparatedReplayBuffer(
                 self.args, 
                 obs_dim, 
-                shared_obs_dim,
+                sod,
                 act_space)
             self.buffer.append(bu)
 
