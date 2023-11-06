@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=1
-experiment_name="TESTmappo_perfectcomm_8x8"
+n_run=11
+experiment_name="mappo_shared_perfectcomm_8x8"
 n_parallel_envs=32
 n_steps=5000000
 policy_algo="mappo"
@@ -13,7 +13,7 @@ lang_lr=0.0009 # default 0.0007
 lang_n_epochs=1 # default 2
 lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:2"
+cuda_device="cuda:1"
 
 source venv/bin/activate
 

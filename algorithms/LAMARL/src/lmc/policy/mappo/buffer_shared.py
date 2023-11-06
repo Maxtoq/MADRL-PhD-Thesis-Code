@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from onpolicy.utils.util import get_shape_from_obs_space, get_shape_from_act_space
+from .utils import get_shape_from_obs_space, get_shape_from_act_space
 
 
 def _flatten(T, N, x):
