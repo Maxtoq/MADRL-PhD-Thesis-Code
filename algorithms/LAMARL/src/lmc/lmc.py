@@ -79,16 +79,35 @@ class LMC:
             self.comm_policy.prep_rollout(device)
 
     def _make_obs(self, obs, message_contexts):
+        """
+        Generate observations and shared_observations, with the message 
+        contexts concatenated.
+        :param obs: (np.ndarray) Local observations, dim=(n_parallel_envs, 
+            n_agents, obs_dim).
+        :param message_contexts: (np.ndarray) Messages contexts, 
+            dim=(n_parallel_envs, context_dim).
+        """
         n_parallel_envs = obs.shape[0]
+        message_contexts = message_contexts.reshape(
+            n_parallel_envs, 1, self.context_dim).repeat(
+                self.n_agents, axis=1)
 
+        # shared_obs = np.concatenate(
+        #     (obs.reshape(n_parallel_envs, -1), message_contexts), 
+        #     axis=-1)
+
+        # Make all possible shared observations
+        shared_obs = []
+        ids = list(range(self.n_agents)) * 2
+        for a_i in range(self.n_agents):
+            shared_obs.append(
+                obs[:, ids[a_i:a_i + self.n_agents]].reshape(
+                    n_parallel_envs, 1, -1))
         shared_obs = np.concatenate(
-            (obs.reshape(n_parallel_envs, -1), message_contexts), 
-            axis=-1)
-        obs = np.concatenate(
-            (obs, message_contexts.reshape(
-                n_parallel_envs, 1, self.context_dim).repeat(
-                    self.n_agents, axis=1)), 
-            axis=-1)
+            (np.concatenate(shared_obs, axis=1), message_contexts), axis=-1)
+
+        obs = np.concatenate((obs, message_contexts), axis=-1)
+        
         return obs, shared_obs
 
     def start_episode(self):

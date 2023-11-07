@@ -73,14 +73,14 @@ class MAPPO:
         :param obs: (np.ndarray) Observations for each agent, 
             dim=(n_parallel_envs, n_agents, obs_dim).
         :param shared_obs: (np.ndarray) Centralised observations, 
-            dim=(n_parallel_envs, shared_obs_dim).
+            dim=(n_parallel_envs, n_agents, shared_obs_dim).
         """
         if not self.use_centralized_V:
             shared_obs = obs.copy()
-        else:
+        # else:
             # Repeat for all agents
-            shared_obs = np.repeat(shared_obs, self.n_agents, axis=0).reshape(
-                self.n_parallel_envs, self.n_agents, -1)
+            # shared_obs = np.repeat(shared_obs, self.n_agents, axis=0).reshape(
+            #     self.n_parallel_envs, self.n_agents, -1)
         self.buffer.insert_obs(obs.copy(), shared_obs.copy())
 
     @torch.no_grad()
