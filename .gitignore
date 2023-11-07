@@ -705,3 +705,9 @@ models/magym_PredPrey/mappo_perfectcomm_8x8/*
 !models/magym_PredPrey/mappo_perfectcomm_8x8/run18
 models/magym_PredPrey/mappo_perfectcomm_8x8/run18/*
 !models/magym_PredPrey/mappo_perfectcomm_8x8/run18/model_ep.pt
+
+!models/magym_PredPrey/mappo_shared_perfectcomm_8x8
+models/magym_PredPrey/mappo_shared_perfectcomm_8x8/*
+!models/magym_PredPrey/mappo_shared_perfectcomm_8x8/run12
+models/magym_PredPrey/mappo_shared_perfectcomm_8x8/run12/*
+!models/magym_PredPrey/mappo_shared_perfectcomm_8x8/run12/model_ep.pt
