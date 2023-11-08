@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="TESTFT_nocommenc"
+experiment_name="FT_commencmappo"
 n_parallel_envs=2
 n_steps=10000000
 policy_algo="mappo"

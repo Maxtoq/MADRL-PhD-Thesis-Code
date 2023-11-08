@@ -282,7 +282,7 @@ class GRUDecoder(nn.Module):
                 _, topi = outputs.topk(1)
                 topi = topi.squeeze()
                 last_tokens = torch.Tensor(
-                    self.word_encoder.token_encodings[topi]).unsqueeze(0).to(
+                    self.word_encoder.token_encodings[topi.cpu()]).unsqueeze(0).to(
                         self.device)
 
                 for b_i in range(batch_size):

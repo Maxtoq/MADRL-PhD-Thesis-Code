@@ -16,131 +16,6 @@ def torch2numpy(x):
     return x.detach().cpu().numpy()
 
 
-# class TextActorCritic(nn.Module):
-    
-#     def __init__(self, word_encoder, pretrained_decoder, context_dim, 
-#             max_sent_len, device, train_topk=1):
-#         super(TextActorCritic, self).__init__()
-#         self.word_encoder = word_encoder
-#         self.max_sent_len = max_sent_len
-#         self.device = device
-#         # TODO add topk param handle
-#         self.train_topk = train_topk
-#         # RNN encoder
-#         self.gru = copy.deepcopy(pretrained_decoder.gru)
-#         # Policy and value heads
-#         self.actor = copy.deepcopy(pretrained_decoder.out)
-#         self.critic = init(nn.Linear(context_dim, 1), gain=0.01)
-            
-#     def gen_messages(self, context_batch):
-#         """
-#         :param context_batch (torch.Tensor): Batch of context vectors,
-#                 dim=(1, batch_size, context_dim).
-#         """
-#         batch_size = context_batch.shape[1]
-#         # Set initial hidden states and token
-#         hidden = context_batch
-#         last_tokens = torch.tensor(
-#             np.array([[self.word_encoder.SOS_ENC]])).float().repeat(
-#                 1, batch_size, 1).to(self.device)
-        
-#         batch_tokens = []
-#         batch_log_probs = []
-#         batch_token_log_probs = []
-#         batch_value_preds = []
-#         batch_masks = [np.ones(batch_size)]
-#         last_topi = torch.zeros(batch_size)
-#         # batch_len_sentences = np.zeros(batch_size)
-#         sentences = [[] for b_i in range(batch_size)]
-#         for t_i in range(self.max_sent_len):
-#             # Encode with RNN
-#             _, hidden = self.gru(last_tokens, hidden)
-            
-#             # Get token predictions from actor
-#             log_probs = self.actor(hidden)
-            
-#             # Get values from critic
-#             value_preds = self.critic(hidden)
-            
-#             # Sample next token
-#             _, topi = log_probs.topk(1)
-#             topi = topi.squeeze()
-#             tokens = self.word_encoder.token_encodings[topi.cpu()]
-            
-#             # Make token_log_prob
-#             token_log_probs = log_probs.gather(-1, topi.reshape(1, -1, 1))
-            
-#             # Make mask: 1 if last token is not EOS and last mask is not 0
-#             masks = (
-#                 np.where(last_topi.cpu() == self.word_encoder.EOS_ID, 0.0, 1.0) * \
-#                 np.where(batch_masks[-1] == 0.0, 0.0, 1.0))
-#             last_topi = topi
-            
-#             # Stop early if all sentences are finished
-#             if sum(masks) == 0:
-#                 break
-            
-#             # Add decoded tokens to sentences
-#             for b_i in range(batch_size):
-#                 if masks[b_i] and topi[b_i] != self.word_encoder.EOS_ID:
-#                     sentences[b_i].append(
-#                         self.word_encoder.index2token(topi[b_i]))
-            
-#             batch_tokens.append(tokens)
-#             batch_log_probs.append(torch2numpy(log_probs))
-#             batch_token_log_probs.append(torch2numpy(token_log_probs))
-#             batch_value_preds.append(torch2numpy(value_preds))
-#             batch_masks.append(masks)
-            
-#             last_tokens = torch.Tensor(tokens).unsqueeze(0).to(self.device)
-            
-#         # Compute last value
-#         _, hidden = self.gru(last_tokens, hidden)
-#         value_preds = self.critic(hidden)
-#         batch_value_preds.append(torch2numpy(value_preds))
-        
-#         tokens = np.stack(batch_tokens, dtype=np.float32)
-#         log_probs = np.concatenate(batch_log_probs)
-#         token_log_probs = np.concatenate(batch_token_log_probs)
-#         value_preds = np.concatenate(batch_value_preds)
-#         masks = np.stack(batch_masks)
-        
-#         return tokens, token_log_probs, value_preds, masks, sentences, log_probs
-    
-#     def evaluate_tokens(self, context_batch, token_batch):
-#         """
-#         Evaluate generated tokens with the current policy and value.
-#         :param context_batch (torch.Tensor): Batch of communication contexts
-#             (initial hidden state of gru), dim=(1, batch_size, context_dim)
-#         :param token_batch (torch.Tensor): Batch of generated tokens, 
-#             dim=(seq_len, batch_size, token_dim)
-        
-#         :return token_log_probs (torch.Tensor): Log-probabilities of given 
-#             tokens, dim=(seq_len, batch_size, 1)
-#         :return entropy (torch.Tensor): Entropy of the output probabilities, 
-#             dim=(1)
-#         :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
-#             batch_size, 1)
-#         """
-#         # Add SOS token
-#         sos_tensor = torch.Tensor(
-#             np.array([self.word_encoder.SOS_ENC])).repeat(
-#                 1, context_batch.shape[1], 1).to(self.device)
-#         input_tokens = torch.cat((sos_tensor, token_batch)).to(self.device)
-
-#         outputs, _ = self.gru(input_tokens, context_batch)
-        
-#         # Get log_probs and entropy
-#         log_probs = self.actor(outputs)
-#         token_log_probs = log_probs.gather(
-#             -1, token_batch.argmax(-1).unsqueeze(-1))
-#         entropy = -(log_probs * torch.exp(log_probs)).mean()
-
-#         # Get values
-#         value_preds = self.critic(outputs)
-
-#         return token_log_probs, entropy, value_preds
-
 class CommPol_Context:
     """ 
     Communication module with a recurrent context encoder, 
@@ -316,18 +191,10 @@ class CommPol_Context:
     def get_save_dict(self):
         save_dict = {
             "context_encoder": self.context_encoder_policy.get_save_dict()}
-            # "comm_policy": self.comm_policy.state_dict(),
-            # "comm_optim": self.optim.state_dict()}
         return save_dict
 
     def load_params(self, save_dict):
         self.lang_learner.load_params(save_dict)
-        # if "context_encoder" in save_dict:
-        #     self.context_encoder.load_state_dict(save_dict["context_encoder"])
-        #     self.comm_policy.load_state_dict(save_dict["comm_policy"])
-        #     self.optim.load_state_dict(save_dict["comm_optim"])
-        # else: # Starting fine-tuning from pretrained language learner
-        #     self.comm_policy.gru.load_state_dict(
-        #         self.lang_learner.decoder.gru.state_dict())
-        #     self.comm_policy.actor.load_state_dict(
-        #         self.lang_learner.decoder.out.state_dict())
+        if "context_encoder" in save_dict:
+            self.context_encoder_policy.load_params(
+                save_dict["context_encoder"]["agents_params"])
