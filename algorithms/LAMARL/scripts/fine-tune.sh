@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
 experiment_name="FT_commencmappo"
-n_parallel_envs=2
+n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15
@@ -24,7 +24,7 @@ FT_n_steps_fix_policy=9000000
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
