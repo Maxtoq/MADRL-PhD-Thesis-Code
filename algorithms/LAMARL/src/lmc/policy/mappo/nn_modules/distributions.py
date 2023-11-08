@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 from ..utils import init
@@ -34,12 +35,12 @@ class FixedCategorical(torch.distributions.Categorical):
 
 
 # Normal
-class FixedNormal(torch.distributions.Normal):
+class FixedNormal(torch.distributions.normal.Normal):
     def log_probs(self, actions):
         return super().log_prob(actions).sum(-1, keepdim=True)
 
     def entropy(self):
-        return super.entropy().sum(-1)
+        return (0.5 + 0.5 * math.log(2 * math.pi) + torch.log(self.scale)).sum(-1)
 
     def mode(self):
         return self.mean

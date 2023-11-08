@@ -8,7 +8,8 @@ from torch import nn
 from gym import spaces
 
 from src.lmc.modules.networks import MLPNetwork, init
-from src.lmc.policy.mappo.mappo import MAPPO
+from src.lmc.policy.mappo.mappo_shared import MAPPO
+from src.lmc.utils import get_mappo_args
 
 
 def torch2numpy(x):
@@ -162,128 +163,83 @@ class CommPol_Context:
         
         self.lang_learner = lang_learner
 
+        comm_policy_args = get_mappo_args(args)
         context_dim = args.context_dim
         input_dim = context_dim * 2
         low = np.full(context_dim, -np.inf)
         high = np.full(context_dim, np.inf)
         act_space = spaces.Box(low, high)
         self.context_encoder_policy = MAPPO(
-            args, n_agents, input_dim, input_dim * n_agents, act_space, device)
-        
-        # self.context_encoder = MLPNetwork(
-        #     2 * args.context_dim, args.context_dim, norm_in=False)
-        
-        # self.comm_policy = TextActorCritic(
-        #     lang_learner.word_encoder, 
-        #     lang_learner.decoder, 
-        #     args.context_dim, 
-        #     args.comm_max_sent_len,
-        #     device,
-        #     args.comm_train_topk)
-        
-        # self.optim = torch.optim.Adam(
-        #     list(self.comm_policy.parameters()) + \
-        #     list(self.context_encoder.parameters()), 
-        #     lr=self.lr, eps=1e-5)
-        
-        # self.buffer = CommBuffer_MLP(
-        #     args.context_dim,
-        #     args.comm_max_sent_len, 
-        #     self.lang_learner.word_encoder.enc_dim,
-        #     args.comm_gamma,
-        #     self.n_mini_batch)
+            comm_policy_args, 
+            n_agents, 
+            input_dim, 
+            input_dim * n_agents, 
+            act_space, 
+            device)
+
+        self.values = None
+        self.comm_context = None
+        self.action_log_probs = None
+        self.rnn_states = None
+        self.critic_rnn_states = None
 
     def prep_rollout(self, device=None):
         if device is None:
             device = self.device
         self.context_encoder_policy.prep_rollout(device)
-        # self.comm_policy.eval()
-        # self.comm_policy.to(device)
-        # self.comm_policy.device = device
 
     def prep_training(self):
         self.context_encoder_policy.prep_training()
-        # self.comm_policy.train()
-        # self.comm_policy.to(self.device)
-        # self.comm_policy.device = self.device
-        
-    # @torch.no_grad()
-    # def _get_pretrain_probs(self, context_batch, token_batch):
-    #     """
-    #     Get reference token log-probalities from pre-trained decoder.
-    #     :param context_batch (np.ndarray): Batch of communication contexts
-    #         (initial hidden state of gru), dim=(1, batch_size, context_dim)
-    #     :param token_batch (np.ndarray): Batch of generated tokens, 
-    #         dim=(seq_len, batch_size, token_dim)
-        
-    #     :return token_log_probs (torch.Tensor): Log-probabilities of given 
-    #         tokens, dim=(seq_len, batch_size, 1)
-    #     :return entropy (torch.Tensor): Entropy of the output probabilities, 
-    #         dim=(1)
-    #     :return value_preds (torch.Tensor): Value predictions, dim=(seq_len, 
-    #         batch_size, 1)
-    #     """
-    #     token_batch = torch.from_numpy(token_batch).to(self.device)
-    #     # Add SOS token
-    #     sos_token = torch.Tensor(np.tile(
-    #         self.lang_learner.word_encoder.SOS_ENC, 
-    #         (1, context_batch.shape[1], 1))).to(self.device)
-    #     input_tokens = torch.cat((sos_token, token_batch[:-1]))
 
-    #     ref_log_probs, _ = self.lang_learner.decoder.forward_step(
-    #         input_tokens, context_batch)
-        
-    #     return ref_log_probs
+    def start_episode(self):
+        self.context_encoder_policy.start_episode()
         
     @torch.no_grad()
-    def get_messages(self, obs, lang_contexts):
+    def get_messages(self, obs, lang_context):
         """
         Perform a communication step: encodes obs and previous messages and
         generates messages for this step.
-        :param obs (np.ndarray): agents' observations for all parallel 
+        :param obs: (np.ndarray) agents' observations for all parallel 
             environments, dim=(n_envs, n_agents, obs_dim)
+        :param lang_context: (np.ndarray) Language contexts from last step, 
+            dim=(n_envs, n_agents, context_dim)
             
-        :return comm (list(list(str))): messages generated for each agent,
+        :return messages (list(list(str))): messages generated for each agent,
             for each parallel environment
-        :return lang_context (np.ndarray): language context vectors to send
-            to policy, dim=(n_envs, n_agents, context_dim)
         """
         # Encode inputs
-        obs_context = []
+        # obs_context = []
         obs = torch.Tensor(obs).view(self.n_envs * self.n_agents, -1)
         obs_context = self.lang_learner.encode_observations(obs)
+        obs_context = obs_context.view(self.n_envs, self.n_agents, -1)
 
         # Repeat lang_contexts for each agent in envs
-        lang_contexts = torch.from_numpy(lang_contexts.repeat(
-            self.n_agents, 0).reshape(self.n_envs * self.n_agents, -1)).to(
-                self.device)
+        lang_context = torch.from_numpy(lang_context.repeat(
+            self.n_agents, 0).reshape(
+                self.n_envs, self.n_agents, -1)).to(self.device)
 
-        input_context = torch.cat((obs_context, lang_contexts), dim=-1)
+        input_context = torch.cat((obs_context, lang_context), dim=-1)
         
-        # Encode contexts
-        print(input_context, input_context.shape)
-        exit()
-        comm_context = self.comm_encoder_policy.get_actions()
+        # Make all possible shared inputs
+        shared_input = []
+        ids = list(range(self.n_agents)) * 2
+        for a_i in range(self.n_agents):
+            shared_input.append(
+                input_context[:, ids[a_i:a_i + self.n_agents]].reshape(
+                    self.n_envs, 1, -1))
+        shared_input = torch.cat(shared_input, dim=1)
+
+        self.context_encoder_policy.store_obs(
+            torch2numpy(input_context), torch2numpy(shared_input))
+
+        self.values, self.comm_context, self.action_log_probs, self.rnn_states, \
+            self.critic_rnn_states = self.context_encoder_policy.get_actions()
+
+        messages = self.lang_learner.generate_sentences(torch.Tensor(
+            self.comm_context).view(self.n_envs * self.n_agents, -1).to(
+                self.device))
         
-        # Generate messages
-        tokens, token_log_probs, value_preds, masks, messages, log_probs = \
-            self.comm_policy.gen_messages(comm_context)
-        
-        # Compute KL-pretrain rewards
-        # Get reference token_log_probs from pretrained decoder
-        ref_log_probs = self._get_pretrain_probs(comm_context, tokens)
-        # Compute KL divergence
-        kl = (np.exp(log_probs) * (log_probs - torch2numpy(ref_log_probs))).sum(-1)
-        
-        # Store experiences in buffer
-        self.buffer.store_gen(
-            torch2numpy(input_context), 
-            tokens, 
-            token_log_probs, 
-            value_preds, 
-            masks)
-        
-        return messages, -kl
+        return messages
 
     # def _rand_filter_messages(self, messages):
     #     """
@@ -306,7 +262,7 @@ class CommPol_Context:
     @torch.no_grad()
     def comm_step(self, obs, lang_contexts, perfect_messages=None):
         # Get messages
-        messages, klpretrain_rewards = self.get_messages(obs, lang_contexts)
+        messages = self.get_messages(obs, lang_contexts)
         
         # Arrange messages by env
         broadcasts = []
@@ -327,125 +283,34 @@ class CommPol_Context:
         # new_lang_contexts = self.lang_learner.encode_sentences(broadcasts).detach().cpu().numpy()
         
         # Return messages and lang_context
-        return broadcasts, messages_by_env, new_lang_contexts, \
-               klpretrain_rewards
+        return broadcasts, messages_by_env, new_lang_contexts
     
-    def store_rewards(self, message_rewards, token_rewards):
+    def store_rewards(self, message_rewards, dones):
         """
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 
-            sentence, dim=(n_agents * n_envs, )
-        :param token_rewards (np.ndarray): Rewards for each generated token, 
-            dim=(seq_len, n_agents * n_envs, 1)
+            sentence, dim=(n_envs, n_agents).
+        :param dones (np.ndarray): Done state of each environment, 
+            dim=(n_envs, n_agents).
 
-        :return mean_message_return (float): Average return of evaluated 
-            messages.
+        :return rewards (dict): Rewards to log.
         """
-        # print("message_rewards", message_rewards, message_rewards.shape)
-        # print("token_rewards", token_rewards, token_rewards.shape)
-        token_rewards *= self.buffer.masks[1:]
-        # print("token_rewards", token_rewards, token_rewards.shape)
-
-        len_sentences = np.sum(self.buffer.masks, axis=0, dtype=int)
-        step_rewards = np.zeros_like(self.buffer.masks)
-        # print("step_rewards", step_rewards, step_rewards.shape)
-        # Set final reward to final token of each sentence
-        step_rewards[len_sentences - 1, list(range(message_rewards.shape[0]))] = \
-            message_rewards
-        # print("step_rewards", step_rewards, step_rewards.shape)
-        # Add klpretrain penalty
-        step_rewards[1:] += token_rewards
-        # print("step_rewards", step_rewards, step_rewards.shape)
-        
-        # Clean masked rewards
-        step_rewards *= self.buffer.masks
-        # print("buffer.masks", self.buffer.masks)
-        # print("step_rewards", step_rewards, step_rewards.shape)
-
-        self.buffer.compute_returns(step_rewards)
-
-        # print("kl_reward", token_rewards.mean())
-        # print("token_reward", step_rewards.sum() / self.buffer.masks.sum())
-        # print("returns", self.buffer.returns, self.buffer.returns.shape)
-        # exit()
-
-        # mean_step_rewards = step_rewards.sum() / step_rewards.shape[1]
+        self.context_encoder_policy.store_act(
+            message_rewards, dones, 
+            self.values, 
+            self.comm_context, 
+            self.action_log_probs, 
+            self.rnn_states, 
+            self.critic_rnn_states)
 
         rewards = {
-            "kl_reward": token_rewards.mean(),
-            "env_reward": message_rewards.mean(),
-            "token_reward": step_rewards.sum() / self.buffer.masks.sum()
+            "message_reward": message_rewards.mean()
         }
 
-        # return step_rewards.sum() / step_rewards.shape[1]
         return rewards
-        
-    # def ppo_update(self, batch):
-    #     input_context, generated_tokens, token_log_probs, value_preds, returns, \
-    #         advantages, masks = batch
-        
-    #     input_context = torch.from_numpy(input_context).to(self.device)
-    #     generated_tokens = torch.from_numpy(generated_tokens).to(self.device)
-    #     token_log_probs = torch.from_numpy(token_log_probs).to(self.device)
-    #     advantages = torch.from_numpy(advantages).to(self.device)
-    #     returns = torch.from_numpy(returns).to(self.device)
-        
-    #     # Evaluate generated tokens
-    #     # NOCOMMENC comm_context = self.context_encoder(input_context).unsqueeze(0)
-    #     comm_context = input_context[:, :16].unsqueeze(0).contiguous()
-    #     new_token_log_probs, entropy, new_value_preds = \
-    #         self.comm_policy.evaluate_tokens(comm_context, generated_tokens)
-            
-    #     # Policy Loss
-    #     ratio = (new_token_log_probs - token_log_probs).exp()
-    #     pol_loss1 = -advantages * ratio
-    #     pol_loss2 = -advantages * torch.clamp(
-    #         ratio, 1 - self.ppo_clip_param, 1 + self.ppo_clip_param)
-    #     pol_loss = torch.max(pol_loss1, pol_loss2).mean()
-        
-    #     # Entropy loss
-    #     entropy_loss = entropy.mean()
-        
-    #     # Value loss
-    #     val_loss = ((new_value_preds - returns) ** 2).mean()
-        
-    #     # Final PPO loss
-    #     loss = pol_loss - self.entropy_coef * entropy_loss + \
-    #             self.vloss_coef * val_loss
-        
-    #     # Update
-    #     self.optim.zero_grad()
-    #     loss.backward()
-    #     nn.utils.clip_grad_norm_(
-    #         self.comm_policy.parameters(), self.max_grad_norm)
-    #     nn.utils.clip_grad_norm_(
-    #         self.context_encoder.parameters(), self.max_grad_norm)
-    #     self.optim.step()
-
-    #     return pol_loss, entropy_loss, val_loss
     
     def train(self, warmup=False):
-        self.warmup_lr(warmup)
-        self.prep_training()
-        losses = {
-            "comm_policy_loss": 0,
-            "comm_entropy_loss": 0,
-            "comm_value_loss": 0}
-        for e_i in range(self.n_epochs):
-            data_generator = self.buffer.generator()
-            
-            for train_batch in data_generator:
-                pol_loss, entropy_loss, val_loss = self.ppo_update(train_batch)
-                
-                losses["comm_policy_loss"] += pol_loss.item()
-                losses["comm_entropy_loss"] += entropy_loss.item()
-                losses["comm_value_loss"] += val_loss.item()
-        
-        for k in losses.keys():
-            losses[k] /= (self.n_epochs * self.n_mini_batch)
-        
-        self.prep_rollout()
-
+        losses = self.context_encoder_policy.train(warmup)
         return losses
 
     def get_save_dict(self):

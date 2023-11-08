@@ -26,7 +26,7 @@ class CommunicationLogger:
                 "Observation"])
 
     def store_messages(self, 
-            obs, gen_mess, perf_mess, broadcasts, kl_pen):
+            obs, gen_mess, perf_mess, broadcasts, kl_pen=None):
         """
         Store messages and corresponding observations.
 
@@ -49,7 +49,8 @@ class CommunicationLogger:
             self.generated_messages += gen_mess[e_i]
             self.perfect_messages += perf_mess[e_i]
             self.broadcasts += [broadcasts[e_i]] * n_agents
-        self.kl_pens += kl_pen.tolist()
+        if kl_pen is not None:
+            self.kl_pens += kl_pen.tolist()
 
     def store_rewards(self, rewards):
         """

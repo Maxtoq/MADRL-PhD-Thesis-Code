@@ -421,7 +421,6 @@ class CommPPO_MLP:
             to policy, dim=(n_envs, n_agents, context_dim)
         """
         # Encode inputs
-        obs_context = []
         obs = torch.Tensor(obs).view(self.n_envs * self.n_agents, -1)
         obs_context = self.lang_learner.encode_observations(obs)
 

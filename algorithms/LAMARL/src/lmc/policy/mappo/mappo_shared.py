@@ -81,7 +81,7 @@ class MAPPO:
             # Repeat for all agents
             # shared_obs = np.repeat(shared_obs, self.n_agents, axis=0).reshape(
             #     self.n_parallel_envs, self.n_agents, -1)
-        self.buffer.insert_obs(obs.copy(), shared_obs.copy())
+        self.buffer.insert_obs(obs, shared_obs)
 
     @torch.no_grad()
     def get_actions(self):
@@ -113,8 +113,8 @@ class MAPPO:
         return values, actions, action_log_probs, rnn_states, \
                critic_rnn_states
 
-    def store_act(self, rewards, dones, infos, values, actions, 
-            action_log_probs, rnn_states, rnn_states_critic):
+    def store_act(self, rewards, dones, values, actions, action_log_probs, 
+                  rnn_states, rnn_states_critic):
         rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), 
              self.recurrent_N, 
@@ -174,13 +174,14 @@ class MAPPO:
         }
         return save_dict
 
-    def load_params(self, agent_params):
-        return
-        self.trainer.policy.actor.load_state_dict(agent_params["actor"])
-        self.trainer.policy.critic.load_state_dict(agent_params["critic"])
+    def load_params(self, params):
+        self.trainer.policy.actor.load_state_dict(
+            params["actor"])
+        self.trainer.policy.critic.load_state_dict(
+            params["critic"])
         if self.trainer._use_valuenorm:
             self.trainer.value_normalizer.load_state_dict(
-                agent_params["vnorm"])
+                params["vnorm"])
 
     def save(self, path):
         save_dict = self.get_save_dict()

@@ -18,6 +18,7 @@ class ACTLayer(nn.Module):
     """
     def __init__(self, action_space, inputs_dim, use_orthogonal, gain):
         super(ACTLayer, self).__init__()
+        self.continuous = False
         self.mixed_action = False
         self.multi_discrete = False
 
@@ -25,6 +26,7 @@ class ACTLayer(nn.Module):
             action_dim = action_space.n
             self.action_out = Categorical(inputs_dim, action_dim, use_orthogonal, gain)
         elif action_space.__class__.__name__ == "Box":
+            self.continuous = True
             action_dim = action_space.shape[0]
             self.action_out = DiagGaussian(inputs_dim, action_dim, use_orthogonal, gain)
         elif action_space.__class__.__name__ == "MultiBinary":
@@ -55,7 +57,7 @@ class ACTLayer(nn.Module):
         :return actions: (torch.Tensor) actions to take.
         :return action_log_probs: (torch.Tensor) log probabilities of taken actions.
         """
-        if self.mixed_action :
+        if self.mixed_action:
             actions = []
             action_log_probs = []
             for action_out in self.action_outs:
@@ -81,6 +83,11 @@ class ACTLayer(nn.Module):
             actions = torch.cat(actions, -1)
             action_log_probs = torch.cat(action_log_probs, -1)
         
+        elif self.continuous:
+            action_logits = self.action_out(x)
+            actions = action_logits.mode() if deterministic else action_logits.sample() 
+            action_log_probs = action_logits.log_probs(actions)
+
         else:
             action_logits = self.action_out(x, available_actions)
             actions = action_logits.mode() if deterministic else action_logits.sample() 
@@ -157,6 +164,14 @@ class ACTLayer(nn.Module):
             action_log_probs = torch.cat(action_log_probs, -1) # ! could be wrong
             dist_entropy = sum(dist_entropy)/len(dist_entropy)
         
+        elif self.continuous:
+            action_logits = self.action_out(x)
+            action_log_probs = action_logits.log_probs(action)
+            if active_masks is not None:
+                dist_entropy = (action_logits.entropy()*active_masks.squeeze(-1)).sum()/active_masks.sum()
+            else:
+                dist_entropy = action_logits.entropy().mean()
+
         else:
             action_logits = self.action_out(x, available_actions)
             action_log_probs = action_logits.log_probs(action)

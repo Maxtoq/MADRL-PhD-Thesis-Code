@@ -80,22 +80,22 @@ class Logger():
                 self._store_episode(e_i, step)
                 self._reset_env(e_i)
 
-    def log_comm(self, step, comm_rewards, losses):
+    def log_comm(self, step, comm_rewards, losses=None):
         self.comm_data["Step"].append(step)
         self.comm_data["Mean message return"].append(
-            comm_rewards["token_reward"])    
+            comm_rewards["message_reward"])    
 
         # Log Tensorboard
         if self.log_tensorboard:
             self.log_tb.add_scalars('agent0/comm_reward', comm_rewards, step)
-        
-        # Log Tensorboard
-        if self.log_tensorboard:
-            self.log_tb.add_scalars('agent0/losses', losses, step)
+            if losses is not None:
+                self.log_tb.add_scalars('agent0/losses', losses, step)
 
     def log_losses(self, losses, step):
         if self.log_tensorboard:
-            if type(losses) is tuple:
+            if type(losses) is dict:
+                pass
+            elif type(losses) is tuple:
                 pol_losses, lang_losses = losses
                 losses = {
                     "value_loss": np.mean(
