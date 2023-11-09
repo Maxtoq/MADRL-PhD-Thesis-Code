@@ -10,7 +10,7 @@ class CommunicationLogger:
         self.generated_messages = []
         self.perfect_messages = []
         self.broadcasts = []
-        self.kl_pens = []
+        # self.kl_pens = []
         self.env_rewards = []
 
         # Create csv file
@@ -21,7 +21,7 @@ class CommunicationLogger:
                 "Generated Message", 
                 "Perfect Message", 
                 "Broadcasted Message",
-                "KL Penalty",
+                # "KL Penalty",
                 "Env Reward",
                 "Observation"])
 
@@ -49,8 +49,8 @@ class CommunicationLogger:
             self.generated_messages += gen_mess[e_i]
             self.perfect_messages += perf_mess[e_i]
             self.broadcasts += [broadcasts[e_i]] * n_agents
-        if kl_pen is not None:
-            self.kl_pens += kl_pen.tolist()
+        # if kl_pen is not None:
+        #     self.kl_pens += kl_pen.tolist()
 
     def store_rewards(self, rewards):
         """
@@ -64,20 +64,30 @@ class CommunicationLogger:
         self.env_rewards += rewards.flatten().tolist()
 
     def save(self):
-        with open(self.csv_path, 'a', newline='') as f:
+        # print("MESS", self.generated_messages)
+        # print()
+        # print("PERF MESS", self.perfect_messages)
+        # print()
+        # print("BC", self.broadcasts)
+        # print()
+        # print("MESS", self.generated_messages)
+        # print()
+        # print("MESS", self.generated_messages)
+        # print()
+        with open(self.csv_path, 'a+', newline='') as f:
             w = csv.writer(f)
-            for o, gm, pm, br, kl, er in zip(
+            for o, gm, pm, br, er in zip(
                     self.observations, 
                     self.generated_messages,
                     self.perfect_messages,
                     self.broadcasts,
-                    self.kl_pens,
+                    # self.kl_pens,
                     self.env_rewards):
                 w.writerow([
                     " ".join(gm),
                     " ".join(pm),
                     " ".join(br),
-                    str(kl),
+                    # str(kl),
                     str(er),
                     " ".join(str(o_i) for o_i in o)])
         
