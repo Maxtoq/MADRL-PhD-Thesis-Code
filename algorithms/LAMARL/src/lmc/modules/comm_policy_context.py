@@ -26,13 +26,7 @@ class CommPol_Context:
     def __init__(self, args, n_agents, lang_learner, device="cpu"):
         self.n_agents = n_agents
         self.n_envs = args.n_parallel_envs
-        self.lr = args.comm_lr
-        self.n_epochs = args.comm_n_epochs
-        self.ppo_clip_param = args.comm_ppo_clip_param
-        self.entropy_coef = args.comm_entropy_coef
-        self.vloss_coef = args.comm_vloss_coef
-        self.max_grad_norm = args.comm_max_grad_norm
-        self.n_mini_batch = args.comm_n_mini_batch
+        self.obs_dist_coef = args.comm_obs_dist_coef
         self.device = device
         self.warming_up = False
         
@@ -57,6 +51,7 @@ class CommPol_Context:
         self.action_log_probs = None
         self.rnn_states = None
         self.critic_rnn_states = None
+        self.obs_dist = None
 
     def prep_rollout(self, device=None):
         if device is None:
@@ -109,6 +104,9 @@ class CommPol_Context:
 
         self.values, self.comm_context, self.action_log_probs, self.rnn_states, \
             self.critic_rnn_states = self.context_encoder_policy.get_actions()
+
+        # Compute distance from observation context
+        self.obs_dist = (obs_context - self.comm_context).pow(2).sum(-1).sqrt()
 
         messages = self.lang_learner.generate_sentences(torch.Tensor(
             self.comm_context).view(self.n_envs * self.n_agents, -1).to(
@@ -164,12 +162,15 @@ class CommPol_Context:
         """
         Send rewards for each sentences to the buffer to compute returns.
         :param message_rewards (np.ndarray): Rewards for each generated 
-            sentence, dim=(n_envs, n_agents).
+            sentence, dim=(n_envs, n_agents, 1).
         :param dones (np.ndarray): Done state of each environment, 
             dim=(n_envs, n_agents).
 
         :return rewards (dict): Rewards to log.
         """
+        message_rewards -= torch2numpy(
+            self.obs_dist.unsqueeze(-1)) * self.comm_obs_dist_coef
+
         self.context_encoder_policy.store_act(
             message_rewards, dones, 
             self.values, 
@@ -179,7 +180,8 @@ class CommPol_Context:
             self.critic_rnn_states)
 
         rewards = {
-            "message_reward": message_rewards.mean()
+            "message_reward": message_rewards.mean(),
+            "obs_distance": float(self.obs_dist.mean())
         }
 
         return rewards

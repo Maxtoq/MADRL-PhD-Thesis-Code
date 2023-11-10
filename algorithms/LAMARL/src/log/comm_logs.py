@@ -64,16 +64,6 @@ class CommunicationLogger:
         self.env_rewards += rewards.flatten().tolist()
 
     def save(self):
-        # print("MESS", self.generated_messages)
-        # print()
-        # print("PERF MESS", self.perfect_messages)
-        # print()
-        # print("BC", self.broadcasts)
-        # print()
-        # print("MESS", self.generated_messages)
-        # print()
-        # print("MESS", self.generated_messages)
-        # print()
         with open(self.csv_path, 'a+', newline='') as f:
             w = csv.writer(f)
             for o, gm, pm, br, er in zip(

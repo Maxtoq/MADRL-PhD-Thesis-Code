@@ -313,6 +313,8 @@ def get_config():
     parser.add_argument("--comm_token_penalty", type=float, default=0.1)
     parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
     parser.add_argument("--comm_env_reward_coef", type=float, default=1.0)
+    # Communication evaluation (context)
+    parser.add_argument("--comm_obs_dist_coef", type=float, default=0.1)
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)
