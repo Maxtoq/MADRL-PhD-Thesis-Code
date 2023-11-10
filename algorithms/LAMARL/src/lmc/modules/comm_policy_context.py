@@ -106,7 +106,8 @@ class CommPol_Context:
             self.critic_rnn_states = self.context_encoder_policy.get_actions()
 
         # Compute distance from observation context
-        self.obs_dist = (obs_context - self.comm_context).pow(2).sum(-1).sqrt()
+        self.obs_dist = np.linalg.norm(
+            torch2numpy(obs_context) - self.comm_context, 2, axis=-1)
 
         messages = self.lang_learner.generate_sentences(torch.Tensor(
             self.comm_context).view(self.n_envs * self.n_agents, -1).to(
@@ -168,8 +169,8 @@ class CommPol_Context:
 
         :return rewards (dict): Rewards to log.
         """
-        message_rewards -= torch2numpy(
-            self.obs_dist.unsqueeze(-1)) * self.comm_obs_dist_coef
+        message_rewards -= self.obs_dist[..., np.newaxis] \
+                            * self.obs_dist_coef
 
         self.context_encoder_policy.store_act(
             message_rewards, dones, 

@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_commencmappo"
+experiment_name="FT_commencmappo_obsdist"
 n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
@@ -18,6 +18,7 @@ comm_train_topk=3 # default 1, TODO
 comm_klpretrain_coef=0.01 # default 0.01
 comm_token_penalty=0.1 # default 0.1
 comm_env_reward_coef=1.0 # default 1.0
+comm_obs_dist_coef=0.05 # default 0.1
 FT_pretrained_model_path="models/magym_PredPrey/mappo_shared_perfectcomm_8x8/run12/model_ep.pt"
 FT_n_steps_fix_policy=9000000
 # lang_lr=0.0009 # default 0.0007
@@ -52,6 +53,7 @@ do
     --comm_train_topk ${comm_train_topk}\
     --comm_token_penalty ${comm_token_penalty}\
     --comm_env_reward_coef ${comm_env_reward_coef}\
+    --comm_obs_dist_coef ${comm_obs_dist_coef}\
     --FT_pretrained_model_path ${FT_pretrained_model_path}\
     --FT_n_steps_fix_policy ${FT_n_steps_fix_policy}\
     --magym_env_size ${magym_env_size}\

@@ -252,7 +252,7 @@ def get_config():
     parser.add_argument("--use_linear_lr_decay", action='store_true',
                         default=False, help='use a linear schedule on the learning rate')
     # save parameters
-    parser.add_argument("--save_interval", type=int, default=10000, help="number of steps between models saving")
+    parser.add_argument("--save_interval", type=int, default=20000, help="number of steps between models saving")
 
     # log parameters
     parser.add_argument("--log_tensorboard", action='store_false', default=True, 

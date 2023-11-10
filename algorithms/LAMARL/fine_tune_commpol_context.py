@@ -112,8 +112,8 @@ def run():
             # Insert data into replay buffer
             model.store_exp(rewards, dones)
 
-        if comm_logger is not None:
-            comm_logger.save()
+        # if comm_logger is not None:
+        #     comm_logger.save()
 
         # Training policy
         train_losses = model.train(
@@ -136,6 +136,7 @@ def run():
         if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
             last_save_step = s_i + n_steps_per_update
             model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
+            comm_logger.save(s_i + n_steps_per_update)
             
     envs.close()
     # Save model and training data
