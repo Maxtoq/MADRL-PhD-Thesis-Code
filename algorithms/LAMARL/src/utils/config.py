@@ -316,6 +316,13 @@ def get_config():
     # Communication evaluation (context)
     parser.add_argument("--comm_obs_dist_coef", type=float, default=0.1)
 
+    # Shared Memory parameters
+    parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
+    parser.add_argument("--shared_mem_n_rec_layers", type=int, default=1)
+    parser.add_argument("--shared_mem_lr", type=float, default=0.0005)
+    parser.add_argument("--shared_mem_max_buffer_size", type=int, default=100000)
+    parser.add_argument("--shared_mem_batch_size", type=int, default=64)
+
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)
     parser.add_argument("--magym_env_size", type=int, default=7)

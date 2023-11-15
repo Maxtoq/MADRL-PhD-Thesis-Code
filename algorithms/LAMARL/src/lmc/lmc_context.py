@@ -6,9 +6,16 @@ from torch import nn
 
 from .modules.lang_learner import LanguageLearner
 from .modules.comm_policy_context import CommPol_Context
+from .modules.shared_mem import SharedMemory
 from .policy.mappo.mappo_shared import MAPPO
 from .policy.mappo.utils import get_shape_from_obs_space
 from .utils import get_mappo_args
+
+
+class CommEvaluator:
+
+    def __init__(self, args, lang_learner, device="cpu"):
+        self.shared_mem = SharedMemory(args, 10, lang_learner, device)
 
 
 class LMC:
@@ -53,6 +60,8 @@ class LMC:
 
         self.comm_policy = CommPol_Context(
             args, self.n_agents, self.lang_learner, device)
+
+        self.comm_eval = CommEvaluator(args, self.lang_learner, device)
 
         policy_args = get_mappo_args(args)
         if args.policy_algo == "mappo":

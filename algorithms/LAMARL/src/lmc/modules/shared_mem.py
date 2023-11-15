@@ -7,6 +7,31 @@ from .lm import init_rnn_params
 from .networks import MLPNetwork
 
 
+class SharedMemoryBuffer():
+
+    def __init__(self, args):
+        self.n_parallel_envs = args.n_parallel_envs
+        self.max_size = args.shared_mem_max_buffer_size
+        self.batch_size = args.shared_mem_batch_size
+
+        self.message_enc_buffer = []
+        self.state_buffer = []
+
+    def store(self, message_encodings, states):
+        """
+        Return the prediction error of the model given communicated messages
+        and actual states.
+        :param message_encodings: (np.ndarray) Encoded messages, 
+            dim=(batch_size, context_dim).
+        :param states: (np.ndarray) Actual states, dim=(batch_size, 
+            state_dim).
+        """
+        pass
+
+    def sample(self):
+        pass
+
+
 class SharedMemory():
 
     def __init__(self, args, state_dim, lang_learner, device="cpu"):
@@ -32,6 +57,9 @@ class SharedMemory():
         self.optim = torch.optim.Adam(
             list(self.gru.parameters()) + list(self.out.parameters()), 
             lr=args.shared_mem_lr)
+
+        # Buffer
+        self.buffer = SharedMemoryBuffer(args)
 
         self.memory_context = torch.zeros(
             self.n_rec_layers, self.n_parallel_envs, self.hidden_dim)
@@ -83,14 +111,19 @@ class SharedMemory():
         Return the prediction error of the model given communicated messages
         and actual states.
         :param message_encodings: (np.ndarray) Encoded messages, 
-            dim=(n_parallel_envs, context_dim).
-        :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
+            dim=(batch_size, context_dim).
+        :param states: (np.ndarray) Actual states, dim=(batch_size, 
             state_dim).
 
         :return pred_error: (np.ndarray) Prediction error, 
             dim=(n_parallel_envs, 1).
         """
-        pass
+        self.buffer.store(message_encodings, states)
+
+        pred_states = self._predict_states(message_encodings)
+
+        error = torch.linalg.vector_norm(pred_states - states, dim=-1)
+        print(error)
 
     def store_step(self, message_encodings, states):
         """

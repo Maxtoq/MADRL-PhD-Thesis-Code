@@ -65,6 +65,7 @@ class PredatorPrey(gym.Env):
 
         self._base_grid = self.__create_grid()  # with no agents
         self._full_obs = self.__create_grid()
+
         self._agent_dones = [False for _ in range(self.n_agents)]
         self._prey_move_probs = prey_move_probs
         self.viewer = None
@@ -149,6 +150,18 @@ class PredatorPrey(gym.Env):
         if self.full_observable:
             _obs = np.array(_obs).flatten().tolist()
             _obs = [_obs for _ in range(self.n_agents)]
+
+        print("full_obs", self._full_obs)
+        print("base grid", self._base_grid)
+        print("agent_pos", self.agent_pos)
+        print("prey_pos", self.prey_pos)
+        state = (
+            np.array([ap for ap in self.agent_pos.values()] 
+                     + [pp for pp in self.prey_pos.values()]) 
+            / np.array(self._grid_shape)
+        ).reshape(-1)
+        print("state", state)
+        exit()
         return _obs
 
     def reset(self):
