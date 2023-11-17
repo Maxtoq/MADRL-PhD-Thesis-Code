@@ -1,4 +1,7 @@
 
+def torch2numpy(x):
+    return x.detach().cpu().numpy()
+    
 def get_mappo_args(args, args_name=''):
     MAPPO_ARGS = [
         "clip_param",

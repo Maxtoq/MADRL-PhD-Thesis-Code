@@ -9,11 +9,7 @@ from gym import spaces
 
 from src.lmc.modules.networks import MLPNetwork, init
 from src.lmc.policy.mappo.mappo_shared import MAPPO
-from src.lmc.utils import get_mappo_args
-
-
-def torch2numpy(x):
-    return x.detach().cpu().numpy()
+from src.lmc.utils import get_mappo_args, torch2numpy
 
 
 class CommPol_Context:
@@ -61,8 +57,8 @@ class CommPol_Context:
     def prep_training(self):
         self.context_encoder_policy.prep_training()
 
-    def start_episode(self):
-        self.context_encoder_policy.start_episode()
+    def reset_buffer(self):
+        self.context_encoder_policy.reset_buffer()
         
     @torch.no_grad()
     def get_messages(self, obs, lang_context):

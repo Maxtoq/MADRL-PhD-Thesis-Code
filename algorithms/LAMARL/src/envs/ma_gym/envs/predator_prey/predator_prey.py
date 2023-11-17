@@ -72,6 +72,7 @@ class PredatorPrey(gym.Env):
         self.full_observable = full_observable
 
         self.global_state = global_state
+        self.global_state_dim = 2 * self.n_preys
 
         # agent pos (2), prey (25), step (1)
         mask_size = np.prod(self._agent_view_mask)
@@ -155,8 +156,9 @@ class PredatorPrey(gym.Env):
 
         if self.global_state:
             state = (
-                np.array([ap for ap in self.agent_pos.values()] 
-                        + [pp for pp in self.prey_pos.values()]) 
+                # np.array([ap for ap in self.agent_pos.values()] 
+                #         + [pp for pp in self.prey_pos.values()]) 
+                np.array([pp for pp in self.prey_pos.values()])
                 / np.array(self._grid_shape)
             ).reshape(-1)
         else:

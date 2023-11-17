@@ -82,7 +82,7 @@ class MAPPO:
         for tr in self.trainer:
             tr.prep_training(self.train_device)
 
-    def start_episode(self):
+    def reset_buffer(self):
         # """
         # Initialize the buffer with first observations.
         # :param obs: (numpy.ndarray) first observations

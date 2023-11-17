@@ -24,6 +24,7 @@ def run():
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(cfg)
     print("Saving model in dir", run_dir)
+    write_params(run_dir, cfg)
 
     # Init logger
     logger = Logger(cfg, log_dir)
@@ -37,19 +38,19 @@ def run():
     if not cfg.magym_global_state:
         cfg.magym_global_state = True
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
-    
-    n_agents = envs.n_agents
-    obs_space = envs.observation_space
-    shared_obs_space = envs.shared_observation_space
-    act_space = envs.action_space
-    write_params(run_dir, cfg)
 
     if cfg.do_eval:
         eval_envs, eval_parser = make_env(cfg, cfg.n_parallel_envs)
 
     # Create model
-    model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
-                parser.vocab, device)
+    n_agents = envs.n_agents
+    obs_space = envs.observation_space
+    shared_obs_space = envs.shared_observation_space
+    act_space = envs.action_space
+    global_state_dim = envs.global_state_dim
+    model = LMC(
+        cfg, n_agents, obs_space, shared_obs_space, act_space, global_state_dim,
+        parser.vocab, device)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
@@ -58,14 +59,12 @@ def run():
     # Reset env
     last_save_step = 0
     last_eval_step = 0
-    obs, state = envs.reset()
-    print(obs)
-    print(state)
+    obs, states = envs.reset()
     lang_contexts = model.reset_context()
-    model.start_episode()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout()
+        model.reset_policy_buffers()
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
@@ -76,13 +75,11 @@ def run():
             actions, broadcasts, agent_messages = model.comm_n_act(
                     obs, parsed_obs)
             # Perform action and get reward and next obs
-            obs, state, rewards, dones, infos = envs.step(actions)
-            print(obs)
-            print(state)
-            exit()
+            obs, next_states, rewards, dones, infos = envs.step(actions)
 
             # Reward communication
-            model.eval_comm(rewards)
+            model.eval_comm(rewards, agent_messages, states, dones)
+            states = next_states
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
@@ -100,7 +97,6 @@ def run():
         train_losses = model.train(s_i + n_steps_per_update)
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
-        model.start_episode()
     
         # Eval
         if cfg.do_eval and s_i + n_steps_per_update - last_eval_step > \

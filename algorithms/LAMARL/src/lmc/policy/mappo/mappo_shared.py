@@ -64,7 +64,7 @@ class MAPPO:
     def prep_training(self):
         self.trainer.prep_training(self.train_device)
 
-    def start_episode(self):
+    def reset_buffer(self):
         self.buffer.reset_episode()
 
     def store_obs(self, obs, shared_obs):

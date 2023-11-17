@@ -57,12 +57,13 @@ class ShareVecEnv(ABC):
         'render.modes': ['human', 'rgb_array']
     }
 
-    def __init__(self, num_envs, n_agents, observation_space, shared_observation_space, action_space):
+    def __init__(self, num_envs, n_agents, observation_space, shared_observation_space, action_space, global_state_dim):
         self.num_envs = num_envs
         self.n_agents = n_agents
         self.observation_space = observation_space
         self.shared_observation_space = shared_observation_space
         self.action_space = action_space
+        self.global_state_dim = global_state_dim
 
     @abstractmethod
     def reset(self):
@@ -189,7 +190,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
             remote.close()
             break
         elif cmd == 'get_spaces':
-            remote.send((env.n_agents, env.observation_space, env.shared_observation_space, env.action_space))
+            remote.send((env.n_agents, env.observation_space, env.shared_observation_space, env.action_space, env.global_state_dim))
         else:
             raise NotImplementedError
 
@@ -212,9 +213,9 @@ class SubprocVecEnv(ShareVecEnv):
             remote.close()
 
         self.remotes[0].send(('get_spaces', None))
-        n_agents, observation_space, shared_observation_space, action_space = self.remotes[0].recv()
+        n_agents, observation_space, shared_observation_space, action_space, global_state_dim = self.remotes[0].recv()
         ShareVecEnv.__init__(self, 
-            len(env_fns), n_agents, observation_space, shared_observation_space, action_space)
+            len(env_fns), n_agents, observation_space, shared_observation_space, action_space, global_state_dim)
 
     def step_async(self, actions):
         for remote, action in zip(self.remotes, actions):
@@ -265,7 +266,7 @@ class DummyVecEnv(ShareVecEnv):
         self.envs = [fn() for fn in env_fns]
         env = self.envs[0]
         ShareVecEnv.__init__(self, len(
-            env_fns), env.n_agents, env.observation_space, env.shared_observation_space, env.action_space)
+            env_fns), env.n_agents, env.observation_space, env.shared_observation_space, env.action_space, env.global_state_dim)
         self.actions = None
 
     def step_async(self, actions):

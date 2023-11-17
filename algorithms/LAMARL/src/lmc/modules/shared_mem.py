@@ -5,6 +5,7 @@ from torch import nn
 
 from .lm import init_rnn_params
 from .networks import MLPNetwork
+from src.lmc.utils import torch2numpy
 
 
 class SharedMemoryBuffer():
@@ -84,11 +85,17 @@ class SharedMemory():
         self.out.train()
         self.out.to(self.device)
 
-    def reset_context(self, n_envs=None):
+    def reset_context(self, env_dones=None, n_envs=None):
         if n_envs is None:
             n_envs = self.n_parallel_envs
-        self.memory_context = torch.zeros(
-            self.n_rec_layers, n_envs, self.hidden_dim)
+        if env_dones is None:
+            self.memory_context = torch.zeros(
+                self.n_rec_layers, n_envs, self.hidden_dim).to(self.device)
+        else:
+            print(self.memory_context.shape, env_dones.shape)
+            exit()
+            self.memory_context = self.memory_context * (1 - env_dones).astype(
+                np.float32)[..., np.newaxis]
 
     def _predict_states(self, message_encodings):
         """
@@ -99,13 +106,16 @@ class SharedMemory():
         :return pred_states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
             state_dim).
         """
+        message_encodings = torch.Tensor(
+            message_encodings).unsqueeze(0).to(self.device)
         x, self.memory_context = self.gru(
-            message_encodings.unsqueeze(0), self.memory_context)
+            message_encodings, self.memory_context)
         x = self.norm(x)
 
         pred_states = self.out(x.squeeze(0))
         return pred_states
 
+    @torch.no_grad()
     def get_prediction_error(self, message_encodings, states):
         """
         Return the prediction error of the model given communicated messages
@@ -116,25 +126,26 @@ class SharedMemory():
             state_dim).
 
         :return pred_error: (np.ndarray) Prediction error, 
-            dim=(n_parallel_envs, 1).
+            dim=(n_parallel_envs,).
         """
         self.buffer.store(message_encodings, states)
 
         pred_states = self._predict_states(message_encodings)
 
-        error = torch.linalg.vector_norm(pred_states - states, dim=-1)
-        print(error)
-        exit()
+        error = np.linalg.norm(
+            torch2numpy(pred_states) - states, 2, axis=-1)
+        
+        return error
 
-    def store_step(self, message_encodings, states):
-        """
-        Store communicated messages and actual states for later training.
-        :param message_encodings: (np.ndarray) Encoded messages, 
-            dim=(n_parallel_envs, context_dim).
-        :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
-            state_dim).
-        """
-        pass
+    # def store_step(self, message_encodings, states):
+    #     """
+    #     Store communicated messages and actual states for later training.
+    #     :param message_encodings: (np.ndarray) Encoded messages, 
+    #         dim=(n_parallel_envs, context_dim).
+    #     :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
+    #         state_dim).
+    #     """
+    #     pass
 
     def train(self):
         """

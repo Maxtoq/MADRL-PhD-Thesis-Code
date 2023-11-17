@@ -6,6 +6,7 @@ from torch import nn
 
 from .modules.lang_learner import LanguageLearner
 from .modules.comm_policy_context import CommPol_Context
+from .modules.comm_policy_perfect import PerfectComm
 from .modules.shared_mem import SharedMemory
 from .policy.mappo.mappo_shared import MAPPO
 from .policy.mappo.utils import get_shape_from_obs_space
@@ -23,7 +24,7 @@ class LMC:
     Language-Memory for Communication using a pre-defined discrete language.
     """
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 vocab, device="cpu", comm_logger=None):
+                 global_state_dim, vocab, device="cpu", comm_logger=None):
         self.args = args
         self.n_agents = n_agents
         self.context_dim = args.context_dim
@@ -47,21 +48,20 @@ class LMC:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        # self.comm_pol_algo = args.comm_policy_algo
-        # if self.comm_pol_algo == "ppo_mlp":
-        #     self.comm_policy = CommPPO_MLP(args, n_agents, self.lang_learner, device)
-        # elif self.comm_pol_algo == "perfect_comm":
-        #     self.comm_policy = PerfectComm(self.lang_learner)
-        # elif self.comm_pol_algo == "no_comm":
-        #     self.comm_policy = None
-        #     self.context_dim = 0
-        # else:
-        #     raise NotImplementedError("Bad name given for communication policy algo.")
+        self.comm_pol_algo = args.comm_policy_algo
+        if self.comm_pol_algo == "context_mappo":
+            self.comm_policy = CommPol_Context(
+                args, self.n_agents, self.lang_learner, device)
+        elif self.comm_pol_algo == "perfect_comm":
+            self.comm_policy = PerfectComm(self.lang_learner)
+        elif self.comm_pol_algo == "no_comm":
+            self.comm_policy = None
+            self.context_dim = 0
+        else:
+            raise NotImplementedError("Bad name given for communication policy algo.")
 
-        self.comm_policy = CommPol_Context(
-            args, self.n_agents, self.lang_learner, device)
-
-        self.comm_eval = CommEvaluator(args, self.lang_learner, device)
+        self.shared_mem = SharedMemory(
+            args, global_state_dim, self.lang_learner, device)
 
         policy_args = get_mappo_args(args)
         if args.policy_algo == "mappo":
@@ -120,9 +120,9 @@ class LMC:
         
         return obs, shared_obs
 
-    def start_episode(self):
-        self.policy.start_episode()
-        self.comm_policy.start_episode()
+    def reset_policy_buffers(self):
+        self.policy.reset_buffer()
+        self.comm_policy.reset_buffer()
 
     def comm_n_act(self, obs, perfect_messages=None):
         """
@@ -168,13 +168,23 @@ class LMC:
 
         return self.actions, broadcasts, agent_messages
 
-    def eval_comm(self, message_rewards, messages, dones):
+    def eval_comm(self, message_rewards, messages, states, dones):
+        """
+        :param states: (np.ndarray) Global environment states, 
+            dim=(n_parallel_envs, state_dim).
+        """
         # Log communication rewards
         if self.comm_logger is not None:
             self.comm_logger.store_rewards(message_rewards)
 
-        # Evaluate communication
+        # Environment reward
         message_rewards *= self.env_reward_coef
+
+        # Shared-Memory reward
+        shm_error = self.shared_mem.get_prediction_error(
+            self.lang_contexts, states)
+        # TODO Add to reward
+
         # Penalty for message length
         message_len = np.array(
             [len(m) for env_m in messages for m in env_m]).reshape(
@@ -203,8 +213,11 @@ class LMC:
                 (self.n_parallel_envs, self.context_dim), dtype=np.float32)
         else:
             assert env_dones is not None, "env_dones must be provided if current_lang_contexts is."
+            print("RESET")
+            print(self.lang_contexts.shape, env_dones.shape)
             self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
                 np.float32)[..., np.newaxis]
+        self.shared_mem.reset_context(env_dones)
 
     def store_exp(self, rewards, dones):
         self.policy.store_act(
