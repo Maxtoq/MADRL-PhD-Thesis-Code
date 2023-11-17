@@ -39,7 +39,7 @@ class PredatorPrey(gym.Env):
 
     def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
                  full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
-                 agent_view_mask=(5, 5)):
+                 agent_view_mask=(5, 5), global_state=False):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
                                           ' but found {}'.format(agent_view_mask)
@@ -70,6 +70,8 @@ class PredatorPrey(gym.Env):
         self._prey_move_probs = prey_move_probs
         self.viewer = None
         self.full_observable = full_observable
+
+        self.global_state = global_state
 
         # agent pos (2), prey (25), step (1)
         mask_size = np.prod(self._agent_view_mask)
@@ -151,18 +153,15 @@ class PredatorPrey(gym.Env):
             _obs = np.array(_obs).flatten().tolist()
             _obs = [_obs for _ in range(self.n_agents)]
 
-        print("full_obs", self._full_obs)
-        print("base grid", self._base_grid)
-        print("agent_pos", self.agent_pos)
-        print("prey_pos", self.prey_pos)
-        state = (
-            np.array([ap for ap in self.agent_pos.values()] 
-                     + [pp for pp in self.prey_pos.values()]) 
-            / np.array(self._grid_shape)
-        ).reshape(-1)
-        print("state", state)
-        exit()
-        return _obs
+        if self.global_state:
+            state = (
+                np.array([ap for ap in self.agent_pos.values()] 
+                        + [pp for pp in self.prey_pos.values()]) 
+                / np.array(self._grid_shape)
+            ).reshape(-1)
+        else:
+            state = None
+        return _obs, state
 
     def reset(self):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
@@ -333,7 +332,7 @@ class PredatorPrey(gym.Env):
                     )
                 self._steps_beyond_done += 1
 
-        return self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
+        return *self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
 
     def __get_neighbour_coordinates(self, pos):
         neighbours = []

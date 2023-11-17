@@ -124,6 +124,7 @@ class SharedMemory():
 
         error = torch.linalg.vector_norm(pred_states - states, dim=-1)
         print(error)
+        exit()
 
     def store_step(self, message_encodings, states):
         """

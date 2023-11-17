@@ -34,6 +34,8 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
+    if not cfg.magym_global_state:
+        cfg.magym_global_state = True
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
     
     n_agents = envs.n_agents
@@ -56,7 +58,9 @@ def run():
     # Reset env
     last_save_step = 0
     last_eval_step = 0
-    obs = envs.reset()
+    obs, state = envs.reset()
+    print(obs)
+    print(state)
     lang_contexts = model.reset_context()
     model.start_episode()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
@@ -69,11 +73,13 @@ def run():
             model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
-            values, actions, action_log_probs, rnn_states, rnn_states_critic, \
-                messages, lang_contexts = model.comm_n_act(
-                    obs, lang_contexts, parsed_obs)
+            actions, broadcasts, agent_messages = model.comm_n_act(
+                    obs, parsed_obs)
             # Perform action and get reward and next obs
-            obs, rewards, dones, infos = envs.step(actions)
+            obs, state, rewards, dones, infos = envs.step(actions)
+            print(obs)
+            print(state)
+            exit()
 
             # Reward communication
             model.eval_comm(rewards)

@@ -308,7 +308,8 @@ def get_config():
     parser.add_argument("--comm_n_mini_batch", type=int, default=2)
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
-    parser.add_argument("--comm_train_topk", type=int, default=1, help="k value for top-k sampling during training.")
+    parser.add_argument("--comm_train_topk", type=int, default=1, 
+                        help="k value for top-k sampling during training.")
     # Communication evaluation
     parser.add_argument("--comm_token_penalty", type=float, default=0.1)
     parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
@@ -327,6 +328,8 @@ def get_config():
     parser.add_argument("--magym_n_agents", type=int, default=4)
     parser.add_argument("--magym_env_size", type=int, default=7)
     parser.add_argument("--magym_n_preys", type=int, default=2)
+    parser.add_argument("--magym_global_state", action='store_true', default=False, 
+                        help="Whether to produce a global state of the environment at each step, in addition to the observations.")
 
     # Fine-tune parameters
     parser.add_argument("--FT_pretrained_model_path", type=str, default=None)
