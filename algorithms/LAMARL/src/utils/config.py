@@ -316,6 +316,7 @@ def get_config():
     parser.add_argument("--comm_env_reward_coef", type=float, default=1.0)
     # Communication evaluation (context)
     parser.add_argument("--comm_obs_dist_coef", type=float, default=0.1)
+    parser.add_argument("--comm_shared_memory_coef", type=float, default=1.0)
 
     # Shared Memory parameters
     parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)

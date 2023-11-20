@@ -22,7 +22,6 @@ class CommPol_Context:
     def __init__(self, args, n_agents, lang_learner, device="cpu"):
         self.n_agents = n_agents
         self.n_envs = args.n_parallel_envs
-        self.obs_dist_coef = args.comm_obs_dist_coef
         self.device = device
         self.warming_up = False
         
@@ -165,9 +164,6 @@ class CommPol_Context:
 
         :return rewards (dict): Rewards to log.
         """
-        message_rewards -= self.obs_dist[..., np.newaxis] \
-                            * self.obs_dist_coef
-
         self.context_encoder_policy.store_act(
             message_rewards, dones, 
             self.values, 
@@ -175,13 +171,6 @@ class CommPol_Context:
             self.action_log_probs, 
             self.rnn_states, 
             self.critic_rnn_states)
-
-        rewards = {
-            "message_reward": message_rewards.mean(),
-            "obs_distance": float(self.obs_dist.mean())
-        }
-
-        return rewards
     
     def train(self, warmup=False):
         losses = self.context_encoder_policy.train(warmup)

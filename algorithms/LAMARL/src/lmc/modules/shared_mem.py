@@ -10,27 +10,57 @@ from src.lmc.utils import torch2numpy
 
 class SharedMemoryBuffer():
 
-    def __init__(self, args):
+    def __init__(self, args, state_dim):
         self.n_parallel_envs = args.n_parallel_envs
         self.max_size = args.shared_mem_max_buffer_size
         self.batch_size = args.shared_mem_batch_size
 
-        self.message_enc_buffer = []
-        self.state_buffer = []
+        self.message_enc_buffer = np.zeros((self.max_size, args.context_dim))
+        self.state_buffer = np.zeros((self.max_size, state_dim))
+
+        self.current_size = 0
 
     def store(self, message_encodings, states):
         """
-        Return the prediction error of the model given communicated messages
-        and actual states.
+        Store step.
         :param message_encodings: (np.ndarray) Encoded messages, 
-            dim=(batch_size, context_dim).
-        :param states: (np.ndarray) Actual states, dim=(batch_size, 
+            dim=(n_parallel_envs, context_dim).
+        :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
             state_dim).
         """
-        pass
+        add_len = message_encodings.shape[0]
+        if self.current_size + add_len > self.max_size:
+            n_shift = add_len + self.current_size - self.max_size
+            self.message_enc_buffer = np.roll(
+                self.message_enc_buffer, -n_shift, axis=0)
+            self.state_buffer = np.roll(self.state_buffer, -n_shift, axis=0)
+            # print(self.message_enc_buffer)
+            self.current_size = self.max_size
+        else:
+            self.current_size += add_len
+
+        self.message_enc_buffer[self.current_size - add_len:self.current_size] = \
+            message_encodings
+        self.state_buffer[self.current_size - add_len:self.current_size] = \
+            states
+
 
     def sample(self):
-        pass
+        """
+        Sample a batch of training data.
+        :return message_encodings: (np.ndarray) Encoded messages, 
+            dim=(batch_size, context_dim).
+        :return states: (np.ndarray) Actual states, dim=(batch_size, 
+            state_dim).
+        """
+        batch_size = self.batch_size if self.batch_size<= self.current_size \
+                        else self.current_size
+        assert batch_size > 1
+
+        sample_ids = np.random.choice(
+            self.current_size, batch_size, replace=False)
+            
+        return self.message_enc_buffer[sample_ids], self.state_buffer[sample_ids]
 
 
 class SharedMemory():
@@ -60,7 +90,7 @@ class SharedMemory():
             lr=args.shared_mem_lr)
 
         # Buffer
-        self.buffer = SharedMemoryBuffer(args)
+        self.buffer = SharedMemoryBuffer(args, state_dim)
 
         self.memory_context = torch.zeros(
             self.n_rec_layers, self.n_parallel_envs, self.hidden_dim)
@@ -92,10 +122,9 @@ class SharedMemory():
             self.memory_context = torch.zeros(
                 self.n_rec_layers, n_envs, self.hidden_dim).to(self.device)
         else:
-            print(self.memory_context.shape, env_dones.shape)
-            exit()
             self.memory_context = self.memory_context * (1 - env_dones).astype(
-                np.float32)[..., np.newaxis]
+                np.float32).reshape((1, self.n_parallel_envs, 1))
+        # TODO Find a f*ùf$ù%ing way to store episode in parts of the buffer and change the part when an episode ends.
 
     def _predict_states(self, message_encodings):
         """
@@ -121,8 +150,8 @@ class SharedMemory():
         Return the prediction error of the model given communicated messages
         and actual states.
         :param message_encodings: (np.ndarray) Encoded messages, 
-            dim=(batch_size, context_dim).
-        :param states: (np.ndarray) Actual states, dim=(batch_size, 
+            dim=(n_parallel_envs, context_dim).
+        :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
             state_dim).
 
         :return pred_error: (np.ndarray) Prediction error, 
@@ -152,4 +181,7 @@ class SharedMemory():
         Train the model.
         :return loss: (float) Training loss.
         """
-        pass
+        message_encodings, states = self.buffer.sample()
+
+
+        # exit()

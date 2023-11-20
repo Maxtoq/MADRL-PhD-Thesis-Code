@@ -159,8 +159,13 @@ class LanguageLearner:
         clip_loss = sum(clip_losses) / len(clip_losses)
         dec_loss = sum(dec_losses) / len(dec_losses)
         mean_sim = sum(mean_sims) / len(mean_sims)
+
+        losses = {
+            "clip_loss": clip_loss, 
+            "dec_loss": dec_loss, 
+            "mean_sim": mean_sim}
         
-        return clip_loss, dec_loss, mean_sim
+        return losses
 
     def get_save_dict(self):
         save_dict = {

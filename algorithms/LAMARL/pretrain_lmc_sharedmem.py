@@ -83,18 +83,18 @@ def run():
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
-                lang_contexts = model.reset_context(lang_contexts, env_dones)
+                lang_contexts = model.reset_context(env_dones)
 
             # Save data for logging
             logger.count_returns(s_i, rewards, dones)
 
-            # Insert data into replay buffer
-            rewards = rewards[..., np.newaxis]
-            model.store_exp(rewards, dones, infos, values, 
-                actions, action_log_probs, rnn_states, rnn_states_critic)
+            # Insert data into policy buffer
+            model.store_exp(rewards, dones)
 
         # Training
+        print("TRAIN")
         train_losses = model.train(s_i + n_steps_per_update)
+        print("skrt")
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
     

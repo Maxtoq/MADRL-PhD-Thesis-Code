@@ -32,8 +32,10 @@ class LMC:
         self.n_warmup_steps = args.n_warmup_steps
         self.comm_n_warmup_steps = args.comm_n_warmup_steps
         self.token_penalty = args.comm_token_penalty
-        self.klpretrain_coef = args.comm_klpretrain_coef
+        # self.klpretrain_coef = args.comm_klpretrain_coef
         self.env_reward_coef = args.comm_env_reward_coef
+        self.shared_memory_coef = args.comm_shared_memory_coef
+        self.obs_dist_coef = args.comm_obs_dist_coef
         self.comm_logger = comm_logger
         self.device = device
 
@@ -64,7 +66,7 @@ class LMC:
             args, global_state_dim, self.lang_learner, device)
 
         policy_args = get_mappo_args(args)
-        if args.policy_algo == "mappo":
+        if "ppo" in args.policy_algo:
             obs_dim = get_shape_from_obs_space(obs_space[0])
             shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
             self.policy = MAPPO(
@@ -173,6 +175,8 @@ class LMC:
         :param states: (np.ndarray) Global environment states, 
             dim=(n_parallel_envs, state_dim).
         """
+
+        rewards = {"message_reward": message_rewards.mean()}
         # Log communication rewards
         if self.comm_logger is not None:
             self.comm_logger.store_rewards(message_rewards)
@@ -183,18 +187,27 @@ class LMC:
         # Shared-Memory reward
         shm_error = self.shared_mem.get_prediction_error(
             self.lang_contexts, states)
-        # TODO Add to reward
+        message_rewards -= self.shared_memory_coef * np.repeat(
+            shm_error[..., np.newaxis], self.n_agents, axis=-1)
+        rewards["shm_error"] = shm_error.mean()
+
+        # Penalty for comm encoding distance to obs encoding
+        if self.comm_pol_algo == "context_mappo":
+            message_rewards -= self.comm_policy.obs_dist[..., np.newaxis] \
+                                * self.obs_dist_coef
+            rewards["obs_dist"] = self.comm_policy.obs_dist.mean()
 
         # Penalty for message length
         message_len = np.array(
             [len(m) for env_m in messages for m in env_m]).reshape(
                 message_rewards.shape)
+        rewards["message_len"] = message_len.mean()
 
         tot_rewards = message_rewards * self.env_reward_coef \
                        + message_len * -self.token_penalty
+        rewards["tot_rewards"] = tot_rewards.mean()
 
-        rewards = self.comm_policy.store_rewards(
-            tot_rewards[..., np.newaxis], dones)
+        self.comm_policy.store_rewards(tot_rewards[..., np.newaxis], dones)
 
         return rewards
 
@@ -213,8 +226,6 @@ class LMC:
                 (self.n_parallel_envs, self.context_dim), dtype=np.float32)
         else:
             assert env_dones is not None, "env_dones must be provided if current_lang_contexts is."
-            print("RESET")
-            print(self.lang_contexts.shape, env_dones.shape)
             self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
                 np.float32)[..., np.newaxis]
         self.shared_mem.reset_context(env_dones)
@@ -252,6 +263,8 @@ class LMC:
         
         if self.comm_policy is not None and train_lang:
             losses.update(self.lang_learner.train())
+
+        self.shared_mem.train()
         
         return losses
 

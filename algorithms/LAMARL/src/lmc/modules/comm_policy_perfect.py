@@ -3,7 +3,7 @@ import random
 
 class PerfectComm:
 
-    def __init__(self, lang_learner, prob_send_message=0.2):
+    def __init__(self, lang_learner, prob_send_message=1.0):
         self.lang_learner = lang_learner
         self.prob_send_message = prob_send_message
 
@@ -63,7 +63,7 @@ class PerfectComm:
     def reset_buffer(self):
         pass
 
-    def train(self):
+    def train(self, warmup=False):
         return {}
 
     def get_save_dict(self):
