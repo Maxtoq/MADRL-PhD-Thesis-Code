@@ -92,9 +92,8 @@ def run():
             model.store_exp(rewards, dones)
 
         # Training
-        print("TRAIN")
         train_losses = model.train(s_i + n_steps_per_update)
-        print("skrt")
+        
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
     

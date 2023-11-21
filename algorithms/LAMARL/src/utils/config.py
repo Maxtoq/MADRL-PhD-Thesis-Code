@@ -2,151 +2,8 @@ import argparse
 
 
 def get_config():
-    """
-    The configuration parser for common hyperparameters of all environment. 
-    Please reach each `scripts/train/<env>_runner.py` file to find private hyperparameters
-    only used in <env>.
-
-    Prepare parameters:
-        --algorithm_name <algorithm_name>
-            specifiy the algorithm, including `["rmappo", "mappo", "rmappg", "mappg", "trpo"]`
-        --experiment_name <str>
-            an identifier to distinguish different experiment.
-        --seed <int>
-            set seed for numpy and torch 
-        --cuda_device <str>
-            by default None, set specific cuda device
-        --cuda_deterministic
-            by default, make sure random seed effective. if set, bypass such function.
-        --n_training_threads <int>
-            number of training threads working in parallel. by default 1
-        --n_parallel_envs <int>
-            number of parallel envs for training rollout. by default 32
-        --n_eval_rollout_threads <int>
-            number of parallel envs for evaluating rollout. by default 1
-        --num_env_steps <int>
-            number of env steps to train (default: 10e6)
-    
-    Env parameters:
-        --env_name <str>
-            specify the name of environment
-        --task_name <str>
-            specify the name of the task
-    
-    Replay Buffer parameters:
-        --episode_length <int>
-            the max length of episode in the buffer. 
-    
-    Network parameters:
-        --use_centralized_V
-            by default True, use centralized training mode; or else will decentralized training mode.
-        --stacked_frames <int>
-            Number of input frames which should be stack together.
-        --hidden_size <int>
-            Dimension of hidden layers for actor/critic networks
-        --layer_N <int>
-            Number of layers for actor/critic networks
-        --use_ReLU
-            by default True, will use ReLU. or else will use Tanh.
-        --use_popart
-            by default True, use PopArt to normalize rewards. 
-        --use_valuenorm
-            by default True, use running mean and std to normalize rewards. 
-        --use_feature_normalization
-            by default True, apply layernorm to normalize inputs. 
-        --use_orthogonal
-            by default True, use Orthogonal initialization for weights and 0 initialization for biases. or else, will use xavier uniform inilialization.
-        --gain
-            by default 0.01, use the gain # of last action layer
-        --use_naive_recurrent_policy
-            by default False, use the whole trajectory to calculate hidden states.
-        --use_recurrent_policy
-            by default, use Recurrent Policy. If set, do not use.
-        --recurrent_N <int>
-            The number of recurrent layers ( default 1).
-        --data_chunk_length <int>
-            Time length of chunks used to train a recurrent_policy, default 10.
-    
-    Optimizer parameters:
-        --lr <float>
-            learning rate parameter,  (default: 5e-4, fixed).
-        --critic_lr <float>
-            learning rate of critic  (default: 5e-4, fixed)
-        --opti_eps <float>
-            RMSprop optimizer epsilon (default: 1e-5)
-        --weight_decay <float>
-            coefficience of weight decay (default: 0)
-    
-    PPO parameters:
-        --ppo_epoch <int>
-            number of ppo epochs (default: 15)
-        --use_clipped_value_loss 
-            by default, clip loss value. If set, do not clip loss value.
-        --clip_param <float>
-            ppo clip parameter (default: 0.2)
-        --num_mini_batch <int>
-            number of batches for ppo (default: 1)
-        --entropy_coef <float>
-            entropy term coefficient (default: 0.01)
-        --use_max_grad_norm 
-            by default, use max norm of gradients. If set, do not use.
-        --max_grad_norm <float>
-            max norm of gradients (default: 0.5)
-        --use_gae
-            by default, use generalized advantage estimation. If set, do not use gae.
-        --gamma <float>
-            discount factor for rewards (default: 0.99)
-        --gae_lambda <float>
-            gae lambda parameter (default: 0.95)
-        --use_proper_time_limits
-            by default, the return value does consider limits of time. If set, compute returns with considering time limits factor.
-        --use_huber_loss
-            by default, use huber loss. If set, do not use huber loss.
-        --use_value_active_masks
-            by default True, whether to mask useless data in value loss.  
-        --huber_delta <float>
-            coefficient of huber loss.  
-    
-    PPG parameters:
-        --aux_epoch <int>
-            number of auxiliary epochs. (default: 4)
-        --clone_coef <float>
-            clone term coefficient (default: 0.01)
-    
-    Run parameters：
-        --use_linear_lr_decay
-            by default, do not apply linear decay to learning rate. If set, use a linear schedule on the learning rate
-    
-    Save & Log parameters:
-        --save_interval <int>
-            time duration between contiunous twice models saving.
-        --log_interval <int>
-            time duration between contiunous twice log printing.
-    
-    Eval parameters:
-        --use_eval
-            by default, do not start evaluation. If set`, start evaluation alongside with training.
-        --eval_interval <int>
-            time duration between contiunous twice evaluation progress.
-        --eval_episodes <int>
-            number of episodes of a single evaluation.
-    
-    Render parameters:
-        --save_gifs
-            by default, do not save render video. If set, save video.
-        --use_render
-            by default, do not render the env during training. If set, start render. Note: something, the environment has internal render process which is not controlled by this hyperparam.
-        --render_episodes <int>
-            the number of episodes to render a given env
-        --ifi <float>
-            the play interval of each rendered image in saved video.
-    
-    Pretrained parameters:
-        --model_dir <str>
-            by default None. set the path to pretrained model.
-    """
     parser = argparse.ArgumentParser(
-        description='onpolicy', formatter_class=argparse.RawDescriptionHelpFormatter)
+        description='lmc', formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # prepare parameters
     parser.add_argument("--policy_algo", type=str,
@@ -322,8 +179,8 @@ def get_config():
     parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
     parser.add_argument("--shared_mem_n_rec_layers", type=int, default=1)
     parser.add_argument("--shared_mem_lr", type=float, default=0.0005)
-    parser.add_argument("--shared_mem_max_buffer_size", type=int, default=100000)
-    parser.add_argument("--shared_mem_batch_size", type=int, default=64)
+    parser.add_argument("--shared_mem_max_buffer_size", type=int, default=1000)
+    parser.add_argument("--shared_mem_batch_size", type=int, default=16)
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)
