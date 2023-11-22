@@ -3,8 +3,8 @@ import numpy as np
 
 class PredatorPrey_Parser():
 
-    # vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
-    vocab = ["Prey", "Located", "Center", "North", "South", "East", "West"]
+    vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
+    # vocab = ["Prey", "Located", "Center", "North", "South", "East", "West"]
 
     def __init__(self, env_size):
         self.env_size = env_size

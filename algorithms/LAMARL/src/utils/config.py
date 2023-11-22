@@ -151,7 +151,7 @@ def get_config():
 
     # Communication parameters
     parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm",
-                        choices=["ppo_mlp", "perfect_comm", "no_comm"])
+                        choices=["context_mappo", "perfect_comm", "no_comm"])
     parser.add_argument("--comm_hidden_dim", type=int, default=64)
     # Communication training
     parser.add_argument("--comm_lr", type=float, default=0.0005)

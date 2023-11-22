@@ -24,7 +24,7 @@ class LMC:
     Language-Memory for Communication using a pre-defined discrete language.
     """
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 global_state_dim, vocab, device="cpu", comm_logger=None):
+                 vocab, global_state_dim=None, device="cpu", comm_logger=None):
         self.args = args
         self.n_agents = n_agents
         self.context_dim = args.context_dim
@@ -51,6 +51,7 @@ class LMC:
             args.lang_batch_size)
 
         self.comm_pol_algo = args.comm_policy_algo
+        print(self.comm_pol_algo)
         if self.comm_pol_algo == "context_mappo":
             self.comm_policy = CommPol_Context(
                 args, self.n_agents, self.lang_learner, device)
@@ -62,8 +63,11 @@ class LMC:
         else:
             raise NotImplementedError("Bad name given for communication policy algo.")
 
-        self.shared_mem = SharedMemory(
-            args, global_state_dim, self.lang_learner, device)
+        if global_state_dim is not None:
+            self.shared_mem = SharedMemory(
+                args, global_state_dim, self.lang_learner, device)
+        else:
+            self.shared_mem = None
 
         policy_args = get_mappo_args(args)
         if "ppo" in args.policy_algo:
@@ -175,7 +179,6 @@ class LMC:
         :param states: (np.ndarray) Global environment states, 
             dim=(n_parallel_envs, state_dim).
         """
-
         rewards = {"message_reward": step_rewards.mean()}
         # Log communication rewards
         if self.comm_logger is not None:
@@ -185,15 +188,16 @@ class LMC:
         message_rewards = step_rewards * self.env_reward_coef
 
         # Shared-Memory reward
-        shm_error = self.shared_mem.get_prediction_error(
-            self.lang_contexts, states)
-        message_rewards -= self.shared_memory_coef * np.repeat(
-            shm_error[..., np.newaxis], self.n_agents, axis=-1)
-        rewards["shm_error"] = shm_error.mean()
+        if self.shared_mem is not None:
+            shm_error = self.shared_mem.get_prediction_error(
+                self.lang_contexts, states)
+            message_rewards -= self.shared_memory_coef * np.repeat(
+                shm_error[..., np.newaxis], self.n_agents, axis=-1)
+            rewards["shm_error"] = shm_error.mean()
 
         # Penalty for comm encoding distance to obs encoding
         if self.comm_pol_algo == "context_mappo":
-            message_rewards -= self.comm_policy.obs_dist[..., np.newaxis] \
+            message_rewards -= self.comm_policy.obs_dist \
                                 * self.obs_dist_coef
             rewards["obs_dist"] = self.comm_policy.obs_dist.mean()
 
@@ -228,7 +232,9 @@ class LMC:
             assert env_dones is not None, "env_dones must be provided if current_lang_contexts is."
             self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
                 np.float32)[..., np.newaxis]
-        self.shared_mem.reset_context(env_dones)
+
+        if self.shared_mem is not None:
+            self.shared_mem.reset_context(env_dones)
 
     def store_exp(self, rewards, dones):
         self.policy.store_act(
@@ -264,7 +270,8 @@ class LMC:
         if self.comm_policy is not None and train_lang:
             losses.update(self.lang_learner.train())
 
-        self.shared_mem.train()
+        if self.shared_mem is not None:
+            self.shared_mem.train()
         
         return losses
 

@@ -135,7 +135,7 @@ class GRUEncoder(nn.Module):
             n_layers,
             batch_first=True)
         init_rnn_params(self.gru)
-        # self.out = nn.Linear(self.hidden_dim, context_dim)
+        self.out = nn.Linear(self.hidden_dim, context_dim)
         self.norm = nn.LayerNorm(context_dim)
 
     def forward(self, sent_batch):

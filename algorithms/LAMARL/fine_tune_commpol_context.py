@@ -62,7 +62,7 @@ def run():
 
     # Create model
     model = LMC(cfg, n_agents, obs_space, shared_obs_space, act_space, 
-                parser.vocab, device, comm_logger)
+                parser.vocab, device=device, comm_logger=comm_logger)
 
     # Load params
     model.load(pretrained_model_path)
@@ -74,13 +74,13 @@ def run():
     # Reset env
     last_save_step = 0
     last_eval_step = 0
-    obs = envs.reset()
+    obs, _ = envs.reset()
     lang_contexts = model.reset_context()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout()
         # Reset policy buffer
-        model.start_episode()
+        model.reset_policy_buffers()
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
@@ -92,7 +92,7 @@ def run():
             actions, broadcasts, agent_messages = model.comm_n_act(
                     obs, parsed_obs)
             # Perform action and get reward and next obs
-            obs, rewards, dones, infos = envs.step(actions)
+            obs, states, rewards, dones, infos = envs.step(actions)
 
             # Save data for logging
             logger.count_returns(s_i, rewards, dones)
@@ -103,7 +103,7 @@ def run():
 
             # Reward communication
             comm_rewards = model.eval_comm(
-                rewards, agent_messages, dones)
+                rewards, agent_messages, states, dones)
 
             # Log communication reward and loss
             logger.log_comm(
@@ -136,14 +136,15 @@ def run():
         if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
             last_save_step = s_i + n_steps_per_update
             model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
-            comm_logger.save(s_i + n_steps_per_update)
+            if comm_logger is not None:
+                comm_logger.save(s_i + n_steps_per_update)
             
     envs.close()
     # Save model and training data
     model.save(run_dir / "model_ep.pt")
     logger.save_n_close()
     if comm_logger is not None:
-        comm_logger.save()
+        comm_logger.save(s_i + n_steps_per_update)
 
 if __name__ == '__main__':
     run()
