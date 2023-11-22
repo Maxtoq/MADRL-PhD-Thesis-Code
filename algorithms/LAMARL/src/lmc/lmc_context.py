@@ -170,19 +170,19 @@ class LMC:
 
         return self.actions, broadcasts, agent_messages
 
-    def eval_comm(self, message_rewards, messages, states, dones):
+    def eval_comm(self, step_rewards, messages, states, dones):
         """
         :param states: (np.ndarray) Global environment states, 
             dim=(n_parallel_envs, state_dim).
         """
 
-        rewards = {"message_reward": message_rewards.mean()}
+        rewards = {"message_reward": step_rewards.mean()}
         # Log communication rewards
         if self.comm_logger is not None:
-            self.comm_logger.store_rewards(message_rewards)
+            self.comm_logger.store_rewards(step_rewards)
 
         # Environment reward
-        message_rewards *= self.env_reward_coef
+        message_rewards = step_rewards * self.env_reward_coef
 
         # Shared-Memory reward
         shm_error = self.shared_mem.get_prediction_error(

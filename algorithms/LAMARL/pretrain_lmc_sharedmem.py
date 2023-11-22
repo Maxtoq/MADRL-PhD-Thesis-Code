@@ -76,9 +76,11 @@ def run():
                     obs, parsed_obs)
             # Perform action and get reward and next obs
             obs, next_states, rewards, dones, infos = envs.step(actions)
+            print(ep_s_i, rewards)
 
             # Reward communication
             model.eval_comm(rewards, agent_messages, states, dones)
+            print("2", rewards)
             states = next_states
 
             env_dones = dones.all(axis=1)
@@ -93,7 +95,7 @@ def run():
 
         # Training
         train_losses = model.train(s_i + n_steps_per_update)
-        
+
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
     

@@ -156,8 +156,6 @@ class PredatorPrey(gym.Env):
 
         if self.global_state:
             state = (
-                # np.array([ap for ap in self.agent_pos.values()] 
-                #         + [pp for pp in self.prey_pos.values()]) 
                 np.array([pp for pp in self.prey_pos.values()])
                 / np.array(self._grid_shape)
             ).reshape(-1)
@@ -296,6 +294,8 @@ class PredatorPrey(gym.Env):
                 if predator_neighbour_count >= 1:
                     _reward = self._penalty if predator_neighbour_count == 1 else self._prey_capture_reward
                     self._prey_alive[prey_i] = (predator_neighbour_count == 1)
+                    # if not self._prey_alive[prey_i]:
+                    #     self.prey_pos[prey_i] = [-1, -1]
 
                     for agent_i in range(self.n_agents):
                         rewards[agent_i] += _reward

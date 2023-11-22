@@ -24,7 +24,7 @@ class SharedMemoryBuffer():
 
         self.current_ids = np.arange(self.n_parallel_envs, dtype=np.int32)
 
-        self.current_size = self.n_parallel_envs
+        self.current_size = 0
 
     def _reset_buffer_entries(self, ids):
         self.message_enc_buffer[ids]
@@ -104,14 +104,14 @@ class SharedMemoryBuffer():
         :return states: (np.ndarray) Actual states, dim=(batch_size, 
             state_dim).
         """
-        batch_size = self.batch_size if self.batch_size <= self.current_size \
-                        else self.current_size
+        batch_size = min(self.batch_size, self.current_size)
 
-        # TODO Adapter le sample pour que ça marche
         sample_ids = np.random.choice(
             self.current_size, batch_size, replace=False)
             
-        return self.message_enc_buffer[sample_ids], self.state_buffer[sample_ids]
+        return self.message_enc_buffer[sample_ids], \
+               self.state_buffer[sample_ids], \
+               self.ep_lens[sample_ids]
 
 
 class SharedMemory():
@@ -234,7 +234,18 @@ class SharedMemory():
         Train the model.
         :return loss: (float) Training loss.
         """
-        # message_encodings, states = self.buffer.sample()
+        message_encodings, states, ep_lens = self.buffer.sample()
+        
+        # Sort by episode length decreasing
+        sorted_ids = np.argsort(ep_lens)[::-1]
+        sorted_mess_enc = [
+            message_encodings[s_i, :ep_lens[s_i]]
+            for s_i in sorted_ids]
+        sorted_states = [
+            states[s_i, :ep_lens[s_i]]
+            for s_i in sorted_ids]
+        print(sorted_ids)
+        print(ep_lens)
+        print(sorted_states)
 
-
-        # exit()
+        exit()
