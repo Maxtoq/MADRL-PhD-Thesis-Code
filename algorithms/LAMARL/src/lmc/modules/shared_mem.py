@@ -100,9 +100,11 @@ class SharedMemoryBuffer():
         """
         Sample a batch of training data.
         :return message_encodings: (np.ndarray) Encoded messages, 
-            dim=(batch_size, context_dim).
+            dim=(batch_size, max_ep_len, context_dim).
         :return states: (np.ndarray) Actual states, dim=(batch_size, 
-            state_dim).
+            max_ep_len, state_dim).
+        :return ep_lens: (np.ndarray) Actual length of each sampled episode,
+            dim=(batch_size,).
         """
         batch_size = min(self.batch_size, self.current_size)
 
@@ -133,7 +135,8 @@ class SharedMemory():
         self.norm = nn.LayerNorm(self.hidden_dim)
 
         # Output prediction layer
-        self.out = MLPNetwork(self.hidden_dim, state_dim, self.hidden_dim)
+        self.out = MLPNetwork(
+            self.hidden_dim, state_dim, self.hidden_dim, norm_in=False)
 
         # Optimizer
         self.optim = torch.optim.Adam(
@@ -179,23 +182,31 @@ class SharedMemory():
             # Change place to store in buffer for finished episode
             self.buffer.end_episode(env_dones)
 
-    def _predict_states(self, message_encodings):
+    def _predict_states(self, message_encodings, hidden_states):
         """
         Predict states from messages.
-        :param message_encodings: (np.ndarray) Encoded messages, 
-            dim=(n_parallel_envs, context_dim).
+        :param message_encodings: (torch.Tensor) Encoded messages, 
+            dim=(seq_len, n_parallel_envs, context_dim).
+        :param hidden_states: (torch.Tensor) Hidden states of the GRU,
+            dim=(n_rec_layers, n_parallel_envs, hidden_dim).
 
-        :return pred_states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
-            state_dim).
+        :return pred_states: (torch.Tensor) Actual states, dim=(seq_len, 
+            n_parallel_envs, state_dim).
+        :return hidden_states: (torch.Tensor) New hidden states of the GRU,
+            dim=(n_rec_layers, n_parallel_envs, hidden_dim).
         """
-        message_encodings = torch.Tensor(
-            message_encodings).unsqueeze(0).to(self.device)
-        x, self.memory_context = self.gru(
-            message_encodings, self.memory_context)
+        x, hidden_states = self.gru(
+            message_encodings, hidden_states)
+
+        if type(x) is torch.nn.utils.rnn.PackedSequence:
+            x = torch.nn.utils.rnn.unpack_sequence(x)
+            x = nn.utils.rnn.pad_sequence(x)
+
+        # TODO Checker qu'on a les même résultats si on ne pad pas les tensor
         x = self.norm(x)
 
-        pred_states = self.out(x.squeeze(0))
-        return pred_states
+        pred_states = self.out(x)
+        return pred_states, hidden_states
 
     @torch.no_grad()
     def get_prediction_error(self, message_encodings, states):
@@ -212,10 +223,12 @@ class SharedMemory():
         """
         self.buffer.store(message_encodings, states)
 
-        pred_states = self._predict_states(message_encodings)
+        pred_states, self.memory_context = self._predict_states(
+            torch.Tensor(message_encodings).unsqueeze(0).to(self.device),
+            self.memory_context)
 
         error = np.linalg.norm(
-            torch2numpy(pred_states) - states, 2, axis=-1)
+            torch2numpy(pred_states.squeeze(0)) - states, 2, axis=-1)
         
         return error
 
@@ -239,13 +252,27 @@ class SharedMemory():
         # Sort by episode length decreasing
         sorted_ids = np.argsort(ep_lens)[::-1]
         sorted_mess_enc = [
-            message_encodings[s_i, :ep_lens[s_i]]
+            torch.Tensor(message_encodings[s_i, :ep_lens[s_i]])
             for s_i in sorted_ids]
         sorted_states = [
             states[s_i, :ep_lens[s_i]]
             for s_i in sorted_ids]
+        sorted_ep_lens = ep_lens[sorted_ids]
         print(sorted_ids)
-        print(ep_lens)
-        print(sorted_states)
+        print(ep_lens, sorted_ep_lens)
+
+        # Pad and pack sequences
+        padded = nn.utils.rnn.pad_sequence(sorted_mess_enc)
+        packed = nn.utils.rnn.pack_padded_sequence(
+            padded, ep_lens[sorted_ids]).to(self.device)
+        print(padded.shape)
+
+        hidden = torch.zeros(
+            (self.n_rec_layers, 
+             len(sorted_mess_enc), 
+             self.hidden_dim)).to(self.device)
+
+        pred_states, _ = self._predict_states(packed, hidden)
+        print(pred_states)
 
         exit()

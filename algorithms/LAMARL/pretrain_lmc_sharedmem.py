@@ -49,8 +49,14 @@ def run():
     act_space = envs.action_space
     global_state_dim = envs.global_state_dim
     model = LMC(
-        cfg, n_agents, obs_space, shared_obs_space, act_space, global_state_dim,
-        parser.vocab, device)
+        cfg, 
+        n_agents, 
+        obs_space, 
+        shared_obs_space, 
+        act_space,
+        parser.vocab, 
+        global_state_dim, 
+        device)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
@@ -76,11 +82,9 @@ def run():
                     obs, parsed_obs)
             # Perform action and get reward and next obs
             obs, next_states, rewards, dones, infos = envs.step(actions)
-            print(ep_s_i, rewards)
 
             # Reward communication
             model.eval_comm(rewards, agent_messages, states, dones)
-            print("2", rewards)
             states = next_states
 
             env_dones = dones.all(axis=1)
