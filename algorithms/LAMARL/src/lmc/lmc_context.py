@@ -51,7 +51,6 @@ class LMC:
             args.lang_batch_size)
 
         self.comm_pol_algo = args.comm_policy_algo
-        print(self.comm_pol_algo)
         if self.comm_pol_algo == "context_mappo":
             self.comm_policy = CommPol_Context(
                 args, self.n_agents, self.lang_learner, device)
@@ -64,8 +63,7 @@ class LMC:
             raise NotImplementedError("Bad name given for communication policy algo.")
 
         if global_state_dim is not None:
-            self.shared_mem = SharedMemory(
-                args, global_state_dim, self.lang_learner, device)
+            self.shared_mem = SharedMemory(args, global_state_dim, device)
         else:
             self.shared_mem = None
 
@@ -262,16 +260,18 @@ class LMC:
         if train_policy:
             losses.update(self.policy.train(warmup))
         
-        comm_pol_losses = self.comm_policy.train(warmup)
-        for k in list(comm_pol_losses.keys()):
-            comm_pol_losses["comm_" + k] = comm_pol_losses.pop(k)
-        losses.update(comm_pol_losses)
+        if self.comm_policy is not None:
+            comm_pol_losses = self.comm_policy.train(warmup)
+            for k, l in comm_pol_losses.items():
+                losses["comm_" + k] = l
         
         if self.comm_policy is not None and train_lang:
-            losses.update(self.lang_learner.train())
+            lang_losses = self.lang_learner.train()
+            for k, l in lang_losses.items():
+                losses["lang_" + k] = l
 
         if self.shared_mem is not None:
-            self.shared_mem.train()
+            losses["shared_mem"] = self.shared_mem.train()
         
         return losses
 
@@ -281,11 +281,15 @@ class LMC:
         save_dict.update(self.lang_learner.get_save_dict())
         if self.comm_policy is not None:
             save_dict.update(self.comm_policy.get_save_dict())
+        if self.shared_mem is not None:
+            save_dict.update(self.shared_mem.get_save_dict())
         torch.save(save_dict, path)
 
     def load(self, path):
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.policy.load_params(save_dict["agents_params"])
         self.lang_learner.load_params(save_dict)
-        # if self.comm_pol_algo in ["ppo_mlp"]:
-        #     self.comm_policy.load_params(save_dict)
+        if self.comm_pol_algo in ["context_mappo"]:
+            self.comm_policy.load_params(save_dict)
+        if self.shared_mem is not None:
+            self.shared_mem.load_params(save_dict)

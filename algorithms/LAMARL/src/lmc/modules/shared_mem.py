@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
 
 from torch import nn
 
@@ -21,10 +22,11 @@ class SharedMemoryBuffer():
         self.state_buffer = np.zeros(
             (self.max_size, self.max_ep_length, state_dim))
         self.ep_lens = np.zeros(self.max_size, dtype=np.int32)
+        self.finished_eps = np.zeros(self.max_size, dtype=np.int32)
 
         self.current_ids = np.arange(self.n_parallel_envs, dtype=np.int32)
 
-        self.current_size = 0
+        self.current_size = self.n_parallel_envs
 
     def _reset_buffer_entries(self, ids):
         self.message_enc_buffer[ids]
@@ -32,6 +34,7 @@ class SharedMemoryBuffer():
     def end_episode(self, dones):
         # Find ids of finished episodes
         finished_ep_ids = self.current_ids[dones]
+        self.finished_eps[finished_ep_ids] += 1
 
         # Roll if needed
         n_changes = len(finished_ep_ids)
@@ -45,6 +48,8 @@ class SharedMemoryBuffer():
             self.state_buffer[-n_shift:] *= 0
             self.ep_lens = np.roll(self.ep_lens, -n_shift, axis=0)
             self.ep_lens[-n_shift:] *= 0
+            self.finished_eps = np.roll(self.finished_eps, -n_shift, axis=0)
+            self.finished_eps[-n_shift:] *= 0
             # Update ids accordingly
             self.current_ids -= n_shift
 
@@ -53,7 +58,7 @@ class SharedMemoryBuffer():
             if dones[i]:
                 self.current_ids[i] = self.current_ids.max() + 1
         
-        self.current_size += n_changes
+        self.current_size = min(self.current_size + n_changes, self.max_size)
 
     def store(self, message_encodings, states):
         """
@@ -72,30 +77,6 @@ class SharedMemoryBuffer():
 
         self.ep_lens[self.current_ids] += 1
 
-    # def store(self, message_encodings, states):
-    #     """
-    #     Store step.
-    #     :param message_encodings: (np.ndarray) Encoded messages, 
-    #         dim=(n_parallel_envs, context_dim).
-    #     :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
-    #         state_dim).
-    #     """
-    #     add_len = message_encodings.shape[0]
-    #     if self.current_size + add_len > self.max_size:
-    #         n_shift = add_len + self.current_size - self.max_size
-    #         self.message_enc_buffer = np.roll(
-    #             self.message_enc_buffer, -n_shift, axis=0)
-    #         self.state_buffer = np.roll(self.state_buffer, -n_shift, axis=0)
-    #         # print(self.message_enc_buffer)
-    #         self.current_size = self.max_size
-    #     else:
-    #         self.current_size += add_len
-
-    #     self.message_enc_buffer[self.current_size - add_len:self.current_size] = \
-    #         message_encodings
-    #     self.state_buffer[self.current_size - add_len:self.current_size] = \
-    #         states
-
     def sample(self):
         """
         Sample a batch of training data.
@@ -106,10 +87,11 @@ class SharedMemoryBuffer():
         :return ep_lens: (np.ndarray) Actual length of each sampled episode,
             dim=(batch_size,).
         """
-        batch_size = min(self.batch_size, self.current_size)
+        n_finished = self.finished_eps.sum()
+        batch_size = min(self.batch_size, n_finished)
 
         sample_ids = np.random.choice(
-            self.current_size, batch_size, replace=False)
+            n_finished, batch_size, replace=False)
             
         return self.message_enc_buffer[sample_ids], \
                self.state_buffer[sample_ids], \
@@ -118,15 +100,12 @@ class SharedMemoryBuffer():
 
 class SharedMemory():
 
-    def __init__(self, args, state_dim, lang_learner, device="cpu"):
+    def __init__(self, args, state_dim, device="cpu"):
         self.hidden_dim = args.shared_mem_hidden_dim
         self.n_rec_layers = args.shared_mem_n_rec_layers
         self.n_parallel_envs = args.n_parallel_envs
         self.state_dim = state_dim
         self.device = device
-
-        # # Language encoder
-        # self.lang_learner = lang_learner
 
         # GRU layer
         self.gru = nn.GRU(
@@ -138,7 +117,7 @@ class SharedMemory():
         self.out = MLPNetwork(
             self.hidden_dim, state_dim, self.hidden_dim, norm_in=False)
 
-        # Optimizer
+        # Optimizer and loss
         self.optim = torch.optim.Adam(
             list(self.gru.parameters()) + list(self.out.parameters()), 
             lr=args.shared_mem_lr)
@@ -202,7 +181,6 @@ class SharedMemory():
             x = torch.nn.utils.rnn.unpack_sequence(x)
             x = nn.utils.rnn.pad_sequence(x)
 
-        # TODO Checker qu'on a les même résultats si on ne pad pas les tensor
         x = self.norm(x)
 
         pred_states = self.out(x)
@@ -232,16 +210,6 @@ class SharedMemory():
         
         return error
 
-    # def store_step(self, message_encodings, states):
-    #     """
-    #     Store communicated messages and actual states for later training.
-    #     :param message_encodings: (np.ndarray) Encoded messages, 
-    #         dim=(n_parallel_envs, context_dim).
-    #     :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
-    #         state_dim).
-    #     """
-    #     pass
-
     def train(self):
         """
         Train the model.
@@ -254,25 +222,39 @@ class SharedMemory():
         sorted_mess_enc = [
             torch.Tensor(message_encodings[s_i, :ep_lens[s_i]])
             for s_i in sorted_ids]
-        sorted_states = [
-            states[s_i, :ep_lens[s_i]]
-            for s_i in sorted_ids]
-        sorted_ep_lens = ep_lens[sorted_ids]
-        print(sorted_ids)
-        print(ep_lens, sorted_ep_lens)
 
         # Pad and pack sequences
         padded = nn.utils.rnn.pad_sequence(sorted_mess_enc)
         packed = nn.utils.rnn.pack_padded_sequence(
             padded, ep_lens[sorted_ids]).to(self.device)
-        print(padded.shape)
 
         hidden = torch.zeros(
             (self.n_rec_layers, 
              len(sorted_mess_enc), 
              self.hidden_dim)).to(self.device)
 
+        # Predict states
         pred_states, _ = self._predict_states(packed, hidden)
-        print(pred_states)
 
-        exit()
+        # Compute MSE Loss, without counting steps that did not happen
+        sorted_states = torch.Tensor(
+            states[sorted_ids]).transpose(0, 1).to(self.device)
+        error = F.mse_loss(pred_states, sorted_states, reduction="sum")
+        loss = error / ep_lens.sum()
+
+        # Backward prop
+        self.optim.zero_grad()
+        loss.backward()
+        self.optim.step()
+
+        return loss.item()
+
+    def get_save_dict(self):
+        save_dict = {
+            "shared_mem_gru": self.gru.state_dict(),
+            "shared_mem_out": self.out.state_dict()}
+        return save_dict
+
+    def load_params(self, save_dict):
+        self.gru.load_state_dict(save_dict["shared_mem_gru"])
+        self.out.load_state_dict(save_dict["shared_mem_out"])

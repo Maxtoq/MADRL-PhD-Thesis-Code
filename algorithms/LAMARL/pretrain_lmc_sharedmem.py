@@ -103,19 +103,19 @@ def run():
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
     
-        # Eval
-        if cfg.do_eval and s_i + n_steps_per_update - last_eval_step > \
-                cfg.eval_interval:
-            last_eval_step = s_i + n_steps_per_update
-            mean_return, success_rate, mean_ep_len = perform_eval(
-                cfg, model, eval_envs, eval_parser)
-            logger.log_eval(s_i, mean_return, success_rate, mean_ep_len)
-            logger.save()
+        # # Eval
+        # if cfg.do_eval and s_i + n_steps_per_update - last_eval_step > \
+        #         cfg.eval_interval:
+        #     last_eval_step = s_i + n_steps_per_update
+        #     mean_return, success_rate, mean_ep_len = perform_eval(
+        #         cfg, model, eval_envs, eval_parser)
+        #     logger.log_eval(s_i, mean_return, success_rate, mean_ep_len)
+        #     logger.save()
 
         # Save
         if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
             last_save_step = s_i + n_steps_per_update
-            model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
+            model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
             
     envs.close()
     # Save model and training data

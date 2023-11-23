@@ -135,7 +135,7 @@ def run():
         # Save
         if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
             last_save_step = s_i + n_steps_per_update
-            model.save(run_dir / "incremental" / ('model_ep%i.pt' % (s_i)))
+            model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
             if comm_logger is not None:
                 comm_logger.save(s_i + n_steps_per_update)
             
