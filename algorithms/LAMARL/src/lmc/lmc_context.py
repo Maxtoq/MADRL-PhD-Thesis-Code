@@ -91,12 +91,16 @@ class LMC:
         self.policy.prep_training()
         if self.comm_policy is not None:
             self.comm_policy.prep_training()
+        if self.shared_mem is not None:
+            self.shared_mem.prep_training(self.device)
 
     def prep_rollout(self, device=None):
         self.lang_learner.prep_rollout(device)
         self.policy.prep_rollout(device)
         if self.comm_policy is not None:
             self.comm_policy.prep_rollout(device)
+        if self.shared_mem is not None:
+            self.shared_mem.prep_rollout(device)
 
     def _make_obs(self, obs):
         """

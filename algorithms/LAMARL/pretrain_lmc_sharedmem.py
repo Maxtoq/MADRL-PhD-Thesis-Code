@@ -69,7 +69,7 @@ def run():
     lang_contexts = model.reset_context()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
-        model.prep_rollout()
+        model.prep_rollout(device)
         model.reset_policy_buffers()
         for ep_s_i in range(cfg.episode_length):
             # Parse obs

@@ -126,7 +126,9 @@ class SharedMemory():
         self.buffer = SharedMemoryBuffer(args, state_dim)
 
         self.memory_context = torch.zeros(
-            self.n_rec_layers, self.n_parallel_envs, self.hidden_dim)
+            self.n_rec_layers, 
+            self.n_parallel_envs, 
+            self.hidden_dim).to(self.device)
 
     def prep_rollout(self, device=None):
         if device is None:
@@ -137,6 +139,9 @@ class SharedMemory():
         self.gru.to(device)
         self.out.eval()
         self.out.to(device)
+        self.norm.eval()
+        self.norm.to(device)
+        self.memory_context = self.memory_context.to(device)
 
     def prep_training(self, device=None):
         if device is None:
@@ -144,9 +149,12 @@ class SharedMemory():
         else:
             self.device = device
         self.gru.train()
-        self.gru.to(self.device)
+        self.gru.to(device)
         self.out.train()
-        self.out.to(self.device)
+        self.out.to(device)
+        self.norm.train()
+        self.norm.to(device)
+        self.memory_context = self.memory_context.to(device)
 
     def reset_context(self, env_dones=None, n_envs=None):
         if env_dones is None:
@@ -155,8 +163,9 @@ class SharedMemory():
             self.memory_context = torch.zeros(
                 self.n_rec_layers, n_envs, self.hidden_dim).to(self.device)
         else:
-            self.memory_context = self.memory_context * (1 - env_dones).astype(
-                np.float32).reshape((1, self.n_parallel_envs, 1))
+            self.memory_context = self.memory_context * torch.Tensor(
+                (1 - env_dones).astype(np.float32).reshape(
+                    (1, self.n_parallel_envs, 1))).to(self.device)
         
             # Change place to store in buffer for finished episode
             self.buffer.end_episode(env_dones)
@@ -175,7 +184,7 @@ class SharedMemory():
             dim=(n_rec_layers, n_parallel_envs, hidden_dim).
         """
         x, hidden_states = self.gru(
-            message_encodings, hidden_states)
+            message_encodings.to(self.device), hidden_states.to(self.device))
 
         if type(x) is torch.nn.utils.rnn.PackedSequence:
             x = torch.nn.utils.rnn.unpack_sequence(x)
