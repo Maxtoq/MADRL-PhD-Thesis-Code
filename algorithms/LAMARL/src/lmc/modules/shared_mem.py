@@ -248,6 +248,8 @@ class SharedMemory():
         # Compute MSE Loss, without counting steps that did not happen
         sorted_states = torch.Tensor(
             states[sorted_ids]).transpose(0, 1).to(self.device)
+        if pred_states.shape[0] < sorted_states.shape[0]:
+            sorted_states = sorted_states[:pred_states.shape[0]]
         error = F.mse_loss(pred_states, sorted_states, reduction="sum")
         loss = error / ep_lens.sum()
 

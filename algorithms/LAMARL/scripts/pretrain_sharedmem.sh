@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=5
 experiment_name="pretrain_sharedmem_8x8"
 n_parallel_envs=64
 n_steps=5000000
@@ -12,6 +12,7 @@ comm_policy_algo="perfect_comm"
 lang_lr=0.0009 # default 0.0007
 lang_n_epochs=1 # default 2
 lang_batch_size=128 # default 128
+shared_mem_lr=0.0001 # default 0.0005
 magym_env_size=8
 cuda_device="cuda:1"
 
@@ -36,6 +37,7 @@ do
     --lang_lr ${lang_lr}\
     --lang_n_epochs ${lang_n_epochs}\
     --lang_batch_size ${lang_batch_size}\
+    --shared_mem_lr ${shared_mem_lr}\
     --magym_env_size ${magym_env_size}"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
