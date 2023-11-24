@@ -719,9 +719,7 @@ models/magym_PredPrey/FT_commencmappo/run2/*
 !models/magym_PredPrey/FT_commencmappo/run2/logs
 models/magym_PredPrey/FT_commencmappo/run2/logs/*
 !models/magym_PredPrey/FT_commencmappo/run2/logs/comm_logs.csv
-
-!models/magym_PredPrey/FT_commencmappo
-models/magym_PredPrey/FT_commencmappo/*
+!models/magym_PredPrey/FT_commencmappo/train_data
 !models/magym_PredPrey/FT_commencmappo/run3
 models/magym_PredPrey/FT_commencmappo/run3/*
 !models/magym_PredPrey/FT_commencmappo/run3/logs
@@ -739,4 +737,5 @@ models/magym_PredPrey/FT_commencmappo_obsdist/run1/logs/*
 !models/magym_PredPrey/FT_nocommenc
 models/magym_PredPrey/FT_nocommenc/*
 !models/magym_PredPrey/FT_nocommenc/train_data
+
 
