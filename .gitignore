@@ -736,3 +736,7 @@ models/magym_PredPrey/FT_commencmappo_obsdist/run1/*
 models/magym_PredPrey/FT_commencmappo_obsdist/run1/logs/*
 !models/magym_PredPrey/FT_commencmappo_obsdist/run1/logs/comm_logs
 
+!models/magym_PredPrey/FT_nocommenc
+models/magym_PredPrey/FT_nocommenc/*
+!models/magym_PredPrey/FT_nocommenc/train_data
+
