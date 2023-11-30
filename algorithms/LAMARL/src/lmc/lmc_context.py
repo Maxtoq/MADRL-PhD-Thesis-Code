@@ -254,7 +254,8 @@ class LMC:
             sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
 
-    def train(self, step, train_policy=True, train_lang=True):
+    def train(self, 
+            step, train_policy=True, train_lang=True, train_sharedmem=True):
         self.prep_training()
 
         warmup = step < self.n_warmup_steps
@@ -274,7 +275,7 @@ class LMC:
             for k, l in lang_losses.items():
                 losses["lang_" + k] = l
 
-        if self.shared_mem is not None:
+        if self.shared_mem is not None and train_sharedmem:
             losses["shared_mem"] = self.shared_mem.train()
         
         return losses
@@ -291,8 +292,6 @@ class LMC:
 
     def load(self, path):
         save_dict = torch.load(path, map_location=torch.device('cpu'))
-        print(save_dict)
-        exit()
         self.policy.load_params(save_dict["agents_params"])
         self.lang_learner.load_params(save_dict)
         if self.comm_pol_algo in ["context_mappo"]:

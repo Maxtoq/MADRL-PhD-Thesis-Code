@@ -70,7 +70,7 @@ def run():
         device)
 
     # Load params
-    model.load_params(pretrained_model_path)
+    model.load(pretrained_model_path)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
@@ -80,7 +80,7 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs, states = envs.reset()
-    lang_contexts = model.reset_context()
+    model.reset_context()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
@@ -89,7 +89,7 @@ def run():
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
             # Store language inputs in buffer
-            model.store_language_inputs(obs, parsed_obs)
+            # model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             actions, broadcasts, agent_messages = model.comm_n_act(
@@ -98,43 +98,44 @@ def run():
             obs, next_states, rewards, dones, infos = envs.step(actions)
 
             # Reward communication
-            model.eval_comm(rewards, agent_messages, states, dones)
+            comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)
             states = next_states
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
-                lang_contexts = model.reset_context(env_dones)
+                model.reset_context(env_dones)
 
             # Save data for logging
             logger.count_returns(s_i, rewards, dones)
+            logger.log_comm(
+                s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
 
             # Insert data into policy buffer
             model.store_exp(rewards, dones)
 
         # Training
-        train_losses = model.train(s_i + n_steps_per_update)
+        train_losses = model.train(
+            s_i + n_steps_per_update, 
+            train_policy=s_i + n_steps_per_update > cfg.FT_n_steps_fix_policy,
+            train_lang=False,
+            train_sharedmem=False)
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
-    
-        # # Eval
-        # if cfg.do_eval and s_i + n_steps_per_update - last_eval_step > \
-        #         cfg.eval_interval:
-        #     last_eval_step = s_i + n_steps_per_update
-        #     mean_return, success_rate, mean_ep_len = perform_eval(
-        #         cfg, model, eval_envs, eval_parser)
-        #     logger.log_eval(s_i, mean_return, success_rate, mean_ep_len)
-        #     logger.save()
 
         # Save
         if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
             last_save_step = s_i + n_steps_per_update
             model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
+            if comm_logger is not None:
+                comm_logger.save(s_i + n_steps_per_update)
             
     envs.close()
     # Save model and training data
     model.save(run_dir / "model_ep.pt")
     logger.save_n_close()
+    if comm_logger is not None:
+        comm_logger.save(s_i + n_steps_per_update)
 
 if __name__ == '__main__':
     run()

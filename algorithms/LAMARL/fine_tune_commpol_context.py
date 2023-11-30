@@ -75,7 +75,7 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs, _ = envs.reset()
-    lang_contexts = model.reset_context()
+    model.reset_context()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout()
@@ -99,7 +99,7 @@ def run():
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
-                lang_contexts = model.reset_context(env_dones)
+                model.reset_context(env_dones)
 
             # Reward communication
             comm_rewards = model.eval_comm(
