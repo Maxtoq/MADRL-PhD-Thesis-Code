@@ -1,8 +1,8 @@
 #!/bin/sh
-n_run=5
+n_run=1
 experiment_name="pretrain_sharedmem_8x8"
-n_parallel_envs=64
-n_steps=5000000
+n_parallel_envs=128
+n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15
 entropy_coef=0.01 #default 0.01
@@ -12,9 +12,9 @@ comm_policy_algo="perfect_comm"
 lang_lr=0.0009 # default 0.0007
 lang_n_epochs=1 # default 2
 lang_batch_size=128 # default 128
-shared_mem_lr=0.0001 # default 0.0005
+shared_mem_lr=0.009 # default 0.0005
 magym_env_size=8
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 

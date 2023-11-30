@@ -179,8 +179,10 @@ def get_config():
     parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
     parser.add_argument("--shared_mem_n_rec_layers", type=int, default=1)
     parser.add_argument("--shared_mem_lr", type=float, default=0.0005)
-    parser.add_argument("--shared_mem_max_buffer_size", type=int, default=1000)
-    parser.add_argument("--shared_mem_batch_size", type=int, default=16)
+    parser.add_argument("--shared_mem_max_buffer_size", type=int, default=1000, 
+                        help="Max number of episodes (=*ep_length steps) stored in the buffer.")
+    parser.add_argument("--shared_mem_batch_size", type=int, default=16, 
+                        help="Number of episodes (=*ep_length steps) sampled for a single training update.")
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)
