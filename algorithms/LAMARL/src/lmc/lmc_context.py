@@ -291,6 +291,8 @@ class LMC:
 
     def load(self, path):
         save_dict = torch.load(path, map_location=torch.device('cpu'))
+        print(save_dict)
+        exit()
         self.policy.load_params(save_dict["agents_params"])
         self.lang_learner.load_params(save_dict)
         if self.comm_pol_algo in ["context_mappo"]:
