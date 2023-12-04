@@ -9,6 +9,7 @@ from tqdm import trange
 from src.utils.config import get_config
 from src.utils.eval import perform_eval
 from src.utils.utils import set_seeds, set_cuda_device
+from src.log.comm_logs import CommunicationLogger
 from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
 from src.log.progress_bar import Progress
@@ -67,7 +68,8 @@ def run():
         act_space,
         parser.vocab, 
         global_state_dim, 
-        device)
+        device,
+        comm_logger=comm_logger)
 
     # Load params
     model.load(pretrained_model_path)

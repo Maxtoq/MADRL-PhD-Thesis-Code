@@ -19,13 +19,14 @@ comm_klpretrain_coef=0.01 # default 0.01
 comm_token_penalty=0.1 # default 0.1
 comm_env_reward_coef=1.0 # default 1.0
 comm_obs_dist_coef=0.0 # default 0.1
+comm_shared_memory_coef=2.0 # default 1.0
 FT_pretrained_model_path="models/magym_PredPrey/pretrain_sharedmem_8x8/run16/model_ep.pt"
 FT_n_steps_fix_policy=9000000
 # lang_lr=0.0009 # default 0.0007
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:3"
+cuda_device="cuda:2"
 
 source venv3.8/bin/activate
 
@@ -52,11 +53,12 @@ do
     --comm_token_penalty ${comm_token_penalty}\
     --comm_env_reward_coef ${comm_env_reward_coef}\
     --comm_obs_dist_coef ${comm_obs_dist_coef}\
+    --comm_shared_memory_coef ${comm_shared_memory_coef}\
     --FT_pretrained_model_path ${FT_pretrained_model_path}\
     --FT_n_steps_fix_policy ${FT_n_steps_fix_policy}\
     --magym_env_size ${magym_env_size}\
-    --magym_global_state"
-    # --log_communication"
+    --magym_global_state\
+    --log_communication"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"

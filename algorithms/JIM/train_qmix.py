@@ -193,7 +193,8 @@ def run(cfg):
     # Reset episode data and environment
     ep_step_i = 0
     ep_ext_returns = np.zeros(nb_agents)
-    ep_int_returns = np.zeros(nb_agents)
+    ep_LLEC_returns = np.zeros(nb_agents)
+    ep_EEC_returns = np.zeros(nb_agents)
     ep_success = False
     obs = env.reset()
     qmix.reset_int_reward(obs)
@@ -216,7 +217,7 @@ def run(cfg):
         next_obs, ext_rewards, dones, _ = env.step(actions)
 
         # Compute intrinsic rewards
-        int_rewards = qmix.get_intrinsic_rewards(next_obs)
+        int_rewards, criteria = qmix.get_intrinsic_rewards(next_obs)
         if cfg.int_reward_decay_fn == "constant":
             coeff = cfg.int_reward_coeff
         else:
@@ -233,7 +234,8 @@ def run(cfg):
         ep_dones[ep_step_i, 0, :] = np.vstack(dones)
 
         ep_ext_returns += ext_rewards
-        ep_int_returns += int_rewards
+        ep_LLEC_returns += criteria["LLEC"]
+        ep_EEC_returns += criteria["EEC"]
         if any(dones):
             ep_success = True
         
@@ -251,8 +253,10 @@ def run(cfg):
                 np.sum(ep_rews) / nb_agents)
             train_data_dict["Episode extrinsic return"].append(
                 np.mean(ep_ext_returns))
-            train_data_dict["Episode intrinsic return"].append(
-                np.mean(ep_int_returns))
+            # train_data_dict["Episode LLEC return"].append(
+            #     np.mean(ep_LLEC_returns))
+            # train_data_dict["Episode EEC return"].append(
+            #     np.mean(ep_EEC_returns))
             train_data_dict["Success"].append(int(ep_success))
             train_data_dict["Episode length"].append(ep_step_i + 1)
             # Log Tensorboard
@@ -265,12 +269,17 @@ def run(cfg):
                 train_data_dict["Episode extrinsic return"][-1], 
                 train_data_dict["Step"][-1])
             logger.add_scalar(
-                'agent0/episode_int_return', 
-                train_data_dict["Episode intrinsic return"][-1], 
+                'agent0/episode_LLEC_return', 
+                np.mean(ep_LLEC_returns), 
+                train_data_dict["Step"][-1])
+            logger.add_scalar(
+                'agent0/episode_EEC_return', 
+                np.mean(ep_EEC_returns), 
                 train_data_dict["Step"][-1])
             # Reset episode data
             ep_ext_returns = np.zeros(nb_agents)
-            ep_int_returns = np.zeros(nb_agents)
+            ep_LLEC_returns = np.zeros(nb_agents)
+            ep_EEC_returns = np.zeros(nb_agents)
             ep_step_i = 0
             ep_success = False
             # Init episode data for saving in replay buffer

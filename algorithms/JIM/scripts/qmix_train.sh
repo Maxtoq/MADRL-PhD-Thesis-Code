@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
 env="algorithms/JIM/scenarios/rel_overgen.py"
-model_name="qmix_4a_40_09_LIM"
+model_name="qmix_2a_40_40_JIM"
 sce_conf_path="configs/2a_pol.json"
 n_frames=12000000
 n_explo_frames=10000000
@@ -11,21 +11,21 @@ eval_every=100000
 eval_scenar_file="eval_scenarios/hard_corners_24.json"
 init_explo_rate=0.1
 epsilon_decay_fn="linear"
-intrinsic_reward_mode="local"
+intrinsic_reward_mode="central"
 intrinsic_reward_algo="e2snoveld"
 int_reward_coeff=1.0
 int_reward_decay_fn="constant"
 gamma=0.99
-int_rew_enc_dim=32 # def 16, JIM 90, LIM 30
-int_rew_hidden_dim=64 # def 64, JIM 1024, LIM 256
+int_rew_enc_dim=64 # def 16, JIM 90, LIM 30
+int_rew_hidden_dim=128 # def 64, JIM 1024, LIM 256
 scale_fac=0.5 # def 0.5
 int_rew_lr=0.0001 # def 0.0001
 state_dim=40
-optimal_diffusion_coeff=0.9
+optimal_diffusion_coeff=40
 suboptimal_diffusion_coeff=0.08
-ro_n_agents=4
+ro_n_agents=2
 magym_env_size=8
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 source venv/bin/activate
 

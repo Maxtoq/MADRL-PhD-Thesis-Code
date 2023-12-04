@@ -213,7 +213,11 @@ class E2S_NovelD(IntrinsicReward):
         else:
             elliptic_scale = 1.0
 
-        return int_reward * elliptic_scale
+        crits = {
+            "LLEC": int_reward,
+            "EEC": elliptic_scale}
+
+        return int_reward * elliptic_scale, crits
 
     def train(self, state_batch, act_batch):
         """

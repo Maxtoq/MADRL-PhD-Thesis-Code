@@ -60,7 +60,7 @@ class QMIX_IR(QMIX):
             cat_obs = torch.Tensor(
                 np.concatenate(next_obs_list)).unsqueeze(0).to(self.device)
             # Get reward
-            int_reward = self.int_rew.get_reward(cat_obs)
+            int_reward, criteria = self.int_rew.get_reward(cat_obs)
             int_rewards = [int_reward] * self.nb_agents
         elif self.ir_mode == "local":
             int_rewards = []
@@ -68,7 +68,7 @@ class QMIX_IR(QMIX):
                 obs = torch.Tensor(
                     next_obs_list[a_i]).unsqueeze(0).to(self.device)
                 int_rewards.append(self.int_rew[a_i].get_reward(obs))
-        return int_rewards
+        return int_rewards, criteria
     
     def train(self, batch):
         """
