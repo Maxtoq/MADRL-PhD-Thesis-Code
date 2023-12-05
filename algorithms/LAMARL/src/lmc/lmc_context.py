@@ -34,7 +34,8 @@ class LMC:
         self.token_penalty = args.comm_token_penalty
         # self.klpretrain_coef = args.comm_klpretrain_coef
         self.env_reward_coef = args.comm_env_reward_coef
-        self.shared_memory_coef = args.comm_shared_memory_coef
+        self.shared_mem_coef = args.comm_shared_mem_coef
+        self.shared_mem_reward_type = args.comm_shared_mem_reward_type
         self.obs_dist_coef = args.comm_obs_dist_coef
         self.comm_logger = comm_logger
         self.device = device
@@ -64,6 +65,8 @@ class LMC:
 
         if global_state_dim is not None:
             self.shared_mem = SharedMemory(args, global_state_dim, device)
+            if self.shared_mem_reward_type == "shaping":
+                self.last_shm_error = None
         else:
             self.shared_mem = None
 
@@ -176,6 +179,26 @@ class LMC:
 
         return self.actions, broadcasts, agent_messages
 
+    def _get_shared_mem_reward(self, states):
+        """
+        :return shared_mem_reward: (np.ndarray) dim=(n_parallel_envs, n_agents)
+        """
+        shm_error = self.shared_mem.get_prediction_error(
+            self.lang_contexts, states)
+        if self.shared_mem_reward_type == "direct":
+            shared_mem_reward = np.repeat(
+                shm_reward[..., np.newaxis], self.n_agents, axis=-1)
+        else:
+            if self.last_shm_error is None:
+                shared_mem_reward = np.zeros(
+                    (self.n_parallel_envs, self.n_agents))
+            else:
+                progress = self.last_shm_error - shm_error
+                shared_mem_reward = np.repeat(
+                    progress[..., np.newaxis], self.n_agents, axis=-1)
+            self.last_shm_error = shm_error
+        return shared_mem_reward
+
     def eval_comm(self, step_rewards, messages, states, dones):
         """
         :param states: (np.ndarray) Global environment states, 
@@ -191,11 +214,9 @@ class LMC:
 
         # Shared-Memory reward
         if self.shared_mem is not None:
-            shm_error = self.shared_mem.get_prediction_error(
-                self.lang_contexts, states)
-            message_rewards -= self.shared_memory_coef * np.repeat(
-                shm_error[..., np.newaxis], self.n_agents, axis=-1)
-            rewards["shm_error"] = shm_error.mean()
+            shm_reward = self._get_shared_mem_reward(states)
+            message_rewards -= self.shared_mem_coef * shm_reward
+            rewards["shm_reward"] = shm_reward.mean()
 
         # Penalty for comm encoding distance to obs encoding
         if self.comm_pol_algo == "context_mappo":
