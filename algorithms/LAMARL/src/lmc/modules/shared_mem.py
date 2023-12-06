@@ -100,12 +100,15 @@ class SharedMemoryBuffer():
 
 class SharedMemory():
 
-    def __init__(self, args, state_dim, device="cpu"):
+    def __init__(self, args, state_dim, lang_encoder, device="cpu"):
         self.hidden_dim = args.shared_mem_hidden_dim
         self.n_rec_layers = args.shared_mem_n_rec_layers
         self.n_parallel_envs = args.n_parallel_envs
         self.state_dim = state_dim
         self.device = device
+
+        # Language Encoder
+        self.lang_encoder = lang_encoder
 
         # GRU layer
         self.gru = nn.GRU(
@@ -119,7 +122,9 @@ class SharedMemory():
 
         # Optimizer and loss
         self.optim = torch.optim.Adam(
-            list(self.gru.parameters()) + list(self.out.parameters()), 
+            list(self.lang_encoder.parameters()) \
+            + list(self.gru.parameters()) \
+            + list(self.out.parameters()), 
             lr=args.shared_mem_lr)
 
         # Buffer
@@ -135,6 +140,9 @@ class SharedMemory():
             device = self.device
         else:
             self.device = device
+        self.lang_encoder.eval()
+        self.lang_encoder.to(device)
+        self.lang_encoder.device = device
         self.gru.eval()
         self.gru.to(device)
         self.out.eval()
@@ -148,6 +156,9 @@ class SharedMemory():
             device = self.device
         else:
             self.device = device
+        self.lang_encoder.train()
+        self.lang_encoder.to(device)
+        self.lang_encoder.device = device
         self.gru.train()
         self.gru.to(device)
         self.out.train()

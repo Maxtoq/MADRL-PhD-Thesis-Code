@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
-experiment_name="pretrain_sharedmem_8x8"
-n_parallel_envs=128
+experiment_name="TEST"
+n_parallel_envs=2
 n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15

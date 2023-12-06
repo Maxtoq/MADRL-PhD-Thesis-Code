@@ -65,7 +65,8 @@ class LMC:
 
         # If global state dimension is provided -> Create the Shared Memory
         if global_state_dim is not None:
-            self.shared_mem = SharedMemory(args, global_state_dim, device)
+            self.shared_mem = SharedMemory(
+                args, global_state_dim, self.lang_learner.lang_encoder, device)
             if self.shared_mem_reward_type == "shaping":
                 self.last_shm_error = None
         else:
@@ -203,9 +204,14 @@ class LMC:
 
     def eval_comm(self, step_rewards, messages, states, dones):
         """
+        :param messages: (list(list(list(str))))
         :param states: (np.ndarray) Global environment states, 
             dim=(n_parallel_envs, state_dim).
         """
+        print(messages, len(messages))
+        for m in messages:
+            print(len(m))
+        exit()
         rewards = {"message_reward": step_rewards.mean() * self.env_reward_coef}
         # Log communication rewards
         if self.comm_logger is not None:

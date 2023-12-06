@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_sharedmem_shaping"
+experiment_name="TEST"
 n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
