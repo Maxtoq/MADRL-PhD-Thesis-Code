@@ -9,8 +9,8 @@ class LanguageBuffer:
         self.obs_buffer = []
         self.sent_buffer = []
 
-    def store(self, obs_list, sent_list):
-        for obs, sent in zip(obs_list, sent_list):
+    def store(self, obs, sent_list):
+        for obs, sent in zip(obs, sent_list):
             if len(self.obs_buffer) == self.max_steps:
                 self.obs_buffer.pop(0)
                 self.sent_buffer.pop(0)

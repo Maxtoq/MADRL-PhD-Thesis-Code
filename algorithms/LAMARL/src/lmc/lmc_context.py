@@ -63,6 +63,7 @@ class LMC:
         else:
             raise NotImplementedError("Bad name given for communication policy algo.")
 
+        # If global state dimension is provided -> Create the Shared Memory
         if global_state_dim is not None:
             self.shared_mem = SharedMemory(args, global_state_dim, device)
             if self.shared_mem_reward_type == "shaping":
@@ -158,7 +159,8 @@ class LMC:
                 self.comm_policy.comm_step(
                     obs, self.lang_contexts, perfect_messages)
         else:
-            self.lang_contexts = np.zeros((self.n_parallel_envs, 0))
+            self.lang_contexts = np.zeros(
+                (self.n_parallel_envs, self.context_dim))
             broadcasts = []
 
         # Log communication
