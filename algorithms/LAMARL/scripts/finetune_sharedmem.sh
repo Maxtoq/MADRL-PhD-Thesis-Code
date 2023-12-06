@@ -15,8 +15,8 @@ comm_n_epochs=32 # default 16
 comm_n_warmup_steps=100000 # default 100000
 comm_n_mini_batch=2 # default 2
 # comm_train_topk=3 # default 1, TODO
-comm_klpretrain_coef=0.01 # default 0.01
-comm_token_penalty=0.1 # default 0.1
+# comm_klpretrain_coef=0.05 # default 0.01
+comm_token_penalty=0.05 # default 0.1
 comm_env_reward_coef=1.0 # default 1.0
 comm_obs_dist_coef=0.0 # default 0.1
 comm_shared_mem_coef=20.0 # default 1.0
@@ -50,7 +50,6 @@ do
     --comm_n_epochs ${comm_n_epochs}\
     --comm_n_warmup_steps ${comm_n_warmup_steps}\
     --comm_n_mini_batch ${comm_n_mini_batch}\
-    --comm_klpretrain_coef ${comm_klpretrain_coef}\
     --comm_token_penalty ${comm_token_penalty}\
     --comm_env_reward_coef ${comm_env_reward_coef}\
     --comm_obs_dist_coef ${comm_obs_dist_coef}\

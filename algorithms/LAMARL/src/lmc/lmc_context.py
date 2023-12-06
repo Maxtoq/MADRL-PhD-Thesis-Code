@@ -186,8 +186,8 @@ class LMC:
         shm_error = self.shared_mem.get_prediction_error(
             self.lang_contexts, states)
         if self.shared_mem_reward_type == "direct":
-            shared_mem_reward = np.repeat(
-                shm_reward[..., np.newaxis], self.n_agents, axis=-1)
+            shared_mem_reward = -np.repeat(
+                shm_error[..., np.newaxis], self.n_agents, axis=-1)
         else:
             if self.last_shm_error is None:
                 shared_mem_reward = np.zeros(
@@ -204,7 +204,7 @@ class LMC:
         :param states: (np.ndarray) Global environment states, 
             dim=(n_parallel_envs, state_dim).
         """
-        rewards = {"message_reward": step_rewards.mean()}
+        rewards = {"message_reward": step_rewards.mean() * self.env_reward_coef}
         # Log communication rewards
         if self.comm_logger is not None:
             self.comm_logger.store_rewards(step_rewards)
@@ -215,20 +215,21 @@ class LMC:
         # Shared-Memory reward
         if self.shared_mem is not None:
             shm_reward = self._get_shared_mem_reward(states)
-            message_rewards -= self.shared_mem_coef * shm_reward
-            rewards["shm_reward"] = shm_reward.mean()
+            message_rewards += self.shared_mem_coef * shm_reward
+            rewards["shm_reward"] = self.shared_mem_coef * shm_reward.mean()
 
         # Penalty for comm encoding distance to obs encoding
         if self.comm_pol_algo == "context_mappo":
             message_rewards -= self.comm_policy.obs_dist \
                                 * self.obs_dist_coef
-            rewards["obs_dist"] = self.comm_policy.obs_dist.mean()
+            rewards["obs_dist"] = self.comm_policy.obs_dist.mean() \
+                                    * self.obs_dist_coef
 
         # Penalty for message length
         message_len = np.array(
             [len(m) for env_m in messages for m in env_m]).reshape(
                 message_rewards.shape)
-        rewards["message_len"] = message_len.mean()
+        rewards["message_len"] = message_len.mean() * -self.token_penalty
 
         tot_rewards = message_rewards * self.env_reward_coef \
                        + message_len * -self.token_penalty
