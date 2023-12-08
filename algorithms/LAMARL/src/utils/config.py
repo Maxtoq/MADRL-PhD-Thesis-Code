@@ -80,7 +80,7 @@ def get_config():
                         action='store_false', default=True, help="by default, clip loss value. If set, do not clip loss value.")
     parser.add_argument("--clip_param", type=float, default=0.2,
                         help='ppo clip parameter (default: 0.2)')
-    parser.add_argument("--num_mini_batch", type=int, default=1,
+    parser.add_argument("--num_mini_batch", type=int, default=2,
                         help='number of batches for ppo (default: 1)')
     parser.add_argument("--entropy_coef", type=float, default=0.01,
                         help='entropy term coefficient (default: 0.01)')
@@ -150,19 +150,21 @@ def get_config():
     parser.add_argument("--lang_batch_size", type=int, default=128)
 
     # Communication parameters
-    parser.add_argument("--comm_policy_algo", type=str, default="perfect_comm",
+    parser.add_argument("--comm_policy_type", type=str, default="perfect_comm",
                         choices=["context_mappo", "perfect_comm", "no_comm"])
     parser.add_argument("--comm_hidden_dim", type=int, default=64)
-    # Communication training
+    # Communication ppo parameters
+    parser.add_argument("--comm_policy_algo", type=str, default='mappo', 
+                        choices=["mappo", "rmappo", "ippo"])
     parser.add_argument("--comm_lr", type=float, default=0.0005)
     parser.add_argument("--comm_gamma", type=float, default=0.99)
-    parser.add_argument("--comm_n_epochs", type=int, default=16)
+    parser.add_argument("--comm_ppo_epochs", type=int, default=16)
     parser.add_argument("--comm_n_warmup_steps", type=int, default=100000)
     parser.add_argument("--comm_ppo_clip_param", type=float, default=0.2)
     parser.add_argument("--comm_entropy_coef", type=float, default=0.01)
     parser.add_argument("--comm_vloss_coef", type=float, default=0.5)
     parser.add_argument("--comm_max_grad_norm", type=float, default=10.0)
-    parser.add_argument("--comm_n_mini_batch", type=int, default=2)
+    parser.add_argument("--comm_num_mini_batch", type=int, default=2)
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
     parser.add_argument("--comm_train_topk", type=int, default=1, 

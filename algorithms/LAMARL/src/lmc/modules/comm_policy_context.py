@@ -27,7 +27,7 @@ class CommPol_Context:
         
         self.lang_learner = lang_learner
 
-        comm_policy_args = get_mappo_args(args)
+        comm_policy_args = get_mappo_args(args, "comm")
         context_dim = args.context_dim
         input_dim = context_dim * 2
         low = np.full(context_dim, -np.inf)

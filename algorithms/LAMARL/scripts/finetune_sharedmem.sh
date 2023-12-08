@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="TEST"
+experiment_name="FT_ShMloc_shap_reccommpol"
 n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
@@ -8,12 +8,13 @@ ppo_epoch=15 # default 15
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_policy_algo="context_mappo"
-comm_lr=0.0005 # default 0.0005
+comm_policy_type="context_mappo"
+comm_policy_algo="rmappo" # default mappo
+comm_lr=0.0001 # default 0.0005
 # comm_gamma=1.0 # default 0.99
-comm_n_epochs=32 # default 16
+comm_ppo_epochs=32 # default 16
 comm_n_warmup_steps=100000 # default 100000
-comm_n_mini_batch=2 # default 2
+comm_num_mini_batch=4 # default 2
 # comm_train_topk=3 # default 1, TODO
 # comm_klpretrain_coef=0.05 # default 0.01
 comm_token_penalty=0.05 # default 0.1
@@ -27,7 +28,7 @@ FT_n_steps_fix_policy=9000000
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 
@@ -45,11 +46,12 @@ do
     --env_name ${env_name}\
     --episode_length ${episode_length}\
     --cuda_device ${cuda_device}\
+    --comm_policy_type ${comm_policy_type}\
     --comm_policy_algo ${comm_policy_algo}\
     --comm_lr ${comm_lr}\
-    --comm_n_epochs ${comm_n_epochs}\
+    --comm_ppo_epochs ${comm_ppo_epochs}\
     --comm_n_warmup_steps ${comm_n_warmup_steps}\
-    --comm_n_mini_batch ${comm_n_mini_batch}\
+    --comm_num_mini_batch ${comm_num_mini_batch}\
     --comm_token_penalty ${comm_token_penalty}\
     --comm_env_reward_coef ${comm_env_reward_coef}\
     --comm_obs_dist_coef ${comm_obs_dist_coef}\

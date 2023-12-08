@@ -100,15 +100,16 @@ class SharedMemoryBuffer():
 
 class SharedMemory():
 
-    def __init__(self, args, state_dim, lang_encoder, device="cpu"):
+    def __init__(self, args, n_agents, state_dim, device="cpu"):
+        self.n_agents = n_agents
         self.hidden_dim = args.shared_mem_hidden_dim
         self.n_rec_layers = args.shared_mem_n_rec_layers
         self.n_parallel_envs = args.n_parallel_envs
         self.state_dim = state_dim
         self.device = device
 
-        # Language Encoder
-        self.lang_encoder = lang_encoder
+        # # Language Encoder
+        # self.lang_encoder = lang_encoder
 
         # GRU layer
         self.gru = nn.GRU(
@@ -122,8 +123,8 @@ class SharedMemory():
 
         # Optimizer and loss
         self.optim = torch.optim.Adam(
-            list(self.lang_encoder.parameters()) \
-            + list(self.gru.parameters()) \
+            # list(self.lang_encoder.parameters()) \
+            list(self.gru.parameters()) \
             + list(self.out.parameters()), 
             lr=args.shared_mem_lr)
 
@@ -140,9 +141,9 @@ class SharedMemory():
             device = self.device
         else:
             self.device = device
-        self.lang_encoder.eval()
-        self.lang_encoder.to(device)
-        self.lang_encoder.device = device
+        # self.lang_encoder.eval()
+        # self.lang_encoder.to(device)
+        # self.lang_encoder.device = device
         self.gru.eval()
         self.gru.to(device)
         self.out.eval()
@@ -156,9 +157,9 @@ class SharedMemory():
             device = self.device
         else:
             self.device = device
-        self.lang_encoder.train()
-        self.lang_encoder.to(device)
-        self.lang_encoder.device = device
+        # self.lang_encoder.train()
+        # self.lang_encoder.to(device)
+        # self.lang_encoder.device = device
         self.gru.train()
         self.gru.to(device)
         self.out.train()
@@ -180,6 +181,9 @@ class SharedMemory():
         
             # Change place to store in buffer for finished episode
             self.buffer.end_episode(env_dones)
+
+    def store(self, message_encodings, states):
+        self.buffer.store(message_encodings, states)
 
     def _predict_states(self, message_encodings, hidden_states):
         """
@@ -207,28 +211,41 @@ class SharedMemory():
         return pred_states, hidden_states
 
     @torch.no_grad()
-    def get_prediction_error(self, message_encodings, states):
+    def get_prediction_error(self, 
+            message_encodings, broadcast_encodings, states):
         """
         Return the prediction error of the model given communicated messages
         and actual states.
-        :param message_encodings: (np.ndarray) Encoded messages, 
+        :param message_encodings: (np.ndarray) Encoded agent messages, 
+            dim=(n_parallel_envs * n_agents, context_dim).
+        :param broadcast_encodings: (np.ndarray) Encoded broadcasted messages, 
             dim=(n_parallel_envs, context_dim).
         :param states: (np.ndarray) Actual states, dim=(n_parallel_envs, 
             state_dim).
 
-        :return pred_error: (np.ndarray) Prediction error, 
-            dim=(n_parallel_envs,).
+        :return local_errors: (np.ndarray) Prediction errors given agent
+            messages, dim=(n_parallel_envs * n_agents,).
+        :return common_errors: (np.ndarray) Prediction error given broadcasted
+            messages, dim=(n_parallel_envs,).
         """
-        self.buffer.store(message_encodings, states)
-
-        pred_states, self.memory_context = self._predict_states(
+        # Compute error given each agent's message
+        pred_states, _ = self._predict_states(
             torch.Tensor(message_encodings).unsqueeze(0).to(self.device),
-            self.memory_context)
+            self.memory_context.repeat(1, 1, self.n_agents).reshape(
+                1, self.n_parallel_envs * self.n_agents, -1))
+        local_errors = np.linalg.norm(
+            torch2numpy(pred_states.squeeze(0)) \
+                - states.repeat(self.n_agents, axis=0), 
+            2, axis=-1)
 
-        error = np.linalg.norm(
-            torch2numpy(pred_states.squeeze(0)) - states, 2, axis=-1)
+        # Forward pass with broadcasted messages to get memory
+        common_pred_states, self.memory_context = self._predict_states(
+            torch.Tensor(broadcast_encodings).unsqueeze(0).to(self.device),
+            self.memory_context)
+        common_errors = np.linalg.norm(
+            torch2numpy(common_pred_states.squeeze(0)) - states, 2, axis=-1)
         
-        return error
+        return local_errors, common_errors
 
     def train(self):
         """

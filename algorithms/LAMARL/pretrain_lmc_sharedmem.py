@@ -83,8 +83,7 @@ def run():
             # Perform action and get reward and next obs
             obs, next_states, rewards, dones, infos = envs.step(actions)
 
-            # Reward communication
-            model.eval_comm(rewards, agent_messages, states, dones)
+            model.store_sharedmem_inputs(states)
             states = next_states
 
             env_dones = dones.all(axis=1)

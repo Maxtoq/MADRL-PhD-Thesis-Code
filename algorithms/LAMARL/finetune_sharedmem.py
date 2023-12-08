@@ -23,7 +23,7 @@ def run():
     cfg = parser.parse_args()
 
     # Check comm_pol param is right
-    if cfg.comm_policy_algo in ["no_comm", "perfect_comm"]:
+    if cfg.comm_policy_type in ["no_comm", "perfect_comm"]:
         print("ERROR: Fine-tuning must be done with parametric communication policy. Change comm_policy_algo argument.")
         exit()
 

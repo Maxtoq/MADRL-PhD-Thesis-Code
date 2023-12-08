@@ -51,7 +51,7 @@ class LMC:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        self.comm_pol_algo = args.comm_policy_algo
+        self.comm_pol_algo = args.comm_policy_type
         if self.comm_pol_algo == "context_mappo":
             self.comm_policy = CommPol_Context(
                 args, self.n_agents, self.lang_learner, device)
@@ -61,14 +61,14 @@ class LMC:
             self.comm_policy = None
             self.context_dim = 0
         else:
-            raise NotImplementedError("Bad name given for communication policy algo.")
+            raise NotImplementedError("Bad name given for communication policy type.")
 
         # If global state dimension is provided -> Create the Shared Memory
         if global_state_dim is not None:
             self.shared_mem = SharedMemory(
-                args, global_state_dim, self.lang_learner.lang_encoder, device)
+                args, self.n_agents, global_state_dim, device)
             if self.shared_mem_reward_type == "shaping":
-                self.last_shm_error = None
+                self.last_common_errors = None
         else:
             self.shared_mem = None
 
@@ -182,36 +182,44 @@ class LMC:
 
         return self.actions, broadcasts, agent_messages
 
-    def _get_shared_mem_reward(self, states):
+    def _get_shared_mem_reward(self, agent_messages, states):
         """
         :return shared_mem_reward: (np.ndarray) dim=(n_parallel_envs, n_agents)
         """
-        shm_error = self.shared_mem.get_prediction_error(
-            self.lang_contexts, states)
+        # Encode agent messages
+        agent_messages = [
+            agent_messages[e_i][a_i] 
+                for e_i in range(self.n_parallel_envs) 
+                    for a_i in range(self.n_agents)]
+        message_encodings = self.lang_learner.encode_sentences(agent_messages)
+
+        # Compute shared memory error
+        local_errors, common_errors = self.shared_mem.get_prediction_error(
+            message_encodings, self.lang_contexts, states)
+
         if self.shared_mem_reward_type == "direct":
-            shared_mem_reward = -np.repeat(
-                shm_error[..., np.newaxis], self.n_agents, axis=-1)
-        else:
-            if self.last_shm_error is None:
+            # shared_mem_reward = -np.repeat(
+            #     shm_error[..., np.newaxis], self.n_agents, axis=-1)
+            shared_mem_reward = local_errors.reshape(
+                self.n_parallel_envs, self.n_agents)
+        elif self.shared_mem_reward_type == "shaping":
+            if self.last_common_errors is None:
                 shared_mem_reward = np.zeros(
                     (self.n_parallel_envs, self.n_agents))
             else:
-                progress = self.last_shm_error - shm_error
-                shared_mem_reward = np.repeat(
-                    progress[..., np.newaxis], self.n_agents, axis=-1)
-            self.last_shm_error = shm_error
+                shared_mem_reward = (
+                    self.last_common_errors - local_errors).reshape(
+                        self.n_parallel_envs, self.n_agents)
+            self.last_common_errors = common_errors.repeat(self.n_agents, axis=0)
         return shared_mem_reward
 
+    @torch.no_grad()
     def eval_comm(self, step_rewards, messages, states, dones):
         """
         :param messages: (list(list(list(str))))
         :param states: (np.ndarray) Global environment states, 
             dim=(n_parallel_envs, state_dim).
         """
-        print(messages, len(messages))
-        for m in messages:
-            print(len(m))
-        exit()
         rewards = {"message_reward": step_rewards.mean() * self.env_reward_coef}
         # Log communication rewards
         if self.comm_logger is not None:
@@ -222,7 +230,7 @@ class LMC:
 
         # Shared-Memory reward
         if self.shared_mem is not None:
-            shm_reward = self._get_shared_mem_reward(states)
+            shm_reward = self._get_shared_mem_reward(messages, states)
             message_rewards += self.shared_mem_coef * shm_reward
             rewards["shm_reward"] = self.shared_mem_coef * shm_reward.mean()
 
@@ -255,13 +263,12 @@ class LMC:
         """
         Returns reset language contexts.
         :param env_dones (np.ndarray): Done state for each parallel environment,
-            default None, must be provided if current_lang_contexts is.
+            default None.
         """
         if self.lang_contexts is None:
             self.lang_contexts = np.zeros(
                 (self.n_parallel_envs, self.context_dim), dtype=np.float32)
         else:
-            assert env_dones is not None, "env_dones must be provided if current_lang_contexts is."
             self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
                 np.float32)[..., np.newaxis]
 
@@ -283,6 +290,9 @@ class LMC:
         parsed_obs = [
             sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
+
+    def store_sharedmem_inputs(self, states):
+        self.shared_mem.store(self.lang_contexts, states)
 
     def train(self, 
             step, train_policy=True, train_lang=True, train_sharedmem=True):
