@@ -738,4 +738,14 @@ models/magym_PredPrey/FT_commencmappo_obsdist/run1/logs/*
 models/magym_PredPrey/FT_nocommenc/*
 !models/magym_PredPrey/FT_nocommenc/train_data
 
+!models/magym_PredPrey/FT_ShMloc_shap_reccommpol
+models/magym_PredPrey/FT_ShMloc_shap_reccommpol/*
+!models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4
+models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4/*
+!models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4/args.txt
+!models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4/model_ep.pt
+!models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4/logs
+models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4/logs/*
+!models/magym_PredPrey/FT_ShMloc_shap_reccommpol/run4/logs/comm_logs
+
 
