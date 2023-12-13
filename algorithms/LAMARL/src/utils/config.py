@@ -127,7 +127,8 @@ def get_config():
     parser.add_argument("--ifi", type=float, default=0.1, help="the play interval of each rendered image in saved video.")
 
     # pretrained parameters
-    parser.add_argument("--model_dir", type=str, default=None, help="by default None. set the path to pretrained model.")
+    parser.add_argument("--model_dir", type=str, default=None, 
+                        help="by default None. set the path to pretrained model.")
 
     # Intrinsic rewards parameters
     parser.add_argument("--ir_algo", type=str, default="none")

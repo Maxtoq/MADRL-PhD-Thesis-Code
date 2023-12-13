@@ -95,7 +95,7 @@ def run():
             # Perform step
             # Get action
             actions, broadcasts, agent_messages = model.comm_n_act(
-                    obs, parsed_obs)
+                obs, parsed_obs)
             # Perform action and get reward and next obs
             obs, next_states, rewards, dones, infos = envs.step(actions)
 
