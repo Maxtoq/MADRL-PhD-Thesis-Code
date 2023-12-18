@@ -8,7 +8,7 @@ from src.lmc.lmc_context import LMC
 
 
 def run():
-     # Load config
+    # Load config
     parser = get_config()
     cfg = parser.parse_args()
 

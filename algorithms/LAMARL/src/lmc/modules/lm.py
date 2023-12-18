@@ -206,13 +206,15 @@ class GRUDecoder(nn.Module):
         self.hidden_dim = context_dim
         # Word encoder
         self.word_encoder = word_encoder
+        # Number of recurrent layers
+        self.n_layers = n_layers
         # Max length of generated sentences
         self.max_length = max_length
         # Model
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 
             self.hidden_dim, 
-            n_layers)
+            self.n_layers)
         init_rnn_params(self.gru)
         # Output layer
         self.out = nn.Sequential(
@@ -298,6 +300,40 @@ class GRUDecoder(nn.Module):
         decoder_outputs = torch.cat(decoder_outputs, axis=0).transpose(0, 1)
 
         return decoder_outputs, sentences
+
+    def compute_pp(self, enc_sent):
+        """
+        :param enc_sent: (list(torch.Tensor))
+        """
+        batch_size = len(enc_sent)
+        max_sent_len = max([len(s) for s in enc_sent])
+
+        hidden = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
+        last_tokens = torch.Tensor(self.word_encoder.SOS_ENC).view(
+            1, 1, -1).repeat(1, batch_size, 1).to(self.device)
+
+        pnorm = torch.ones(batch_size)
+        for t_i in range(max_sent_len):
+            # RNN pass
+            outputs, hidden = self.forward_step(last_tokens, hidden)
+
+            # Compute PP
+            probs = outputs.exp().squeeze(0)
+            for s_i in range(batch_size):
+                len_s = enc_sent[s_i].size(0)
+                if t_i < len_s:
+                    token_prob = (probs[s_i] * enc_sent[s_i][t_i]).sum(-1)
+                    pnorm[s_i] *= (token_prob ** (1 / len_s))
+
+            # Do teacher forcing
+            last_tokens = torch.zeros_like(last_tokens).to(self.device)
+            for s_i in range(batch_size):
+                if t_i < enc_sent[s_i].size(0):
+                    last_tokens[0, s_i] = enc_sent[s_i][t_i]
+
+        pp = 1 / pnorm
+
+        return pp
 
     def get_params(self):
         return {'gru': self.gru.state_dict(),
