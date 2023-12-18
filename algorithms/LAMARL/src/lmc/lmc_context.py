@@ -211,7 +211,7 @@ class LMC:
                     self.last_common_errors - local_errors).reshape(
                         self.n_parallel_envs, self.n_agents)
             self.last_common_errors = common_errors.repeat(self.n_agents, axis=0)
-        return shared_mem_reward
+        return shared_mem_reward, common_errors
 
     @torch.no_grad()
     def eval_comm(self, step_rewards, messages, states, dones):
@@ -230,9 +230,11 @@ class LMC:
 
         # Shared-Memory reward
         if self.shared_mem is not None:
-            shm_reward = self._get_shared_mem_reward(messages, states)
+            shm_reward, shm_error = self._get_shared_mem_reward(
+                messages, states)
             message_rewards += self.shared_mem_coef * shm_reward
             rewards["shm_reward"] = self.shared_mem_coef * shm_reward.mean()
+            rewards["shm_error"] = shm_error.mean()
 
         # Penalty for comm encoding distance to obs encoding
         if self.comm_pol_algo == "context_mappo":
