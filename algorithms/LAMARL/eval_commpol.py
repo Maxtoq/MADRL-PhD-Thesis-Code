@@ -18,6 +18,8 @@ def run():
     pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
     assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
     cfg.n_parallel_envs = 1
+    print("Starting eval with config:")
+    print(cfg)
 
     set_seeds(cfg.seed)
 
@@ -56,21 +58,26 @@ def run():
         # Get action
         actions, broadcasts, agent_messages = model.comm_n_act(
             obs, parsed_obs)
-        # Perform action and get reward and next obs
-        obs, next_states, rewards, dones, infos = envs.step(actions)
-
-        # Reward communication
-        comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)
-        states = next_states
 
         envs.render("human")
         
         print(f"\nStep #{ep_s_i}")
         print("Messages", agent_messages)
         print("Perfect Messages", parsed_obs)
-        print("Communication Rewards", comm_rewards)
+        if cfg.render_wait_input:
+            input()
+        else:
+            time.sleep(0.1)
 
-        time.sleep(0.1)
+        # Perform action and get reward and next obs
+        obs, next_states, rewards, dones, infos = envs.step(actions)
+        print(next_states)
+
+        # Reward communication
+        comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)
+        states = next_states
+
+        print("Communication Rewards", comm_rewards)
 
         env_dones = dones.all(axis=1)
         if True in env_dones:
