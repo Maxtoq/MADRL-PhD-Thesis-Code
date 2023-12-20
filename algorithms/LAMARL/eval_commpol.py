@@ -71,7 +71,7 @@ def run():
 
         # Perform action and get reward and next obs
         obs, next_states, rewards, dones, infos = envs.step(actions)
-        print(next_states)
+        # print(next_states)
 
         # Reward communication
         comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)

@@ -233,6 +233,7 @@ class LMC:
             shm_reward, shm_error = self._get_shared_mem_reward(
                 messages, states)
             message_rewards += self.shared_mem_coef * shm_reward
+            # print(self.shared_mem_coef * shm_reward)
             rewards["shm_reward"] = self.shared_mem_coef * shm_reward.mean()
             rewards["shm_error"] = shm_error.mean()
 
