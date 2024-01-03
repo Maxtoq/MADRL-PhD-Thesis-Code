@@ -131,7 +131,7 @@ class GRUEncoder(nn.Module):
         self.hidden_dim = hidden_dim
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 
-            self.context_dim, 
+            self.hidden_dim, 
             n_layers,
             batch_first=True)
         init_rnn_params(self.gru)
@@ -180,7 +180,7 @@ class GRUEncoder(nn.Module):
         unsorted_hstates = torch.zeros_like(hidden_states).to(self.device)
         unsorted_hstates[0,ids,:] = hidden_states[0,:,:]
 
-        return self.norm(unsorted_hstates)
+        return self.norm(self.out(unsorted_hstates))
 
     def get_params(self):
         return {'gru': self.gru.state_dict(),
