@@ -1,14 +1,15 @@
 #!/bin/sh
 n_run=1
-experiment_name="TEST"
-n_parallel_envs=2
+experiment_name="PT_sharedmem_neg"
+n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_policy_algo="perfect_comm"
+comm_policy_type="perfect_comm"
+context_dim=16 # default 16
 lang_lr=0.0009 # default 0.0007
 lang_n_epochs=1 # default 2
 lang_batch_size=128 # default 128
@@ -33,7 +34,8 @@ do
     --env_name ${env_name}\
     --episode_length ${episode_length}\
     --cuda_device ${cuda_device}\
-    --comm_policy_algo ${comm_policy_algo}\
+    --comm_policy_type ${comm_policy_type}\
+    --context_dim ${context_dim}\
     --lang_lr ${lang_lr}\
     --lang_n_epochs ${lang_n_epochs}\
     --lang_batch_size ${lang_batch_size}\

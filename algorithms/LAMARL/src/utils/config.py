@@ -126,6 +126,7 @@ def get_config():
     parser.add_argument("--render_episodes", type=int, default=5, help="the number of episodes to render a given env")
     parser.add_argument("--ifi", type=float, default=0.1, help="the play interval of each rendered image in saved video.")
     parser.add_argument("--render_wait_input", default=False, action="store_true")
+    parser.add_argument("--no_render", default=False, action="store_true")
 
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, 

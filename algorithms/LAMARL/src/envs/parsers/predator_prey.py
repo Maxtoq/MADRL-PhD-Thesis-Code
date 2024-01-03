@@ -3,8 +3,8 @@ import numpy as np
 
 class PredatorPrey_Parser():
 
-    vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
-    # vocab = ["Prey", "Located", "Center", "North", "South", "East", "West"]
+    # vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
+    vocab = ["Prey", "Center", "North", "South", "East", "West"]
 
     def __init__(self, env_size):
         self.env_size = env_size
@@ -18,8 +18,6 @@ class PredatorPrey_Parser():
             environment.
         """
         pass
-        # Est-ce qu'on a vraiment besoin de la description globale ?
-        # Commencer par le parser d'observations locales
 
     def _get_pos_sent(self, pos):
         """
@@ -102,7 +100,8 @@ class PredatorPrey_Parser():
         abs_prey_pos = pos + rel_prey_pos
 
         for prey_pos in abs_prey_pos:
-            p = ["Prey", "Located"]
+            # p = ["Prey", "Located"]
+            p = ["Prey"]
 
             if prey_pos[0] <= 0.25:
                 p.append("North")
@@ -113,7 +112,7 @@ class PredatorPrey_Parser():
             elif prey_pos[1] >= 0.75:
                 p.append("East")
 
-            if len(p) == 2:
+            if len(p) == 1:
                 p.append("Center")
 
             m.extend(p)

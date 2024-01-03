@@ -57,6 +57,9 @@ def load_args(cfg):
         args.pop("seed")
         args.pop("cuda_device")
         args.pop("model_dir")
+        args.pop("render_wait_input")
+        if "no_render" in args:
+            args.pop("no_render")
         for a in args:
             assert hasattr(cfg, a), f"Argument {a} not found in config."
             setattr(cfg, a, args[a])
