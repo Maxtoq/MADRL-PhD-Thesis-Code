@@ -59,7 +59,8 @@ def run():
         actions, broadcasts, agent_messages = model.comm_n_act(
             obs, parsed_obs)
 
-        envs.render("human")
+        if not cfg.no_render:
+            envs.render("human")
         
         print(f"\nStep #{ep_s_i}")
         print("Messages", agent_messages)
@@ -71,7 +72,7 @@ def run():
 
         # Perform action and get reward and next obs
         obs, next_states, rewards, dones, infos = envs.step(actions)
-        # print(next_states)
+        print(next_states)
 
         # Reward communication
         comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)

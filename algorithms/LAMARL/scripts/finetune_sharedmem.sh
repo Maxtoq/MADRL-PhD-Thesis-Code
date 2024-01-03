@@ -1,17 +1,18 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_ShMloc_shap_rec_1"
+experiment_name="FT_shmloc"
 n_parallel_envs=128
-n_steps=20000000
+n_steps=10000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
+context_dim=16 # default 16
 comm_policy_type="context_mappo"
 comm_policy_algo="rmappo" # default mappo
-comm_lr=0.00001 # default 0.0005
-comm_entropy_coef=0.1 # default 0.01
+comm_lr=0.00005 # default 0.0005
+comm_entropy_coef=0.01 # default 0.01
 # comm_gamma=1.0 # default 0.99
 comm_ppo_epochs=16 # default 16
 comm_n_warmup_steps=100000 # default 100000
@@ -23,13 +24,13 @@ comm_env_reward_coef=1.0 # default 1.0
 comm_obs_dist_coef=0.0 # default 0.1
 comm_shared_mem_coef=20.0 # default 1.0
 comm_shared_mem_reward_type="shaping" # default "direct"
-FT_pretrained_model_path="models/magym_PredPrey/pretrain_sharedmem_8x8/run16/model_ep.pt"
-FT_n_steps_fix_policy=19000000
+FT_pretrained_model_path="models/magym_PredPrey/pretrain_sharedmem/run1/model_ep.pt"
+FT_n_steps_fix_policy=10000000
 # lang_lr=0.0009 # default 0.0007
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 
@@ -46,6 +47,7 @@ do
     --entropy_coef ${entropy_coef}\
     --env_name ${env_name}\
     --episode_length ${episode_length}\
+    --context_dim ${context_dim}\
     --cuda_device ${cuda_device}\
     --comm_policy_type ${comm_policy_type}\
     --comm_policy_algo ${comm_policy_algo}\
