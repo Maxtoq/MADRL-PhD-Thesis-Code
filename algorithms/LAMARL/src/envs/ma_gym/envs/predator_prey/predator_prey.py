@@ -246,7 +246,7 @@ class PredatorPrey(gym.Env):
                 # print('pos not updated')
                 pass
         else:
-            self.prey_pos[prey_i] = [-self._grid_shape[0]] * 2
+            # self.prey_pos[prey_i] = [-self._grid_shape[0]] * 2
             self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
 
     def __update_agent_view(self, agent_i):

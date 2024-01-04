@@ -170,7 +170,7 @@ class GRUEncoder(nn.Module):
             padded, lens, batch_first=True).to(self.device)
 
         # Initial hidden state
-        hidden = torch.zeros(1, len(enc_sent_batch), self.context_dim, 
+        hidden = torch.zeros(1, len(enc_sent_batch), self.hidden_dim, 
                         device=self.device)
 
         # Pass sentences into GRU model
