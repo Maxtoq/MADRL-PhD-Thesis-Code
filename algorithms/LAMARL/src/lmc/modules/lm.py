@@ -182,7 +182,8 @@ class GRUEncoder(nn.Module):
         # Embed
         if self.do_embed:
             enc_ids_batch = [s.argmax(-1) for s in sorted_list]
-            model_input = [self.embed_layer(s) for s in enc_ids_batch]
+            model_input = [
+                self.embed_layer(s.to(self.device)) for s in enc_ids_batch]
         else:
             model_input = sorted_list
 

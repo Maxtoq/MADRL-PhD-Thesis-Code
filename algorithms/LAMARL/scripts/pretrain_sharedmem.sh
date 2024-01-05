@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="PT_sharedmem_FIX"
+experiment_name="PT_SM_EMBED"
 n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
