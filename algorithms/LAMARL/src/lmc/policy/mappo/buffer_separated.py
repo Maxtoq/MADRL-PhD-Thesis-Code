@@ -133,20 +133,23 @@ class SeparatedReplayBuffer(object):
                 gae = 0
                 for step in reversed(range(self.rewards.shape[0])):
                     if self._use_popart or self._use_valuenorm:
-                        delta = self.rewards[step] + self.gamma * value_normalizer.denormalize(self.value_preds[
-                            step + 1]) * self.masks[step + 1] - value_normalizer.denormalize(self.value_preds[step])
-                        gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
+                        delta = self.rewards[step] + self.gamma * value_normalizer.denormalize(
+                            self.value_preds[step + 1]) * self.masks[step + 1] \
+                                - value_normalizer.denormalize(self.value_preds[step])
+                        gae = delta + self.gamma * self.gae_lambda * gae * self.masks[step + 1]
                         gae = gae * self.bad_masks[step + 1]
-                        self.returns[step] = gae + value_normalizer.denormalize(self.value_preds[step])
+                        self.returns[step] = gae + value_normalizer.denormalize(
+                            self.value_preds[step])
                     else:
-                        delta = self.rewards[step] + self.gamma * self.value_preds[step + 1] * self.masks[step + 1] - self.value_preds[step]
+                        delta = self.rewards[step] + self.gamma * self.value_preds[step + 1] \
+                            * self.masks[step + 1] - self.value_preds[step]
                         gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
                         gae = gae * self.bad_masks[step + 1]
                         self.returns[step] = gae + self.value_preds[step]
             else:
                 self.returns[-1] = next_value
                 for step in reversed(range(self.rewards.shape[0])):
-                    if self._use_popart:
+                    if self._use_popart or self._use_valuenorm:
                         self.returns[step] = (self.returns[step + 1] * self.gamma * self.masks[step + 1] + self.rewards[step]) * self.bad_masks[step + 1] \
                             + (1 - self.bad_masks[step + 1]) * value_normalizer.denormalize(self.value_preds[step])
                     else:
@@ -351,7 +354,7 @@ class SeparatedReplayBuffer(object):
             for index in indices:
                 ind = index * data_chunk_length
                 # size [T+1 N M Dim]-->[T N Dim]-->[N T Dim]-->[T*N,Dim]-->[L,Dim]
-                shared_obs_batch.append(shared_obs[ind:ind+data_chunk_length])
+                shared_obs_batch.append(shared_obs[ind:ind + data_chunk_length])
                 obs_batch.append(obs[ind:ind+data_chunk_length])
                 actions_batch.append(actions[ind:ind+data_chunk_length])
                 if self.available_actions is not None:

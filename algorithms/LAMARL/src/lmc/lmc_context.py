@@ -258,10 +258,6 @@ class LMC:
 
         return rewards
 
-    def train_comm(self, step):
-        warmup = step < self.comm_n_warmup_steps
-        return self.comm_policy.train(warmup)
-
     def reset_context(self, env_dones=None):
         """
         Returns reset language contexts.

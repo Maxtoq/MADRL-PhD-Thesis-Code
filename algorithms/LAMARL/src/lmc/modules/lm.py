@@ -111,8 +111,8 @@ class GRUEncoder(nn.Module):
     """
     Class for a language encoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, hidden_dim, word_encoder, 
-                 n_layers=1, device='cpu'):
+    def __init__(self, context_dim, hidden_dim, embed_dim, word_encoder, 
+                 n_layers=1, device='cpu', do_embed=True):
         """
         Inputs:
             :param context_dim (int): Dimension of the context vectors (output
@@ -129,14 +129,33 @@ class GRUEncoder(nn.Module):
         self.word_encoder = word_encoder
         self.context_dim = context_dim
         self.hidden_dim = hidden_dim
+        self.do_embed = do_embed
+        
+        self.embed_layer = nn.Embedding(self.word_encoder.enc_dim, embed_dim)
+        
+        if not self.do_embed:
+            embed_dim = self.word_encoder.enc_dim
+            
         self.gru = nn.GRU(
-            self.word_encoder.enc_dim, 
+            embed_dim, 
             self.hidden_dim, 
             n_layers,
             batch_first=True)
         init_rnn_params(self.gru)
+        
         self.out = nn.Linear(self.hidden_dim, context_dim)
         self.norm = nn.LayerNorm(context_dim)
+        
+    def embed_sentences(self, sent_batch):
+        # Get one-hot encodings
+        enc_sent_batch = self.word_encoder.encode_batch(sent_batch)
+        
+        # Embed
+        if self.do_embed:
+            enc_ids_batch = [s.argmax(-1) for s in enc_sent_batch]
+            return [self.embed_layer(s) for s in enc_ids_batch]
+        else:
+            return enc_sent_batch
 
     def forward(self, sent_batch):
         """
@@ -160,9 +179,16 @@ class GRUEncoder(nn.Module):
         # Sort the sentences by length
         sorted_list = [enc_sent_batch[i] for i in ids]
 
+        # Embed
+        if self.do_embed:
+            enc_ids_batch = [s.argmax(-1) for s in sorted_list]
+            model_input = [self.embed_layer(s) for s in enc_ids_batch]
+        else:
+            model_input = sorted_list
+
         # Pad sentences
         padded = nn.utils.rnn.pad_sequence(
-            sorted_list, batch_first=True)
+            model_input, batch_first=True)
 
         # Pack padded sentences (to not care about padded tokens)
         lens = [len(s) for s in sorted_list]
@@ -172,7 +198,7 @@ class GRUEncoder(nn.Module):
         # Initial hidden state
         hidden = torch.zeros(1, len(enc_sent_batch), self.hidden_dim, 
                         device=self.device)
-
+        
         # Pass sentences into GRU model
         _, hidden_states = self.gru(packed, hidden)
 
