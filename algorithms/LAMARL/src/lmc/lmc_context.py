@@ -13,12 +13,6 @@ from .policy.mappo.utils import get_shape_from_obs_space
 from .utils import get_mappo_args
 
 
-class CommEvaluator:
-
-    def __init__(self, args, lang_learner, device="cpu"):
-        self.shared_mem = SharedMemory(args, 10, lang_learner, device)
-
-
 class LMC:
     """
     Language-Memory for Communication using a pre-defined discrete language.
@@ -197,26 +191,34 @@ class LMC:
         # Compute shared memory error
         local_errors, common_errors = self.shared_mem.get_prediction_error(
             message_encodings, self.lang_contexts, states)
-        
-        if self.noreward_empty_mess:
-            # Zero rewards for empty messages
-            local_errors *= np.array([len(m) > 0 for m in agent_messages])
 
         if self.shared_mem_reward_type == "direct":
             # shared_mem_reward = -np.repeat(
             #     shm_error[..., np.newaxis], self.n_agents, axis=-1)
-            shared_mem_reward = local_errors.reshape(
-                self.n_parallel_envs, self.n_agents)
+            shared_mem_reward = local_errors
+            
+            if self.noreward_empty_mess:
+                # Zero rewards for empty messages
+                shared_mem_reward *= np.array(
+                    [len(m) > 0 for m in agent_messages])
+
         elif self.shared_mem_reward_type == "shaping":
             if self.last_common_errors is None:
                 shared_mem_reward = np.zeros(
                     (self.n_parallel_envs, self.n_agents))
             else:
-                shared_mem_reward = (
-                    self.last_common_errors - local_errors).reshape(
-                        self.n_parallel_envs, self.n_agents)
-            self.last_common_errors = common_errors.repeat(self.n_agents, axis=0)
-        return shared_mem_reward, common_errors
+                shared_mem_reward = self.last_common_errors - local_errors
+
+                if self.noreward_empty_mess:
+                    # Zero rewards for empty messages
+                    shared_mem_reward *= np.array(
+                        [len(m) > 0 for m in agent_messages])
+                    
+            self.last_common_errors = common_errors.repeat(
+                self.n_agents, axis=0)
+
+        return shared_mem_reward.reshape(self.n_parallel_envs, self.n_agents), \
+               common_errors
 
     @torch.no_grad()
     def eval_comm(self, step_rewards, messages, states, dones):
@@ -237,17 +239,18 @@ class LMC:
         if self.shared_mem is not None:
             shm_reward, shm_error = self._get_shared_mem_reward(
                 messages, states)
+            # print(shm_reward)
             message_rewards += self.shared_mem_coef * shm_reward
             # print(self.shared_mem_coef * shm_reward)
             rewards["shm_reward"] = self.shared_mem_coef * shm_reward.mean()
             rewards["shm_error"] = shm_error.mean()
 
         # Penalty for comm encoding distance to obs encoding
-        if self.comm_pol_algo == "context_mappo":
-            message_rewards -= self.comm_policy.obs_dist \
-                                * self.obs_dist_coef
-            rewards["obs_dist"] = self.comm_policy.obs_dist.mean() \
-                                    * self.obs_dist_coef
+        # if self.comm_pol_algo == "context_mappo":
+        #     message_rewards -= self.comm_policy.obs_dist \
+        #                         * self.obs_dist_coef
+        #     rewards["obs_dist"] = self.comm_policy.obs_dist.mean() \
+        #                             * self.obs_dist_coef
 
         # Penalty for message length
         message_len = np.array(
