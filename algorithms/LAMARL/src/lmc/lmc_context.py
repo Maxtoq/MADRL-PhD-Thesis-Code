@@ -37,6 +37,7 @@ class LMC:
         self.shared_mem_coef = args.comm_shared_mem_coef
         self.shared_mem_reward_type = args.comm_shared_mem_reward_type
         self.obs_dist_coef = args.comm_obs_dist_coef
+        self.noreward_empty_mess = args.comm_noreward_empty_mess
         self.comm_logger = comm_logger
         self.device = device
 
@@ -196,6 +197,10 @@ class LMC:
         # Compute shared memory error
         local_errors, common_errors = self.shared_mem.get_prediction_error(
             message_encodings, self.lang_contexts, states)
+        
+        if self.noreward_empty_mess:
+            # Zero rewards for empty messages
+            local_errors *= np.array([len(m) > 0 for m in agent_messages])
 
         if self.shared_mem_reward_type == "direct":
             # shared_mem_reward = -np.repeat(

@@ -1,8 +1,8 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_shmloc"
+experiment_name="FT_SM_NREM"
 n_parallel_envs=128
-n_steps=10000000
+n_steps=20000000
 policy_algo="mappo"
 ppo_epoch=15 # default 15
 entropy_coef=0.01 #default 0.01
@@ -19,13 +19,13 @@ comm_n_warmup_steps=100000 # default 100000
 comm_num_mini_batch=8 # default 2
 # comm_train_topk=3 # default 1, TODO
 # comm_klpretrain_coef=0.05 # default 0.01
-comm_token_penalty=0.05 # default 0.1
-comm_env_reward_coef=1.0 # default 1.0
+comm_token_penalty=0.2 # default 0.1
+comm_env_reward_coef=4.0 # default 1.0
 comm_obs_dist_coef=0.0 # default 0.1
-comm_shared_mem_coef=20.0 # default 1.0
+comm_shared_mem_coef=1.0 # default 1.0
 comm_shared_mem_reward_type="shaping" # default "direct"
-FT_pretrained_model_path="models/magym_PredPrey/pretrain_sharedmem/run1/model_ep.pt"
-FT_n_steps_fix_policy=10000000
+FT_pretrained_model_path="models/magym_PredPrey/PT_SM_EMBED/run2/model_ep.pt"
+FT_n_steps_fix_policy=22000000
 # lang_lr=0.0009 # default 0.0007
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
@@ -61,6 +61,7 @@ do
     --comm_obs_dist_coef ${comm_obs_dist_coef}\
     --comm_shared_mem_coef ${comm_shared_mem_coef}\
     --comm_shared_mem_reward_type ${comm_shared_mem_reward_type}\
+    --comm_noreward_empty_mess\
     --FT_pretrained_model_path ${FT_pretrained_model_path}\
     --FT_n_steps_fix_policy ${FT_n_steps_fix_policy}\
     --magym_env_size ${magym_env_size}\

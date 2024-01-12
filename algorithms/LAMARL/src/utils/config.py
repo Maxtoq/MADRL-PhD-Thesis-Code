@@ -181,6 +181,8 @@ def get_config():
     parser.add_argument("--comm_shared_mem_coef", type=float, default=1.0)
     parser.add_argument("--comm_shared_mem_reward_type", type=str, 
                         choices=["direct", "shaping"], default="direct")
+    parser.add_argument("--comm_noreward_empty_mess", default=False, 
+                        action="store_true")
 
     # Shared Memory parameters
     parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
