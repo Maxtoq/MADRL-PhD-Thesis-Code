@@ -31,7 +31,7 @@ def _get_env(cfg):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length,
-            global_state=cfg.magym_global_state)
+            global_state=cfg.use_shared_mem)
     return env
 
 def _get_parser(cfg):

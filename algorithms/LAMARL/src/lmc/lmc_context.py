@@ -59,7 +59,8 @@ class LMC:
             raise NotImplementedError("Bad name given for communication policy type.")
 
         # If global state dimension is provided -> Create the Shared Memory
-        if global_state_dim is not None:
+        if args.use_shared_mem is not None:
+            assert global_state_dim is not None
             self.shared_mem = SharedMemory(
                 args, self.n_agents, global_state_dim, device)
             if self.shared_mem_reward_type == "shaping":

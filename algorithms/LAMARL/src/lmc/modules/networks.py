@@ -71,7 +71,8 @@ class MLPNetwork(nn.Module):
             raise NotImplementedError
         self.out_activ_fn = {
             None: lambda x: x,
-            'tanh': nn.Tanh()
+            'tanh': nn.Tanh(),
+            'relu': nn.ReLU()
         }[out_activation_fn]
 
         # Method for initialising weights

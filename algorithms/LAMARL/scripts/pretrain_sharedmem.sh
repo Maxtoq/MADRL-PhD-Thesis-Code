@@ -24,7 +24,7 @@ do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
     comm="python algorithms/LAMARL/pretrain_lmc_sharedmem.py --seed ${seed}\
-    --magym_global_state\
+    --use_shared_mem\
     --experiment_name ${experiment_name}\
     --n_parallel_envs ${n_parallel_envs}\
     --n_steps ${n_steps}\

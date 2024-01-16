@@ -185,6 +185,8 @@ def get_config():
                         action="store_true")
 
     # Shared Memory parameters
+    parser.add_argument("--use_shared_mem", action='store_true', default=False, 
+                        help="Whether to use the shared memory, will also produce a global state of the environment at each step, in addition to the observations.")
     parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
     parser.add_argument("--shared_mem_n_rec_layers", type=int, default=1)
     parser.add_argument("--shared_mem_lr", type=float, default=0.0005)
@@ -197,8 +199,6 @@ def get_config():
     parser.add_argument("--magym_n_agents", type=int, default=4)
     parser.add_argument("--magym_env_size", type=int, default=7)
     parser.add_argument("--magym_n_preys", type=int, default=2)
-    parser.add_argument("--magym_global_state", action='store_true', default=False, 
-                        help="Whether to produce a global state of the environment at each step, in addition to the observations.")
 
     # Fine-tune parameters
     parser.add_argument("--FT_pretrained_model_path", type=str, default=None)
