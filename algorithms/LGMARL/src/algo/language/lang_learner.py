@@ -4,27 +4,8 @@ from torch import nn
 
 from .lm import OneHotEncoder, GRUEncoder, GRUDecoder
 from .obs import ObservationEncoder
-from .networks import MLPNetwork
 from .lang_buffer import LanguageBuffer
     
-
-# Here we do a the language learning algo with a communication encoder that 
-# takes encodings coming from observations and language and that generates a 
-# communication context to feed to the Decoder.
-
-class CommunicationEncoder(nn.Module):
-
-    def __init__(self, context_dim, hidden_dim, device="cpu"):
-        self.encoder = MLPNetwork(
-            context_dim * 2, hidden_dim, hidden_dim, out_activation_fn="relu")
-
-        self.mean_head = nn.Linear(hidden_dim, context_dim)
-        self.logvar_head = nn.Linear(hidden_dim, context_dim)
-
-    def forward(self, x):
-        x = self.encoder(x)
-        return self.mean_head(x), self.logvar_head(x)
-
 
 class LanguageLearner:
 
@@ -51,9 +32,6 @@ class LanguageLearner:
         self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
         self.lang_encoder = GRUEncoder(
             context_dim, hidden_dim, embed_dim, self.word_encoder)
-
-        self.comm_encoder = CommunicationEncoder(context_dim, hidden_dim)
-
         self.decoder = GRUDecoder(context_dim, self.word_encoder)
 
         self.clip_loss = nn.CrossEntropyLoss()
