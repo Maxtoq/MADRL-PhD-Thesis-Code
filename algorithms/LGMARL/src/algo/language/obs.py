@@ -1,6 +1,6 @@
 from torch import nn
 
-from .networks import MLPNetwork
+from src.algo.nn_modules.mlp import MLPNetwork
 
 
 class ObservationEncoder(nn.Module):

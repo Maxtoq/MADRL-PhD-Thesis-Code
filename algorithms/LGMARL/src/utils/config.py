@@ -33,20 +33,22 @@ def get_config():
                         default=100, help="Max length for any episode")
 
     # network parameters
-    parser.add_argument("--use_centralized_V", action='store_false',
-                        default=True, help="Whether to use centralized V function")
-    parser.add_argument("--stacked_frames", type=int, default=1,
-                        help="Dimension of hidden layers for actor/critic networks")
-    parser.add_argument("--use_stacked_frames", action='store_true',
-                        default=False, help="Whether to use stacked_frames")
-    parser.add_argument("--hidden_size", type=int, default=64,
+    # parser.add_argument("--use_centralized_V", action='store_false',
+    #                     default=True, help="Whether to use centralized V function")
+    # parser.add_argument("--stacked_frames", type=int, default=1,
+    #                     help="Dimension of hidden layers for actor/critic networks")
+    # parser.add_argument("--use_stacked_frames", action='store_true',
+    #                     default=False, help="Whether to use stacked_frames")
+    parser.add_argument("--hidden_dim", type=int, default=64,
                         help="Dimension of hidden layers for actor/critic networks") 
-    parser.add_argument("--layer_N", type=int, default=1,
+    parser.add_argument("--policy_layer_N", type=int, default=1,
                         help="Number of layers for actor/critic networks")
     parser.add_argument("--use_ReLU", action='store_false',
                         default=True, help="Whether to use ReLU")
-    parser.add_argument("--use_popart", action='store_true', default=False, help="by default False, use PopArt to normalize rewards.")
-    parser.add_argument("--use_valuenorm", action='store_false', default=True, help="by default True, use running mean and std to normalize rewards.")
+    parser.add_argument("--use_popart", action='store_true', default=False, 
+                        help="by default False, use PopArt to normalize rewards.")
+    parser.add_argument("--use_valuenorm", action='store_false', default=True, 
+                        help="by default True, use running mean and std to normalize rewards.")
     parser.add_argument("--use_feature_normalization", action='store_false',
                         default=True, help="Whether to apply layernorm to the inputs")
     parser.add_argument("--use_orthogonal", action='store_false', default=True,
@@ -55,19 +57,20 @@ def get_config():
                         help="The gain # of last action layer")
 
     # recurrent parameters
-    parser.add_argument("--use_naive_recurrent_policy", action='store_true',
-                        default=False, help='Whether to use a naive recurrent policy')
-    parser.add_argument("--use_recurrent_policy", action='store_false',
-                        default=True, help='use a recurrent policy')
-    parser.add_argument("--recurrent_N", type=int, default=1, help="The number of recurrent layers.")
+    # parser.add_argument("--use_naive_recurrent_policy", action='store_true',
+    #                     default=False, help='Whether to use a naive recurrent policy')
+    # parser.add_argument("--use_recurrent_policy", action='store_false',
+    #                     default=True, help='use a recurrent policy')
+    parser.add_argument("--policy_recurrent_N", type=int, default=1, 
+                        help="The number of recurrent layers.")
     parser.add_argument("--data_chunk_length", type=int, default=10,
                         help="Time length of chunks used to train a recurrent_policy")
 
     # optimizer parameters
     parser.add_argument("--lr", type=float, default=5e-4,
                         help='learning rate (default: 5e-4)')
-    parser.add_argument("--critic_lr", type=float, default=5e-4,
-                        help='critic learning rate (default: 5e-4)')
+    # parser.add_argument("--critic_lr", type=float, default=5e-4,
+    #                     help='critic learning rate (default: 5e-4)')
     parser.add_argument("--opti_eps", type=float, default=1e-5,
                         help='RMSprop optimizer epsilon (default: 1e-5)')
     parser.add_argument("--weight_decay", type=float, default=0)

@@ -43,8 +43,9 @@ class ACTLayer(nn.Module):
             self.mixed_action = True
             continous_dim = action_space[0].shape[0]
             discrete_dim = action_space[1].n
-            self.action_outs = nn.ModuleList([DiagGaussian(inputs_dim, continous_dim, use_orthogonal, gain), Categorical(
-                inputs_dim, discrete_dim, use_orthogonal, gain)])
+            self.action_outs = nn.ModuleList([
+                DiagGaussian(inputs_dim, continous_dim, use_orthogonal, gain),
+                Categorical(inputs_dim, discrete_dim, use_orthogonal, gain)])
     
     def forward(self, x, available_actions=None, deterministic=False):
         """

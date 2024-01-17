@@ -29,7 +29,7 @@ class MLPNetwork(nn.Module):
             n_hidden_layers=1, 
             activation_fn='relu',
             out_activation_fn=None,
-            norm_in=True):
+            norm_in="layernorm"):
         """
         Inputs:
             :param input_dim (int): Dimension of the input
@@ -46,12 +46,18 @@ class MLPNetwork(nn.Module):
         self.n_hidden_layers = n_hidden_layers
 
         # Normalisation of inputs
-        if norm_in:
+        if norm_in == "batchnorm":
             self.in_fn = nn.BatchNorm1d(input_dim)
             self.in_fn.weight.data.fill_(1)
             self.in_fn.bias.data.fill_(0)
-        else:
+        elif norm_in == "layernorm":
+            print("LAYERNORM")
+            self.in_fn = nn.LayerNorm(input_dim)
+        elif norm_in is None:
             self.in_fn = lambda x: x
+        else:
+            print("ERROR: Bad param for norm_in, must be in [\"batchnorm\", \"layernorm\", None], given", norm_in)
+            exit()
 
         # Choice for activation function
         if activation_fn not in ['tanh', 'relu']:
