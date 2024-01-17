@@ -5,11 +5,11 @@ import torch.nn as nn
 # Code modified from https://github.com/marlbenchmark/on-policy
 ##########################################################################
 
-"""RNN modules for MAPPO."""
+"""RNN modules for PPO."""
 
 
 class RNNLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, recurrent_N, use_orthogonal):
+    def __init__(self, input_dim, output_dim, recurrent_N, use_orthogonal=True):
         super(RNNLayer, self).__init__()
         self._recurrent_N = recurrent_N
         self._use_orthogonal = use_orthogonal
