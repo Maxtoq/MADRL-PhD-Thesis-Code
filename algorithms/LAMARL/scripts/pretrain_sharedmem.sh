@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="PT_SM_EMBED"
+experiment_name="PT_SM_EMBED_testnoactivem-shmlayernormin"
 n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
@@ -15,7 +15,7 @@ lang_n_epochs=1 # default 2
 lang_batch_size=128 # default 128
 shared_mem_lr=0.009 # default 0.0005
 magym_env_size=8
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
@@ -31,6 +31,8 @@ do
     --policy_algo ${policy_algo}\
     --ppo_epoch ${ppo_epoch}\
     --entropy_coef ${entropy_coef}\
+    --use_value_active_masks\
+    --use_policy_active_masks\
     --env_name ${env_name}\
     --episode_length ${episode_length}\
     --cuda_device ${cuda_device}\

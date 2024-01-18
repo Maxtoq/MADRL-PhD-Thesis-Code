@@ -50,8 +50,8 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
-    if not cfg.magym_global_state:
-        cfg.magym_global_state = True
+    if not cfg.use_shared_mem:
+        cfg.use_shared_mem = True
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
 
     # Create model
