@@ -20,8 +20,8 @@ class ObservationEncoder(nn.Module):
             obs_dim, 
             embedding_dim, 
             hidden_dim,
-            n_hidden_layers=n_hidden_layers)
-            # norm_in=False)
+            n_hidden_layers=n_hidden_layers,
+            norm_in="batchnorm")
             #out_activation_fn='tanh')
         
         self.device = device

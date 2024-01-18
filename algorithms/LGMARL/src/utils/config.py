@@ -43,18 +43,18 @@ def get_config():
                         help="Dimension of hidden layers for actor/critic networks") 
     parser.add_argument("--policy_layer_N", type=int, default=1,
                         help="Number of layers for actor/critic networks")
-    parser.add_argument("--use_ReLU", action='store_false',
-                        default=True, help="Whether to use ReLU")
+    # parser.add_argument("--use_ReLU", action='store_false',
+    #                     default=True, help="Whether to use ReLU")
     # parser.add_argument("--use_popart", action='store_true', default=False, 
     #                     help="by default False, use PopArt to normalize rewards.")
-    parser.add_argument("--use_valuenorm", action='store_false', default=True, 
-                        help="by default True, use running mean and std to normalize rewards.")
-    parser.add_argument("--use_feature_normalization", action='store_false',
-                        default=True, help="Whether to apply layernorm to the inputs")
-    parser.add_argument("--use_orthogonal", action='store_false', default=True,
-                        help="Whether to use Orthogonal initialization for weights and 0 initialization for biases")
-    parser.add_argument("--gain", type=float, default=0.01,
-                        help="The gain # of last action layer")
+    # parser.add_argument("--use_valuenorm", action='store_false', default=True, 
+    #                     help="by default True, use running mean and std to normalize rewards.")
+    # parser.add_argument("--use_feature_normalization", action='store_false',
+    #                     default=True, help="Whether to apply layernorm to the inputs")
+    # parser.add_argument("--use_orthogonal", action='store_false', default=True,
+    #                     help="Whether to use Orthogonal initialization for weights and 0 initialization for biases")
+    # parser.add_argument("--gain", type=float, default=0.01,
+    #                     help="The gain # of last action layer")
 
     # recurrent parameters
     # parser.add_argument("--use_naive_recurrent_policy", action='store_true',
@@ -93,14 +93,14 @@ def get_config():
                         help="by default, use max norm of gradients. If set, do not use.")
     parser.add_argument("--max_grad_norm", type=float, default=10.0,
                         help='max norm of gradients (default: 0.5)')
-    parser.add_argument("--use_gae", action='store_false',
-                        default=True, help='use generalized advantage estimation')
+    # parser.add_argument("--use_gae", action='store_false',
+    #                     default=True, help='use generalized advantage estimation')
     parser.add_argument("--gamma", type=float, default=0.99,
                         help='discount factor for rewards (default: 0.99)')
     parser.add_argument("--gae_lambda", type=float, default=0.95,
                         help='gae lambda parameter (default: 0.95)')
-    parser.add_argument("--use_proper_time_limits", action='store_true',
-                        default=False, help='compute returns taking into account time limits')
+    # parser.add_argument("--use_proper_time_limits", action='store_true',
+    #                     default=False, help='compute returns taking into account time limits')
     parser.add_argument("--use_huber_loss", action='store_false', default=True, help="by default, use huber loss. If set, do not use huber loss.")
     parser.add_argument("--use_value_active_masks",
                         action='store_false', default=True, help="by default True, whether to mask useless data in value loss.")

@@ -119,7 +119,7 @@ class SharedMemory():
 
         # Output prediction layer
         self.out = MLPNetwork(
-            self.hidden_dim, state_dim, self.hidden_dim, norm_in=False)
+            self.hidden_dim, state_dim, self.hidden_dim)
 
         # Optimizer and loss
         self.optim = torch.optim.Adam(

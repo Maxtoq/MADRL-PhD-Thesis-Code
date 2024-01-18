@@ -5,7 +5,7 @@ from src.algo.nn_modules.ditributions import DiagGaussian, Categorical
 
 class ActorCommunicator(nn.Module):
 
-    def __init__(self, args, obs_dim, act_space):
+    def __init__(self, args, obs_dim, act_dim):
         super(ActorCommunicator, self).__init__()
         self.obs_encoder = MLPNetwork(
             obs_dim, args.hidden_dim, args.hidden_dim, args.policy_layer_N)
@@ -13,7 +13,6 @@ class ActorCommunicator(nn.Module):
         self.rnn_encoder = RNNLayer(
             args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
 
-        action_dim = act_space[1].n
         self.action_head = Categorical(args.hidden_dim, action_dim)
 
         comm_context_dim = args.context_dim

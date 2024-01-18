@@ -51,12 +51,11 @@ class MLPNetwork(nn.Module):
             self.in_fn.weight.data.fill_(1)
             self.in_fn.bias.data.fill_(0)
         elif norm_in == "layernorm":
-            print("LAYERNORM")
             self.in_fn = nn.LayerNorm(input_dim)
         elif norm_in is None:
             self.in_fn = lambda x: x
         else:
-            print("ERROR: Bad param for norm_in, must be in [\"batchnorm\", \"layernorm\", None], given", norm_in)
+            raise NotImplementedError("ERROR: Bad param for norm_in, must be in [\"batchnorm\", \"layernorm\", None], given", norm_in)
             exit()
 
         # Choice for activation function

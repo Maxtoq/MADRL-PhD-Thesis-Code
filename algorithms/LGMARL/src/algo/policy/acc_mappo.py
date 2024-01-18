@@ -1,7 +1,8 @@
 import torch
 
 from .policy import ACCPolicy
-from .utils import update_linear_schedule, update_lr
+from .buffer import ACC_ReplayBuffer
+from .utils import update_linear_schedule, update_lr, get_shape_from_obs_space
 
 
 class ACC_MAPPO:
@@ -12,12 +13,19 @@ class ACC_MAPPO:
         self.lang_learner = lang_learner
         self.n_agents = n_agents
         self.device = device
+        self.context_dim = args.context_dim
         self.n_parallel_envs = args.n_parallel_envs
         self.recurrent_N = args.recurrent_N
         self.hidden_dim = args.hidden_size
         self.lr = args.lr
         self.warming_up = False
 
+        obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
+        shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
+                            + self.context_dim
+        action_dim = act_space.n
+        print("ACTION DIM", action_dim)
+        exit()
         self.policy = ACCPolicy(args, obs_dim, shared_obs_dim, act_space, device)
 
         self.rl_optim = torch.optim.Adam(
@@ -25,6 +33,14 @@ class ACC_MAPPO:
             lr=self.lr, 
             eps=args.opti_eps, 
             weight_decay=args.weight_decay)
+
+        self.buffer = ACC_ReplayBuffer(
+            self.args, 
+            n_agents, 
+            obs_dim, 
+            shared_obs_dim, 
+            act_dim, 
+            self.context_dim)
 
     def lr_decay(self, episode, episodes):
         """
