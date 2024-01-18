@@ -102,10 +102,10 @@ def get_config():
     # parser.add_argument("--use_proper_time_limits", action='store_true',
     #                     default=False, help='compute returns taking into account time limits')
     parser.add_argument("--use_huber_loss", action='store_false', default=True, help="by default, use huber loss. If set, do not use huber loss.")
-    parser.add_argument("--use_value_active_masks",
-                        action='store_false', default=True, help="by default True, whether to mask useless data in value loss.")
-    parser.add_argument("--use_policy_active_masks",
-                        action='store_false', default=True, help="by default True, whether to mask useless data in policy loss.")
+    # parser.add_argument("--use_value_active_masks",
+    #                     action='store_false', default=True, help="by default True, whether to mask useless data in value loss.")
+    # parser.add_argument("--use_policy_active_masks",
+                        # action='store_false', default=True, help="by default True, whether to mask useless data in policy loss.")
     parser.add_argument("--huber_delta", type=float, default=10.0, help=" coefficience of huber loss.")
 
     # run parameters
