@@ -7,7 +7,6 @@ class ActorCommunicator(nn.Module):
 
     def __init__(self, args, obs_dim, act_space):
         super(ActorCommunicator, self).__init__()
-
         self.obs_encoder = MLPNetwork(
             obs_dim, args.hidden_dim, args.hidden_dim, args.policy_layer_N)
         
@@ -25,10 +24,16 @@ class ActorCommunicator(nn.Module):
 
         x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
 
-        # Get actions
-        action_logits = self.action_out(x)
+        # Get env actions
+        action_logits = self.action_head(x)
         actions = action_logits.sample() 
         action_log_probs = action_logits.log_probs(actions)
 
+        # Get comm actions
+        comm_action_logits = self.comm_head(x)
+        comm_actions = comm_action_logits.sample() 
+        comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
 
+        return actions, action_log_probs, comm_actions, comm_action_log_probs, \
+                new_rnn_states
         

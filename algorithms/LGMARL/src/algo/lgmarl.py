@@ -2,6 +2,8 @@ import torch
 import numpy as np
 
 from .language.lang_learner import LanguageLearner
+from .policy.acc_mappo import ACC_MAPPO
+
 
 class LanguageGroundedMARL:
 
@@ -28,7 +30,7 @@ class LanguageGroundedMARL:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        self.comm_n_act_policy = CommNActPolicy(
+        self.comm_n_act_policy = ACC_MAPPO(
             args, 
             lang_learner, 
             n_agents, 

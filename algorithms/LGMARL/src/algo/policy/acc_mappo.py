@@ -1,10 +1,10 @@
 import torch
 
-from .acc_policy import ACCPolicy
+from .policy import ACCPolicy
 from .utils import update_linear_schedule, update_lr
 
 
-class CommNActPolicy:
+class ACC_MAPPO:
 
     def __init__(self, args, lang_learner, n_agents, obs_space, 
                  shared_obs_space, act_space, device):

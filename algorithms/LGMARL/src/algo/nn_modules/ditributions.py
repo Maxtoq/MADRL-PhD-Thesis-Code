@@ -1,6 +1,11 @@
 from torch import nn
 
 
+##########################################################################
+# Code modified from https://github.com/marlbenchmark/on-policy
+##########################################################################
+
+
 class FixedCategorical(torch.distributions.Categorical):
     def sample(self):
         return super().sample().unsqueeze(-1)
