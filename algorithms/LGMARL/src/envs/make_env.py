@@ -30,8 +30,7 @@ def _get_env(cfg):
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
-            max_steps=cfg.episode_length,
-            global_state=cfg.use_shared_mem)
+            max_steps=cfg.episode_length)
     return env
 
 def _get_parser(cfg):

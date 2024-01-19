@@ -18,7 +18,7 @@ class LanguageLearner:
                  lr=0.007, n_epochs=2, batch_size=128, temp=1.0, embed_dim=4,
                  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
                  buffer_size=100000):
-        self.train_device = device
+        self.device = device
         self.lr = lr
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -46,28 +46,30 @@ class LanguageLearner:
         self.buffer = LanguageBuffer(buffer_size)
 
     def prep_rollout(self, device=None):
-        if device is None:
-            device = self.train_device
+        if device is not None:
+            self.device = device
         self.obs_encoder.eval()
-        self.obs_encoder.to(device)
-        self.obs_encoder.device = device
+        self.obs_encoder.to(self.device)
+        self.obs_encoder.device = self.device
         self.lang_encoder.eval()
-        self.lang_encoder.to(device)
-        self.lang_encoder.device = device
+        self.lang_encoder.to(self.device)
+        self.lang_encoder.device = self.device
         self.decoder.eval()
-        self.decoder.to(device)
-        self.decoder.device = device
+        self.decoder.to(self.device)
+        self.decoder.device = self.device
 
-    def prep_training(self):
+    def prep_training(self, device=None):
+        if device is not None:
+            self.device = device
         self.obs_encoder.train()
-        self.obs_encoder.to(self.train_device)
-        self.obs_encoder.device = self.train_device
+        self.obs_encoder.to(self.device)
+        self.obs_encoder.device = self.device
         self.lang_encoder.train()
-        self.lang_encoder.to(self.train_device)
-        self.lang_encoder.device = self.train_device
+        self.lang_encoder.to(self.device)
+        self.lang_encoder.device = self.device
         self.decoder.train()
-        self.decoder.to(self.train_device)
-        self.decoder.device = self.train_device
+        self.decoder.to(self.device)
+        self.decoder.device = self.device
     
     def store(self, obs, sent):
         self.buffer.store(obs, sent)
@@ -90,11 +92,12 @@ class LanguageLearner:
     def generate_sentences(self, context_batch):
         """ 
         Generate sentences from a batch of context vectors. 
-        :param context_batch (torch.Tensor): Batch of context vectors,
+        :param context_batch (np.ndarray): Batch of context vectors,
             dim=(batch_size, context_dim).
         
         :return gen_sent_batch (list(list(str))): Batch of generated sentences.
         """
+        context_batch = torch.from_numpy(context_batch).to(self.device)
         _, sentences = self.decoder(context_batch)
         return sentences
 

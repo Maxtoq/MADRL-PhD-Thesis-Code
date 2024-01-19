@@ -20,3 +20,6 @@ def get_shape_from_obs_space(obs_space):
     else:
         raise NotImplementedError
     return obs_shape
+
+def torch2numpy(x):
+    return x.detach().cpu().numpy()

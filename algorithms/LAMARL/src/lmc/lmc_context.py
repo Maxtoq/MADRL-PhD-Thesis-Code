@@ -90,7 +90,7 @@ class LMC:
     def prep_training(self):
         self.lang_learner.prep_training()
         self.policy.prep_training()
-        if self.comm_policy is not None:
+        if self.comm_pol_algo != "no_comm":
             self.comm_policy.prep_training()
         if self.shared_mem is not None:
             self.shared_mem.prep_training(self.device)
@@ -98,7 +98,7 @@ class LMC:
     def prep_rollout(self, device=None):
         self.lang_learner.prep_rollout(device)
         self.policy.prep_rollout(device)
-        if self.comm_policy is not None:
+        if self.comm_pol_algo != "no_comm":
             self.comm_policy.prep_rollout(device)
         if self.shared_mem is not None:
             self.shared_mem.prep_rollout(device)
@@ -151,7 +151,7 @@ class LMC:
             agent.
         """
         # Get messages
-        if self.comm_policy is not None:
+        if self.comm_pol_algo != "no_comm":
             broadcasts, agent_messages, self.lang_contexts = \
                 self.comm_policy.comm_step(
                     obs, self.lang_contexts, perfect_messages)
@@ -313,12 +313,12 @@ class LMC:
         if train_policy:
             losses.update(self.policy.train(warmup))
         
-        if self.comm_policy is not None:
+        if self.comm_pol_algo != "no_comm":
             comm_pol_losses = self.comm_policy.train(warmup)
             for k, l in comm_pol_losses.items():
                 losses["comm_" + k] = l
         
-        if self.comm_policy is not None and train_lang:
+        if self.comm_pol_algo != "no_comm" and train_lang:
             lang_losses = self.lang_learner.train()
             for k, l in lang_losses.items():
                 losses["lang_" + k] = l
@@ -332,7 +332,7 @@ class LMC:
         self.prep_rollout("cpu")
         save_dict = self.policy.get_save_dict()
         save_dict.update(self.lang_learner.get_save_dict())
-        if self.comm_policy is not None:
+        if self.comm_pol_algo != "no_comm":
             save_dict.update(self.comm_policy.get_save_dict())
         if self.shared_mem is not None:
             save_dict.update(self.shared_mem.get_save_dict())

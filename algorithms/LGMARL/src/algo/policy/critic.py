@@ -2,6 +2,7 @@ from torch import nn
 
 from src.algo.nn_modules.mlp import MLPNetwork
 from src.algo.nn_modules.rnn import RNNLayer
+from src.algo.nn_modules.utils import init
 
 
 class Critic(nn.Module):
@@ -12,21 +13,20 @@ class Critic(nn.Module):
             shared_obs_dim, 
             args.hidden_dim, 
             args.hidden_dim, 
-            args.policy_layer_N)
+            args.policy_layer_N,
+            out_activation_fn="relu")
         
         self.rnn_encoder = RNNLayer(
             args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
 
-        gain = nn.init.calculate_gain(activation_fn)
         def init_(m):
             return init(
-                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0), 
-                gain=gain)
+                m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0))
 
         self.v_out = init_(nn.Linear(args.hidden_dim, 1))
 
     def forward(self, shared_obs, rnn_states, masks):
-        x = self.obs_encoder(obs)
+        x = self.obs_encoder(shared_obs)
 
         x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
 

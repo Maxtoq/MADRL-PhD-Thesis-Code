@@ -7,10 +7,10 @@ from .critic import Critic
 
 class ACCPolicy(nn.Module):
 
-    def __init__(self, args, obs_dim, shared_obs_dim, act_space, device):
+    def __init__(self, args, obs_dim, shared_obs_dim, act_dim):
         super(ACCPolicy, self).__init__()
         # Actor-Communicator
-        self.act_comm = ActorCommunicator(args, obs_dim, act_space)
+        self.act_comm = ActorCommunicator(args, obs_dim, act_dim)
 
         # Critic
         self.critic = Critic(args, shared_obs_dim)
@@ -21,3 +21,6 @@ class ACCPolicy(nn.Module):
 
         values, critic_rnn_states = self.critic(
             shared_obs, critic_rnn_states, masks)
+
+        return values, actions, action_log_probs, comm_actions, \
+            comm_action_log_probs, act_rnn_states, critic_rnn_states

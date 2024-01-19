@@ -1,5 +1,8 @@
+import torch
+
 from torch import nn
 
+from .utils import init
 
 ##########################################################################
 # Code modified from https://github.com/marlbenchmark/on-policy
@@ -32,6 +35,20 @@ class FixedNormal(torch.distributions.normal.Normal):
 
     def mode(self):
         return self.mean
+        
+
+class AddBias(nn.Module):
+    def __init__(self, bias):
+        super(AddBias, self).__init__()
+        self._bias = nn.Parameter(bias.unsqueeze(1))
+
+    def forward(self, x):
+        if x.dim() == 2:
+            bias = self._bias.t().view(1, -1)
+        else:
+            bias = self._bias.t().view(1, -1, 1, 1)
+
+        return x + bias
 
 
 class Categorical(nn.Module):

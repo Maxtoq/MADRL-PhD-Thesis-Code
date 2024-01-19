@@ -1,21 +1,12 @@
 from torch import nn
 
+from .utils import init
 
-def init(module, 
-         weight_init=nn.init.orthogonal_, 
-         bias_init=lambda x: nn.init.constant_(x, 0), 
-         gain=1):
-    if hasattr(module, 'weight'):
-        weight_init(module.weight.data, gain=gain)
-    if hasattr(module, 'bias'):
-        bias_init(module.bias.data)
-    return module
-
-def get_init_linear(input_dim, output_dim):
-    init_method = nn.init.orthogonal_
-    def init_(m):
-        return init(m, init_method, lambda x: nn.init.constant_(x, 0))
-    return init_(nn.Linear(input_dim, output_dim))
+# def get_init_linear(input_dim, output_dim):
+#     init_method = nn.init.orthogonal_
+#     def init_(m):
+#         return init(m, init_method, lambda x: nn.init.constant_(x, 0))
+#     return init_(nn.Linear(input_dim, output_dim))
 
 
 class MLPNetwork(nn.Module):
@@ -51,7 +42,6 @@ class MLPNetwork(nn.Module):
             self.in_fn.weight.data.fill_(1)
             self.in_fn.bias.data.fill_(0)
         elif norm_in == "layernorm":
-            print("LAYERNORM")
             self.in_fn = nn.LayerNorm(input_dim)
         elif norm_in is None:
             self.in_fn = lambda x: x
@@ -68,18 +58,6 @@ class MLPNetwork(nn.Module):
             'tanh': nn.Tanh(),
             'relu': nn.ReLU()
         }[activation_fn]
-
-        # Choice for activation function at the last layer
-        if out_activation_fn not in [None, 'tanh']:
-            print("ERROR in MLPNetwork: bad out_activation_fn with", 
-                out_activation_fn)
-            print("     must be in [None, 'tanh']")
-            raise NotImplementedError
-        self.out_activ_fn = {
-            None: lambda x: x,
-            'tanh': nn.Tanh(),
-            'relu': nn.ReLU()
-        }[out_activation_fn]
 
         # Method for initialising weights
         init_method = nn.init.orthogonal_
@@ -98,8 +76,16 @@ class MLPNetwork(nn.Module):
                     nn.LayerNorm(hidden_dim)
                 ) for _ in range(self.n_hidden_layers)],
             init_(nn.Linear(hidden_dim, out_dim)),
-            nn.LayerNorm(out_dim)
-        )
+            nn.LayerNorm(out_dim))
+
+        # Choice for activation function at the last layer
+        if out_activation_fn not in [None, 'tanh', 'relu']:
+            raise NotImplementedError("Bad out_activation_fn with", out_activation_fn, ", must be in [None, 'tanh', 'relu'].")
+        self.out_activ_fn = {
+            None: lambda x: x,
+            'tanh': nn.Tanh(),
+            'relu': nn.ReLU()
+        }[out_activation_fn]
 
     def forward(self, X):
         """

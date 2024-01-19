@@ -1,4 +1,4 @@
-
+import numpy as np
 
 
 class ACC_ReplayBuffer:
@@ -83,18 +83,18 @@ class ACC_ReplayBuffer:
         self.step = 0
     
     def reset_episode(self):
-        self.obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, n_agents, self.obs_dim), dtype=np.float32)
-        self.shared_obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, n_agents, self.shared_obs_dim), dtype=np.float32)
-        self.rnn_states = np.zeros((self.episode_length + 1, self.n_parallel_envs, n_agents, self.recurrent_N, self.hidden_size), dtype=np.float32)
+        self.obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.obs_dim), dtype=np.float32)
+        self.shared_obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.shared_obs_dim), dtype=np.float32)
+        self.rnn_states = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.recurrent_N, self.hidden_size), dtype=np.float32)
         self.rnn_states_critic = np.zeros_like(self.rnn_states)
-        self.value_preds = np.zeros((self.episode_length + 1, self.n_parallel_envs, n_agents, 1), dtype=np.float32)
-        self.returns = np.zeros((self.episode_length + 1, self.n_parallel_envs, n_agents, 1), dtype=np.float32)
-        self.env_actions = np.zeros((self.episode_length, self.n_parallel_envs, n_agents, self.env_act_dim), dtype=np.float32)
-        self.env_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, n_agents, self.env_act_dim), dtype=np.float32)
-        self.comm_actions = np.zeros((self.episode_length, self.n_parallel_envs, n_agents, self.comm_act_dim), dtype=np.float32)
-        self.comm_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, n_agents, self.comm_act_dim), dtype=np.float32)
-        self.rewards = np.zeros((self.episode_length, self.n_parallel_envs, n_agents, 1), dtype=np.float32)    
-        self.masks = np.ones((self.episode_length + 1, self.n_parallel_envs, n_agents, 1), dtype=np.float32)
+        self.value_preds = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.returns = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.env_actions = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
+        self.env_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
+        self.comm_actions = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
+        self.comm_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
+        self.rewards = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)    
+        self.masks = np.ones((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
         self.step = 0
 
     def get_act_params(self):

@@ -1,6 +1,8 @@
+from torch import nn
+
 from src.algo.nn_modules.mlp import MLPNetwork
 from src.algo.nn_modules.rnn import RNNLayer
-from src.algo.nn_modules.ditributions import DiagGaussian, Categorical
+from src.algo.nn_modules.distributions import DiagGaussian, Categorical
 
 
 class ActorCommunicator(nn.Module):
@@ -8,15 +10,15 @@ class ActorCommunicator(nn.Module):
     def __init__(self, args, obs_dim, act_dim):
         super(ActorCommunicator, self).__init__()
         self.obs_encoder = MLPNetwork(
-            obs_dim, args.hidden_dim, args.hidden_dim, args.policy_layer_N)
+            obs_dim, args.hidden_dim, args.hidden_dim, args.policy_layer_N,
+            out_activation_fn="relu")
         
         self.rnn_encoder = RNNLayer(
             args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
 
-        self.action_head = Categorical(args.hidden_dim, action_dim)
+        self.action_head = Categorical(args.hidden_dim, act_dim)
 
-        comm_context_dim = args.context_dim
-        self.comm_head = DiagGaussian(args.hidden_dim, comm_context_dim)
+        self.comm_head = DiagGaussian(args.hidden_dim, args.context_dim)
 
     def forward(self, obs, rnn_states, masks):
         x = self.obs_encoder(obs)
