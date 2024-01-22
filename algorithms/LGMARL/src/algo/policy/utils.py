@@ -23,3 +23,8 @@ def get_shape_from_obs_space(obs_space):
 
 def torch2numpy(x):
     return x.detach().cpu().numpy()
+
+def huber_loss(e, d):
+    a = (abs(e) <= d).float()
+    b = (abs(e) > d).float()
+    return a*e**2/2 + b*d*(abs(e)-d/2)

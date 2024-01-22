@@ -1,3 +1,4 @@
+import math
 import torch
 
 from torch import nn
@@ -35,7 +36,7 @@ class FixedNormal(torch.distributions.normal.Normal):
 
     def mode(self):
         return self.mean
-        
+
 
 class AddBias(nn.Module):
     def __init__(self, bias):

@@ -2,8 +2,9 @@ import torch
 import numpy as np
 
 from .policy import ACCPolicy
+from .acc_mappo_trainer import ACC_MAPPOTrainAlgo
 from .buffer import ACC_ReplayBuffer
-from .utils import update_linear_schedule, update_lr, get_shape_from_obs_space, torch2numpy
+from .utils import get_shape_from_obs_space, torch2numpy
 
 
 class ACC_MAPPO:
@@ -13,13 +14,14 @@ class ACC_MAPPO:
         self.args = args
         self.lang_learner = lang_learner
         self.n_agents = n_agents
-        self.device = device
+        self.train_device = device
         self.context_dim = args.context_dim
         self.n_envs = args.n_parallel_envs
         self.recurrent_N = args.policy_recurrent_N
         self.hidden_dim = args.hidden_dim
         self.lr = args.lr
-        self.warming_up = False
+
+        self.device = self.train_device
 
         obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
         shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
@@ -27,50 +29,37 @@ class ACC_MAPPO:
         act_dim = act_space.n
         self.policy = ACCPolicy(args, obs_dim, shared_obs_dim, act_dim)
 
-        self.rl_optim = torch.optim.Adam(
-            self.policy.parameters(), 
-            lr=self.lr, 
-            eps=args.opti_eps, 
-            weight_decay=args.weight_decay)
+        self.trainer = ACC_MAPPOTrainAlgo(args, self.policy, device)
 
         self.buffer = ACC_ReplayBuffer(
             self.args, 
             n_agents, 
             obs_dim, 
             shared_obs_dim, 
-            act_dim, 
+            1, 
             self.context_dim)
 
-    def lr_decay(self, episode, episodes):
-        """
-        Decay the actor and critic learning rates.
-        :param episode: (int) current training episode.
-        :param episodes: (int) total number of training episodes.
-        """
-        update_linear_schedule(
-            self.rl_optim, episode, episodes, self.lr)
-
-    def warmup_lr(self, warmup):
-        if warmup != self.warming_up:
-            lr = self.lr * 0.01 if warmup else self.lr
-            update_lr(self.rl_optim, lr)
-            self.warming_up = warmup
-
     def prep_rollout(self, device=None):
-        if device is not None:
-            self.device = device
+        self.device = self.train_device if device is None else device
         self.policy.act_comm.eval()
         self.policy.act_comm.to(self.device)
         self.policy.critic.eval()
         self.policy.critic.to(self.device)
+        self.trainer.device = self.device
+        if self.trainer.value_normalizer is not None:
+            self.trainer.value_normalizer.to(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
-            self.device = device
+            self.train_device = device
+        self.device = self.train_device
         self.policy.act_comm.train()
-        self.policy.act_comm.to(self.device)
+        self.policy.act_comm.to(self.train_device)
         self.policy.critic.train()
-        self.policy.critic.to(self.device)
+        self.policy.critic.to(self.train_device)
+        self.trainer.device = self.train_device
+        if self.trainer.value_normalizer is not None:
+            self.trainer.value_normalizer.to(self.train_device)
 
     def reset_buffer(self):
         self.buffer.reset_episode()
@@ -84,6 +73,34 @@ class ACC_MAPPO:
             dim=(n_envs, n_agents, shared_obs_dim).
         """
         self.buffer.insert_obs(obs, shared_obs)
+
+    def store_act(self, rewards, dones, values, actions, action_log_probs, 
+                  comm_actions, comm_action_log_probs, rnn_states, 
+                  rnn_states_critic):
+        rnn_states[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        rnn_states_critic[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
+        masks[dones == True] = np.zeros(
+            ((dones == True).sum(), 1), dtype=np.float32)
+
+        self.buffer.insert_act(
+            rnn_states,
+            rnn_states_critic,
+            actions,
+            action_log_probs,
+            comm_actions,
+            comm_action_log_probs,
+            values,
+            rewards,
+            masks)
 
     @torch.no_grad()
     def get_actions(self):
@@ -122,4 +139,29 @@ class ACC_MAPPO:
 
         return values, actions, action_log_probs, comm_actions, \
                 comm_action_log_probs, rnn_states, critic_rnn_states
+
+    @torch.no_grad()
+    def _compute_last_value(self):
+        next_value = self.policy.get_values(
+            torch.from_numpy(np.concatenate(
+                self.buffer.shared_obs[-1])).to(self.device),
+            torch.from_numpy(np.concatenate(
+                self.buffer.rnn_states[-1])).to(self.device),
+            torch.from_numpy(np.concatenate(
+                self.buffer.masks[-1])).to(self.device))
+        
+        next_value = np.reshape(
+            torch2numpy(next_value), (self.n_envs, self.n_agents, -1))
+
+        self.buffer.compute_returns(
+            next_value, self.trainer.value_normalizer)
+
+    def train(self, warmup=False, train_comm_head=True):
+        # Compute last value
+        self._compute_last_value()
+        # Train
+        self.prep_training()
+        self.policy.warmup_lr(warmup)
+        losses = self.trainer.train(self.buffer, train_comm_head)
+        return losses
 

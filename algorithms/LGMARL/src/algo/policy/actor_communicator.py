@@ -26,15 +26,59 @@ class ActorCommunicator(nn.Module):
         x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
 
         # Get env actions
-        action_logits = self.action_head(x)
-        actions = action_logits.sample() 
-        action_log_probs = action_logits.log_probs(actions)
+        env_action_logits = self.action_head(x)
+        env_actions = env_action_logits.sample() 
+        env_action_log_probs = env_action_logits.log_probs(env_actions)
 
         # Get comm actions
         comm_action_logits = self.comm_head(x)
         comm_actions = comm_action_logits.sample() 
         comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
 
-        return actions, action_log_probs, comm_actions, comm_action_log_probs, \
-                new_rnn_states
+        return env_actions, env_action_log_probs, comm_actions, \
+                comm_action_log_probs, new_rnn_states
+
+    def evaluate_actions(self, 
+            obs, rnn_states, env_actions, comm_actions, masks, eval_comm=True):
+        """
+        Compute log probability and entropy of given actions.
+        :param obs: (torch.Tensor) observation inputs into network.
+        :param env_actions: (torch.Tensor) environment actions whose log 
+            probabilites and entropy to compute.
+        :param comm_actions: (torch.Tensor) communication actions whose log 
+            probabilites and entropy to compute.
+        :param rnn_states: (torch.Tensor) if RNN network, hidden states for RNN.
+        :param masks: (torch.Tensor) mask tensor denoting if hidden states 
+            should be reinitialized to zeros.
+        :param eval_comm: (bool) whether to compute comm_actions probs.
+
+        :return env_action_log_probs: (torch.Tensor) log probabilities of the
+            environment actions.
+        :return env_dist_entropy: (torch.Tensor) environment action 
+            distribution entropy for the given inputs.
+        :return comm_dist_entropy: (torch.Tensor) communication action 
+            distribution entropy for the given inputs.
+        :return comm_action_log_probs: (torch.Tensor) log probabilities of the
+            communication actions.
+        """
+        x = self.obs_encoder(obs)
+
+        x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
+
+        # Eval environment actions
+        env_action_logits = self.action_head(x)
+        env_action_log_probs = env_action_logits.log_probs(env_actions)
+        env_dist_entropy = env_action_logits.entropy().mean()
+
+        # Eval communication actions
+        if eval_comm:
+            comm_action_logits = self.comm_head(x)
+            comm_action_log_probs = comm_action_logits.log_probs(env_actions)
+            comm_dist_entropy = comm_action_logits.entropy().mean()
+        else:
+            comm_action_log_probs = None
+            comm_dist_entropy = None
+
+        return env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
+                comm_dist_entropy
         

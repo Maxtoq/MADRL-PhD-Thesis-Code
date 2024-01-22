@@ -86,6 +86,18 @@ class LanguageGroundedMARL:
             sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
 
+    def store_exp(self, rewards, dones):
+        self.comm_n_act_policy.store_act(
+            rewards[..., np.newaxis], 
+            dones, 
+            self.values, 
+            self.actions, 
+            self.action_log_probs, 
+            self.comm_actions, 
+            self.comm_action_log_probs, 
+            self.rnn_states, 
+            self.rnn_states_critic)
+
     def _make_obs(self, obs):
         """
         Generate observations and shared_observations, with the message 
@@ -140,9 +152,6 @@ class LanguageGroundedMARL:
             self.rnn_states_critic = self.comm_n_act_policy.get_actions()
 
         # Get messages
-        self.comm_actions = np.zeros_like(self.comm_actions)
-        self.comm_actions[0] += 1.0
-        self.comm_actions[1] += -1.0
         messages = self.lang_learner.generate_sentences(
             np.concatenate(self.comm_actions))
 
@@ -169,6 +178,29 @@ class LanguageGroundedMARL:
                 perfect_messages, 
                 broadcasts)
 
-        return self.actions, broadcasts, agent_messages
+        return self.actions, broadcasts, messages_by_env
+
+    def train(self, 
+            step, train_policy=True, comm_head_learns_rl=True, train_lang=True):
+        self.prep_training()
+
+        warmup = step < self.n_warmup_steps
+
+        losses = {}
+
+        if train_policy:
+            losses.update(self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
+        
+        # if self.comm_pol_algo != "no_comm":
+        #     comm_pol_losses = self.comm_policy.train(warmup)
+        #     for k, l in comm_pol_losses.items():
+        #         losses["comm_" + k] = l
+        
+        # if self.comm_pol_algo != "no_comm" and train_lang:
+        #     lang_losses = self.lang_learner.train()
+        #     for k, l in lang_losses.items():
+        #         losses["lang_" + k] = l
+        
+        return losses
 
         

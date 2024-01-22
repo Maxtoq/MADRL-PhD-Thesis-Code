@@ -79,8 +79,8 @@ def get_config():
     parser.add_argument("--n_warmup_steps", type=int, default=10000)
     parser.add_argument("--ppo_epoch", type=int, default=15,
                         help='number of ppo epochs (default: 15)')
-    parser.add_argument("--use_clipped_value_loss",
-                        action='store_false', default=True, help="by default, clip loss value. If set, do not clip loss value.")
+    # parser.add_argument("--use_clipped_value_loss",
+    #                     action='store_false', default=True, help="by default, clip loss value. If set, do not clip loss value.")
     parser.add_argument("--clip_param", type=float, default=0.2,
                         help='ppo clip parameter (default: 0.2)')
     parser.add_argument("--num_mini_batch", type=int, default=2,
@@ -89,8 +89,8 @@ def get_config():
                         help='entropy term coefficient (default: 0.01)')
     parser.add_argument("--value_loss_coef", type=float,
                         default=1, help='value loss coefficient (default: 0.5)')
-    parser.add_argument("--use_max_grad_norm", action='store_false', default=True, 
-                        help="by default, use max norm of gradients. If set, do not use.")
+    # parser.add_argument("--use_max_grad_norm", action='store_false', default=True, 
+    #                     help="by default, use max norm of gradients. If set, do not use.")
     parser.add_argument("--max_grad_norm", type=float, default=10.0,
                         help='max norm of gradients (default: 0.5)')
     # parser.add_argument("--use_gae", action='store_false',
@@ -101,7 +101,7 @@ def get_config():
                         help='gae lambda parameter (default: 0.95)')
     # parser.add_argument("--use_proper_time_limits", action='store_true',
     #                     default=False, help='compute returns taking into account time limits')
-    parser.add_argument("--use_huber_loss", action='store_false', default=True, help="by default, use huber loss. If set, do not use huber loss.")
+    # parser.add_argument("--use_huber_loss", action='store_false', default=True, help="by default, use huber loss. If set, do not use huber loss.")
     # parser.add_argument("--use_value_active_masks",
     #                     action='store_false', default=True, help="by default True, whether to mask useless data in value loss.")
     # parser.add_argument("--use_policy_active_masks",

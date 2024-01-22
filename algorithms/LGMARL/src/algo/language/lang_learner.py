@@ -18,7 +18,7 @@ class LanguageLearner:
                  lr=0.007, n_epochs=2, batch_size=128, temp=1.0, embed_dim=4,
                  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
                  buffer_size=100000):
-        self.device = device
+        self.train_device = device
         self.lr = lr
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -26,6 +26,8 @@ class LanguageLearner:
         self.clip_weight = clip_weight
         self.capt_weight = capt_weight
         self.obs_learn_capt = obs_learn_capt
+
+        self.device = self.train_device
 
         self.word_encoder = OneHotEncoder(vocab)
 
@@ -46,8 +48,7 @@ class LanguageLearner:
         self.buffer = LanguageBuffer(buffer_size)
 
     def prep_rollout(self, device=None):
-        if device is not None:
-            self.device = device
+        self.device = self.train_device if device is None else device
         self.obs_encoder.eval()
         self.obs_encoder.to(self.device)
         self.obs_encoder.device = self.device
@@ -60,7 +61,8 @@ class LanguageLearner:
 
     def prep_training(self, device=None):
         if device is not None:
-            self.device = device
+            self.train_device = device
+        self.device = self.train_device
         self.obs_encoder.train()
         self.obs_encoder.to(self.device)
         self.obs_encoder.device = self.device

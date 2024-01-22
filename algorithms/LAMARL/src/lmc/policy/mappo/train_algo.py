@@ -28,7 +28,7 @@ class R_MAPPOTrainAlgo():
         self.data_chunk_length = args["data_chunk_length"]
         self.value_loss_coef = args["value_loss_coef"]
         self.entropy_coef = args["entropy_coef"]
-        self.max_grad_norm = args["max_grad_norm"]       
+        self.max_grad_norm = args["max_grad_norm"]
         self.huber_delta = args["huber_delta"]
 
         self._use_recurrent_policy = args["use_recurrent_policy"]

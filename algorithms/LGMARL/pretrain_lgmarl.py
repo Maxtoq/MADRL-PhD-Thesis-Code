@@ -81,9 +81,6 @@ def run():
             # Perform action and get reward and next obs
             obs, _, rewards, dones, infos = envs.step(actions)
 
-            model.store_sharedmem_inputs(states)
-            states = next_states
-
             env_dones = dones.all(axis=1)
             if True in env_dones:
                 model.reset_context(env_dones)
@@ -96,14 +93,15 @@ def run():
 
         # Training
         train_losses = model.train(s_i + n_steps_per_update)
+        print(train_losses)
 
-        # Log train data
-        logger.log_losses(train_losses, s_i + n_steps_per_update)
+        # # Log train data
+        # logger.log_losses(train_losses, s_i + n_steps_per_update)
 
-        # Save
-        if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
-            last_save_step = s_i + n_steps_per_update
-            model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
+        # # Save
+        # if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
+        #     last_save_step = s_i + n_steps_per_update
+        #     model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
             
     envs.close()
     # Save model and training data
