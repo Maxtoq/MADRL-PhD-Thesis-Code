@@ -93,6 +93,7 @@ def run():
         train_losses = model.train(
             s_i + n_steps_per_update,
             comm_head_learns_rl=cfg.comm_head_learns_rl)
+        print(train_losses)
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)

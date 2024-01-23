@@ -153,14 +153,7 @@ class LanguageGroundedMARL:
             self.rnn_states_critic = self.comm_n_act_policy.get_actions()
 
         # Get messages
-        if self.comm_type == "emergent-continuous":
-            messages_by_env = self.comm_actions
-            if self.comm_ec_strategy == "sum":
-                self.lang_contexts = self.comm_actions.sum(axis=1)
-                broadcasts = self.lang_contexts
-            else:
-                raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
-        elif self.comm_type in ["language", "emergent-discrete"]:
+        if self.comm_type in ["language", "emergent-discrete"]:
             messages = self.lang_learner.generate_sentences(
                 np.concatenate(self.comm_actions))
 
@@ -178,6 +171,24 @@ class LanguageGroundedMARL:
             # Get lang contexts
             self.lang_contexts = self.lang_learner.encode_sentences(
                 broadcasts).cpu().numpy()
+
+        elif self.comm_type == "emergent-continuous":
+            messages_by_env = self.comm_actions
+            if self.comm_ec_strategy == "sum":
+                self.lang_contexts = self.comm_actions.sum(axis=1)
+                broadcasts = self.lang_contexts
+            else:
+                raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
+
+        elif self.comm_type == "perfect-comm":
+            assert perfect_messages is not None
+            messages_by_env = perfect_messages
+            broadcasts = []
+            for env_messages in messages_by_env:
+                env_broadcast = []
+                for message in env_messages:
+                    env_broadcast.extend(message)
+                broadcasts.append(env_broadcast)
         else:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
@@ -208,10 +219,10 @@ class LanguageGroundedMARL:
         #     for k, l in comm_pol_losses.items():
         #         losses["comm_" + k] = l
         
-        # if self.comm_pol_algo != "no_comm" and train_lang:
-        #     lang_losses = self.lang_learner.train()
-        #     for k, l in lang_losses.items():
-        #         losses["lang_" + k] = l
+        if self.comm_type in ["perfect-comm", "language"] and train_lang:
+            lang_losses = self.lang_learner.train()
+            for k, l in lang_losses.items():
+                losses["lang_" + k] = l
         
         return losses
 
