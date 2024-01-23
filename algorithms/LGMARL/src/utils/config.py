@@ -158,6 +158,8 @@ def get_config():
     parser.add_argument("--lang_batch_size", type=int, default=128)
 
     # Communication parameters
+    parser.add_argument("--comm_type", default="language", 
+                        choices=["language", "emergent-continuous", "emergent-discrete"])
     # parser.add_argument("--comm_policy_type", type=str, default="perfect_comm",
     #                     choices=["context_mappo", "perfect_comm", "no_comm"])
     # parser.add_argument("--comm_hidden_dim", type=int, default=64)

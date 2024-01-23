@@ -16,6 +16,7 @@ class LanguageGroundedMARL:
         self.n_warmup_steps = args.n_warmup_steps
         self.token_penalty = args.comm_token_penalty
         self.env_reward_coef = args.comm_env_reward_coef
+        self.comm_type = args.comm_type
         self.comm_logger = comm_logger
         self.device = device
 
@@ -151,6 +152,8 @@ class LanguageGroundedMARL:
             self.rnn_states_critic = self.comm_n_act_policy.get_actions()
 
         # Get messages
+        if self.comm_type == "emergent-continuous":
+            self.lang_contexts = 
         messages = self.lang_learner.generate_sentences(
             np.concatenate(self.comm_actions))
 
