@@ -17,6 +17,7 @@ class LanguageGroundedMARL:
         self.token_penalty = args.comm_token_penalty
         self.env_reward_coef = args.comm_env_reward_coef
         self.comm_type = args.comm_type
+        self.comm_ec_strategy = args.comm_ec_strategy
         self.comm_logger = comm_logger
         self.device = device
 
@@ -153,24 +154,32 @@ class LanguageGroundedMARL:
 
         # Get messages
         if self.comm_type == "emergent-continuous":
-            self.lang_contexts = 
-        messages = self.lang_learner.generate_sentences(
-            np.concatenate(self.comm_actions))
+            messages_by_env = self.comm_actions
+            if self.comm_ec_strategy == "sum":
+                self.lang_contexts = self.comm_actions.sum(axis=1)
+                broadcasts = self.lang_contexts
+            else:
+                raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
+        elif self.comm_type in ["language", "emergent-discrete"]:
+            messages = self.lang_learner.generate_sentences(
+                np.concatenate(self.comm_actions))
 
-        # Arrange messages by env and construct broadcasts
-        broadcasts = []
-        messages_by_env = []
-        for e_i in range(self.n_envs):
-            env_broadcast = []
-            for a_i in range(self.n_agents):
-                env_broadcast.extend(messages[e_i * self.n_agents + a_i])
-            broadcasts.append(env_broadcast)
-            messages_by_env.append(messages[
-                e_i * self.n_agents:e_i * self.n_agents + self.n_agents])
+            # Arrange messages by env and construct broadcasts
+            broadcasts = []
+            messages_by_env = []
+            for e_i in range(self.n_envs):
+                env_broadcast = []
+                for a_i in range(self.n_agents):
+                    env_broadcast.extend(messages[e_i * self.n_agents + a_i])
+                broadcasts.append(env_broadcast)
+                messages_by_env.append(messages[
+                    e_i * self.n_agents:e_i * self.n_agents + self.n_agents])
 
-        # Get lang contexts
-        self.lang_contexts = self.lang_learner.encode_sentences(
-            broadcasts).cpu().numpy()
+            # Get lang contexts
+            self.lang_contexts = self.lang_learner.encode_sentences(
+                broadcasts).cpu().numpy()
+        else:
+            raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
         # Log communication
         if self.comm_logger is not None:
