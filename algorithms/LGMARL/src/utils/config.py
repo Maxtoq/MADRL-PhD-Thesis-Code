@@ -136,18 +136,20 @@ def get_config():
                         help="by default None. set the path to pretrained model.")
 
     # Intrinsic rewards parameters
-    parser.add_argument("--ir_algo", type=str, default="none")
-    parser.add_argument("--ir_mode", type=str, default="central")
-    parser.add_argument("--ir_coeff", type=float, default=1.0)
-    parser.add_argument("--ir_enc_dim", type=int, default=32)
-    parser.add_argument("--ir_lr", type=float, default=1e-4)
-    parser.add_argument("--ir_hidden_dim", type=int, default=64)
-    parser.add_argument("--ir_scale_fac", type=float, default=0.5)
-    parser.add_argument("--ir_ridge", type=float, default=0.1)
-    parser.add_argument("--ir_ablation", type=str, default=None)
+    # parser.add_argument("--ir_algo", type=str, default="none")
+    # parser.add_argument("--ir_mode", type=str, default="central")
+    # parser.add_argument("--ir_coeff", type=float, default=1.0)
+    # parser.add_argument("--ir_enc_dim", type=int, default=32)
+    # parser.add_argument("--ir_lr", type=float, default=1e-4)
+    # parser.add_argument("--ir_hidden_dim", type=int, default=64)
+    # parser.add_argument("--ir_scale_fac", type=float, default=0.5)
+    # parser.add_argument("--ir_ridge", type=float, default=0.1)
+    # parser.add_argument("--ir_ablation", type=str, default=None)
 
     # LMC parameters
     parser.add_argument("--context_dim", type=int, default=16)
+    parser.add_argument("--comm_head_learns_rl", default=True, 
+                        action="store_false")
 
     # Language Learning parameters
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
@@ -156,47 +158,47 @@ def get_config():
     parser.add_argument("--lang_batch_size", type=int, default=128)
 
     # Communication parameters
-    parser.add_argument("--comm_policy_type", type=str, default="perfect_comm",
-                        choices=["context_mappo", "perfect_comm", "no_comm"])
-    parser.add_argument("--comm_hidden_dim", type=int, default=64)
+    # parser.add_argument("--comm_policy_type", type=str, default="perfect_comm",
+    #                     choices=["context_mappo", "perfect_comm", "no_comm"])
+    # parser.add_argument("--comm_hidden_dim", type=int, default=64)
     # Communication ppo parameters
-    parser.add_argument("--comm_policy_algo", type=str, default='mappo', 
-                        choices=["mappo", "rmappo", "ippo"])
-    parser.add_argument("--comm_lr", type=float, default=0.0005)
-    parser.add_argument("--comm_gamma", type=float, default=0.99)
-    parser.add_argument("--comm_ppo_epochs", type=int, default=16)
-    parser.add_argument("--comm_n_warmup_steps", type=int, default=100000)
-    parser.add_argument("--comm_ppo_clip_param", type=float, default=0.2)
-    parser.add_argument("--comm_entropy_coef", type=float, default=0.01)
-    parser.add_argument("--comm_vloss_coef", type=float, default=0.5)
-    parser.add_argument("--comm_max_grad_norm", type=float, default=10.0)
-    parser.add_argument("--comm_num_mini_batch", type=int, default=2)
+    # parser.add_argument("--comm_policy_algo", type=str, default='mappo', 
+    #                     choices=["mappo", "rmappo", "ippo"])
+    # parser.add_argument("--comm_lr", type=float, default=0.0005)
+    # parser.add_argument("--comm_gamma", type=float, default=0.99)
+    # parser.add_argument("--comm_ppo_epochs", type=int, default=16)
+    # parser.add_argument("--comm_n_warmup_steps", type=int, default=100000)
+    # parser.add_argument("--comm_ppo_clip_param", type=float, default=0.2)
+    # parser.add_argument("--comm_entropy_coef", type=float, default=0.01)
+    # parser.add_argument("--comm_vloss_coef", type=float, default=0.5)
+    # parser.add_argument("--comm_max_grad_norm", type=float, default=10.0)
+    # parser.add_argument("--comm_num_mini_batch", type=int, default=2)
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
     parser.add_argument("--comm_train_topk", type=int, default=1, 
                         help="k value for top-k sampling during training.")
     # Communication evaluation
     parser.add_argument("--comm_token_penalty", type=float, default=0.1)
-    parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
+    # parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
     parser.add_argument("--comm_env_reward_coef", type=float, default=1.0)
     # Communication evaluation (context)
-    parser.add_argument("--comm_obs_dist_coef", type=float, default=0.1)
-    parser.add_argument("--comm_shared_mem_coef", type=float, default=1.0)
-    parser.add_argument("--comm_shared_mem_reward_type", type=str, 
-                        choices=["direct", "shaping"], default="direct")
+    # parser.add_argument("--comm_obs_dist_coef", type=float, default=0.1)
+    # parser.add_argument("--comm_shared_mem_coef", type=float, default=1.0)
+    # parser.add_argument("--comm_shared_mem_reward_type", type=str, 
+    #                     choices=["direct", "shaping"], default="direct")
     parser.add_argument("--comm_noreward_empty_mess", default=False, 
                         action="store_true")
 
     # Shared Memory parameters
-    parser.add_argument("--use_shared_mem", action='store_true', default=False, 
-                        help="Whether to use the shared memory, will also produce a global state of the environment at each step, in addition to the observations.")
-    parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
-    parser.add_argument("--shared_mem_n_rec_layers", type=int, default=1)
-    parser.add_argument("--shared_mem_lr", type=float, default=0.0005)
-    parser.add_argument("--shared_mem_max_buffer_size", type=int, default=1000, 
-                        help="Max number of episodes (=*ep_length steps) stored in the buffer.")
-    parser.add_argument("--shared_mem_batch_size", type=int, default=16, 
-                        help="Number of episodes (=*ep_length steps) sampled for a single training update.")
+    # parser.add_argument("--use_shared_mem", action='store_true', default=False, 
+    #                     help="Whether to use the shared memory, will also produce a global state of the environment at each step, in addition to the observations.")
+    # parser.add_argument("--shared_mem_hidden_dim", type=int, default=64)
+    # parser.add_argument("--shared_mem_n_rec_layers", type=int, default=1)
+    # parser.add_argument("--shared_mem_lr", type=float, default=0.0005)
+    # parser.add_argument("--shared_mem_max_buffer_size", type=int, default=1000, 
+    #                     help="Max number of episodes (=*ep_length steps) stored in the buffer.")
+    # parser.add_argument("--shared_mem_batch_size", type=int, default=16, 
+    #                     help="Number of episodes (=*ep_length steps) sampled for a single training update.")
 
     # MA_GYM parameters
     parser.add_argument("--magym_n_agents", type=int, default=4)

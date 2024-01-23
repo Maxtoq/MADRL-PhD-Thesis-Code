@@ -34,12 +34,10 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
-    if not cfg.use_shared_mem:
-        cfg.use_shared_mem = True
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
 
-    if cfg.do_eval:
-        eval_envs, eval_parser = make_env(cfg, cfg.n_parallel_envs)
+    # if cfg.do_eval:
+    #     eval_envs, eval_parser = make_env(cfg, cfg.n_parallel_envs)
 
     # Create model
     n_agents = envs.n_agents
@@ -92,11 +90,12 @@ def run():
             model.store_exp(rewards, dones)
 
         # Training
-        train_losses = model.train(s_i + n_steps_per_update)
-        print(train_losses)
+        train_losses = model.train(
+            s_i + n_steps_per_update,
+            comm_head_learns_rl=cfg.comm_head_learns_rl)
 
-        # # Log train data
-        # logger.log_losses(train_losses, s_i + n_steps_per_update)
+        # Log train data
+        logger.log_losses(train_losses, s_i + n_steps_per_update)
 
         # # Save
         # if s_i + n_steps_per_update - last_save_step > cfg.save_interval:

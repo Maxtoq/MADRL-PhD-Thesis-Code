@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="FT_noSM"
+experiment_name="FT_SM_testnoactivem"
 n_parallel_envs=128
 n_steps=10000000
 policy_algo="mappo"
@@ -22,15 +22,15 @@ comm_num_mini_batch=8 # default 2
 comm_token_penalty=0.05 # default 0.1
 comm_env_reward_coef=1.0 # default 1.0
 comm_obs_dist_coef=0.0 # default 0.1
-comm_shared_mem_coef=0.0 # default 1.0
+comm_shared_mem_coef=5.0 # default 1.0
 comm_shared_mem_reward_type="shaping" # default "direct"
-FT_pretrained_model_path="models/magym_PredPrey/PT_SM_EMBED/run2/model_ep.pt"
+FT_pretrained_model_path="models/magym_PredPrey/PT_SM_EMBED_testnoactivem/run1/model_ep.pt"
 FT_n_steps_fix_policy=11000000
 # lang_lr=0.0009 # default 0.0007
 # lang_n_epochs=1 # default 2
 # lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:2"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 
@@ -45,6 +45,8 @@ do
     --policy_algo ${policy_algo}\
     --ppo_epoch ${ppo_epoch}\
     --entropy_coef ${entropy_coef}\
+    --use_value_active_masks\
+    --use_policy_active_masks\
     --env_name ${env_name}\
     --episode_length ${episode_length}\
     --context_dim ${context_dim}\

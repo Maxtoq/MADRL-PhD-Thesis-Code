@@ -14,7 +14,6 @@ class LanguageGroundedMARL:
         self.context_dim = args.context_dim
         self.n_envs = args.n_parallel_envs
         self.n_warmup_steps = args.n_warmup_steps
-        self.comm_n_warmup_steps = args.comm_n_warmup_steps
         self.token_penalty = args.comm_token_penalty
         self.env_reward_coef = args.comm_env_reward_coef
         self.comm_logger = comm_logger
@@ -189,7 +188,8 @@ class LanguageGroundedMARL:
         losses = {}
 
         if train_policy:
-            losses.update(self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
+            losses.update(
+                self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
         
         # if self.comm_pol_algo != "no_comm":
         #     comm_pol_losses = self.comm_policy.train(warmup)
