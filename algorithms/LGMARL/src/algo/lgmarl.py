@@ -202,6 +202,7 @@ class LanguageGroundedMARL:
         elif self.comm_type == "no_comm":
             messages_by_env = None
             broadcasts = None
+            
         else:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
@@ -224,6 +225,8 @@ class LanguageGroundedMARL:
         losses = {}
 
         if train_policy:
+            if self.comm_type in ["no_comm", "perfect_comm"]:
+                comm_head_learns_rl = False
             losses.update(
                 self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
         
