@@ -6,8 +6,8 @@ def get_config():
         description='lmc', formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # prepare parameters
-    parser.add_argument("--policy_algo", type=str,
-                        default='mappo', choices=["mappo", "rmappo", "ippo"])
+    # parser.add_argument("--policy_algo", type=str,
+    #                     default='mappo', choices=["mappo", "rmappo", "ippo"])
 
     parser.add_argument("--experiment_name", type=str, default="TEST", help="an identifier to distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
@@ -159,8 +159,8 @@ def get_config():
 
     # Communication parameters
     parser.add_argument("--comm_type", default="language", 
-                        choices=["language", "emergent-continuous", "emergent-discrete", 
-                                 "no-comm", "perfect-comm"])
+                        choices=["language", "emergent_continuous", "emergent_discrete", 
+                                 "no_comm", "perfect_comm"])
     parser.add_argument("--comm_ec_strategy", default="sum", choices=["sum", "mean", "nn"],
                         help="When doing emergent continuous communication, strategy for transforming incoming messages into the social context.")
     # parser.add_argument("--comm_policy_type", type=str, default="perfect_comm",
