@@ -118,10 +118,13 @@ class LanguageGroundedMARL:
             shared_obs.append(
                 obs[:, ids[a_i:a_i + self.n_agents]].reshape(
                     n_envs, 1, -1))
-        shared_obs = np.concatenate(
-            (np.concatenate(shared_obs, axis=1), lang_contexts), axis=-1)
 
-        obs = np.concatenate((obs, lang_contexts), axis=-1)
+        if self.comm_type == "no_comm":
+            shared_obs = np.concatenate(shared_obs, axis=1)            
+        else:
+            shared_obs = np.concatenate(
+                (np.concatenate(shared_obs, axis=1), lang_contexts), axis=-1)
+            obs = np.concatenate((obs, lang_contexts), axis=-1)
         
         return obs, shared_obs
 
@@ -195,6 +198,10 @@ class LanguageGroundedMARL:
             # Get lang contexts
             self.lang_contexts = self.lang_learner.encode_sentences(
                 broadcasts).cpu().numpy()
+
+        elif self.comm_type == "no_comm":
+            messages_by_env = None
+            broadcasts = None
         else:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 

@@ -23,9 +23,13 @@ class ACC_MAPPO:
 
         self.device = self.train_device
 
-        obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
-        shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
-                            + self.context_dim
+        if args.comm_type == "no_comm":
+            obs_dim = get_shape_from_obs_space(obs_space[0])
+            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
+        else:
+            obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
+            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
+                                + self.context_dim
         act_dim = act_space.n
         self.policy = ACCPolicy(args, obs_dim, shared_obs_dim, act_dim)
 
