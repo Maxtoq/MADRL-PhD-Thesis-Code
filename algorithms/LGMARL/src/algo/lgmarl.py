@@ -202,7 +202,7 @@ class LanguageGroundedMARL:
         elif self.comm_type == "no_comm":
             messages_by_env = None
             broadcasts = None
-            
+
         else:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
@@ -230,16 +230,24 @@ class LanguageGroundedMARL:
             losses.update(
                 self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
         
-        # if self.comm_pol_algo != "no_comm":
-        #     comm_pol_losses = self.comm_policy.train(warmup)
-        #     for k, l in comm_pol_losses.items():
-        #         losses["comm_" + k] = l
-        
         if self.comm_type in ["perfect_comm", "language"] and train_lang:
             lang_losses = self.lang_learner.train()
             for k, l in lang_losses.items():
                 losses["lang_" + k] = l
         
         return losses
+
+    def save(self, path):
+        self.prep_rollout("cpu")
+        save_dict = {
+            "acc": self.comm_n_act_policy.get_save_dict(),
+            "lang_learner": self.lang_learner.get_save_dict()
+        }
+        torch.save(save_dict, path)
+
+    def load(self, path):
+        save_dict = torch.load(path, map_location=torch.device('cpu'))
+        self.comm_n_act_policy.load_params(save_dict["acc"])
+        self.lang_learner.load_params(save_dict["lang_learner"])
 
         

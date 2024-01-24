@@ -169,3 +169,17 @@ class ACC_MAPPO:
         losses = self.trainer.train(self.buffer, train_comm_head)
         return losses
 
+    def get_save_dict(self):
+        self.prep_rollout("cpu")
+        save_dict = {
+            "act_comm": self.policy.act_comm.state_dict(),
+            "critic": self.policy.critic.state_dict(),
+            "vnorm": self.trainer.value_normalizer.state_dict()
+        }
+        return save_dict
+
+    def load_params(self, params):
+        self.policy.act_comm.load_state_dict(params["act_comm"])
+        self.policy.critic.load_state_dict(params["critic"])
+        self.trainer.value_normalizer.load_state_dict(params["vnorm"])
+
