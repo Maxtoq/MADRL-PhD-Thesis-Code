@@ -97,10 +97,10 @@ def run():
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
 
-        # # Save
-        # if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
-        #     last_save_step = s_i + n_steps_per_update
-        #     model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
+        # Save
+        if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
+            last_save_step = s_i + n_steps_per_update
+            model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
             
     envs.close()
     # Save model and training data
