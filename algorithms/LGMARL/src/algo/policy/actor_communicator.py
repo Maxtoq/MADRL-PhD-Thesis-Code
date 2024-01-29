@@ -73,7 +73,7 @@ class ActorCommunicator(nn.Module):
         # Eval communication actions
         if eval_comm:
             comm_action_logits = self.comm_head(x)
-            comm_action_log_probs = comm_action_logits.log_probs(env_actions)
+            comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
             comm_dist_entropy = comm_action_logits.entropy().mean()
         else:
             comm_action_log_probs = None
