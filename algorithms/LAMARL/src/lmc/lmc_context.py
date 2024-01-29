@@ -131,7 +131,8 @@ class LMC:
 
     def reset_policy_buffers(self):
         self.policy.reset_buffer()
-        self.comm_policy.reset_buffer()
+        if self.comm_pol_algo != "no_comm":
+            self.comm_policy.reset_buffer()
 
     def comm_n_act(self, obs, perfect_messages=None):
         """
@@ -158,6 +159,7 @@ class LMC:
         else:
             self.lang_contexts = np.zeros(
                 (self.n_parallel_envs, self.context_dim))
+            agent_messages = []
             broadcasts = []
 
         # Log communication
@@ -300,7 +302,8 @@ class LMC:
         self.lang_learner.store(obs, parsed_obs)
 
     def store_sharedmem_inputs(self, states):
-        self.shared_mem.store(self.lang_contexts, states)
+        if self.comm_pol_algo != "no_comm":
+            self.shared_mem.store(self.lang_contexts, states)
 
     def train(self, 
             step, train_policy=True, train_lang=True, train_sharedmem=True):
@@ -318,13 +321,13 @@ class LMC:
             for k, l in comm_pol_losses.items():
                 losses["comm_" + k] = l
         
-        if self.comm_pol_algo != "no_comm" and train_lang:
-            lang_losses = self.lang_learner.train()
-            for k, l in lang_losses.items():
-                losses["lang_" + k] = l
+            if  train_lang:
+                lang_losses = self.lang_learner.train()
+                for k, l in lang_losses.items():
+                    losses["lang_" + k] = l
 
-        if self.shared_mem is not None and train_sharedmem:
-            losses["shared_mem"] = self.shared_mem.train()
+            if self.shared_mem is not None and train_sharedmem:
+                losses["shared_mem"] = self.shared_mem.train()
         
         return losses
 
