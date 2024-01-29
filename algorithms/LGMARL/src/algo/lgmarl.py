@@ -183,6 +183,9 @@ class LanguageGroundedMARL:
             elif self.comm_ec_strategy == "mean":
                 self.lang_contexts = self.comm_actions.mean(axis=1)
                 broadcasts = self.lang_contexts
+            elif self.comm_ec_strategy == "random":
+                rand_ids = np.random.randint(self.n_agents, size=self.n_envs)
+                self.lang_contexts = self.comm_actions[np.arange(self.n_envs), rand_ids]
             else:
                 raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
 

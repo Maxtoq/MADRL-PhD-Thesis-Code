@@ -159,9 +159,10 @@ def get_config():
 
     # Communication parameters
     parser.add_argument("--comm_type", default="language", 
-                        choices=["language", "emergent_continuous", "emergent_discrete", 
-                                 "no_comm", "perfect_comm"])
-    parser.add_argument("--comm_ec_strategy", default="sum", choices=["sum", "mean", "nn"],
+                        choices=["language", "emergent_continuous", "no_comm",
+                            "emergent_discrete", "perfect_comm"])
+    parser.add_argument("--comm_ec_strategy", default="sum", 
+                        choices=["sum", "mean", "random", "nn"],
                         help="When doing emergent continuous communication, strategy for transforming incoming messages into the social context.")
     # parser.add_argument("--comm_policy_type", type=str, default="perfect_comm",
     #                     choices=["context_mappo", "perfect_comm", "no_comm"])
