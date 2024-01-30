@@ -24,7 +24,7 @@ class ACC_MAPPOTrainAlgo:
 
         self.clip_param = args.clip_param
         self.ppo_epoch = args.ppo_epoch
-        self.num_mini_batch = args.num_mini_batch
+        self.n_mini_batch = args.n_mini_batch
         self.value_loss_coef = args.value_loss_coef
         self.entropy_coef = args.entropy_coef
         self.max_grad_norm = args.max_grad_norm
@@ -102,38 +102,39 @@ class ACC_MAPPOTrainAlgo:
         :return actor_grad_norm: (torch.Tensor) gradient norm from actor update.
         :return imp_weights: (torch.Tensor) importance sampling weights.
         """
-        obs_batch, shared_obs_batch, rnn_states_batch, rnn_states_critic_batch, \
-            env_actions_batch, comm_actions_batch, value_preds_batch, \
-            return_batch, masks_batch, old_env_action_log_probs_batch,\
-            old_comm_action_log_probs_batch, adv_targ = sample
+        obs_batch, shared_obs_batch, rnn_states_batch, critic_rnn_states_batch, \
+            env_actions_batch, comm_actions_batch, \
+            old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
+            value_preds_batch, returns_batch, masks_batch, advantages_batch \
+                = sample
 
         obs_batch = torch.from_numpy(obs_batch).to(self.device)
         shared_obs_batch = torch.from_numpy(shared_obs_batch).to(self.device)
         rnn_states_batch = torch.from_numpy(rnn_states_batch).to(self.device)
-        rnn_states_critic_batch = torch.from_numpy(rnn_states_critic_batch).to(
+        critic_rnn_states_batch = torch.from_numpy(critic_rnn_states_batch).to(
             self.device)
         env_actions_batch = torch.from_numpy(env_actions_batch).to(self.device)
         comm_actions_batch = torch.from_numpy(comm_actions_batch).to(self.device)
         value_preds_batch = torch.from_numpy(value_preds_batch).to(self.device)
-        return_batch = torch.from_numpy(return_batch).to(self.device)
+        returns_batch = torch.from_numpy(returns_batch).to(self.device)
         masks_batch = torch.from_numpy(masks_batch).to(self.device)
         old_env_action_log_probs_batch = torch.from_numpy(
             old_env_action_log_probs_batch).to(self.device)
         old_comm_action_log_probs_batch = torch.from_numpy(
             old_comm_action_log_probs_batch).to(self.device)
-        adv_targ = torch.from_numpy(adv_targ).to(self.device)
+        advantages_batch = torch.from_numpy(advantages_batch).to(self.device)
 
         values, env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
             comm_dist_entropy = self.policy.evaluate_actions(
                 obs_batch, shared_obs_batch, rnn_states_batch, 
-                rnn_states_critic_batch, env_actions_batch, comm_actions_batch, 
+                critic_rnn_states_batch, env_actions_batch, comm_actions_batch, 
                 masks_batch, train_comm_head)
 
         # Actor loss
         actor_loss = self._compute_policy_loss(
             env_action_log_probs, 
             old_env_action_log_probs_batch, 
-            adv_targ, 
+            advantages_batch, 
             env_dist_entropy)
 
         # Communicator loss
@@ -141,7 +142,7 @@ class ACC_MAPPOTrainAlgo:
             comm_loss = self._compute_policy_loss(
                 comm_action_log_probs, 
                 old_comm_action_log_probs_batch, 
-                adv_targ, 
+                advantages_batch, 
                 comm_dist_entropy)
         else:
             comm_loss = torch.zeros_like(actor_loss)
@@ -160,7 +161,7 @@ class ACC_MAPPOTrainAlgo:
 
         # Critic loss
         value_loss = self._compute_value_loss(
-            values, value_preds_batch, return_batch)
+            values, value_preds_batch, returns_batch)
 
         # Compute gradients
         self.policy.critic_optim.zero_grad()
@@ -200,8 +201,8 @@ class ACC_MAPPOTrainAlgo:
             losses["comm_loss"] = 0.0
 
         for _ in range(self.ppo_epoch):
-            data_generator = buffer.recurrent_generator(advantages)
-
+            data_generator = buffer.my_recurrent_generator(advantages)
+    
             for sample in data_generator:
                 value_loss, actor_loss, comm_loss = self.ppo_update(
                     sample, train_comm_head)
@@ -211,7 +212,7 @@ class ACC_MAPPOTrainAlgo:
                 if train_comm_head:
                     losses["comm_loss"] += comm_loss.item()
 
-        num_updates = self.ppo_epoch * self.num_mini_batch
+        num_updates = self.ppo_epoch * self.n_mini_batch
         for k in losses.keys():
             losses[k] /= num_updates
  

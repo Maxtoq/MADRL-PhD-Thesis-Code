@@ -20,6 +20,7 @@ class ACC_MAPPO:
         self.recurrent_N = args.policy_recurrent_N
         self.hidden_dim = args.hidden_dim
         self.lr = args.lr
+        self.share_params = args.share_params
 
         self.device = self.train_device
 
@@ -31,7 +32,12 @@ class ACC_MAPPO:
             shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
                                 + self.context_dim
         act_dim = act_space.n
-        self.policy = ACCPolicy(args, obs_dim, shared_obs_dim, act_dim)
+        if self.share_params:
+            self.policy = ACCPolicy(args, obs_dim, shared_obs_dim, act_dim)
+        else:
+            self.policy = [
+                ACCPolicy(args, obs_dim, shared_obs_dim, act_dim)
+                for a_i in range(self.n_agents)]
 
         self.trainer = ACC_MAPPOTrainAlgo(args, self.policy, device)
 
