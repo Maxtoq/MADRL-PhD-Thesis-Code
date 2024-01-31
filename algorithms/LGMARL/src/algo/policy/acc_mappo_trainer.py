@@ -13,13 +13,12 @@ from .valuenorm import ValueNorm
 class ACC_MAPPOTrainAlgo:
     """
     Trainer class for MAPPO to update policies.
-    :param args: (dict) arguments containing relevant model, 
-        policy, and env information.
-    :param policy: (R_MAPPO_Policy) policy to update.
+    :param args: (dict) training arguments.
+    :param agents: (ACC_Agent) policy to update.
     :param device: (torch.device) specifies the device to run on (cpu/gpu).
     """
-    def __init__(self, args, policy, device=torch.device("cpu")):
-        self.policy = policy
+    def __init__(self, args, agents, device=torch.device("cpu")):
+        self.agents = agents
         self.device = device
 
         self.clip_param = args.clip_param
@@ -29,6 +28,7 @@ class ACC_MAPPOTrainAlgo:
         self.entropy_coef = args.entropy_coef
         self.max_grad_norm = args.max_grad_norm
         self.huber_delta = args.huber_delta
+        self.share_params = args.share_params
 
         # self._use_recurrent_policy = args["use_recurrent_policy"] TRUE
         # self._use_naive_recurrent = args["use_naive_recurrent_policy"] FALSE
@@ -89,7 +89,7 @@ class ACC_MAPPOTrainAlgo:
 
         return value_loss
 
-    def ppo_update(self, sample, train_comm_head=True):
+    def ppo_update(self, policy, sample, train_comm_head=True):
         """
         Update actor and critic networks.
         :param sample: (Tuple) contains data batch with which to update networks.
@@ -125,7 +125,7 @@ class ACC_MAPPOTrainAlgo:
         advantages_batch = torch.from_numpy(advantages_batch).to(self.device)
 
         values, env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
-            comm_dist_entropy = self.policy.evaluate_actions(
+            comm_dist_entropy = policy.evaluate_actions(
                 obs_batch, shared_obs_batch, rnn_states_batch, 
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, 
                 masks_batch, train_comm_head)
@@ -148,31 +148,31 @@ class ACC_MAPPOTrainAlgo:
             comm_loss = torch.zeros_like(actor_loss)
 
         # Compute gradients
-        self.policy.act_comm_optim.zero_grad()
+        policy.act_comm_optim.zero_grad()
         act_comm_loss = actor_loss + comm_loss
         act_comm_loss.backward()
 
         # Clip gradients
         actor_grad_norm = nn.utils.clip_grad_norm_(
-            self.policy.act_comm.parameters(), self.max_grad_norm)
+            policy.act_comm.parameters(), self.max_grad_norm)
 
         # Actor-Communicator update
-        self.policy.act_comm_optim.step()
+        policy.act_comm_optim.step()
 
         # Critic loss
         value_loss = self._compute_value_loss(
             values, value_preds_batch, returns_batch)
 
         # Compute gradients
-        self.policy.critic_optim.zero_grad()
+        policy.critic_optim.zero_grad()
         (value_loss * self.value_loss_coef).backward()
 
         # Clip gradients
         critic_grad_norm = nn.utils.clip_grad_norm_(
-            self.policy.critic.parameters(), self.max_grad_norm)
+            policy.critic.parameters(), self.max_grad_norm)
 
         # Critic update
-        self.policy.critic_optim.step()
+        policy.critic_optim.step()
 
         return value_loss, actor_loss, comm_loss
 
@@ -204,13 +204,20 @@ class ACC_MAPPOTrainAlgo:
             data_generator = buffer.my_recurrent_generator(advantages)
     
             for sample in data_generator:
-                value_loss, actor_loss, comm_loss = self.ppo_update(
-                    sample, train_comm_head)
+                if self.share_params:
+                    value_loss, actor_loss, comm_loss = self.ppo_update(
+                        self.agents[0], sample, train_comm_head)
 
-                losses["value_loss"] += value_loss.item()
-                losses["actor_loss"] += actor_loss.item()
-                if train_comm_head:
-                    losses["comm_loss"] += comm_loss.item()
+                    losses["value_loss"] += value_loss.item()
+                    losses["actor_loss"] += actor_loss.item()
+                    if train_comm_head:
+                        losses["comm_loss"] += comm_loss.item()
+                else:
+                    for a_i in range(len(self.agents)):
+                        sample_i = tuple([batch[:, i] for batch in sample])
+                        print(sample_i)
+                        print(sample_i[0].shape)
+                        exit()
 
         num_updates = self.ppo_epoch * self.n_mini_batch
         for k in losses.keys():

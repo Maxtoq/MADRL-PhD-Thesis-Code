@@ -318,6 +318,28 @@ class ACC_ReplayBuffer:
                 critic_rnn_states_batch = critic_rnn_states_batch.reshape(
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
 
+            else:
+                obs_batch = obs_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                shared_obs_batch = shared_obs_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                env_actions_batch = env_actions_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                comm_actions_batch = comm_actions_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                env_action_log_probs_batch = env_action_log_probs_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                value_preds_batch = value_preds_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                returns_batch = returns_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                masks_batch = masks_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                advantages_batch = advantages_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents, -1)                
+
             yield obs_batch, shared_obs_batch, rnn_states_batch, \
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
                 env_action_log_probs_batch, comm_action_log_probs_batch, \

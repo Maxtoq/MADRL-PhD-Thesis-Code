@@ -6,10 +6,10 @@ from .critic import Critic
 from .utils import update_linear_schedule, update_lr
 
 
-class ACCPolicy(nn.Module):
+class ACC_Agent(nn.Module):
 
     def __init__(self, args, obs_dim, shared_obs_dim, act_dim):
-        super(ACCPolicy, self).__init__()
+        super(ACC_Agent, self).__init__()
         self.lr = args.lr
         self.warming_up = False
 

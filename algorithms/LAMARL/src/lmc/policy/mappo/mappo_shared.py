@@ -143,7 +143,7 @@ class MAPPO:
     def compute_last_value(self):
         next_value = self.trainer.policy.get_values(
             np.concatenate(self.buffer.shared_obs[-1]),
-            np.concatenate(self.buffer.rnn_states[-1]),
+            np.concatenate(self.buffer.rnn_states_critic[-1]),
             np.concatenate(self.buffer.masks[-1]))
         
         next_value = np.reshape(
