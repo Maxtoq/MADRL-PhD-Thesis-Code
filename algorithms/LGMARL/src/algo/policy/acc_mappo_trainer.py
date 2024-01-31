@@ -194,11 +194,18 @@ class ACC_MAPPOTrainAlgo:
         std_advantages = np.nanstd(advantages_copy)
         advantages = (advantages - mean_advantages) / (std_advantages + 1e-5)
         
+
         losses = {
             "value_loss": 0.0,
             "actor_loss": 0.0}
         if train_comm_head:
             losses["comm_loss"] = 0.0
+        if not self.share_params:
+            for a_i in range(len(self.agents) - 1):
+                losses["value_loss_" + str(a_i + 1)] = 0.0
+                losses["actor_loss_" + str(a_i + 1)] = 0.0
+                if train_comm_head:
+                    losses["comm_loss_" + str(a_i + 1)] = 0.0
 
         for _ in range(self.ppo_epoch):
             data_generator = buffer.my_recurrent_generator(advantages)
@@ -214,10 +221,16 @@ class ACC_MAPPOTrainAlgo:
                         losses["comm_loss"] += comm_loss.item()
                 else:
                     for a_i in range(len(self.agents)):
-                        sample_i = tuple([batch[:, i] for batch in sample])
-                        print(sample_i)
-                        print(sample_i[0].shape)
-                        exit()
+                        sample_i = tuple([batch[:, a_i] for batch in sample])
+
+                        value_loss, actor_loss, comm_loss = self.ppo_update(
+                            self.agents[a_i], sample_i, train_comm_head)
+
+                        a_name = "_" + str(a_i) if a_i > 0 else ""
+                        losses["value_loss" + a_name] += value_loss.item()
+                        losses["actor_loss" + a_name] += actor_loss.item()
+                        if train_comm_head:
+                            losses["comm_loss" + a_name] += comm_loss.item()
 
         num_updates = self.ppo_epoch * self.n_mini_batch
         for k in losses.keys():
