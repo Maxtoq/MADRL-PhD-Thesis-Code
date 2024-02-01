@@ -148,120 +148,120 @@ class ACC_ReplayBuffer:
             self.returns[step] = gae + value_normalizer.denormalize(
                 self.value_preds[step])
 
-    def recurrent_generator(self, advantages):
-        """
-        Yield training data for chunked RNN training.
-        :param advantages: (np.ndarray) advantage estimates.
-        """
-        episode_length, n_rollout_threads, num_agents = self.rewards.shape[0:3]
-        batch_size = n_rollout_threads * episode_length * num_agents
-        n_data_chunks = batch_size // self.data_chunk_length  # [C=r*T*M/L]
-        mini_batch_size = n_data_chunks // self.n_mini_batch
+    # def recurrent_generator(self, advantages):
+    #     """
+    #     Yield training data for chunked RNN training.
+    #     :param advantages: (np.ndarray) advantage estimates.
+    #     """
+    #     episode_length, n_rollout_threads, num_agents = self.rewards.shape[0:3]
+    #     batch_size = n_rollout_threads * episode_length * num_agents
+    #     n_data_chunks = batch_size // self.data_chunk_length  # [C=r*T*M/L]
+    #     mini_batch_size = n_data_chunks // self.n_mini_batch
 
-        rand = torch.randperm(n_data_chunks).numpy()
-        sampler = [rand[i * mini_batch_size:(i + 1) * mini_batch_size] 
-                    for i in range(self.n_mini_batch)]
+    #     rand = torch.randperm(n_data_chunks).numpy()
+    #     sampler = [rand[i * mini_batch_size:(i + 1) * mini_batch_size] 
+    #                 for i in range(self.n_mini_batch)]
 
-        if len(self.shared_obs.shape) > 4:
-            shared_obs = self.shared_obs[:-1].transpose(
-                1, 2, 0, 3, 4, 5).reshape(-1, *self.shared_obs.shape[3:])
-            obs = self.obs[:-1].transpose(
-                1, 2, 0, 3, 4, 5).reshape(-1, *self.obs.shape[3:])
-        else:
-            shared_obs = _cast(self.shared_obs[:-1])
-            obs = _cast(self.obs[:-1])
+    #     if len(self.shared_obs.shape) > 4:
+    #         shared_obs = self.shared_obs[:-1].transpose(
+    #             1, 2, 0, 3, 4, 5).reshape(-1, *self.shared_obs.shape[3:])
+    #         obs = self.obs[:-1].transpose(
+    #             1, 2, 0, 3, 4, 5).reshape(-1, *self.obs.shape[3:])
+    #     else:
+    #         shared_obs = _cast(self.shared_obs[:-1])
+    #         obs = _cast(self.obs[:-1])
 
-        env_actions = _cast(self.env_actions)
-        env_action_log_probs = _cast(self.env_action_log_probs)
-        comm_actions = _cast(self.comm_actions)
-        comm_action_log_probs = _cast(self.comm_action_log_probs)
-        advantages = _cast(advantages)
-        value_preds = _cast(self.value_preds[:-1])
-        returns = _cast(self.returns[:-1])
-        masks = _cast(self.masks[:-1])
-        rnn_states = self.rnn_states[:-1].transpose(
-            1, 2, 0, 3, 4).reshape(-1, *self.rnn_states.shape[3:])
-        critic_rnn_states = self.critic_rnn_states[:-1].transpose(
-            1, 2, 0, 3, 4).reshape(-1, *self.critic_rnn_states.shape[3:])
+    #     env_actions = _cast(self.env_actions)
+    #     env_action_log_probs = _cast(self.env_action_log_probs)
+    #     comm_actions = _cast(self.comm_actions)
+    #     comm_action_log_probs = _cast(self.comm_action_log_probs)
+    #     advantages = _cast(advantages)
+    #     value_preds = _cast(self.value_preds[:-1])
+    #     returns = _cast(self.returns[:-1])
+    #     masks = _cast(self.masks[:-1])
+    #     rnn_states = self.rnn_states[:-1].transpose(
+    #         1, 2, 0, 3, 4).reshape(-1, *self.rnn_states.shape[3:])
+    #     critic_rnn_states = self.critic_rnn_states[:-1].transpose(
+    #         1, 2, 0, 3, 4).reshape(-1, *self.critic_rnn_states.shape[3:])
 
-        for indices in sampler:
-            obs_batch = []
-            shared_obs_batch = []
-            rnn_states_batch = []
-            critic_rnn_states_batch = []
-            env_actions_batch = []
-            comm_actions_batch = []
-            value_preds_batch = []
-            return_batch = []
-            masks_batch = []
-            old_env_action_log_probs_batch = []
-            old_comm_action_log_probs_batch = []
-            adv_targ = []
+    #     for indices in sampler:
+    #         obs_batch = []
+    #         shared_obs_batch = []
+    #         rnn_states_batch = []
+    #         critic_rnn_states_batch = []
+    #         env_actions_batch = []
+    #         comm_actions_batch = []
+    #         value_preds_batch = []
+    #         return_batch = []
+    #         masks_batch = []
+    #         old_env_action_log_probs_batch = []
+    #         old_comm_action_log_probs_batch = []
+    #         adv_targ = []
 
-            for index in indices:
+    #         for index in indices:
 
-                ind = index * self.data_chunk_length
-                # size [T+1 N M Dim]-->[T N M Dim]-->[N,M,T,Dim]-->[N*M*T,Dim]-->[L,Dim]
-                obs_batch.append(obs[ind:ind + self.data_chunk_length])
-                shared_obs_batch.append(
-                    shared_obs[ind:ind + self.data_chunk_length])
-                env_actions_batch.append(
-                    env_actions[ind:ind + self.data_chunk_length])
-                comm_actions_batch.append(
-                    comm_actions[ind:ind + self.data_chunk_length])
-                value_preds_batch.append(
-                    value_preds[ind:ind + self.data_chunk_length])
-                return_batch.append(returns[ind:ind + self.data_chunk_length])
-                masks_batch.append(masks[ind:ind + self.data_chunk_length])
-                old_env_action_log_probs_batch.append(
-                    env_action_log_probs[ind:ind + self.data_chunk_length])
-                old_comm_action_log_probs_batch.append(
-                    comm_action_log_probs[ind:ind + self.data_chunk_length])
-                adv_targ.append(advantages[ind:ind + self.data_chunk_length])
-                # size [T+1 N M Dim]-->[T N M Dim]-->[N M T Dim]-->[N*M*T,Dim]-->[1,Dim]
-                rnn_states_batch.append(rnn_states[ind])
-                critic_rnn_states_batch.append(critic_rnn_states[ind])
+    #             ind = index * self.data_chunk_length
+    #             # size [T+1 N M Dim]-->[T N M Dim]-->[N,M,T,Dim]-->[N*M*T,Dim]-->[L,Dim]
+    #             obs_batch.append(obs[ind:ind + self.data_chunk_length])
+    #             shared_obs_batch.append(
+    #                 shared_obs[ind:ind + self.data_chunk_length])
+    #             env_actions_batch.append(
+    #                 env_actions[ind:ind + self.data_chunk_length])
+    #             comm_actions_batch.append(
+    #                 comm_actions[ind:ind + self.data_chunk_length])
+    #             value_preds_batch.append(
+    #                 value_preds[ind:ind + self.data_chunk_length])
+    #             return_batch.append(returns[ind:ind + self.data_chunk_length])
+    #             masks_batch.append(masks[ind:ind + self.data_chunk_length])
+    #             old_env_action_log_probs_batch.append(
+    #                 env_action_log_probs[ind:ind + self.data_chunk_length])
+    #             old_comm_action_log_probs_batch.append(
+    #                 comm_action_log_probs[ind:ind + self.data_chunk_length])
+    #             adv_targ.append(advantages[ind:ind + self.data_chunk_length])
+    #             # size [T+1 N M Dim]-->[T N M Dim]-->[N M T Dim]-->[N*M*T,Dim]-->[1,Dim]
+    #             rnn_states_batch.append(rnn_states[ind])
+    #             critic_rnn_states_batch.append(critic_rnn_states[ind])
 
-            L, N = self.data_chunk_length, mini_batch_size
+    #         L, N = self.data_chunk_length, mini_batch_size
 
-            # These are all from_numpys of size (L, N, Dim)
-            obs_batch = np.stack(obs_batch, axis=1)
-            shared_obs_batch = np.stack(shared_obs_batch, axis=1)
-            env_actions_batch = np.stack(env_actions_batch, axis=1)
-            comm_actions_batch = np.stack(comm_actions_batch, axis=1)
-            value_preds_batch = np.stack(value_preds_batch, axis=1)
-            return_batch = np.stack(return_batch, axis=1)
-            masks_batch = np.stack(masks_batch, axis=1)
-            old_env_action_log_probs_batch = np.stack(
-                old_env_action_log_probs_batch, axis=1)
-            old_comm_action_log_probs_batch = np.stack(
-                old_comm_action_log_probs_batch, axis=1)
-            adv_targ = np.stack(adv_targ, axis=1)
+    #         # These are all from_numpys of size (L, N, Dim)
+    #         obs_batch = np.stack(obs_batch, axis=1)
+    #         shared_obs_batch = np.stack(shared_obs_batch, axis=1)
+    #         env_actions_batch = np.stack(env_actions_batch, axis=1)
+    #         comm_actions_batch = np.stack(comm_actions_batch, axis=1)
+    #         value_preds_batch = np.stack(value_preds_batch, axis=1)
+    #         return_batch = np.stack(return_batch, axis=1)
+    #         masks_batch = np.stack(masks_batch, axis=1)
+    #         old_env_action_log_probs_batch = np.stack(
+    #             old_env_action_log_probs_batch, axis=1)
+    #         old_comm_action_log_probs_batch = np.stack(
+    #             old_comm_action_log_probs_batch, axis=1)
+    #         adv_targ = np.stack(adv_targ, axis=1)
 
-            # States is just a (N, -1) from_numpy
-            rnn_states_batch = np.stack(rnn_states_batch).reshape(
-                N, *self.rnn_states.shape[3:])
-            critic_rnn_states_batch = np.stack(critic_rnn_states_batch).reshape(
-                    N, *self.critic_rnn_states.shape[3:])
+    #         # States is just a (N, -1) from_numpy
+    #         rnn_states_batch = np.stack(rnn_states_batch).reshape(
+    #             N, *self.rnn_states.shape[3:])
+    #         critic_rnn_states_batch = np.stack(critic_rnn_states_batch).reshape(
+    #                 N, *self.critic_rnn_states.shape[3:])
 
-            # Flatten the (L, N, ...) from_numpys to (L * N, ...)
-            obs_batch = _flatten(L, N, obs_batch)
-            shared_obs_batch = _flatten(L, N, shared_obs_batch)
-            env_actions_batch = _flatten(L, N, env_actions_batch)
-            comm_actions_batch = _flatten(L, N, comm_actions_batch)
-            value_preds_batch = _flatten(L, N, value_preds_batch)
-            return_batch = _flatten(L, N, return_batch)
-            masks_batch = _flatten(L, N, masks_batch)
-            old_env_action_log_probs_batch = _flatten(
-                L, N, old_env_action_log_probs_batch)
-            old_comm_action_log_probs_batch = _flatten(
-                L, N, old_comm_action_log_probs_batch)
-            adv_targ = _flatten(L, N, adv_targ)
+    #         # Flatten the (L, N, ...) from_numpys to (L * N, ...)
+    #         obs_batch = _flatten(L, N, obs_batch)
+    #         shared_obs_batch = _flatten(L, N, shared_obs_batch)
+    #         env_actions_batch = _flatten(L, N, env_actions_batch)
+    #         comm_actions_batch = _flatten(L, N, comm_actions_batch)
+    #         value_preds_batch = _flatten(L, N, value_preds_batch)
+    #         return_batch = _flatten(L, N, return_batch)
+    #         masks_batch = _flatten(L, N, masks_batch)
+    #         old_env_action_log_probs_batch = _flatten(
+    #             L, N, old_env_action_log_probs_batch)
+    #         old_comm_action_log_probs_batch = _flatten(
+    #             L, N, old_comm_action_log_probs_batch)
+    #         adv_targ = _flatten(L, N, adv_targ)
 
-            yield obs_batch, shared_obs_batch, rnn_states_batch, critic_rnn_states_batch, \
-                  env_actions_batch, comm_actions_batch, value_preds_batch, \
-                  return_batch, masks_batch, old_env_action_log_probs_batch,\
-                  old_comm_action_log_probs_batch, adv_targ
+    #         yield obs_batch, shared_obs_batch, rnn_states_batch, critic_rnn_states_batch, \
+    #               env_actions_batch, comm_actions_batch, value_preds_batch, \
+    #               return_batch, masks_batch, old_env_action_log_probs_batch,\
+    #               old_comm_action_log_probs_batch, adv_targ
 
     def my_recurrent_generator(self, advantages):
         # Shuffled env ids

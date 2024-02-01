@@ -95,7 +95,7 @@ class PredatorPrey_Parser():
         pos = agent_obs[:2]
         prey_map = np.array(agent_obs[2:]).reshape((5, 5))
 
-        d = (np.arange(5) - 2) / self.env_size
+        d = (np.arange(5) - 2) / (self.env_size - 1)
         rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
         abs_prey_pos = pos + rel_prey_pos
 

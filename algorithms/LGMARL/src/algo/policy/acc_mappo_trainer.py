@@ -194,7 +194,6 @@ class ACC_MAPPOTrainAlgo:
         std_advantages = np.nanstd(advantages_copy)
         advantages = (advantages - mean_advantages) / (std_advantages + 1e-5)
         
-
         losses = {
             "value_loss": 0.0,
             "actor_loss": 0.0}
