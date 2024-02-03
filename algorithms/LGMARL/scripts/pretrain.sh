@@ -1,20 +1,20 @@
 #!/bin/sh
 n_run=1
-experiment_name="ACC_pt_emerg-cont-rand_8x8"
+experiment_name="ACC_NO-SHAREDOBS-AUGMENT_8x8_pt_perfect_comm"
 n_parallel_envs=128
-n_steps=10000000
+n_steps=2000000
 ppo_epoch=15 # default 15
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_type="emergent_continuous" # default language
-comm_ec_strategy="random" # default sum
+comm_type="perfect_comm" # default language
+comm_ec_strategy="mean" # default sum
 context_dim=16 # default 16
 lang_lr=0.0009 # default 0.0007
 lang_n_epochs=1 # default 2
 lang_batch_size=128 # default 128
 magym_env_size=8
-cuda_device="cuda:2"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 

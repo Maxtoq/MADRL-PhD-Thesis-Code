@@ -92,27 +92,28 @@ class Logger():
                 self.log_tb.add_scalars('agent0/losses', losses, step)
 
     def log_losses(self, losses, step):
-        if self.log_tensorboard:
-            if type(losses) is dict:
-                pass
-            elif type(losses) is tuple:
-                pol_losses, lang_losses = losses
-                losses = {
-                    "value_loss": np.mean(
-                        [a_l["value_loss"] for a_l in pol_losses]),
-                    "policy_loss": np.mean(
-                        [a_l["policy_loss"] for a_l in pol_losses]),
-                    "clip_loss": lang_losses[0], 
-                    "capt_loss": lang_losses[1], 
-                    "mean_sim": lang_losses[2]}
-            else:
-                losses = {
-                    "value_loss": np.mean(
-                        [a_l["value_loss"] for a_l in losses]),
-                    "policy_loss": np.mean(
-                        [a_l["policy_loss"] for a_l in losses])}
-            self.log_tb.add_scalars(
-                'agent0/losses', losses, step)
+        pass
+        # if self.log_tensorboard:
+        #     if type(losses) is dict:
+        #         pass
+        #     elif type(losses) is tuple:
+        #         pol_losses, lang_losses = losses
+        #         losses = {
+        #             "value_loss": np.mean(
+        #                 [a_l["value_loss"] for a_l in pol_losses]),
+        #             "policy_loss": np.mean(
+        #                 [a_l["policy_loss"] for a_l in pol_losses]),
+        #             "clip_loss": lang_losses[0], 
+        #             "capt_loss": lang_losses[1], 
+        #             "mean_sim": lang_losses[2]}
+        #     else:
+        #         losses = {
+        #             "value_loss": np.mean(
+        #                 [a_l["value_loss"] for a_l in losses]),
+        #             "policy_loss": np.mean(
+        #                 [a_l["policy_loss"] for a_l in losses])}
+        #     self.log_tb.add_scalars(
+        #         'agent0/losses', losses, step)
 
     def log_eval(self, step, mean_return, success_rate, mean_ep_len):
         self.eval_data["Step"].append(step)

@@ -106,24 +106,25 @@ class LanguageGroundedMARL:
         :param obs: (np.ndarray) Local observations, dim=(n_envs, 
             n_agents, obs_dim).
         """
-        n_envs = obs.shape[0]
         lang_contexts = self.lang_contexts.reshape(
-            n_envs, 1, self.context_dim).repeat(
+            self.n_envs, 1, self.context_dim).repeat(
                 self.n_agents, axis=1)
 
         # Make all possible shared observations
-        shared_obs = []
-        ids = list(range(self.n_agents)) * 2
-        for a_i in range(self.n_agents):
-            shared_obs.append(
-                obs[:, ids[a_i:a_i + self.n_agents]].reshape(
-                    n_envs, 1, -1))
-
-        if self.comm_type == "no_comm":
-            shared_obs = np.concatenate(shared_obs, axis=1)            
-        else:
+        # shared_obs = []
+        # ids = list(range(self.n_agents)) * 2
+        # for a_i in range(self.n_agents):
+        #     shared_obs.append(
+        #         obs[:, ids[a_i:a_i + self.n_agents]].reshape(
+        #             n_envs, 1, -1))
+        
+        shared_obs = obs.reshape(self.n_envs, -1).repeat(4, 0).reshape(
+            self.n_envs, self.n_agents, -1)
+        
+            # shared_obs = np.concatenate(shared_obs, axis=1)
+        if self.comm_type != "no_comm":
             shared_obs = np.concatenate(
-                (np.concatenate(shared_obs, axis=1), lang_contexts), axis=-1)
+                (shared_obs, lang_contexts), axis=-1)
             obs = np.concatenate((obs, lang_contexts), axis=-1)
         
         return obs, shared_obs

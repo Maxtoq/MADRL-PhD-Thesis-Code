@@ -133,7 +133,7 @@ class MAPPO:
                 np.array(list(obs[:, a_i])).copy(),
                 shared_obs.copy())
 
-    def store_act(self, rewards, dones, infos, values, actions, 
+    def store_act(self, rewards, dones, values, actions, 
             action_log_probs, rnn_states, rnn_states_critic):
         rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), 

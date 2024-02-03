@@ -8,7 +8,7 @@ from .modules.lang_learner import LanguageLearner
 from .modules.comm_policy_context import CommPol_Context
 from .modules.comm_policy_perfect import PerfectComm
 from .modules.shared_mem import SharedMemory
-from .policy.mappo.mappo_shared import MAPPO
+from .policy.mappo.mappo_separated import MAPPO
 from .policy.mappo.utils import get_shape_from_obs_space
 from .utils import get_mappo_args
 
@@ -116,14 +116,17 @@ class LMC:
                 self.n_agents, axis=1)
 
         # Make all possible shared observations
-        shared_obs = []
-        ids = list(range(self.n_agents)) * 2
-        for a_i in range(self.n_agents):
-            shared_obs.append(
-                obs[:, ids[a_i:a_i + self.n_agents]].reshape(
-                    n_parallel_envs, 1, -1))
+        # shared_obs = []
+        # ids = list(range(self.n_agents)) * 2
+        # for a_i in range(self.n_agents):
+        #     shared_obs.append(
+        #         obs[:, ids[a_i:a_i + self.n_agents]].reshape(
+        #             n_parallel_envs, 1, -1))
+        # shared_obs = np.concatenate(
+        #     (np.concatenate(shared_obs, axis=1), lang_contexts), axis=-1)
         shared_obs = np.concatenate(
-            (np.concatenate(shared_obs, axis=1), lang_contexts), axis=-1)
+            (obs.reshape(n_parallel_envs, -1), self.lang_contexts), 
+            axis=-1)
 
         obs = np.concatenate((obs, lang_contexts), axis=-1)
         
@@ -176,7 +179,7 @@ class LMC:
 
         # Get actions
         self.values, self.actions, self.action_log_probs, self.rnn_states, \
-            self.rnn_states_critic = self.policy.get_actions()
+            self.critic_rnn_states = self.policy.get_actions()
 
         return self.actions, broadcasts, agent_messages
 
@@ -293,7 +296,7 @@ class LMC:
             self.actions, 
             self.action_log_probs, 
             self.rnn_states, 
-            self.rnn_states_critic)
+            self.critic_rnn_states)
 
     def store_language_inputs(self, obs, parsed_obs):
         obs = obs.reshape(-1, obs.shape[-1])
