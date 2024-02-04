@@ -43,6 +43,8 @@ class Logger():
         if self.log_tensorboard:
             self.log_tb = SummaryWriter(str(self.log_dir_path))
 
+        self.n_step_done = 0
+
     def reset_all(self):
         self.returns = np.zeros(self.n_parrallel_envs)
         self.success = [False] * self.n_parrallel_envs
@@ -53,8 +55,8 @@ class Logger():
         self.success[env_i] = False
         self.ep_lengths[env_i] = 0.0
 
-    def _store_episode(self, env_i, step):
-        self.train_data["Step"].append(step)
+    def _store_episode(self, env_i):
+        self.train_data["Step"].append(self.n_step_done)
         self.train_data["Episode return"].append(self.returns[env_i])
         self.train_data["Success"].append(self.success[env_i])
         self.train_data["Episode length"].append(self.ep_lengths[env_i])
@@ -76,8 +78,9 @@ class Logger():
                 if self.ep_lengths[e_i] < self.max_ep_length:
                     self.success[e_i] = True
                 # TODO: fix ça en mettant step dans la classe pour garder un vrai compte du nombre de steps terminées
-                step += self.ep_lengths[e_i]
-                self._store_episode(e_i, step)
+                self.n_step_done += self.ep_lengths[e_i]
+                print(self.n_step_done, self.ep_lengths[e_i])
+                self._store_episode(e_i)
                 self._reset_env(e_i)
 
     def log_comm(self, step, comm_rewards, losses=None):
