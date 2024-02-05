@@ -79,7 +79,6 @@ class Logger():
                     self.success[e_i] = True
                 # TODO: fix ça en mettant step dans la classe pour garder un vrai compte du nombre de steps terminées
                 self.n_step_done += self.ep_lengths[e_i]
-                print(self.n_step_done, self.ep_lengths[e_i])
                 self._store_episode(e_i)
                 self._reset_env(e_i)
 
