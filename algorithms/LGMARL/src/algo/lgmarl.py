@@ -132,7 +132,7 @@ class LanguageGroundedMARL:
         #         obs[:, ids[a_i:a_i + self.n_agents]].reshape(
         #             n_envs, 1, -1))
 
-        if self.enc_obs:
+        if self.enc_obs and self.comm_type in ["perfect_comm", "language"]:
             obs = torch.from_numpy(obs).reshape(
                     self.n_envs * self.n_agents, -1).to(
                         self.device, dtype=torch.float32)
