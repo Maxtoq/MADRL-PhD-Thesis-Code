@@ -92,15 +92,13 @@ class ACC_MAPPOTrainAlgo:
     def ppo_update(self, policy, sample, train_comm_head=True):
         """
         Update actor and critic networks.
+        :param policy: (ACC_Agent) agent policy to update.
         :param sample: (Tuple) contains data batch with which to update networks.
         :param train_comm_head: (bool) whether to train the communicator head.
 
         :return value_loss: (torch.Tensor) value function loss.
-        :return critic_grad_norm: (torch.Tensor) gradient norm from critic up9date.
-        ;return policy_loss: (torch.Tensor) actor(policy) loss value.
-        :return dist_entropy: (torch.Tensor) action entropies.
-        :return actor_grad_norm: (torch.Tensor) gradient norm from actor update.
-        :return imp_weights: (torch.Tensor) importance sampling weights.
+        :return policy_loss: (torch.Tensor) actor loss value.
+        :return comm_loss: (torch.Tensor) communicator loss value.
         """
         obs_batch, shared_obs_batch, rnn_states_batch, critic_rnn_states_batch, \
             env_actions_batch, comm_actions_batch, \

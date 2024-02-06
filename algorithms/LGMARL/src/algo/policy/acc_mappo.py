@@ -4,13 +4,13 @@ import numpy as np
 from .acc_agent import ACC_Agent
 from .acc_mappo_trainer import ACC_MAPPOTrainAlgo
 from .buffer import ACC_ReplayBuffer
-from .utils import get_shape_from_obs_space, torch2numpy
+from .utils import torch2numpy
 
 
 class ACC_MAPPO:
 
-    def __init__(self, args, lang_learner, n_agents, obs_space, 
-                 shared_obs_space, act_space, device):
+    def __init__(self, args, lang_learner, n_agents, obs_dim, 
+                 shared_obs_dim, act_dim, device):
         self.args = args
         self.lang_learner = lang_learner
         self.n_agents = n_agents
@@ -24,14 +24,6 @@ class ACC_MAPPO:
 
         self.device = self.train_device
 
-        if args.comm_type == "no_comm":
-            obs_dim = get_shape_from_obs_space(obs_space[0])
-            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
-        else:
-            obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
-            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
-                                + self.context_dim
-        act_dim = act_space.n
         if self.share_params:
             self.agents = [ACC_Agent(args, obs_dim, shared_obs_dim, act_dim)]
         else:

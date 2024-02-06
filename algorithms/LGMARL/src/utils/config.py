@@ -151,6 +151,8 @@ def get_config():
     parser.add_argument("--context_dim", type=int, default=16)
     parser.add_argument("--comm_head_learns_rl", default=True, 
                         action="store_false")
+    parser.add_argument("--enc_obs", default=False, action="store_true",
+                        help="Whether we use the observation encoder as input of the policy.")
 
     # Language Learning parameters
     parser.add_argument("--lang_hidden_dim", type=int, default=32)

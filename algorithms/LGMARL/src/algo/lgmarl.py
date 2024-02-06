@@ -3,6 +3,7 @@ import numpy as np
 
 from .language.lang_learner import LanguageLearner
 from .policy.acc_mappo import ACC_MAPPO
+from .policy.utils import get_shape_from_obs_space, torch2numpy
 
 
 class LanguageGroundedMARL:
@@ -18,8 +19,21 @@ class LanguageGroundedMARL:
         self.env_reward_coef = args.comm_env_reward_coef
         self.comm_type = args.comm_type
         self.comm_ec_strategy = args.comm_ec_strategy
+        self.enc_obs = args.enc_obs
         self.comm_logger = comm_logger
         self.device = device
+
+        if args.comm_type == "no_comm":
+            obs_dim = get_shape_from_obs_space(obs_space[0])
+            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
+        elif self.enc_obs:
+            obs_dim = self.context_dim * 2
+            shared_obs_dim = self.context_dim * (self.n_agents + 1)
+        else:
+            obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
+            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
+                                + self.context_dim
+        act_dim = act_space[0].n
 
         # Modules
         self.lang_learner = LanguageLearner(
@@ -36,9 +50,9 @@ class LanguageGroundedMARL:
             args, 
             self.lang_learner, 
             n_agents, 
-            obs_space, 
-            shared_obs_space, 
-            act_space[0], 
+            obs_dim, 
+            shared_obs_dim, 
+            act_dim, 
             device)
 
         # Language context, to carry to next steps
@@ -117,6 +131,13 @@ class LanguageGroundedMARL:
         #     shared_obs.append(
         #         obs[:, ids[a_i:a_i + self.n_agents]].reshape(
         #             n_envs, 1, -1))
+
+        if self.enc_obs:
+            obs = torch.from_numpy(obs).reshape(
+                    self.n_envs * self.n_agents, -1).to(
+                        self.device, dtype=torch.float32)
+            obs = self.lang_learner.encode_observations(obs)
+            obs = torch2numpy(obs.reshape(self.n_envs, self.n_agents, -1))
         
         shared_obs = obs.reshape(self.n_envs, -1).repeat(4, 0).reshape(
             self.n_envs, self.n_agents, -1)
