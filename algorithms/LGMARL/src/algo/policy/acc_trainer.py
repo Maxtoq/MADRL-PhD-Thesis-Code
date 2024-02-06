@@ -35,6 +35,22 @@ class ACC_Trainer:
         advantages = (advantages - mean_advantages) / (std_advantages + 1e-5)
         return advantages
 
+    def _update(self, agent, sample, train_comm_head, train_lang):
+        # Agent forward pass
+
+        # Language forward pass
+
+        # Actor loss
+
+        # Communicator loss
+
+        # Value loss
+
+        # CLIP loss
+
+        # Captioning loss
+        pass
+
     def train(self, buffer, train_comm_head=True, train_lang=True):
         """
         Perform a training update using minibatch GD.
@@ -63,7 +79,7 @@ class ACC_Trainer:
     
             for sample in data_generator:
                 if self.share_params:
-                    self.update(sample)
+                    self._update(self.agents[0], sample, train_comm_head, train_lang)
                     # value_loss, actor_loss, comm_loss = self.ppo_update(
                     #     self.agents[0], sample, train_comm_head)
 

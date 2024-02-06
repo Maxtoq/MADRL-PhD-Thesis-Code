@@ -3,6 +3,8 @@ import numpy as np
 
 from .language.lang_learner import LanguageLearner
 from .policy.acc_mappo import ACC_MAPPO
+from .policy.acc_buffer import ACC_ReplayBuffer
+from .policy.acc_trainer import ACC_Trainer
 from .policy.utils import get_shape_from_obs_space, torch2numpy
 
 
@@ -55,6 +57,16 @@ class LanguageGroundedMARL:
             act_dim, 
             device)
 
+        self.trainer = ACC_Trainer(args, self.lang_learner, self.device)
+
+        self.buffer = ACC_ReplayBuffer(
+            self.args, 
+            n_agents, 
+            obs_dim, 
+            shared_obs_dim, 
+            1, 
+            self.context_dim)
+
         # Language context, to carry to next steps
         self.lang_contexts = None
         # Matrices used during rollout
@@ -92,8 +104,8 @@ class LanguageGroundedMARL:
             self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
                 np.float32)[..., np.newaxis]
 
-    def reset_policy_buffer(self):
-        self.comm_n_act_policy.reset_buffer()
+    def reset_buffer(self):
+        self.buffer.reset_episode()
 
     def store_language_inputs(self, obs, parsed_obs):
         obs = obs.reshape(-1, obs.shape[-1])
@@ -101,17 +113,43 @@ class LanguageGroundedMARL:
             sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
 
+    def _store_obs(self, obs, shared_obs, parsed_obs):
+        """
+        Store observations in replay buffer.
+        :param obs: (np.ndarray) Observations for each agent, 
+            dim=(n_envs, n_agents, obs_dim).
+        :param shared_obs: (np.ndarray) Centralised observations, 
+            dim=(n_envs, n_agents, shared_obs_dim).
+        :param parsed_obs: (list(list(list(str)))) Sentences parsed from 
+            observations, dim=(n_envs, n_agents, len(sentence)).
+        """
+        self.buffer.insert_obs(obs, shared_obs, parsed_obs)
+
     def store_exp(self, rewards, dones):
-        self.comm_n_act_policy.store_act(
-            rewards[..., np.newaxis], 
-            dones, 
-            self.values, 
-            self.actions, 
-            self.action_log_probs, 
-            self.comm_actions, 
-            self.comm_action_log_probs, 
-            self.rnn_states, 
-            self.rnn_states_critic)
+        self.rnn_states[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        self.rnn_states_critic[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
+        masks[dones == True] = np.zeros(
+            ((dones == True).sum(), 1), dtype=np.float32)
+
+        self.buffer.insert_act(
+            self.rnn_states,
+            self.rnn_states_critic,
+            self.actions,
+            self.action_log_probs,
+            self.comm_actions,
+            self.comm_action_log_probs,
+            self.values,
+            rewards[..., np.newaxis],
+            masks)
 
     def _make_obs(self, obs):
         """
@@ -169,12 +207,15 @@ class LanguageGroundedMARL:
             agent.
         """
         obs, shared_obs = self._make_obs(obs)
-        self.comm_n_act_policy.store_obs(obs, shared_obs)
+        self._store_obs(obs, shared_obs, perfect_messages)
 
         # Get actions
+        obs, shared_obs, rnn_states, critic_rnn_states, masks \
+            = self.buffer.get_act_params()
         self.values, self.actions, self.action_log_probs, self.comm_actions, \
             self.comm_action_log_probs, self.rnn_states, \
-            self.rnn_states_critic = self.comm_n_act_policy.get_actions()
+            self.rnn_states_critic = self.comm_n_act_policy.get_actions(
+                obs, shared_obs, rnn_states, critic_rnn_states, masks)
 
         # Get messages
         if self.comm_type in ["language", "emergent_discrete"]:
@@ -240,19 +281,44 @@ class LanguageGroundedMARL:
 
         return self.actions, broadcasts, messages_by_env
 
-    def train(self, 
-            step, train_policy=True, comm_head_learns_rl=True, train_lang=True):
+    @torch.no_grad()
+    def _compute_returns(self):
+        shared_obs = torch.from_numpy(
+                self.buffer.shared_obs[-1]).to(self.device)
+        critic_rnn_states = torch.from_numpy(
+            self.buffer.critic_rnn_states[-1]).to(self.device)
+        masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
+
+        next_values = self.comm_n_act_policy.compute_last_value(
+            self.buffer.shared_obs[-1], 
+            self.buffer.critic_rnn_states[-1],
+            self.buffer.masks[-1])
+
+        self.buffer.compute_returns(
+            next_values, self.trainer.value_normalizer)
+
+    def train(self, step, 
+            train_act_head=True, 
+            comm_head_learns_rl=True, 
+            train_value_head=True,
+            train_lang=True):
         self.prep_training()
 
         warmup = step < self.n_warmup_steps
 
         losses = {}
 
-        if train_policy:
-            if self.comm_type in ["no_comm", "perfect_comm"]:
-                comm_head_learns_rl = False
-            losses.update(
-                self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
+        if self.comm_type in ["no_comm", "perfect_comm"]:
+            comm_head_learns_rl = False
+        # Compute last value
+        self._compute_returns()
+
+        # TOOODOOOO
+
+        # Train 
+        for a in self.agents:
+            a.warmup_lr(warmup)
+        losses.update(self.trainer.train(self.buffer, train_comm_head))
         
         if self.comm_type in ["perfect_comm", "language"] and train_lang:
             lang_losses = self.lang_learner.train()

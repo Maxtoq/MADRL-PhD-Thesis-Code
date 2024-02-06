@@ -66,10 +66,13 @@ def run():
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
-        model.reset_policy_buffer()
+        model.reset_buffer()
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
+            print(obs, obs.shape)
+            print(parsed_obs, len(parsed_obs))
+            exit()
             # Store language inputs in buffer
             model.store_language_inputs(obs, parsed_obs)
             # Perform step

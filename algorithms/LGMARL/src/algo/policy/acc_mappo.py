@@ -3,7 +3,6 @@ import numpy as np
 
 from .acc_agent import ACC_Agent
 from .acc_mappo_trainer import ACC_MAPPOTrainAlgo
-from .buffer import ACC_ReplayBuffer
 from .utils import torch2numpy
 
 
@@ -33,14 +32,6 @@ class ACC_MAPPO:
 
         self.trainer = ACC_MAPPOTrainAlgo(args, self.agents, device)
 
-        self.buffer = ACC_ReplayBuffer(
-            self.args, 
-            n_agents, 
-            obs_dim, 
-            shared_obs_dim, 
-            1, 
-            self.context_dim)
-
     def prep_rollout(self, device=None):
         self.device = self.train_device if device is None else device
         for a in self.agents:
@@ -65,52 +56,8 @@ class ACC_MAPPO:
         if self.trainer.value_normalizer is not None:
             self.trainer.value_normalizer.to(self.train_device)
 
-    def reset_buffer(self):
-        self.buffer.reset_episode()
-
-    def store_obs(self, obs, shared_obs):
-        """
-        Store observations in replay buffer.
-        :param obs: (np.ndarray) Observations for each agent, 
-            dim=(n_envs, n_agents, obs_dim).
-        :param shared_obs: (np.ndarray) Centralised observations, 
-            dim=(n_envs, n_agents, shared_obs_dim).
-        """
-        self.buffer.insert_obs(obs, shared_obs)
-
-    def store_act(self, rewards, dones, values, actions, action_log_probs, 
-                  comm_actions, comm_action_log_probs, rnn_states, 
-                  rnn_states_critic):
-        rnn_states[dones == True] = np.zeros(
-            ((dones == True).sum(), 
-             self.recurrent_N, 
-             self.hidden_dim),
-            dtype=np.float32)
-        rnn_states_critic[dones == True] = np.zeros(
-            ((dones == True).sum(), 
-             self.recurrent_N, 
-             self.hidden_dim),
-            dtype=np.float32)
-        masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
-        masks[dones == True] = np.zeros(
-            ((dones == True).sum(), 1), dtype=np.float32)
-
-        self.buffer.insert_act(
-            rnn_states,
-            rnn_states_critic,
-            actions,
-            action_log_probs,
-            comm_actions,
-            comm_action_log_probs,
-            values,
-            rewards,
-            masks)
-
     @torch.no_grad()
-    def get_actions(self):
-        obs, shared_obs, rnn_states, critic_rnn_states, masks \
-            = self.buffer.get_act_params()
-
+    def get_actions(self, obs, shared_obs, rnn_states, critic_rnn_states, masks):
         obs = torch.from_numpy(obs).to(self.device)
         shared_obs = torch.from_numpy(shared_obs).to(self.device)
         rnn_states = torch.from_numpy(rnn_states).to(self.device)
@@ -185,12 +132,10 @@ class ACC_MAPPO:
                 comm_action_log_probs, rnn_states, critic_rnn_states
 
     @torch.no_grad()
-    def _compute_last_value(self):
-        shared_obs = torch.from_numpy(
-                self.buffer.shared_obs[-1]).to(self.device)
-        critic_rnn_states = torch.from_numpy(
-            self.buffer.critic_rnn_states[-1]).to(self.device)
-        masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
+    def compute_last_value(self, shared_obs, critic_rnn_states, masks):
+        shared_obs = torch.from_numpy(shared_obs).to(self.device)
+        critic_rnn_states = torch.from_numpy(critic_rnn_states).to(self.device)
+        masks = torch.from_numpy(masks).to(self.device)
 
         if self.share_params:
             next_values = self.agents[0].get_values(
@@ -209,24 +154,24 @@ class ACC_MAPPO:
                 
             next_values = torch2numpy(torch.stack(next_values, dim=1))
 
-        self.buffer.compute_returns(
-            next_values, self.trainer.value_normalizer)
+        return next_values
 
-    def train(self, warmup=False, train_comm_head=True):
-        # Compute last value
-        self._compute_last_value()
-        # Train
-        self.prep_training()
-        for a in self.agents:
-            a.warmup_lr(warmup)
-        losses = self.trainer.train(self.buffer, train_comm_head)
-        return losses
+    # def train(self, warmup=False, train_comm_head=True):
+    #     # Compute last value
+    #     self._compute_last_value()
+    #     # Train
+    #     self.prep_training()
+    #     for a in self.agents:
+    #         a.warmup_lr(warmup)
+    #     losses = self.trainer.train(self.buffer, train_comm_head)
+    #     return losses
 
     def get_save_dict(self):
         self.prep_rollout("cpu")
         save_dict = {
             "act_comms": [a.act_comm.state_dict() for a in self.agents],
             "critics": [a.critic.state_dict() for a in self.agents],
+            # TODO Move ça dans lgmarl
             "vnorm": self.trainer.value_normalizer.state_dict()
         }
         return save_dict
