@@ -71,7 +71,8 @@ class LanguageGroundedMARL:
             self.context_dim)
 
         # Language context, to carry to next steps
-        self.lang_contexts = None
+        self.lang_contexts = np.zeros(
+            (self.n_envs, self.context_dim), dtype=np.float32)
         # Matrices used during rollout
         self.values = None
         self.actions = None
@@ -93,66 +94,19 @@ class LanguageGroundedMARL:
         self.lang_learner.prep_rollout(self.device)
         self.acc.prep_rollout(self.device)
 
-    def reset_context(self, env_dones=None):
-        """
-        Reset language contexts.
-        :param env_dones (np.ndarray): Done state for each parallel environment,
-            default None.
-        """
-        if self.lang_contexts is None:
-            self.lang_contexts = np.zeros(
-                (self.n_envs, self.context_dim), dtype=np.float32)
-        else:
-            assert env_dones is not None
-            self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
-                np.float32)[..., np.newaxis]
-
-    def reset_buffer(self):
-        self.buffer.reset_episode()
-
     def store_language_inputs(self, obs, parsed_obs):
         obs = obs.reshape(-1, obs.shape[-1])
         parsed_obs = [
             sent for env_sent in parsed_obs for sent in env_sent]
         self.lang_learner.store(obs, parsed_obs)
 
-    def _store_obs(self, obs, shared_obs, parsed_obs):
+    def reset_context(self, env_dones):
         """
-        Store observations in replay buffer.
-        :param obs: (np.ndarray) Observations for each agent, 
-            dim=(n_envs, n_agents, obs_dim).
-        :param shared_obs: (np.ndarray) Centralised observations, 
-            dim=(n_envs, n_agents, shared_obs_dim).
-        :param parsed_obs: (list(list(list(str)))) Sentences parsed from 
-            observations, dim=(n_envs, n_agents, len(sentence)).
+        Reset language contexts.
+        :param env_dones (np.ndarray): Done state for each parallel environment
         """
-        self.buffer.insert_obs(obs, shared_obs, parsed_obs)
-
-    def store_exp(self, rewards, dones):
-        self.rnn_states[dones == True] = np.zeros(
-            ((dones == True).sum(), 
-             self.recurrent_N, 
-             self.hidden_dim),
-            dtype=np.float32)
-        self.rnn_states_critic[dones == True] = np.zeros(
-            ((dones == True).sum(), 
-             self.recurrent_N, 
-             self.hidden_dim),
-            dtype=np.float32)
-        masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
-        masks[dones == True] = np.zeros(
-            ((dones == True).sum(), 1), dtype=np.float32)
-
-        self.buffer.insert_act(
-            self.rnn_states,
-            self.rnn_states_critic,
-            self.actions,
-            self.action_log_probs,
-            self.comm_actions,
-            self.comm_action_log_probs,
-            self.values,
-            rewards[..., np.newaxis],
-            masks)
+        self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
+            np.float32)[..., np.newaxis]
 
     def _make_obs(self, obs):
         """
@@ -191,8 +145,53 @@ class LanguageGroundedMARL:
         
         return obs, shared_obs
 
+    def _store_obs(self, obs, parsed_obs):
+        """
+        Store observations in replay buffer.
+        :param obs: (np.ndarray) Observations for each agent, 
+            dim=(n_envs, n_agents, obs_dim).
+        :param shared_obs: (np.ndarray) Centralised observations, 
+            dim=(n_envs, n_agents, shared_obs_dim).
+        :param parsed_obs: (list(list(list(str)))) Sentences parsed from 
+            observations, dim=(n_envs, n_agents, len(sentence)).
+        """
+        obs, shared_obs = self._make_obs(obs)
+        self.buffer.insert_obs(obs, shared_obs, parsed_obs)
+
+    def init_episode(self, obs, parsed_obs):
+        self.buffer.reset_episode()
+        self._store_obs(obs, parsed_obs)
+
+    def store_exp(self, next_obs, next_parsed_obs, rewards, dones):
+        self.rnn_states[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        self.rnn_states_critic[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
+        masks[dones == True] = np.zeros(
+            ((dones == True).sum(), 1), dtype=np.float32)
+
+        self.buffer.insert_act(
+            self.rnn_states,
+            self.rnn_states_critic,
+            self.actions,
+            self.action_log_probs,
+            self.comm_actions,
+            self.comm_action_log_probs,
+            self.values,
+            rewards[..., np.newaxis],
+            masks)
+
+        self._store_obs(next_obs, next_parsed_obs)
+
     @torch.no_grad()
-    def comm_n_act(self, obs, perfect_messages=None):
+    def comm_n_act(self, perfect_messages=None):
         """
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
@@ -209,12 +208,10 @@ class LanguageGroundedMARL:
         :return agent_messages: (list(list(str))): Messages generated by each 
             agent.
         """
-        obs, shared_obs = self._make_obs(obs)
-        self._store_obs(obs, shared_obs, perfect_messages)
-
         # Get actions
         obs, shared_obs, rnn_states, critic_rnn_states, masks \
             = self.buffer.get_act_params()
+
         self.values, self.actions, self.action_log_probs, self.comm_actions, \
             self.comm_action_log_probs, self.rnn_states, \
             self.rnn_states_critic = self.acc.get_actions(
@@ -288,8 +285,6 @@ class LanguageGroundedMARL:
     def _compute_returns(self):
         shared_obs = torch.from_numpy(
                 self.buffer.shared_obs[-1]).to(self.device)
-        print(self.buffer.shared_obs[-1])
-        exit()
         critic_rnn_states = torch.from_numpy(
             self.buffer.critic_rnn_states[-1]).to(self.device)
         masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)

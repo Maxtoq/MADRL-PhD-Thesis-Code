@@ -307,6 +307,7 @@ class ACC_ReplayBuffer:
                 for i in ids]
             pprint(parsed_obs_batch)
             print(len(parsed_obs_batch))
+            exit()
 
             if self.share_params:
                 obs_batch = obs_batch.reshape(
@@ -343,7 +344,6 @@ class ACC_ReplayBuffer:
                 print(len(parsed_obs_batch))
                 print(self.obs)
                 print(obs_batch, obs_batch.shape)
-                exit()
 
             else:
                 obs_batch = obs_batch.reshape(

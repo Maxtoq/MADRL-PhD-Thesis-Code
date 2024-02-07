@@ -62,20 +62,20 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs, _ = envs.reset()
-    model.reset_context()
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
-        model.reset_buffer()
+
+        parsed_obs = parser.get_perfect_messages(obs)
+        model.init_episode(obs, parsed_obs)
+
         for ep_s_i in range(cfg.episode_length):
-            # Parse obs
-            parsed_obs = parser.get_perfect_messages(obs)
             # Store language inputs in buffer
             model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             actions, broadcasts, agent_messages = model.comm_n_act(
-                    obs, parsed_obs)
+                parsed_obs)
             # Perform action and get reward and next obs
             obs, _, rewards, dones, infos = envs.step(actions)
 
@@ -87,7 +87,8 @@ def run():
             logger.count_returns(s_i, rewards, dones)
 
             # Insert data into policy buffer
-            model.store_exp(rewards, dones)
+            parsed_obs = parser.get_perfect_messages(obs)
+            model.store_exp(obs, parsed_obs, rewards, dones)
 
         # Training
         train_losses = model.train(
