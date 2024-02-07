@@ -22,6 +22,8 @@ class LanguageGroundedMARL:
         self.comm_type = args.comm_type
         self.comm_ec_strategy = args.comm_ec_strategy
         self.enc_obs = args.enc_obs
+        self.recurrent_N = args.policy_recurrent_N
+        self.hidden_dim = args.hidden_dim
         self.comm_logger = comm_logger
         self.device = device
 
@@ -48,7 +50,7 @@ class LanguageGroundedMARL:
             args.lang_n_epochs,
             args.lang_batch_size)
 
-        self.comm_n_act_policy = ACC_MAPPO(
+        self.acc = ACC_MAPPO(
             args, 
             self.lang_learner, 
             n_agents, 
@@ -57,7 +59,8 @@ class LanguageGroundedMARL:
             act_dim, 
             device)
 
-        self.trainer = ACC_Trainer(args, self.lang_learner, self.device)
+        self.trainer = ACC_Trainer(
+            args, self.acc.agents, self.lang_learner, self.device)
 
         self.buffer = ACC_ReplayBuffer(
             self.args, 
@@ -82,13 +85,13 @@ class LanguageGroundedMARL:
         if device is not None:
             self.device = device
         self.lang_learner.prep_training(self.device)
-        self.comm_n_act_policy.prep_training(self.device)
+        self.acc.prep_training(self.device)
 
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
         self.lang_learner.prep_rollout(self.device)
-        self.comm_n_act_policy.prep_rollout(self.device)
+        self.acc.prep_rollout(self.device)
 
     def reset_context(self, env_dones=None):
         """
@@ -214,7 +217,7 @@ class LanguageGroundedMARL:
             = self.buffer.get_act_params()
         self.values, self.actions, self.action_log_probs, self.comm_actions, \
             self.comm_action_log_probs, self.rnn_states, \
-            self.rnn_states_critic = self.comm_n_act_policy.get_actions(
+            self.rnn_states_critic = self.acc.get_actions(
                 obs, shared_obs, rnn_states, critic_rnn_states, masks)
 
         # Get messages
@@ -285,11 +288,13 @@ class LanguageGroundedMARL:
     def _compute_returns(self):
         shared_obs = torch.from_numpy(
                 self.buffer.shared_obs[-1]).to(self.device)
+        print(self.buffer.shared_obs[-1])
+        exit()
         critic_rnn_states = torch.from_numpy(
             self.buffer.critic_rnn_states[-1]).to(self.device)
         masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
 
-        next_values = self.comm_n_act_policy.compute_last_value(
+        next_values = self.acc.compute_last_value(
             self.buffer.shared_obs[-1], 
             self.buffer.critic_rnn_states[-1],
             self.buffer.masks[-1])
@@ -306,38 +311,38 @@ class LanguageGroundedMARL:
 
         warmup = step < self.n_warmup_steps
 
-        losses = {}
-
         if self.comm_type in ["no_comm", "perfect_comm"]:
             comm_head_learns_rl = False
+        if self.comm_type not in ["perfect_comm", "language"]:
+            train_lang = False
+
         # Compute last value
         self._compute_returns()
 
-        # TOOODOOOO
-
         # Train 
-        for a in self.agents:
-            a.warmup_lr(warmup)
-        losses.update(self.trainer.train(self.buffer, train_comm_head))
+        losses = self.trainer.train(
+            self.buffer, warmup, comm_head_learns_rl, train_lang)
         
-        if self.comm_type in ["perfect_comm", "language"] and train_lang:
-            lang_losses = self.lang_learner.train()
-            for k, l in lang_losses.items():
-                losses["lang_" + k] = l
+        # if self.comm_type in ["perfect_comm", "language"] and train_lang:
+        #     lang_losses = self.lang_learner.train()
+        #     for k, l in lang_losses.items():
+        #         losses["lang_" + k] = l
         
         return losses
 
     def save(self, path):
         self.prep_rollout("cpu")
         save_dict = {
-            "acc": self.comm_n_act_policy.get_save_dict(),
-            "lang_learner": self.lang_learner.get_save_dict()
+            "acc": self.acc.get_save_dict(),
+            "lang_learner": self.lang_learner.get_save_dict(),
+            "vnorm": self.trainer.value_normalizer.state_dict()
         }
         torch.save(save_dict, path)
 
     def load(self, path):
         save_dict = torch.load(path, map_location=torch.device('cpu'))
-        self.comm_n_act_policy.load_params(save_dict["acc"])
+        self.acc.load_params(save_dict["acc"])
         self.lang_learner.load_params(save_dict["lang_learner"])
+        self.trainer.value_normalizer.load_state_dict(params["vnorm"])
 
         

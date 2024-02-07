@@ -8,7 +8,7 @@ from .valuenorm import ValueNorm
 
 class ACC_Trainer:
 
-    def __init__(self, args, lang_learner, device=torch.device("cpu")):
+    def __init__(self, args, agents, lang_learner, device=torch.device("cpu")):
         self.agents = agents
         self.lang_learner = lang_learner
         self.device = device
@@ -51,7 +51,8 @@ class ACC_Trainer:
         # Captioning loss
         pass
 
-    def train(self, buffer, train_comm_head=True, train_lang=True):
+    def train(self, buffer, 
+            warmup=False, train_comm_head=True, train_lang=True):
         """
         Perform a training update using minibatch GD.
         :param buffer: (SharedReplayBuffer) buffer containing training data.
@@ -60,6 +61,9 @@ class ACC_Trainer:
         :return losses: (dict) contains information regarding training 
             update (e.g. loss, grad norms, etc).
         """
+        for a in self.agents:
+            a.warmup_lr(warmup)
+            
         advantages = self._compute_advantages(buffer)
         
         losses = {

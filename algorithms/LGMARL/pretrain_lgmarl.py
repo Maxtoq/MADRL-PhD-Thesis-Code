@@ -70,9 +70,6 @@ def run():
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
-            print(obs, obs.shape)
-            print(parsed_obs, len(parsed_obs))
-            exit()
             # Store language inputs in buffer
             model.store_language_inputs(obs, parsed_obs)
             # Perform step

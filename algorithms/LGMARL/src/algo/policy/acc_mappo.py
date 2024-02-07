@@ -170,15 +170,11 @@ class ACC_MAPPO:
         self.prep_rollout("cpu")
         save_dict = {
             "act_comms": [a.act_comm.state_dict() for a in self.agents],
-            "critics": [a.critic.state_dict() for a in self.agents],
-            # TODO Move ça dans lgmarl
-            "vnorm": self.trainer.value_normalizer.state_dict()
-        }
+            "critics": [a.critic.state_dict() for a in self.agents]}
         return save_dict
 
     def load_params(self, params):
         for a, ac, c in zip(self.agents, params["act_comms"], params["critics"]):
             a.act_comm.load_state_dict(ac)
             a.critic.load_state_dict(c)
-        self.trainer.value_normalizer.load_state_dict(params["vnorm"])
 

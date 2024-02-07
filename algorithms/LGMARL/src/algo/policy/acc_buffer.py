@@ -295,6 +295,19 @@ class ACC_ReplayBuffer:
             masks_batch = self.masks[:-1, ids]
             advantages_batch = advantages[:, ids]
 
+            from pprint import pprint
+            print(self.obs, self.obs.shape)
+            print(obs_batch, obs_batch.shape)
+            print(ids)
+            pprint(self.parsed_obs)
+            print(len(self.parsed_obs))
+            parsed_obs_batch = [
+                step_sentences[i] 
+                for step_sentences in self.parsed_obs
+                for i in ids]
+            pprint(parsed_obs_batch)
+            print(len(parsed_obs_batch))
+
             if self.share_params:
                 obs_batch = obs_batch.reshape(
                     self.episode_length * mini_batch_size * self.n_agents, -1)
@@ -321,6 +334,16 @@ class ACC_ReplayBuffer:
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
                 critic_rnn_states_batch = critic_rnn_states_batch.reshape(
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
+
+                parsed_obs_batch = [
+                    env_sentences[a_i]
+                    for env_sentences in parsed_obs_batch
+                    for a_i in range(self.n_agents)]
+                pprint(parsed_obs_batch)
+                print(len(parsed_obs_batch))
+                print(self.obs)
+                print(obs_batch, obs_batch.shape)
+                exit()
 
             else:
                 obs_batch = obs_batch.reshape(
