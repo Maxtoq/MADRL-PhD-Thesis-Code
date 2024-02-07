@@ -62,10 +62,10 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs, _ = envs.reset()
+    model.init_episode(obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
-        model.init_episode(obs)
         for ep_s_i in range(cfg.episode_length):
             # Parse obs
             parsed_obs = parser.get_perfect_messages(obs)
@@ -77,6 +77,7 @@ def run():
                     parsed_obs)
             # Perform action and get reward and next obs
             obs, _, rewards, dones, infos = envs.step(actions)
+            # obs = np.ones_like(obs) * (ep_s_i + 1)
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
@@ -87,11 +88,12 @@ def run():
 
             # Insert data into policy buffer
             model.store_exp(obs, rewards, dones)
-
+            
         # Training
         train_losses = model.train(
             s_i + n_steps_per_update,
             comm_head_learns_rl=cfg.comm_head_learns_rl)
+        model.init_episode()
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)

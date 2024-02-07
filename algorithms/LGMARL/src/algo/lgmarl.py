@@ -137,9 +137,12 @@ class LanguageGroundedMARL:
         obs, shared_obs = self._make_obs(obs)
         self.comm_n_act_policy.store_obs(obs, shared_obs)
 
-    def init_episode(self, obs):
-        self.comm_n_act_policy.reset_buffer()
-        self.store_obs(obs)
+    def init_episode(self, obs=None):
+        if obs is not None:
+            self.comm_n_act_policy.reset_buffer()
+            self.store_obs(obs)
+        else:
+            self.comm_n_act_policy.buffer.start_new_episode()
 
     def store_language_inputs(self, obs, parsed_obs):
         obs = obs.reshape(-1, obs.shape[-1])
