@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="ACC_9x9_pt_perfect_comm_encobs"
+experiment_name="FIXEDACC_9x9_pt_no_comm_encobs"
 n_parallel_envs=128
 n_steps=5000000
 ppo_epoch=15 # default 15
@@ -8,7 +8,7 @@ n_mini_batch=4 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_type="perfect_comm" # default language
+comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
 context_dim=16 # default 16
 lang_lr=0.0009 # default 0.0007
