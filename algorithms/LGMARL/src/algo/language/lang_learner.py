@@ -15,17 +15,20 @@ class LanguageLearner:
     """
 
     def __init__(self, obs_dim, context_dim, hidden_dim, vocab, device="cpu", 
-                 lr=0.007, n_epochs=2, batch_size=128, temp=1.0, embed_dim=4,
-                 clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
-                 buffer_size=100000):
+                 lr=0.007):
+                #  , n_epochs=2):
+                #  , batch_size=128)
+                #  , temp=1.0, embed_dim=4,
+                #  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
+                #  buffer_size=100000):
         self.train_device = device
         self.lr = lr
-        self.n_epochs = n_epochs
-        self.batch_size = batch_size
-        self.temp = temp
-        self.clip_weight = clip_weight
-        self.capt_weight = capt_weight
-        self.obs_learn_capt = obs_learn_capt
+        # self.n_epochs = n_epochs
+        # self.batch_size = batch_size
+        # self.temp = temp
+        # self.clip_weight = clip_weight
+        # self.capt_weight = capt_weight
+        # self.obs_learn_capt = obs_learn_capt
 
         self.device = self.train_device
 
@@ -33,7 +36,7 @@ class LanguageLearner:
 
         self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
         self.lang_encoder = GRUEncoder(
-            context_dim, hidden_dim, embed_dim, self.word_encoder)
+            context_dim, hidden_dim, args.lang_embed_dim, self.word_encoder)
         self.decoder = GRUDecoder(context_dim, self.word_encoder)
 
         self.clip_loss = nn.CrossEntropyLoss()

@@ -155,10 +155,14 @@ def get_config():
                         help="Whether we use the observation encoder as input of the policy.")
 
     # Language Learning parameters
+    parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
     parser.add_argument("--lang_lr", type=float, default=0.007)
     parser.add_argument("--lang_n_epochs", type=int, default=2)
     parser.add_argument("--lang_batch_size", type=int, default=128)
+    parser.add_argument("--lang_temp", type=float, default=1.0)
+    parser.add_argument("--lang_clip_weight", type=float, default=1.0)
+    parser.add_argument("--lang_capt_weight", type=float, default=1.0)
 
     # Communication parameters
     parser.add_argument("--comm_type", default="language", 

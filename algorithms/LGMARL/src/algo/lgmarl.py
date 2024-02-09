@@ -47,9 +47,9 @@ class LanguageGroundedMARL:
             args.lang_hidden_dim, 
             vocab, 
             device,
-            args.lang_lr,
-            args.lang_n_epochs,
-            args.lang_batch_size)
+            args.lang_lr)
+            # args.lang_n_epochs,
+            # args.lang_batch_size)
 
         self.acc = ACC_MAPPO(
             args, 
@@ -89,12 +89,18 @@ class LanguageGroundedMARL:
             self.device = device
         self.lang_learner.prep_training(self.device)
         self.acc.prep_training(self.device)
+        self.trainer.device = self.device
+        if self.trainer.value_normalizer is not None:
+            self.trainer.value_normalizer.to(self.device)
 
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
         self.lang_learner.prep_rollout(self.device)
         self.acc.prep_rollout(self.device)
+        self.trainer.device = self.device
+        if self.trainer.value_normalizer is not None:
+            self.trainer.value_normalizer.to(self.device)
 
     # def store_language_inputs(self, obs, parsed_obs):
     #     obs = obs.reshape(-1, obs.shape[-1])

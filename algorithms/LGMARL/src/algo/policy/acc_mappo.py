@@ -30,7 +30,7 @@ class ACC_MAPPO:
                 ACC_Agent(args, obs_dim, shared_obs_dim, act_dim)
                 for a_i in range(self.n_agents)]
 
-        self.trainer = ACC_MAPPOTrainAlgo(args, self.agents, device)
+        # self.trainer = ACC_MAPPOTrainAlgo(args, self.agents, device)
 
     def prep_rollout(self, device=None):
         self.device = self.train_device if device is None else device
@@ -39,9 +39,9 @@ class ACC_MAPPO:
             a.act_comm.to(self.device)
             a.critic.eval()
             a.critic.to(self.device)
-        self.trainer.device = self.device
-        if self.trainer.value_normalizer is not None:
-            self.trainer.value_normalizer.to(self.device)
+        # self.trainer.device = self.device
+        # if self.trainer.value_normalizer is not None:
+        #     self.trainer.value_normalizer.to(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -52,9 +52,9 @@ class ACC_MAPPO:
             a.act_comm.to(self.train_device)
             a.critic.train()
             a.critic.to(self.train_device)
-        self.trainer.device = self.train_device
-        if self.trainer.value_normalizer is not None:
-            self.trainer.value_normalizer.to(self.train_device)
+        # self.trainer.device = self.train_device
+        # if self.trainer.value_normalizer is not None:
+        #     self.trainer.value_normalizer.to(self.train_device)
 
     @torch.no_grad()
     def get_actions(self, obs, shared_obs, rnn_states, critic_rnn_states, masks):

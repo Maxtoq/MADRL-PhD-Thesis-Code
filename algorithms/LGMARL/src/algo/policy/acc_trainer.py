@@ -12,7 +12,9 @@ class ACC_Trainer:
         self.agents = agents
         self.lang_learner = lang_learner
         self.device = device
+        self.share_params = args.share_params
 
+        # PPO params
         self.clip_param = args.clip_param
         self.ppo_epoch = args.ppo_epoch
         self.n_mini_batch = args.n_mini_batch
@@ -20,7 +22,14 @@ class ACC_Trainer:
         self.entropy_coef = args.entropy_coef
         self.max_grad_norm = args.max_grad_norm
         self.huber_delta = args.huber_delta
-        self.share_params = args.share_params
+
+        # Language params
+        self.temp = args.lang_temp
+        self.clip_weight = args.lang_clip_weight
+        self.capt_weight = args.lang_capt_weight
+
+        self.clip_loss = nn.CrossEntropyLoss()
+        self.captioning_loss = nn.NLLLoss()
 
         self.value_normalizer = ValueNorm(1).to(device)
 
@@ -79,7 +88,24 @@ class ACC_Trainer:
 
         return value_loss
 
-    def _compute_language_losses(self, agent, obs_batch, parsed_obs_batch):
+    def _compute_clip_loss(self, obs_contexts, lang_contexts):
+        # Compute similarity
+        norm_obs_contexts = obs_contexts / obs_contexts.norm(
+            dim=1, keepdim=True)
+        norm_lang_context = lang_contexts / lang_contexts.norm(
+            dim=1, keepdim=True)
+        sim = norm_obs_context @ norm_lang_context.t() * self.temp
+        mean_sim = sim.diag().mean()
+
+        # Compute CLIP loss
+        labels = torch.arange(len(obs_batch)).to(self.device)
+        loss_o = self.clip_loss(sim, labels)
+        loss_l = self.clip_loss(sim.t(), labels)
+        clip_loss = (loss_o + loss_l) / 2
+
+        return clip_loss, mean_sim.item()
+
+    def _compute_language_losses(self, agent, obs_batch, parsed_obs_batch, policy_input_batch):
         """
         :param agent: (ACC_Agent) Agent model used in the update.
         :param obs_batch: (torch.Tensor) Batch of observations, 
@@ -88,9 +114,9 @@ class ACC_Trainer:
             from observations, one for each observation in batch.
         """
         # Encode observations
-        print(obs_batch, obs_batch.shape)
-        print(len(parsed_obs_batch))
-        for i in range(40):
+        # print(obs_batch, obs_batch.shape)
+        # print(len(parsed_obs_batch))
+        for i in range(len(parsed_obs_batch)):
             print(i)
             print(obs_batch[i])
             print(parsed_obs_batch[i])
@@ -101,8 +127,14 @@ class ACC_Trainer:
         lang_context_batch = self.lang_learner.lang_encoder(parsed_obs_batch)
         lang_context_batch = lang_context_batch.squeeze()
 
-        print(obs_context_batch.shape)
-        print(lang_context_batch.shape)
+        # CLIP loss
+        clip_loss, mean_sim = self._compute_clip_loss(obs_context_batch)
+
+        print(obs_context, obs_context_batch.shape)
+        print(lang_context, lang_context_batch.shape)
+
+        # Make input to policy
+        print(policy_input_batch, policy_input_batch.shape)
         exit()
 
     def _update(self, agent, sample, train_comm_head, train_lang):
@@ -159,7 +191,7 @@ class ACC_Trainer:
         # Language losses
         if train_lang:
             clip_loss, dec_loss = self._compute_language_losses(
-                agent, obs_batch, parsed_obs_batch)
+                agent, obs_batch, parsed_obs_batch, policy_input_batch)
         pass
 
     def train(self, buffer, 
@@ -209,6 +241,8 @@ class ACC_Trainer:
                             [step_sentences[a_i] 
                                 for step_sentences in sample[-1]])
 
+                        self._update(
+                            self.agents[a_i], sample_i, train_comm_head, train_lang)
                         # value_loss, actor_loss, comm_loss = self.ppo_update(
                         #     self.agents[a_i], sample_i, train_comm_head)
 
