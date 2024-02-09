@@ -14,15 +14,14 @@ class LanguageLearner:
     Observation Encoder and the Decoder. 
     """
 
-    def __init__(self, obs_dim, context_dim, hidden_dim, vocab, device="cpu", 
-                 lr=0.007):
+    def __init__(self, args, obs_dim, context_dim, vocab, device="cpu"):
                 #  , n_epochs=2):
                 #  , batch_size=128)
                 #  , temp=1.0, embed_dim=4,
                 #  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
                 #  buffer_size=100000):
         self.train_device = device
-        self.lr = lr
+        self.lr = args.lang_lr
         # self.n_epochs = n_epochs
         # self.batch_size = batch_size
         # self.temp = temp
@@ -34,9 +33,9 @@ class LanguageLearner:
 
         self.word_encoder = OneHotEncoder(vocab)
 
-        self.obs_encoder = ObservationEncoder(obs_dim, context_dim, hidden_dim)
+        self.obs_encoder = ObservationEncoder(obs_dim, context_dim, args.lang_hidden_dim)
         self.lang_encoder = GRUEncoder(
-            context_dim, hidden_dim, args.lang_embed_dim, self.word_encoder)
+            context_dim, args.lang_hidden_dim, args.lang_embed_dim, self.word_encoder)
         self.decoder = GRUDecoder(context_dim, self.word_encoder)
 
         self.clip_loss = nn.CrossEntropyLoss()
@@ -46,9 +45,9 @@ class LanguageLearner:
             list(self.obs_encoder.parameters()) + 
             list(self.lang_encoder.parameters()) + 
             list(self.decoder.parameters()), 
-            lr=lr)
+            lr=args.lang_lr)
 
-        self.buffer = LanguageBuffer(buffer_size)
+        # self.buffer = LanguageBuffer(buffer_size)
 
     def prep_rollout(self, device=None):
         self.device = self.train_device if device is None else device

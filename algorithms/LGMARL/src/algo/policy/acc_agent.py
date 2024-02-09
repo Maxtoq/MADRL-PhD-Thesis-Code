@@ -58,6 +58,11 @@ class ACC_Agent(nn.Module):
         return values, actions, action_log_probs, comm_actions, \
             comm_action_log_probs, act_rnn_states, critic_rnn_states
 
+    def get_comm_actions(self, obs, act_rnn_states, masks):
+        _, _, comm_actions, _, _ = self.act_comm(
+                obs, act_rnn_states, masks, do_act=False)
+        return comm_actions
+
     def get_values(self, shared_obs, rnn_states_critic, masks):
         """
         Get value function predictions.

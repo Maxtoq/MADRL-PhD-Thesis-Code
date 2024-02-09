@@ -42,12 +42,11 @@ class LanguageGroundedMARL:
         # Modules
         obs_dim = obs_space[0].shape[0]
         self.lang_learner = LanguageLearner(
+            args,
             obs_dim, 
-            self.context_dim, 
-            args.lang_hidden_dim, 
+            self.context_dim,
             vocab, 
-            device,
-            args.lang_lr)
+            device,)
             # args.lang_n_epochs,
             # args.lang_batch_size)
 
@@ -332,11 +331,6 @@ class LanguageGroundedMARL:
         # Train 
         losses = self.trainer.train(
             self.buffer, warmup, comm_head_learns_rl, train_lang)
-        
-        # if self.comm_type in ["perfect_comm", "language"] and train_lang:
-        #     lang_losses = self.lang_learner.train()
-        #     for k, l in lang_losses.items():
-        #         losses["lang_" + k] = l
         
         return losses
 

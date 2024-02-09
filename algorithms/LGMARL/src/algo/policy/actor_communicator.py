@@ -20,20 +20,28 @@ class ActorCommunicator(nn.Module):
 
         self.comm_head = DiagGaussian(args.hidden_dim, args.context_dim)
 
-    def forward(self, obs, rnn_states, masks):
+    def forward(self, obs, rnn_states, masks, do_act=True, do_comm=True):
         x = self.obs_encoder(obs)
 
         x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
 
         # Get env actions
-        env_action_logits = self.action_head(x)
-        env_actions = env_action_logits.sample() 
-        env_action_log_probs = env_action_logits.log_probs(env_actions)
+        if do_act:
+            env_action_logits = self.action_head(x)
+            env_actions = env_action_logits.sample() 
+            env_action_log_probs = env_action_logits.log_probs(env_actions)
+        else:
+            env_actions = None
+            env_action_log_probs = None
 
         # Get comm actions
-        comm_action_logits = self.comm_head(x)
-        comm_actions = comm_action_logits.sample() 
-        comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
+        if do_comm:
+            comm_action_logits = self.comm_head(x)
+            comm_actions = comm_action_logits.sample() 
+            comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
+        else:
+            comm_actions = None
+            comm_action_log_probs = None
 
         return env_actions, env_action_log_probs, comm_actions, \
                 comm_action_log_probs, new_rnn_states
