@@ -62,16 +62,15 @@ def run():
     last_save_step = 0
     last_eval_step = 0
     obs, _ = envs.reset()
+    parsed_obs = parser.get_perfect_messages(obs)
+    model.init_episode(obs, parsed_obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
 
-        parsed_obs = parser.get_perfect_messages(obs)
-        model.init_episode(obs, parsed_obs)
-
         for ep_s_i in range(cfg.episode_length):
             # Store language inputs in buffer
-            model.store_language_inputs(obs, parsed_obs)
+            # model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             actions, broadcasts, agent_messages = model.comm_n_act(
@@ -94,6 +93,7 @@ def run():
         train_losses = model.train(
             s_i + n_steps_per_update,
             comm_head_learns_rl=cfg.comm_head_learns_rl)
+        model.init_episode()
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)

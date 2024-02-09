@@ -88,6 +88,10 @@ class LanguageLearner:
         return context_batch
     
     def encode_observations(self, obs_batch):
+        """
+        :param obs_batch: (torch.Tensor) Batch of observation, 
+            dim=(batch_size, obs_dim).
+        """
         context_batch = self.obs_encoder(obs_batch)
         return context_batch
 

@@ -35,20 +35,131 @@ class ACC_Trainer:
         advantages = (advantages - mean_advantages) / (std_advantages + 1e-5)
         return advantages
 
-    def _update(self, agent, sample, train_comm_head, train_lang):
-        # Agent forward pass
+    def _compute_policy_loss(self, 
+            action_log_probs, old_action_log_probs_batch, adv_targ, dist_entropy):
+        imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
 
-        # Language forward pass
+        surr1 = imp_weights * adv_targ
+        surr2 = torch.clamp(
+            imp_weights, 
+            1.0 - self.clip_param, 
+            1.0 + self.clip_param) * adv_targ
+
+        loss = -torch.sum(
+            torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
+        
+        loss = loss - dist_entropy * self.entropy_coef
+
+        return loss
+
+    def _compute_value_loss(self, values, value_preds_batch, return_batch):
+        """
+        Calculate value function loss.
+        :param values: (torch.Tensor) value function predictions.
+        :param value_preds_batch: (torch.Tensor) "old" value  predictions from
+            data batch (used for value clip loss)
+        :param return_batch: (torch.Tensor) reward to go returns.
+
+        :return value_loss: (torch.Tensor) value function loss.
+        """
+        value_pred_clipped = value_preds_batch + \
+            (values - value_preds_batch).clamp(-self.clip_param, self.clip_param)
+        self.value_normalizer.update(return_batch)
+        error_clipped = self.value_normalizer.normalize(
+            return_batch) - value_pred_clipped
+        error_original = self.value_normalizer.normalize(
+            return_batch) - values
+
+        value_loss_clipped = huber_loss(error_clipped, self.huber_delta)
+        value_loss_original = huber_loss(error_original, self.huber_delta)
+
+        value_loss = torch.max(value_loss_original, value_loss_clipped)
+        
+        value_loss = value_loss.mean()
+
+        return value_loss
+
+    def _compute_language_losses(self, agent, obs_batch, parsed_obs_batch):
+        """
+        :param agent: (ACC_Agent) Agent model used in the update.
+        :param obs_batch: (torch.Tensor) Batch of observations, 
+            dim=(ep_length * n_mini_batch * n_agents, obs_dim).
+        :param parsed_obs_batch: (list(list(str))) Batch of sentences parsed 
+            from observations, one for each observation in batch.
+        """
+        # Encode observations
+        print(obs_batch, obs_batch.shape)
+        print(len(parsed_obs_batch))
+        for i in range(40):
+            print(i)
+            print(obs_batch[i])
+            print(parsed_obs_batch[i])
+        # Encode observations
+        obs_context_batch = self.lang_learner.obs_encoder(obs_batch)
+
+        # Encode sentences
+        lang_context_batch = self.lang_learner.lang_encoder(parsed_obs_batch)
+        lang_context_batch = lang_context_batch.squeeze()
+
+        print(obs_context_batch.shape)
+        print(lang_context_batch.shape)
+        exit()
+
+    def _update(self, agent, sample, train_comm_head, train_lang):
+        policy_input_batch, critic_input_batch, rnn_states_batch, critic_rnn_states_batch, \
+            env_actions_batch, comm_actions_batch, old_env_action_log_probs_batch, \
+            old_comm_action_log_probs_batch, value_preds_batch, returns_batch, \
+            masks_batch, advantages_batch, obs_batch, parsed_obs_batch = sample
+
+        policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
+        critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
+        rnn_states_batch = torch.from_numpy(rnn_states_batch).to(self.device)
+        critic_rnn_states_batch = torch.from_numpy(critic_rnn_states_batch).to(
+            self.device)
+        env_actions_batch = torch.from_numpy(env_actions_batch).to(self.device)
+        comm_actions_batch = torch.from_numpy(comm_actions_batch).to(self.device)
+        value_preds_batch = torch.from_numpy(value_preds_batch).to(self.device)
+        returns_batch = torch.from_numpy(returns_batch).to(self.device)
+        masks_batch = torch.from_numpy(masks_batch).to(self.device)
+        old_env_action_log_probs_batch = torch.from_numpy(
+            old_env_action_log_probs_batch).to(self.device)
+        old_comm_action_log_probs_batch = torch.from_numpy(
+            old_comm_action_log_probs_batch).to(self.device)
+        advantages_batch = torch.from_numpy(advantages_batch).to(self.device)
+        obs_batch = torch.from_numpy(obs_batch).to(self.device)
+
+        # Agent forward pass
+        values, env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
+            comm_dist_entropy = agent.evaluate_actions(
+                policy_input_batch, critic_input_batch, rnn_states_batch, 
+                critic_rnn_states_batch, env_actions_batch, comm_actions_batch, 
+                masks_batch, train_comm_head)
 
         # Actor loss
+        actor_loss = self._compute_policy_loss(
+            env_action_log_probs, 
+            old_env_action_log_probs_batch, 
+            advantages_batch, 
+            env_dist_entropy)
 
         # Communicator loss
+        if train_comm_head:
+            comm_loss = self._compute_policy_loss(
+                comm_action_log_probs, 
+                old_comm_action_log_probs_batch, 
+                advantages_batch, 
+                comm_dist_entropy)
+        else:
+            comm_loss = torch.zeros_like(actor_loss)
 
         # Value loss
+        value_loss = self._compute_value_loss(
+            values, value_preds_batch, returns_batch)
 
-        # CLIP loss
-
-        # Captioning loss
+        # Language losses
+        if train_lang:
+            clip_loss, dec_loss = self._compute_language_losses(
+                agent, obs_batch, parsed_obs_batch)
         pass
 
     def train(self, buffer, 
@@ -93,7 +204,10 @@ class ACC_Trainer:
                     #     losses["comm_loss"] += comm_loss.item()
                 else:
                     for a_i in range(len(self.agents)):
-                        sample_i = tuple([batch[:, a_i] for batch in sample])
+                        sample_i = (
+                            *[batch[:, a_i] for batch in sample[:-1]],
+                            [step_sentences[a_i] 
+                                for step_sentences in sample[-1]])
 
                         # value_loss, actor_loss, comm_loss = self.ppo_update(
                         #     self.agents[a_i], sample_i, train_comm_head)
