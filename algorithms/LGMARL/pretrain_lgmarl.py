@@ -92,7 +92,8 @@ def run():
         # Training
         train_losses = model.train(
             s_i + n_steps_per_update,
-            comm_head_learns_rl=cfg.comm_head_learns_rl)
+            comm_head_learns_rl=not cfg.no_comm_head_learns_rl,
+            train_lang=not cfg.no_train_lang)
         model.init_episode()
 
         # Log train data
