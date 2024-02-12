@@ -59,9 +59,6 @@ class LanguageGroundedMARL:
             act_dim, 
             device)
 
-        self.trainer = ACC_Trainer(
-            args, self.acc.agents, self.lang_learner, self.device)
-
         self.buffer = ACC_ReplayBuffer(
             self.args, 
             n_agents, 
@@ -70,6 +67,9 @@ class LanguageGroundedMARL:
             1, 
             self.context_dim, 
             obs_dim)
+
+        self.trainer = ACC_Trainer(
+            args, self.acc.agents, self.lang_learner, self.buffer, self.device)
 
         # Language context, to carry to next steps
         self.lang_contexts = np.zeros(
@@ -140,6 +140,8 @@ class LanguageGroundedMARL:
             policy_input = self.lang_learner.encode_observations(obs)
             policy_input = torch2numpy(
                 policy_input.reshape(self.n_envs, self.n_agents, -1))
+        else:
+            policy_input = obs.copy()
         
         critic_input = policy_input.reshape(self.n_envs, -1).repeat(
             4, 0).reshape(self.n_envs, self.n_agents, -1)
@@ -329,8 +331,7 @@ class LanguageGroundedMARL:
         self._compute_returns()
 
         # Train 
-        losses = self.trainer.train(
-            self.buffer, warmup, comm_head_learns_rl, train_lang)
+        losses = self.trainer.train(warmup, comm_head_learns_rl, train_lang)
         
         return losses
 

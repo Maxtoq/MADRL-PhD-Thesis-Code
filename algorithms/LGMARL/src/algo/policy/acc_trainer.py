@@ -8,9 +8,11 @@ from .valuenorm import ValueNorm
 
 class ACC_Trainer:
 
-    def __init__(self, args, agents, lang_learner, device=torch.device("cpu")):
+    def __init__(self, 
+            args, agents, lang_learner, buffer, device=torch.device("cpu")):
         self.agents = agents
         self.lang_learner = lang_learner
+        self.buffer = buffer
         self.device = device
         self.share_params = args.share_params
 
@@ -24,6 +26,8 @@ class ACC_Trainer:
         self.huber_delta = args.huber_delta
 
         # Language params
+        self.clip_batch_size = args.lang_clip_batch_size
+        self.clip_epochs = args.lang_clip_epochs
         self.temp = args.lang_temp
         self.clip_weight = args.lang_clip_weight
         self.capt_weight = args.lang_capt_weight
@@ -33,12 +37,11 @@ class ACC_Trainer:
 
         self.value_normalizer = ValueNorm(1).to(device)
 
-    def _compute_advantages(self, buffer):
+    def _compute_advantages(self):
          # Compute and normalize advantages
-        advantages = buffer.returns[:-1] - self.value_normalizer.denormalize(
-            buffer.value_preds[:-1])
+        advantages = self.buffer.returns[:-1] - self.value_normalizer.denormalize(
+            self.buffer.value_preds[:-1])
         advantages_copy = advantages.copy()
-        # advantages_copy[buffer.active_masks[:-1] == 0.0] = np.nan
         mean_advantages = np.nanmean(advantages_copy)
         std_advantages = np.nanstd(advantages_copy)
         advantages = (advantages - mean_advantages) / (std_advantages + 1e-5)
@@ -112,44 +115,44 @@ class ACC_Trainer:
             dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
         return dec_loss
 
-    def _compute_language_losses(self, 
-            agent, obs_batch, parsed_obs_batch, policy_input_batch, 
-            rnn_states_batch, masks_batch):
-        """
-        :param agent: (ACC_Agent) Agent model used in the update.
-        :param obs_batch: (torch.Tensor) Batch of observations, 
-            dim=(ep_length * n_mini_batch * n_agents, obs_dim).
-        :param parsed_obs_batch: (list(list(str))) Batch of sentences parsed 
-            from observations, one for each observation in batch.
-        """
-        # Encode observations
-        obs_context_batch = self.lang_learner.obs_encoder(obs_batch)
-        # Encode sentences
-        lang_context_batch = self.lang_learner.lang_encoder(parsed_obs_batch)
-        lang_context_batch = lang_context_batch.squeeze()
-        # CLIP loss
-        clip_loss, mean_sim = self._compute_clip_loss(
-            obs_context_batch, lang_context_batch)
+    # def _compute_language_losses(self, 
+    #         agent, obs_batch, parsed_obs_batch, policy_input_batch, 
+    #         rnn_states_batch, masks_batch):
+    #     """
+    #     :param agent: (ACC_Agent) Agent model used in the update.
+    #     :param obs_batch: (torch.Tensor) Batch of observations, 
+    #         dim=(ep_length * n_mini_batch * n_agents, obs_dim).
+    #     :param parsed_obs_batch: (list(list(str))) Batch of sentences parsed 
+    #         from observations, one for each observation in batch.
+    #     """
+    #     # Encode observations
+    #     obs_context_batch = self.lang_learner.obs_encoder(obs_batch)
+    #     # Encode sentences
+    #     lang_context_batch = self.lang_learner.lang_encoder(parsed_obs_batch)
+    #     lang_context_batch = lang_context_batch.squeeze()
+    #     # CLIP loss
+    #     clip_loss, mean_sim = self._compute_clip_loss(
+    #         obs_context_batch, lang_context_batch)
 
-        # Pass through acc
-        comm_actions = agent.get_comm_actions(
-            policy_input_batch, rnn_states_batch, masks_batch)
-        # Decode
-        encoded_targets = self.lang_learner.word_encoder.encode_batch(
-            parsed_obs_batch)
-        decoder_outputs, _ = self.lang_learner.decoder(
-            comm_actions, encoded_targets)
-        # Captioning loss
-        capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
+    #     # Pass through acc
+    #     comm_actions = agent.get_comm_actions(
+    #         policy_input_batch, rnn_states_batch, masks_batch)
+    #     # Decode
+    #     encoded_targets = self.lang_learner.word_encoder.encode_batch(
+    #         parsed_obs_batch)
+    #     decoder_outputs, _ = self.lang_learner.decoder(
+    #         comm_actions, encoded_targets)
+    #     # Captioning loss
+    #     capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
         
-        return clip_loss, capt_loss, mean_sim
+    #     return clip_loss, capt_loss, mean_sim
 
-    def _update(self, agent, sample, train_comm_head, train_lang):
+    def _update_policy(self, agent, sample, train_comm_head):
         policy_input_batch, critic_input_batch, rnn_states_batch, \
             critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
-            value_preds_batch, returns_batch, masks_batch, advantages_batch, \
-            obs_batch, parsed_obs_batch = sample
+            value_preds_batch, returns_batch, masks_batch, advantages_batch \
+                = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -166,7 +169,7 @@ class ACC_Trainer:
         old_comm_action_log_probs_batch = torch.from_numpy(
             old_comm_action_log_probs_batch).to(self.device)
         advantages_batch = torch.from_numpy(advantages_batch).to(self.device)
-        obs_batch = torch.from_numpy(obs_batch).to(self.device)
+        # obs_batch = torch.from_numpy(obs_batch).to(self.device)
 
         # Agent forward pass
         values, env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
@@ -203,38 +206,46 @@ class ACC_Trainer:
 
         loss = actor_loss + comm_loss + value_loss
 
-        # Language losses
-        if train_lang:
-            clip_loss, capt_loss, mean_sim = self._compute_language_losses(
-                agent, 
-                obs_batch, 
-                parsed_obs_batch, 
-                policy_input_batch, 
-                rnn_states_batch,
-                masks_batch)
-            loss += self.clip_weight * clip_loss + self.capt_weight * capt_loss
+        # # Language losses
+        # if train_lang:
+        #     clip_loss, capt_loss, mean_sim = self._compute_language_losses(
+        #         agent, 
+        #         obs_batch, 
+        #         parsed_obs_batch, 
+        #         policy_input_batch, 
+        #         rnn_states_batch,
+        #         masks_batch)
+        #     loss += self.clip_weight * clip_loss + self.capt_weight * capt_loss
 
-            log_losses["clip_loss"] = clip_loss.item()
-            log_losses["capt_loss"] = capt_loss.item()
-            log_losses["mean_sim"] = mean_sim
+        #     log_losses["clip_loss"] = clip_loss.item()
+        #     log_losses["capt_loss"] = capt_loss.item()
+        #     log_losses["mean_sim"] = mean_sim
 
         
         # Update
         agent.act_comm_optim.zero_grad()
         agent.critic_optim.zero_grad()
-        self.lang_learner.optim.zero_grad()
+        # self.lang_learner.optim.zero_grad()
         loss.backward()
         agent.act_comm_optim.step()
         agent.critic_optim.step()
-        self.lang_learner.optim.step()
+        # self.lang_learner.optim.step()
 
         return log_losses
 
-    def train(self, buffer, 
-            warmup=False, train_comm_head=True, train_lang=True):
+    def _update_language(self, sample):
+        policy_input_batch, mask_batch, rnn_states_batch, obs_batch, \
+            parsed_obs_batch = sample
+
+        print(policy_input_batch.shape)
+        if not self.share_params:
+            print(obs_batch.shape)
+            print(len(parsed_obs_batch), len(parsed_obs_batch[0]))
+        exit()
+
+    def train(self, warmup=False, train_comm_head=True, train_lang=True):
         """
-        Perform a training update using minibatch GD.
-        :param buffer: (SharedReplayBuffer) buffer containing training data.
+        Train LGMARL.
         :param train_comm_head: (bool) whether to train the communicator head.
 
         :return losses: (dict) contains information regarding training 
@@ -243,7 +254,7 @@ class ACC_Trainer:
         for a in self.agents:
             a.warmup_lr(warmup)
             
-        advantages = self._compute_advantages(buffer)
+        advantages = self._compute_advantages()
         
         losses = {
             "value_loss": 0.0,
@@ -255,36 +266,51 @@ class ACC_Trainer:
             losses["capt_loss"] = 0.0
             losses["mean_sim"] = 0.0
 
+        # Train policy
+        num_updates = self.ppo_epoch * self.n_mini_batch
         for _ in range(self.ppo_epoch):
-            data_generator = buffer.my_recurrent_generator(advantages)
+            data_generator = self.buffer.recurrent_policy_generator(advantages)
     
             for sample in data_generator:
                 if self.share_params:
-                    loss = self._update(
-                        self.agents[0], sample, train_comm_head, train_lang)
+                    loss = self._update_policy(
+                        self.agents[0], sample, train_comm_head)
                     
-                    for key in losses:
-                        losses[key] += loss[key]
+                    for key in loss:
+                        losses[key] += loss[key] / num_updates
                 else:
                     for a_i in range(len(self.agents)):
-                        sample_i = (
-                            *[batch[:, a_i] for batch in sample[:-1]],
-                            [step_sentences[a_i] 
-                                for step_sentences in sample[-1]])
+                        sample_i = tuple(
+                            [batch[:, a_i] for batch in sample])
 
-                        loss = self._update(
-                            self.agents[a_i], 
-                            sample_i, 
-                            train_comm_head, 
-                            train_lang)
+                        loss = self._update_policy(
+                            self.agents[a_i], sample_i, train_comm_head)
                         
-                        for key in losses:
-                            losses[key] += loss[key]
+                        for key in loss:
+                            losses[key] += loss[key] / (
+                                num_updates * len(self.agents))
 
-        num_updates = self.ppo_epoch * self.n_mini_batch
-        for k in losses.keys():
-            losses[k] /= num_updates
-            if not self.share_params:
-                losses[k] /= len(self.agents)
+        # Train language
+        if train_lang:
+            sample = self.buffer.sample_language()
+            loss = self._update_language(sample)
+
+            for key in loss:
+                losses[key] += loss[key]
+            # if self.share_params:
+            #     loss = self._update_language(self.agents[0], sample)
+
+            #     for key in loss:
+            #         losses[key] += loss[key]
+            # else:
+            #     for a_i in range(len(self.agents)):
+            #         # sample_i = (
+            #         #     *[batch[:, a_i] for batch in sample[:-1]],
+            #         #     sample[-1][a_i])
+
+            #         loss = self._update_language(self.agents[a_i], sample)
+
+            #         for key in loss:
+            #             losses[key] += loss[key] / len(self.agents)
  
         return losses

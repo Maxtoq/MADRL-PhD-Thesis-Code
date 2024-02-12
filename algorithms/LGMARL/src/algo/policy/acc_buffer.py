@@ -166,14 +166,61 @@ class ACC_ReplayBuffer:
         self.value_preds[-1] = next_value
         gae = 0
         for step in reversed(range(self.rewards.shape[0])):
-            delta = self.rewards[step] + self.gamma * value_normalizer.denormalize(
-                self.value_preds[step + 1]) * self.masks[step + 1] \
-                - value_normalizer.denormalize(self.value_preds[step])
-            gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] * gae
+            delta = self.rewards[step] + self.gamma \
+                * value_normalizer.denormalize(
+                    self.value_preds[step + 1]) * self.masks[step + 1] \
+                    - value_normalizer.denormalize(self.value_preds[step])
+            gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] \
+                * gae
             self.returns[step] = gae + value_normalizer.denormalize(
                 self.value_preds[step])
 
-    def my_recurrent_generator(self, advantages):
+    def sample_language(self):
+        """
+        Returns all buffered data for language training.
+        """
+        if self.share_params:
+            policy_input_batch = self.policy_input.reshape(
+                (self.episode_length + 1) * self.n_parallel_envs \
+                    * self.n_agents, -1)
+            masks_batch = self.masks.reshape(
+                (self.episode_length + 1) * self.n_parallel_envs \
+                    * self.n_agents, -1)
+            rnn_states_batch = self.rnn_states[0].reshape(
+                self.n_parallel_envs * self.n_agents, self.recurrent_N, -1)
+            obs_batch = self.obs.reshape(
+                (self.episode_length + 1) * self.n_parallel_envs \
+                    * self.n_agents, -1)
+            parsed_obs_batch = [
+                env_sentences[a_i]
+                for step_sentences in self.parsed_obs
+                for env_sentences in step_sentences
+                for a_i in range(self.n_agents)]
+        else:
+            policy_input_batch = self.policy_input.reshape(
+                (self.episode_length + 1) * self.n_parallel_envs, 
+                 self.n_agents, -1)
+            masks_batch = self.masks.reshape(
+                (self.episode_length + 1) * self.n_parallel_envs,
+                 self.n_agents, -1)
+            rnn_states_batch = self.rnn_states[0]
+            obs_batch = self.obs.reshape(
+                (self.episode_length + 1) * self.n_parallel_envs,
+                 self.n_agents, -1)
+            parsed_obs_batch = [
+                [env_sentences[a_i]
+                 for step_sentences in self.parsed_obs
+                 for env_sentences in step_sentences]
+                for a_i in range(self.n_agents)]
+
+        return policy_input_batch, masks_batch, rnn_states_batch, obs_batch, \
+                parsed_obs_batch
+            
+
+    def recurrent_policy_generator(self, advantages):
+        """
+        Generates sample for policy training.
+        """
         # Shuffled env ids
         env_ids = np.random.choice(
             self.n_parallel_envs, size=self.n_parallel_envs, replace=False)
@@ -201,11 +248,11 @@ class ACC_ReplayBuffer:
             masks_batch = self.masks[:-1, ids]
             advantages_batch = advantages[:, ids]
 
-            obs_batch = self.obs[:-1, ids]
-            parsed_obs_batch = [
-                step_sentences[i] 
-                for step_sentences in self.parsed_obs[:-1]
-                for i in ids]
+            # obs_batch = self.obs[:-1, ids]
+            # parsed_obs_batch = [
+            #     step_sentences[i] 
+            #     for step_sentences in self.parsed_obs[:-1]
+            #     for i in ids]
 
             if self.share_params:
                 policy_input_batch = policy_input_batch.reshape(
@@ -234,12 +281,12 @@ class ACC_ReplayBuffer:
                 critic_rnn_states_batch = critic_rnn_states_batch.reshape(
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
 
-                obs_batch = obs_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
-                parsed_obs_batch = [
-                    env_sentences[a_i]
-                    for env_sentences in parsed_obs_batch
-                    for a_i in range(self.n_agents)]
+                # obs_batch = obs_batch.reshape(
+                #     self.episode_length * mini_batch_size * self.n_agents, -1)
+                # parsed_obs_batch = [
+                #     env_sentences[a_i]
+                #     for env_sentences in parsed_obs_batch
+                #     for a_i in range(self.n_agents)]
 
             else:
                 policy_input_batch = policy_input_batch.reshape(
@@ -263,11 +310,10 @@ class ACC_ReplayBuffer:
                 advantages_batch = advantages_batch.reshape(
                     self.episode_length * mini_batch_size, self.n_agents, -1)
 
-                obs_batch = obs_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                # obs_batch = obs_batch.reshape(
+                #     self.episode_length * mini_batch_size, self.n_agents, -1)
 
             yield policy_input_batch, critic_input_batch, rnn_states_batch, \
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
-                value_preds_batch, returns_batch, masks_batch, advantages_batch, \
-                obs_batch, parsed_obs_batch
+                value_preds_batch, returns_batch, masks_batch, advantages_batch
