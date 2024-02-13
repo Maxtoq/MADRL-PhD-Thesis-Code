@@ -252,8 +252,11 @@ class ACC_Trainer:
         self.lang_learner.optim.zero_grad()
         clip_loss.backward()
         self.lang_learner.optim.step()
+
+        clip_loss = clip_loss / (n_mini_batch * self.clip_batch_size)
+        mean_sim = sum(tot_mean_sim) / n_mini_batch
         
-        return clip_loss.item() / n_mini_batch, sum(tot_mean_sim) / n_mini_batch
+        return clip_loss, mean_sim
 
     def _compute_capt_loss(self, preds, targets):
         dec_loss = 0
@@ -290,7 +293,7 @@ class ACC_Trainer:
         agent.act_comm_optim.step()
         self.lang_learner.optim.step()
 
-        return capt_loss.item()
+        return capt_loss.item() / policy_input_batch.shape[0]
 
     def train(self, warmup=False, train_comm_head=True, train_lang=True):
         """
@@ -359,7 +362,5 @@ class ACC_Trainer:
             losses["clip_loss"] = clip_loss
             losses["dec_loss"] = dec_loss
             losses["mean_sim"] = mean_sim
-
-        print(losses)
 
         return losses
