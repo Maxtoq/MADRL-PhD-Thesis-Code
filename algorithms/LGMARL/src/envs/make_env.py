@@ -25,20 +25,27 @@ def _get_env(cfg):
     #     env = RelOvergenEnv(
     #         cfg.ro_state_dim, optim_diff_coeff=cfg.ro_optim_diff_coeff)
     if cfg.env_name == "magym_PredPrey":
-        from .ma_gym.envs.predator_prey.predator_prey import PredatorPrey
+        from .ma_gym.envs.predator_prey import PredatorPrey
         env = PredatorPrey(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length)
+    elif cfg.env_name == "magym_Lumber":
+        from .ma_gym.envs.lumberjack import Lumberjacks
+        env = Lumberjacks(
+            n_agents=cfg.magym_n_agents, 
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+            max_steps=cfg.episode_length)
     return env
 
 def _get_parser(cfg):
     if cfg.env_name == "magym_PredPrey":
-        from .parsers.predator_prey import PredatorPrey_Parser as Parser
+        from .parsers.predator_prey import PredatorPrey_Parser
+        return PredatorPrey_Parser(cfg.magym_env_size)
     else:
-        raise NotImplementedError
-    return Parser(cfg.magym_env_size)
+        print("WARNING: No Parser for", cfg.env_name)
+        return None
 
 def reset_envs(envs):
     obs = envs.reset()
