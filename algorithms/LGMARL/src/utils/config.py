@@ -160,7 +160,7 @@ def get_config():
     parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
     parser.add_argument("--lang_lr", type=float, default=0.007)
-    parser.add_argument("--lang_clip_epochs", type=int, default=2)
+    parser.add_argument("--lang_clip_n_epochs", type=int, default=2)
     parser.add_argument("--lang_clip_batch_size", type=int, default=256)
     parser.add_argument("--lang_temp", type=float, default=1.0)
     parser.add_argument("--lang_clip_weight", type=float, default=1.0)

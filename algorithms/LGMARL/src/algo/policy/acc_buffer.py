@@ -14,6 +14,13 @@ class ACC_ReplayBuffer:
     def __init__(self, 
             args, n_agents, policy_input_dim, critic_input_dim, env_act_dim, comm_act_dim,
             obs_dim):
+        self.n_agents = n_agents
+        self.policy_input_dim = policy_input_dim
+        self.critic_input_dim = critic_input_dim
+        self.env_act_dim = env_act_dim
+        self.comm_act_dim = comm_act_dim
+        self.obs_dim = obs_dim
+
         self.episode_length = args.episode_length
         self.n_parallel_envs = args.n_parallel_envs
         self.hidden_size = args.hidden_dim
@@ -23,12 +30,6 @@ class ACC_ReplayBuffer:
         self.n_mini_batch = args.n_mini_batch
         self.data_chunk_length = args.data_chunk_length
         self.share_params = args.share_params
-        self.n_agents = n_agents
-        self.policy_input_dim = policy_input_dim
-        self.critic_input_dim = critic_input_dim
-        self.env_act_dim = env_act_dim
-        self.comm_act_dim = comm_act_dim
-        self.obs_dim = obs_dim
 
         self.policy_input = np.zeros(
             (self.episode_length + 1, 
@@ -175,9 +176,23 @@ class ACC_ReplayBuffer:
             self.returns[step] = gae + value_normalizer.denormalize(
                 self.value_preds[step])
 
-    def sample_language(self):
+    def sample_clip(self):
         """
-        Returns all buffered data for language training.
+        Returns samples for clip training.
+        """
+        all_obs = self.obs.reshape(
+            (self.episode_length + 1) * self.n_parallel_envs * self.n_agents, -1)
+        all_parsed_obs = [
+            env_sentences[a_i]
+            for step_sentences in self.parsed_obs
+            for env_sentences in step_sentences
+            for a_i in range(self.n_agents)]
+
+        return all_obs, all_parsed_obs
+
+    def sample_capt(self):
+        """
+        Returns all buffered data for captioning training.
         """
         if self.share_params:
             policy_input_batch = self.policy_input.reshape(
@@ -188,9 +203,6 @@ class ACC_ReplayBuffer:
                     * self.n_agents, -1)
             rnn_states_batch = self.rnn_states[0].reshape(
                 self.n_parallel_envs * self.n_agents, self.recurrent_N, -1)
-            obs_batch = self.obs.reshape(
-                (self.episode_length + 1) * self.n_parallel_envs \
-                    * self.n_agents, -1)
             parsed_obs_batch = [
                 env_sentences[a_i]
                 for step_sentences in self.parsed_obs
@@ -204,17 +216,14 @@ class ACC_ReplayBuffer:
                 (self.episode_length + 1) * self.n_parallel_envs,
                  self.n_agents, -1)
             rnn_states_batch = self.rnn_states[0]
-            obs_batch = self.obs.reshape(
-                (self.episode_length + 1) * self.n_parallel_envs,
-                 self.n_agents, -1)
+            
             parsed_obs_batch = [
                 [env_sentences[a_i]
                  for step_sentences in self.parsed_obs
                  for env_sentences in step_sentences]
                 for a_i in range(self.n_agents)]
 
-        return policy_input_batch, masks_batch, rnn_states_batch, obs_batch, \
-                parsed_obs_batch
+        return policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch
             
 
     def recurrent_policy_generator(self, advantages):
