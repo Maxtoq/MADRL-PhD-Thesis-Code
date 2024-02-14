@@ -14,32 +14,15 @@ from .utils.observation_space import MultiAgentObservationSpace
 logger = logging.getLogger(__name__)
 
 
-class PredatorPrey(gym.Env):
+class Foraging(gym.Env):
     """
-    Predator-prey involves a grid world, in which multiple predators attempt to capture randomly moving prey.
-    Agents have a 5 × 5 view and select one of five actions ∈ {Left, Right, Up, Down, Stop} at each time step.
-    Prey move according to selecting a uniformly random action at each time step.
-
-    We define the “catching” of a prey as when the prey is within the cardinal direction of at least one predator.
-    Each agent’s observation includes its own coordinates, agent ID, and the coordinates of the prey relative
-    to itself, if observed. The agents can separate roles even if the parameters of the neural networks are
-    shared by agent ID. We test with two different grid worlds: (i) a 5 × 5 grid world with two predators and one prey,
-    and (ii) a 7 × 7 grid world with four predators and two prey.
-
-    We modify the general predator-prey, such that a positive reward is given only if multiple predators catch a prey
-    simultaneously, requiring a higher degree of cooperation. The predators get a team reward of 1 if two or more
-    catch a prey at the same time, but they are given negative reward −P.We experimented with three varying P vales,
-    where P = 0.5, 1.0, 1.5.
-
-    The terminating condition of this task is when all preys are caught by more than one predator.
-    For every new episodes , preys are initialized into random locations. Also, preys never move by themself into
-    predator's neighbourhood
+    
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
-                 full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
-                 agent_view_mask=(5, 5), global_state=False):
+    def __init__(self, grid_shape=(10, 10), n_agents=2, n_gems=10,
+                 full_observable=False, penalty=0.0, step_cost=-0.01, max_steps=100,
+                 agent_view_mask=(5, 5)):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
                                           ' but found {}'.format(agent_view_mask)
@@ -49,32 +32,26 @@ class PredatorPrey(gym.Env):
 
         self._grid_shape = grid_shape
         self.n_agents = n_agents
-        self.n_preys = n_preys
+        self.n_gems = n_gems
         self._max_steps = max_steps
-        self._step_count = None
-        self._steps_beyond_done = None
+        self._step_count = 0
         self._penalty = penalty
         self._step_cost = step_cost
-        self._prey_capture_reward = prey_capture_reward
         self._agent_view_mask = agent_view_mask
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
-        self.prey_pos = {_: None for _ in range(self.n_preys)}
-        self._prey_alive = None
+        self.gem_pos = {_: None for _ in range(self.n_gems)}
+        self.gem_colors = {_: None for _ in range(self.n_gems)}
+        self._gem_alive = None
 
         self._base_grid = self.__create_grid()  # with no agents
         self._full_obs = self.__create_grid()
 
         self._agent_dones = [False for _ in range(self.n_agents)]
-        self._prey_move_probs = prey_move_probs
         self.viewer = None
-        self.full_observable = full_observable
 
-        self.global_state = global_state
-        self.global_state_dim = 2 * self.n_preys
-
-        # agent pos (2), prey (25), step (1)
+        # agent pos (2), gem (25), step (1)
         mask_size = np.prod(self._agent_view_mask)
         self._obs_high = np.ones(2 + mask_size, dtype=np.float32)
         self._obs_low = np.zeros(2 + mask_size, dtype=np.float32)
@@ -122,14 +99,14 @@ class PredatorPrey(gym.Env):
                     break
             self.__update_agent_view(agent_i)
 
-        for prey_i in range(self.n_preys):
+        for gem_i in range(self.n_gems):
             while True:
                 pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
                        self.np_random.randint(0, self._grid_shape[1] - 1)]
                 if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0):
-                    self.prey_pos[prey_i] = pos
+                    self.gem_pos[gem_i] = pos
                     break
-            self.__update_prey_view(prey_i)
+            self.__update_gem_view(gem_i)
 
         self.__draw_base_img()
 
@@ -139,15 +116,14 @@ class PredatorPrey(gym.Env):
             pos = self.agent_pos[agent_i]
             _agent_i_obs = [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
 
-            # check if prey is in the view area
-            _prey_pos = np.zeros(self._agent_view_mask)  # prey location in neighbour
+            # check if gem is in the view area
+            _gem_pos = np.zeros(self._agent_view_mask)  # gem location in neighbour
             for row in range(max(0, pos[0] - 2), min(pos[0] + 2 + 1, self._grid_shape[0])):
                 for col in range(max(0, pos[1] - 2), min(pos[1] + 2 + 1, self._grid_shape[1])):
-                    if PRE_IDS['prey'] in self._full_obs[row][col]:
-                        _prey_pos[row - (pos[0] - 2), col - (pos[1] - 2)] = 1  # get relative position for the prey loc.
+                    if PRE_IDS['gem'] in self._full_obs[row][col]:
+                        _gem_pos[row - (pos[0] - 2), col - (pos[1] - 2)] = 1  # get relative position for the gem loc.
 
-            _agent_i_obs += _prey_pos.flatten().tolist()  # adding prey pos in observable area
-            # _agent_i_obs += [self._step_count / self._max_steps]  # adding time
+            _agent_i_obs += _gem_pos.flatten().tolist()  # adding gem pos in observable area
             _obs.append(_agent_i_obs)
 
         if self.full_observable:
@@ -156,7 +132,7 @@ class PredatorPrey(gym.Env):
 
         if self.global_state:
             state = (
-                np.array([pp for pp in self.prey_pos.values()])
+                np.array([pp for pp in self.gem_pos.values()])
                 / np.array(self._grid_shape)
             ).reshape(-1)
             return _obs, state
@@ -167,13 +143,12 @@ class PredatorPrey(gym.Env):
     def reset(self):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
         self.agent_pos = {}
-        self.prey_pos = {}
+        self.gem_pos = {}
 
         self.__init_full_obs()
         self._step_count = 0
-        self._steps_beyond_done = None
         self._agent_dones = [False for _ in range(self.n_agents)]
-        self._prey_alive = [True for _ in range(self.n_preys)]
+        self._gem_alive = [True for _ in range(self.n_gems)]
 
         return self.get_agent_obs()
 
@@ -222,9 +197,9 @@ class PredatorPrey(gym.Env):
             next_pos = curr_pos
         return next_pos
 
-    def __update_prey_pos(self, prey_i, move):
-        curr_pos = copy.copy(self.prey_pos[prey_i])
-        if self._prey_alive[prey_i]:
+    def __update_gem_pos(self, gem_i, move):
+        curr_pos = copy.copy(self.gem_pos[gem_i])
+        if self._gem_alive[gem_i]:
             next_pos = None
             if move == 0:  # down
                 next_pos = [curr_pos[0] + 1, curr_pos[1]]
@@ -240,21 +215,21 @@ class PredatorPrey(gym.Env):
                 raise Exception('Action Not found!')
 
             if next_pos is not None and self._is_cell_vacant(next_pos):
-                self.prey_pos[prey_i] = next_pos
+                self.gem_pos[gem_i] = next_pos
                 self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
-                self.__update_prey_view(prey_i)
+                self.__update_gem_view(gem_i)
             else:
                 # print('pos not updated')
                 pass
         else:
-            # self.prey_pos[prey_i] = [-self._grid_shape[0]] * 2
+            # self.gem_pos[gem_i] = [-self._grid_shape[0]] * 2
             self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
 
     def __update_agent_view(self, agent_i):
         self._full_obs[self.agent_pos[agent_i][0]][self.agent_pos[agent_i][1]] = PRE_IDS['agent'] + str(agent_i + 1)
 
-    def __update_prey_view(self, prey_i):
-        self._full_obs[self.prey_pos[prey_i][0]][self.prey_pos[prey_i][1]] = PRE_IDS['prey'] + str(prey_i + 1)
+    def __update_gem_view(self, gem_i):
+        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['gem'] + str(gem_i + 1)
 
     def _neighbour_agents(self, pos):
         # check if agent is in neighbour
@@ -279,9 +254,6 @@ class PredatorPrey(gym.Env):
         return _count, agent_id
 
     def step(self, agents_action):
-        assert (self._step_count is not None), \
-            "Call reset before using step method."
-
         self._step_count += 1
         rewards = [self._step_cost for _ in range(self.n_agents)]
 
@@ -289,54 +261,54 @@ class PredatorPrey(gym.Env):
             if not (self._agent_dones[agent_i]):
                 self.__update_agent_pos(agent_i, action)
 
-        for prey_i in range(self.n_preys):
-            if self._prey_alive[prey_i]:
-                predator_neighbour_count, n_i = self._neighbour_agents(self.prey_pos[prey_i])
+        for gem_i in range(self.n_gems):
+            if self._gem_alive[gem_i]:
+                predator_neighbour_count, n_i = self._neighbour_agents(self.gem_pos[gem_i])
 
                 if predator_neighbour_count >= 1:
-                    _reward = self._penalty if predator_neighbour_count == 1 else self._prey_capture_reward
-                    self._prey_alive[prey_i] = (predator_neighbour_count == 1)
-                    # if not self._prey_alive[prey_i]:
-                    #     self.prey_pos[prey_i] = [-1, -1]
+                    _reward = self._penalty if predator_neighbour_count == 1 else self._gem_capture_reward
+                    self._gem_alive[gem_i] = (predator_neighbour_count == 1)
+                    # if not self._gem_alive[gem_i]:
+                    #     self.gem_pos[gem_i] = [-1, -1]
 
                     for agent_i in range(self.n_agents):
                         rewards[agent_i] += _reward
 
-                prey_move = None
-                if self._prey_alive[prey_i]:
-                    # 5 trails : we sample next move and check if prey (smart) doesn't go in neighbourhood of predator
+                gem_move = None
+                if self._gem_alive[gem_i]:
+                    # 5 trails : we sample next move and check if gem (smart) doesn't go in neighbourhood of predator
                     for _ in range(5):
-                        _move = self.np_random.choice(len(self._prey_move_probs), 1, p=self._prey_move_probs)[0]
-                        if self._neighbour_agents(self.__next_pos(self.prey_pos[prey_i], _move))[0] == 0:
-                            prey_move = _move
+                        _move = self.np_random.choice(len(self._gem_move_probs), 1, p=self._gem_move_probs)[0]
+                        if self._neighbour_agents(self.__next_pos(self.gem_pos[gem_i], _move))[0] == 0:
+                            gem_move = _move
                             break
-                    prey_move = 4 if prey_move is None else prey_move  # default is no-op(4)
+                    gem_move = 4 if gem_move is None else gem_move  # default is no-op(4)
 
-                self.__update_prey_pos(prey_i, prey_move)
+                self.__update_gem_pos(gem_i, gem_move)
 
-        if (self._step_count >= self._max_steps) or (True not in self._prey_alive):
+        if (self._step_count >= self._max_steps) or (True not in self._gem_alive):
             for i in range(self.n_agents):
                 self._agent_dones[i] = True
 
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]
 
-        # Check for episode overflow
-        if all(self._agent_dones):
-            if self._steps_beyond_done is None:
-                self._steps_beyond_done = 0
-            else:
-                if self._steps_beyond_done == 0:
-                    logger.warn(
-                        "You are calling 'step()' even though this "
-                        "environment has already returned all(done) = True. You "
-                        "should always call 'reset()' once you receive "
-                        "'all(done) = True' -- any further steps are undefined "
-                        "behavior."
-                    )
-                self._steps_beyond_done += 1
+        # # Check for episode overflow
+        # if all(self._agent_dones):
+        #     if self._steps_beyond_done is None:
+        #         self._steps_beyond_done = 0
+        #     else:
+        #         if self._steps_beyond_done == 0:
+        #             logger.warn(
+        #                 "You are calling 'step()' even though this "
+        #                 "environment has already returned all(done) = True. You "
+        #                 "should always call 'reset()' once you receive "
+        #                 "'all(done) = True' -- any further steps are undefined "
+        #                 "behavior."
+        #             )
+        #         self._steps_beyond_done += 1
 
-        return *self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
+        return *self.get_agent_obs(), rewards, self._agent_dones, {'gem_alive': self._gem_alive}
 
     def __get_neighbour_coordinates(self, pos):
         neighbours = []
@@ -351,9 +323,6 @@ class PredatorPrey(gym.Env):
         return neighbours
 
     def render(self, mode='human'):
-        assert (self._step_count is not None), \
-            "Call reset before using render method."
-        # print(self._full_obs)
         img = copy.copy(self._base_img)
         for agent_i in range(self.n_agents):
             for neighbour in self.__get_neighbour_coordinates(self.agent_pos[agent_i]):
@@ -365,10 +334,10 @@ class PredatorPrey(gym.Env):
             write_cell_text(img, text=str(agent_i + 1), pos=self.agent_pos[agent_i], cell_size=CELL_SIZE,
                             fill='white', margin=0.4)
 
-        for prey_i in range(self.n_preys):
-            if self._prey_alive[prey_i]:
-                draw_circle(img, self.prey_pos[prey_i], cell_size=CELL_SIZE, fill=PREY_COLOR)
-                write_cell_text(img, text=str(prey_i + 1), pos=self.prey_pos[prey_i], cell_size=CELL_SIZE,
+        for gem_i in range(self.n_gems):
+            if self._gem_alive[gem_i]:
+                draw_circle(img, self.gem_pos[gem_i], cell_size=CELL_SIZE, fill=GEM_COLORS[])
+                write_cell_text(img, text=str(gem_i + 1), pos=self.gem_pos[gem_i], cell_size=CELL_SIZE,
                                 fill='white', margin=0.4)
 
         img = np.asarray(img)
@@ -393,7 +362,11 @@ class PredatorPrey(gym.Env):
 
 AGENT_COLOR = ImageColor.getcolor('blue', mode='RGB')
 AGENT_NEIGHBORHOOD_COLOR = (186, 238, 247)
-PREY_COLOR = 'red'
+GEM_COLORS = {
+    0: 'yellow',
+    1: 'green',
+    2: 'purple'
+}
 
 CELL_SIZE = 35
 
@@ -409,7 +382,7 @@ ACTION_MEANING = {
 
 PRE_IDS = {
     'agent': 'A',
-    'prey': 'P',
+    'gem': 'G',
     'wall': 'W',
     'empty': '0'
 }

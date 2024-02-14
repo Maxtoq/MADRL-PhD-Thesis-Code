@@ -9,9 +9,9 @@ from PIL import ImageColor
 from gym import spaces
 from gym.utils import seeding
 
-from ..utils.action_space import MultiAgentActionSpace
-from ..utils.draw import draw_circle, draw_grid, fill_cell, write_cell_text
-from ..utils.observation_space import MultiAgentObservationSpace
+from .utils.action_space import MultiAgentActionSpace
+from .utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
+from .utils.observation_space import MultiAgentObservationSpace
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +101,7 @@ class Lumberjacks(gym.Env):
         self._agent_dones = None
 
         mask_size = np.prod(tuple(2 * v + 1 for v in self._agent_view))
+        print(self._agent_view, mask_size)
         # Agent ID (1) + Pos (2) + Step (1) + Neighborhood (2 * mask_size)
         self._obs_len = (1 + 2 + 1 + 2 * mask_size)
         obs_high = np.array([1.] * self._obs_len, dtype=np.float32)
@@ -110,6 +111,12 @@ class Lumberjacks(gym.Env):
             obs_low = np.tile(obs_low, self.n_agents)
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5)] * self.n_agents)
         self.observation_space = MultiAgentObservationSpace([spaces.Box(obs_low, obs_high)] * self.n_agents)
+
+        self._shared_obs_high = np.ones(self._obs_len * self.n_agents, dtype=np.float32)
+        self._shared_obs_low = np.zeros(self._obs_len * self.n_agents, dtype=np.float32)
+        self.shared_observation_space = MultiAgentObservationSpace(
+            [spaces.Box(self._shared_obs_low, self._shared_obs_high)
+                for _ in range(self.n_agents)])
 
         self._base_img = draw_grid(self._grid_shape[0], self._grid_shape[1], cell_size=CELL_SIZE, fill='white')
         self._viewer = None

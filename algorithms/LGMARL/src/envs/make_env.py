@@ -43,6 +43,9 @@ def _get_parser(cfg):
     if cfg.env_name == "magym_PredPrey":
         from .parsers.predator_prey import PredatorPrey_Parser
         return PredatorPrey_Parser(cfg.magym_env_size)
+    elif cfg.env_name == "magym_Lumber":
+        from .parsers.lumberjack import Lumberjack_Parser
+        return Lumberjack_Parser(cfg.magym_env_size)
     else:
         print("WARNING: No Parser for", cfg.env_name)
         return None

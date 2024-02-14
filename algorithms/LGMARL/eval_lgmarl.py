@@ -49,7 +49,7 @@ def run():
     # Load params
     # model.load(pretrained_model_path)
 
-    obs, states = envs.reset()
+    obs = envs.reset()
     # model.reset_context()
     # model.prep_rollout(device)
     for ep_s_i in range(cfg.episode_length):
@@ -60,21 +60,22 @@ def run():
         # actions, broadcasts, agent_messages = model.comm_n_act(
         #     obs, parsed_obs)
         actions = np.random.randint(0, 5, (1, 4, 1))
-        print(actions)
 
-        if not cfg.no_render:
+        if cfg.use_render:
             envs.render("human")
         
         print(f"\nStep #{ep_s_i}")
-        # print("Messages", agent_messages)
+        print("Observations", obs)
         print("Perfect Messages", parsed_obs)
+        print("Actions", actions)
+        # print("Messages", agent_messages)
         if cfg.render_wait_input:
             input()
         else:
             time.sleep(0.1)
 
         # Perform action and get reward and next obs
-        obs, _, rewards, dones, infos = envs.step(actions)
+        obs, rewards, dones, infos = envs.step(actions)
 
         # Reward communication
         # comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)
@@ -84,6 +85,7 @@ def run():
 
         env_dones = dones.all(axis=1)
         if True in env_dones:
+            print("ENV DONE")
             break
             
     envs.close()

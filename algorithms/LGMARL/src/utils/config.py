@@ -120,18 +120,6 @@ def get_config():
                         help='log training data in tensorboard')
     parser.add_argument("--log_communication", action='store_true', default=False)
 
-    # eval parameters
-    parser.add_argument("--do_eval", action='store_false', default=True, help="controls if we evaluate agents accross training.")
-    parser.add_argument("--eval_interval", type=int, default=10000, help="number of steps between evaluations.")
-
-    # render parameters
-    parser.add_argument("--save_gifs", action='store_true', default=False, help="by default, do not save render video. If set, save video.")
-    parser.add_argument("--use_render", action='store_true', default=False, help="by default, do not render the env during training. If set, start render. Note: something, the environment has internal render process which is not controlled by this hyperparam.")
-    parser.add_argument("--render_episodes", type=int, default=5, help="the number of episodes to render a given env")
-    parser.add_argument("--ifi", type=float, default=0.1, help="the play interval of each rendered image in saved video.")
-    parser.add_argument("--render_wait_input", default=False, action="store_true")
-    parser.add_argument("--no_render", default=False, action="store_true")
-
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, 
                         help="by default None. set the path to pretrained model.")
@@ -221,7 +209,23 @@ def get_config():
     parser.add_argument("--magym_n_preys", type=int, default=2)
 
     # Fine-tune parameters
-    parser.add_argument("--FT_pretrained_model_path", type=str, default=None)
-    parser.add_argument("--FT_n_steps_fix_policy", type=int, default=10000)
+    # parser.add_argument("--FT_pretrained_model_path", type=str, default=None)
+    # parser.add_argument("--FT_n_steps_fix_policy", type=int, default=10000)
+
+    # eval parameters
+    parser.add_argument("--do_eval", action='store_false', default=True, 
+                        help="controls if we evaluate agents accross training.")
+    parser.add_argument("--eval_interval", type=int, default=10000, 
+                        help="number of steps between evaluations.")
+
+    # render parameters
+    parser.add_argument("--save_gifs", action='store_true', default=False, 
+                        help="by default, do not save render video. If set, save video.")
+    parser.add_argument("--use_render", action='store_true', default=False)
+    parser.add_argument("--render_episodes", type=int, default=5, 
+                        help="the number of episodes to render a given env")
+    parser.add_argument("--ifi", type=float, default=0.1, 
+                        help="the play interval of each rendered image in saved video.")
+    parser.add_argument("--render_wait_input", default=False, action="store_true")
 
     return parser
