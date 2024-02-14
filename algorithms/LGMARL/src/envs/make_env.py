@@ -37,6 +37,12 @@ def _get_env(cfg):
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length)
+    elif cfg.env_name == "magym_Foraging":
+        from .ma_gym.envs.foraging import Foraging
+        env = Foraging(
+            n_agents=cfg.magym_n_agents, 
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+            max_steps=cfg.episode_length)
     return env
 
 def _get_parser(cfg):
@@ -46,6 +52,9 @@ def _get_parser(cfg):
     elif cfg.env_name == "magym_Lumber":
         from .parsers.lumberjack import Lumberjack_Parser
         return Lumberjack_Parser(cfg.magym_env_size)
+    elif cfg.env_name == "magym_Foraging":
+        from .parsers.foraging import Foraging_Parser
+        return Foraging_Parser(cfg.magym_env_size)
     else:
         print("WARNING: No Parser for", cfg.env_name)
         return None

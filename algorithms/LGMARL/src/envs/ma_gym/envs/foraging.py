@@ -20,8 +20,8 @@ class Foraging(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(10, 10), n_agents=2, n_gems=10,
-                 full_observable=False, penalty=0.0, step_cost=-0.01, max_steps=100,
+    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=10,
+                 penalty=-0.5, step_cost=-0.01, max_steps=100,
                  agent_view_mask=(5, 5)):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
@@ -29,6 +29,7 @@ class Foraging(gym.Env):
         assert grid_shape[0] > 0 and grid_shape[1] > 0, 'grid shape should be > 0'
         assert 0 < agent_view_mask[0] <= grid_shape[0], 'agent view mask has to be within (0,{}]'.format(grid_shape[0])
         assert 0 < agent_view_mask[1] <= grid_shape[1], 'agent view mask has to be within (0,{}]'.format(grid_shape[1])
+        assert n_agents >= 3, "n_agents must be > 2."
 
         self._grid_shape = grid_shape
         self.n_agents = n_agents
@@ -38,11 +39,24 @@ class Foraging(gym.Env):
         self._penalty = penalty
         self._step_cost = step_cost
         self._agent_view_mask = agent_view_mask
+        env_size = grid_shape[0]
+        self._agent_init_pos = [
+            [grid_shape[0] // 2 - 1, grid_shape[1] // 2 - 1],
+            [grid_shape[0] // 2 - 1, grid_shape[1] // 2],
+            [grid_shape[0] // 2, grid_shape[1] // 2 - 1],
+            [grid_shape[0] // 2, grid_shape[1] // 2]]
+        self._gem_forbid_pos = [
+            [0, 0],
+            [0, grid_shape[1] - 1],
+            [grid_shape[0] - 1, 0],
+            [grid_shape[0] - 1, grid_shape[1] - 1]]
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
         self.gem_pos = {_: None for _ in range(self.n_gems)}
-        self.gem_colors = {_: None for _ in range(self.n_gems)}
+        self.gem_colors = {0: 3, 1: 2, 2: 2}
+        for g_i in range(3, self.n_gems):
+            self.gem_colors[g_i] = 1
         self._gem_alive = None
 
         self._base_grid = self.__create_grid()  # with no agents
@@ -55,9 +69,6 @@ class Foraging(gym.Env):
         mask_size = np.prod(self._agent_view_mask)
         self._obs_high = np.ones(2 + mask_size, dtype=np.float32)
         self._obs_low = np.zeros(2 + mask_size, dtype=np.float32)
-        if self.full_observable:
-            self._obs_high = np.tile(self._obs_high, self.n_agents)
-            self._obs_low = np.tile(self._obs_low, self.n_agents)
         self.observation_space = MultiAgentObservationSpace(
             [spaces.Box(self._obs_low, self._obs_high) for _ in range(self.n_agents)])
 
@@ -91,19 +102,20 @@ class Foraging(gym.Env):
         self._full_obs = self.__create_grid()
 
         for agent_i in range(self.n_agents):
-            while True:
-                pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                       self.np_random.randint(0, self._grid_shape[1] - 1)]
-                if self._is_cell_vacant(pos):
-                    self.agent_pos[agent_i] = pos
-                    break
+            # while True:
+            #     pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+            #            self.np_random.randint(0, self._grid_shape[1] - 1)]
+            #     if self._is_cell_vacant(pos):
+            #         self.agent_pos[agent_i] = pos
+                    # break
+            self.agent_pos[agent_i] = self._agent_init_pos[agent_i]
             self.__update_agent_view(agent_i)
 
         for gem_i in range(self.n_gems):
             while True:
                 pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
                        self.np_random.randint(0, self._grid_shape[1] - 1)]
-                if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0):
+                if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0) and (pos not in self._gem_forbid_pos):
                     self.gem_pos[gem_i] = pos
                     break
             self.__update_gem_view(gem_i)
@@ -121,24 +133,11 @@ class Foraging(gym.Env):
             for row in range(max(0, pos[0] - 2), min(pos[0] + 2 + 1, self._grid_shape[0])):
                 for col in range(max(0, pos[1] - 2), min(pos[1] + 2 + 1, self._grid_shape[1])):
                     if PRE_IDS['gem'] in self._full_obs[row][col]:
-                        _gem_pos[row - (pos[0] - 2), col - (pos[1] - 2)] = 1  # get relative position for the gem loc.
+                        _gem_pos[row - (pos[0] - 2), col - (pos[1] - 2)] = int(self._full_obs[row][col][-1]) + 1 # get relative position for the gem loc.
 
             _agent_i_obs += _gem_pos.flatten().tolist()  # adding gem pos in observable area
             _obs.append(_agent_i_obs)
-
-        if self.full_observable:
-            _obs = np.array(_obs).flatten().tolist()
-            _obs = [_obs for _ in range(self.n_agents)]
-
-        if self.global_state:
-            state = (
-                np.array([pp for pp in self.gem_pos.values()])
-                / np.array(self._grid_shape)
-            ).reshape(-1)
-            return _obs, state
-        else:
-            state = None
-            return _obs
+        return _obs
 
     def reset(self):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
@@ -197,39 +196,39 @@ class Foraging(gym.Env):
             next_pos = curr_pos
         return next_pos
 
-    def __update_gem_pos(self, gem_i, move):
-        curr_pos = copy.copy(self.gem_pos[gem_i])
-        if self._gem_alive[gem_i]:
-            next_pos = None
-            if move == 0:  # down
-                next_pos = [curr_pos[0] + 1, curr_pos[1]]
-            elif move == 1:  # left
-                next_pos = [curr_pos[0], curr_pos[1] - 1]
-            elif move == 2:  # up
-                next_pos = [curr_pos[0] - 1, curr_pos[1]]
-            elif move == 3:  # right
-                next_pos = [curr_pos[0], curr_pos[1] + 1]
-            elif move == 4:  # no-op
-                pass
-            else:
-                raise Exception('Action Not found!')
+    # def __update_gem_pos(self, gem_i, move):
+    #     curr_pos = copy.copy(self.gem_pos[gem_i])
+    #     if self._gem_alive[gem_i]:
+    #         next_pos = None
+    #         if move == 0:  # down
+    #             next_pos = [curr_pos[0] + 1, curr_pos[1]]
+    #         elif move == 1:  # left
+    #             next_pos = [curr_pos[0], curr_pos[1] - 1]
+    #         elif move == 2:  # up
+    #             next_pos = [curr_pos[0] - 1, curr_pos[1]]
+    #         elif move == 3:  # right
+    #             next_pos = [curr_pos[0], curr_pos[1] + 1]
+    #         elif move == 4:  # no-op
+    #             pass
+    #         else:
+    #             raise Exception('Action Not found!')
 
-            if next_pos is not None and self._is_cell_vacant(next_pos):
-                self.gem_pos[gem_i] = next_pos
-                self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
-                self.__update_gem_view(gem_i)
-            else:
-                # print('pos not updated')
-                pass
-        else:
-            # self.gem_pos[gem_i] = [-self._grid_shape[0]] * 2
-            self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
+    #         if next_pos is not None and self._is_cell_vacant(next_pos):
+    #             self.gem_pos[gem_i] = next_pos
+    #             self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
+    #             self.__update_gem_view(gem_i)
+    #         else:
+    #             # print('pos not updated')
+    #             pass
+    #     else:
+    #         # self.gem_pos[gem_i] = [-self._grid_shape[0]] * 2
+    #         self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
 
     def __update_agent_view(self, agent_i):
         self._full_obs[self.agent_pos[agent_i][0]][self.agent_pos[agent_i][1]] = PRE_IDS['agent'] + str(agent_i + 1)
 
     def __update_gem_view(self, gem_i):
-        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['gem'] + str(gem_i + 1)
+        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['gem'] + str(self.gem_colors[gem_i])#str(gem_i + 1)
 
     def _neighbour_agents(self, pos):
         # check if agent is in neighbour
@@ -265,26 +264,15 @@ class Foraging(gym.Env):
             if self._gem_alive[gem_i]:
                 predator_neighbour_count, n_i = self._neighbour_agents(self.gem_pos[gem_i])
 
-                if predator_neighbour_count >= 1:
-                    _reward = self._penalty if predator_neighbour_count == 1 else self._gem_capture_reward
-                    self._gem_alive[gem_i] = (predator_neighbour_count == 1)
-                    # if not self._gem_alive[gem_i]:
-                    #     self.gem_pos[gem_i] = [-1, -1]
+                if predator_neighbour_count > 0:
+                    if predator_neighbour_count >= self.gem_colors[gem_i]:
+                        _reward = GEM_REWARDS[self.gem_colors[gem_i]]
+                        self._gem_alive[gem_i] = False
+                    else:
+                        _reward = self._penalty
 
                     for agent_i in range(self.n_agents):
                         rewards[agent_i] += _reward
-
-                gem_move = None
-                if self._gem_alive[gem_i]:
-                    # 5 trails : we sample next move and check if gem (smart) doesn't go in neighbourhood of predator
-                    for _ in range(5):
-                        _move = self.np_random.choice(len(self._gem_move_probs), 1, p=self._gem_move_probs)[0]
-                        if self._neighbour_agents(self.__next_pos(self.gem_pos[gem_i], _move))[0] == 0:
-                            gem_move = _move
-                            break
-                    gem_move = 4 if gem_move is None else gem_move  # default is no-op(4)
-
-                self.__update_gem_pos(gem_i, gem_move)
 
         if (self._step_count >= self._max_steps) or (True not in self._gem_alive):
             for i in range(self.n_agents):
@@ -293,22 +281,7 @@ class Foraging(gym.Env):
         for i in range(self.n_agents):
             self._total_episode_reward[i] += rewards[i]
 
-        # # Check for episode overflow
-        # if all(self._agent_dones):
-        #     if self._steps_beyond_done is None:
-        #         self._steps_beyond_done = 0
-        #     else:
-        #         if self._steps_beyond_done == 0:
-        #             logger.warn(
-        #                 "You are calling 'step()' even though this "
-        #                 "environment has already returned all(done) = True. You "
-        #                 "should always call 'reset()' once you receive "
-        #                 "'all(done) = True' -- any further steps are undefined "
-        #                 "behavior."
-        #             )
-        #         self._steps_beyond_done += 1
-
-        return *self.get_agent_obs(), rewards, self._agent_dones, {'gem_alive': self._gem_alive}
+        return self.get_agent_obs(), rewards, self._agent_dones, {'gem_alive': self._gem_alive}
 
     def __get_neighbour_coordinates(self, pos):
         neighbours = []
@@ -336,7 +309,7 @@ class Foraging(gym.Env):
 
         for gem_i in range(self.n_gems):
             if self._gem_alive[gem_i]:
-                draw_circle(img, self.gem_pos[gem_i], cell_size=CELL_SIZE, fill=GEM_COLORS[])
+                draw_circle(img, self.gem_pos[gem_i], cell_size=CELL_SIZE, fill=GEM_COLORS[self.gem_colors[gem_i]])
                 write_cell_text(img, text=str(gem_i + 1), pos=self.gem_pos[gem_i], cell_size=CELL_SIZE,
                                 fill='white', margin=0.4)
 
@@ -362,10 +335,16 @@ class Foraging(gym.Env):
 
 AGENT_COLOR = ImageColor.getcolor('blue', mode='RGB')
 AGENT_NEIGHBORHOOD_COLOR = (186, 238, 247)
+
 GEM_COLORS = {
-    0: 'yellow',
-    1: 'green',
-    2: 'purple'
+    1: 'yellow',
+    2: 'green',
+    3: 'purple'
+}
+GEM_REWARDS = {
+    1: 1,
+    2: 3,
+    3: 10
 }
 
 CELL_SIZE = 35
