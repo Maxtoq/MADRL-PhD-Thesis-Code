@@ -99,7 +99,6 @@ class Foraging_Parser():
         pos = agent_obs[:2]
         gem_map = np.array(
             agent_obs[2:]).reshape((self.obs_range, self.obs_range))
-        print(gem_map)
 
         d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
                 / (self.env_size - 1)

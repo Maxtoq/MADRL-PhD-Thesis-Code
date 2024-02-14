@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=1
+n_run=4
 experiment_name="ACC_10x10_pt_no_comm"
 n_parallel_envs=250
 n_steps=10000000
@@ -15,7 +15,7 @@ lang_lr=0.0009 # default 0.0007
 lang_clip_n_epochs=1 # default 2
 lang_clip_batch_size=128 # default 128
 magym_env_size=10
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
