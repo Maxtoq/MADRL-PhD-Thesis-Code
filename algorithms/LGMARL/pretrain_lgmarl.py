@@ -44,7 +44,6 @@ def run():
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
     act_space = envs.action_space
-    global_state_dim = envs.global_state_dim
     model = LanguageGroundedMARL(
         cfg, 
         n_agents, 
@@ -61,7 +60,7 @@ def run():
     # Reset env
     last_save_step = 0
     last_eval_step = 0
-    obs, _ = envs.reset()
+    obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
     model.init_episode(obs, parsed_obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
@@ -76,7 +75,7 @@ def run():
             actions, broadcasts, agent_messages = model.comm_n_act(
                 parsed_obs)
             # Perform action and get reward and next obs
-            obs, _, rewards, dones, infos = envs.step(actions)
+            obs, rewards, dones, infos = envs.step(actions)
 
             env_dones = dones.all(axis=1)
             if True in env_dones:

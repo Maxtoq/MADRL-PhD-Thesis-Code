@@ -174,7 +174,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
             remote.send((ob, reward, done, info))
         elif cmd == 'reset':
             ob = env.reset()
-            remote.send((4))
+            remote.send((ob))
         elif cmd == 'render':
             if data == "rgb_array":
                 fr = env.render(mode=data)

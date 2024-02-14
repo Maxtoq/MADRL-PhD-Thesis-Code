@@ -169,7 +169,6 @@ class LanguageGroundedMARL:
     def init_episode(self, obs=None, parsed_obs=None):
         # If obs is given -> very first step of all training
         if obs is not None:
-            assert parsed_obs is not None
             self.buffer.reset_episode()
             self._store_obs(obs, parsed_obs)
         # Else -> reset after rollout, we start with the last step of previous 
