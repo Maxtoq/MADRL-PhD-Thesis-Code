@@ -1,12 +1,27 @@
 import numpy as np
 
 
+GEM_COLORS = {
+    1: 'Yellow',
+    2: 'Green',
+    3: 'Purple'
+}
+
+
 class Foraging_Parser():
 
-    vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
+    # vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, env_size):
+    def __init__(self, env_size, obs_range):
         self.env_size = env_size
+        self.obs_range = obs_range
+
+        self.vocab = [
+            "Gem", "Yellow", "Green", "Purple", "Center", "North", "South", 
+            "East", "West"]
+
+        if self.obs_range > 5:
+            self.vocab.append("Close")
 
     # def _get_pos_sent(self, pos):
     #     """
@@ -29,20 +44,20 @@ class Foraging_Parser():
 
     #     return sent
 
-    # def _get_prey_sent(self, preys):
+    # def _get_gem_sent(self, gems):
     #     """
     #     Construct part of sentence describing the position of an agent.
-    #     :param preys: (list(float)) List of surrounding tiles.
-    #     :return sent: (list(str)) Sentence describing observed preys.
+    #     :param gems: (list(float)) List of surrounding tiles.
+    #     :return sent: (list(str)) Sentence describing observed gems.
     #     """
-    #     if 1.0 in preys:
-    #         prey_map = np.array(preys).reshape((5, 5))
-    #         prey_pos = [(x, y) 
+    #     if 1.0 in gems:
+    #         gem_map = np.array(gems).reshape((5, 5))
+    #         gem_pos = [(x, y) 
     #             for x in range(5) 
     #                 for y in range(5) 
-    #                     if prey_map[y, x] == 1.0]
+    #                     if gem_map[y, x] == 1.0]
     #         sent = []
-    #         for p in prey_pos:
+    #         for p in gem_pos:
     #             sent.append("Prey")
     #             sent.append("Observed")
     #             if p[1] < 2:
@@ -68,13 +83,13 @@ class Foraging_Parser():
     #     for o in obs:
     #         s = []
     #         pos = o[:2]
-    #         preys = o[2:]
+    #         gems = o[2:]
 
     #         # Get position part of sentence
     #         s += self._get_pos_sent(pos)
 
-    #         # Get prey part of the observation
-    #         s += self._get_prey_sent(preys)
+    #         # Get gem part of the observation
+    #         s += self._get_gem_sent(gems)
 
     #         sentences.append(s)
     #     return sentences
@@ -82,23 +97,31 @@ class Foraging_Parser():
     def _gen_perfect_message(self, agent_obs):
         m = []
         pos = agent_obs[:2]
-        prey_map = np.array(agent_obs[2:]).reshape((5, 5))
+        gem_map = np.array(
+            agent_obs[2:]).reshape((self.obs_range, self.obs_range))
+        print(gem_map)
 
-        d = (np.arange(5) - 2) / (self.env_size - 1)
-        rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
-        abs_prey_pos = pos + rel_prey_pos
+        d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
+                / (self.env_size - 1)
+        rel_gem_pos = np.stack([d[ax] for ax in np.nonzero(gem_map)]).T
+        gem_values = gem_map[np.nonzero(gem_map)]
+        abs_gem_pos = pos + rel_gem_pos
 
-        for prey_pos in abs_prey_pos:
-            # p = ["Prey", "Located"]
-            p = ["Prey"]
+        for abs_pos, rel_pos, gem_val in zip(
+                abs_gem_pos, rel_gem_pos, gem_values):
+            p = [GEM_COLORS[gem_val], "Gem"]
 
-            if prey_pos[0] <= 0.25:
+            if self.obs_range > 5:
+                if max(np.abs(rel_pos * (self.env_size - 1))) < 3:
+                    p.append("Close")
+
+            if abs_pos[0] <= 0.25:
                 p.append("North")
-            elif prey_pos[0] >= 0.75:
+            elif abs_pos[0] >= 0.75:
                 p.append("South")
-            if prey_pos[1] <= 0.25:
+            if abs_pos[1] <= 0.25:
                 p.append("West")
-            elif prey_pos[1] >= 0.75:
+            elif abs_pos[1] >= 0.75:
                 p.append("East")
 
             if len(p) == 1:
@@ -114,11 +137,10 @@ class Foraging_Parser():
         given observations.
         :param obs (np.ndarray): Batch of observations
         """
-        pass
-        # out = []
-        # for e_i in range(obs.shape[0]):
-        #     env_out = []
-        #     for a_i in range(obs.shape[1]):
-        #         env_out.append(self._gen_perfect_message(obs[e_i, a_i]))
-        #     out.append(env_out)
-        # return out
+        out = []
+        for e_i in range(obs.shape[0]):
+            env_out = []
+            for a_i in range(obs.shape[1]):
+                env_out.append(self._gen_perfect_message(obs[e_i, a_i]))
+            out.append(env_out)
+        return out

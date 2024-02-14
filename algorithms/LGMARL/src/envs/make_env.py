@@ -25,36 +25,39 @@ def _get_env(cfg):
     #     env = RelOvergenEnv(
     #         cfg.ro_state_dim, optim_diff_coeff=cfg.ro_optim_diff_coeff)
     if cfg.env_name == "magym_PredPrey":
-        from .ma_gym.envs.predator_prey import PredatorPrey
+        from .ma_gym.predator_prey import PredatorPrey
         env = PredatorPrey(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
-            max_steps=cfg.episode_length)
+            max_steps=cfg.episode_length,
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
     elif cfg.env_name == "magym_Lumber":
-        from .ma_gym.envs.lumberjack import Lumberjacks
+        from .ma_gym.lumberjack import Lumberjacks
         env = Lumberjacks(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
-            max_steps=cfg.episode_length)
+            max_steps=cfg.episode_length,
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
     elif cfg.env_name == "magym_Foraging":
-        from .ma_gym.envs.foraging import Foraging
+        from .ma_gym.foraging import Foraging
         env = Foraging(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
-            max_steps=cfg.episode_length)
+            max_steps=cfg.episode_length,
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
     return env
 
 def _get_parser(cfg):
     if cfg.env_name == "magym_PredPrey":
         from .parsers.predator_prey import PredatorPrey_Parser
-        return PredatorPrey_Parser(cfg.magym_env_size)
+        return PredatorPrey_Parser(cfg.magym_env_size, cfg.magym_obs_range)
     elif cfg.env_name == "magym_Lumber":
         from .parsers.lumberjack import Lumberjack_Parser
         return Lumberjack_Parser(cfg.magym_env_size)
     elif cfg.env_name == "magym_Foraging":
         from .parsers.foraging import Foraging_Parser
-        return Foraging_Parser(cfg.magym_env_size)
+        return Foraging_Parser(cfg.magym_env_size, cfg.magym_obs_range)
     else:
         print("WARNING: No Parser for", cfg.env_name)
         return None

@@ -6,8 +6,14 @@ class PredatorPrey_Parser():
     # vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
     vocab = ["Prey", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, env_size):
+    def __init__(self, env_size, obs_range):
         self.env_size = env_size
+        self.obs_range = obs_range
+
+        self.vocab = ["Prey", "Center", "North", "South", "East", "West"]
+
+        if self.obs_range > 5:
+            self.vocab.append("Close")
 
     def parse_global_state(self, state):
         """
@@ -93,23 +99,29 @@ class PredatorPrey_Parser():
     def _gen_perfect_message(self, agent_obs):
         m = []
         pos = agent_obs[:2]
-        prey_map = np.array(agent_obs[2:]).reshape((5, 5))
+        prey_map = np.array(
+            agent_obs[2:]).reshape((self.obs_range, self.obs_range))
 
-        d = (np.arange(5) - 2) / (self.env_size - 1)
+        d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
+                / (self.env_size - 1)
         rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
         abs_prey_pos = pos + rel_prey_pos
 
-        for prey_pos in abs_prey_pos:
+        for abs_pos, rel_pos in zip(abs_prey_pos, rel_prey_pos):
             # p = ["Prey", "Located"]
             p = ["Prey"]
 
-            if prey_pos[0] <= 0.25:
+            if self.obs_range > 5:
+                if max(np.abs(rel_pos * (self.env_size - 1))) < 3:
+                    p.append("Close")
+
+            if abs_pos[0] <= 0.25:
                 p.append("North")
-            elif prey_pos[0] >= 0.75:
+            elif abs_pos[0] >= 0.75:
                 p.append("South")
-            if prey_pos[1] <= 0.25:
+            if abs_pos[1] <= 0.25:
                 p.append("West")
-            elif prey_pos[1] >= 0.75:
+            elif abs_pos[1] >= 0.75:
                 p.append("East")
 
             if len(p) == 1:
