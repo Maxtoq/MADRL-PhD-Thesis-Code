@@ -75,7 +75,8 @@ class LanguageGroundedMARL:
         self.lang_contexts = np.zeros(
             (self.n_envs, self.context_dim), dtype=np.float32)
         # Matrices used during rollout
-        self.values = None
+        self.act_values = None
+        self.comm_values = None
         self.actions = None
         self.action_log_probs = None
         self.comm_actions = None
@@ -89,8 +90,9 @@ class LanguageGroundedMARL:
         self.lang_learner.prep_training(self.device)
         self.acc.prep_training(self.device)
         self.trainer.device = self.device
-        if self.trainer.value_normalizer is not None:
-            self.trainer.value_normalizer.to(self.device)
+        if self.trainer.act_value_normalizer is not None:
+            self.trainer.act_value_normalizer.to(self.device)
+            self.trainer.comm_value_normalizer.to(self.device)
 
     def prep_rollout(self, device=None):
         if device is not None:
@@ -98,14 +100,9 @@ class LanguageGroundedMARL:
         self.lang_learner.prep_rollout(self.device)
         self.acc.prep_rollout(self.device)
         self.trainer.device = self.device
-        if self.trainer.value_normalizer is not None:
-            self.trainer.value_normalizer.to(self.device)
-
-    # def store_language_inputs(self, obs, parsed_obs):
-    #     obs = obs.reshape(-1, obs.shape[-1])
-    #     parsed_obs = [
-    #         sent for env_sent in parsed_obs for sent in env_sent]
-    #     self.lang_learner.store(obs, parsed_obs)
+        if self.trainer.act_value_normalizer is not None:
+            self.trainer.act_value_normalizer.to(self.device)
+            self.trainer.comm_value_normalizer.to(self.device)
 
     def reset_context(self, env_dones):
         """
@@ -176,7 +173,7 @@ class LanguageGroundedMARL:
         else:
             self.buffer.start_new_episode()
 
-    def store_exp(self, next_obs, next_parsed_obs, rewards, dones):
+    def store_exp(self, next_obs, next_parsed_obs, act_rewards, dones):
         # Reset rnn_states and masks for done environments
         self.rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), 
@@ -192,6 +189,8 @@ class LanguageGroundedMARL:
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 
+        self.comm_rewards = np.zeros_like(act_rewards[..., np.newaxis])
+
         # Insert action data in buffer
         self.buffer.insert_act(
             self.rnn_states,
@@ -200,8 +199,10 @@ class LanguageGroundedMARL:
             self.action_log_probs,
             self.comm_actions,
             self.comm_action_log_probs,
-            self.values,
-            rewards[..., np.newaxis],
+            self.act_values,
+            self.comm_values,
+            act_rewards[..., np.newaxis],
+            self.comm_rewards,
             masks)
 
         # Insert next obs in buffer
@@ -227,8 +228,8 @@ class LanguageGroundedMARL:
         policy_input, critic_input, rnn_states, critic_rnn_states, masks \
             = self.buffer.get_act_params()
 
-        self.values, self.actions, self.action_log_probs, self.comm_actions, \
-            self.comm_action_log_probs, self.rnn_states, \
+        self.act_values, self.comm_values, self.actions, self.action_log_probs, \
+            self.comm_actions, self.comm_action_log_probs, self.rnn_states, \
             self.rnn_states_critic = self.acc.get_actions(
                 policy_input, critic_input, rnn_states, critic_rnn_states, masks)
 
@@ -304,13 +305,16 @@ class LanguageGroundedMARL:
             self.buffer.critic_rnn_states[-1]).to(self.device)
         masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
 
-        next_values = self.acc.compute_last_value(
+        next_act_values, next_comm_values = self.acc.compute_last_value(
             self.buffer.critic_input[-1], 
             self.buffer.critic_rnn_states[-1],
             self.buffer.masks[-1])
 
         self.buffer.compute_returns(
-            next_values, self.trainer.value_normalizer)
+            next_act_values, 
+            next_comm_values, 
+            self.trainer.act_value_normalizer,
+            self.trainer.comm_value_normalizer)
 
     def train(self, step, 
             train_act_head=True, 
@@ -339,7 +343,8 @@ class LanguageGroundedMARL:
         save_dict = {
             "acc": self.acc.get_save_dict(),
             "lang_learner": self.lang_learner.get_save_dict(),
-            "vnorm": self.trainer.value_normalizer.state_dict()
+            "act_vnorm": self.trainer.act_value_normalizer.state_dict(),
+            "comm_vnorm": self.trainer.comm_value_normalizer.state_dict()
         }
         torch.save(save_dict, path)
 
@@ -347,6 +352,7 @@ class LanguageGroundedMARL:
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.acc.load_params(save_dict["acc"])
         self.lang_learner.load_params(save_dict["lang_learner"])
-        self.trainer.value_normalizer.load_state_dict(params["vnorm"])
+        self.trainer.act_value_normalizer.load_state_dict(params["act_vnorm"])
+        self.trainer.commvalue_normalizer.load_state_dict(params["comm_vnorm"])
 
         

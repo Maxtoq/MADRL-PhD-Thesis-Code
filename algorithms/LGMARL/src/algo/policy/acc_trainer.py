@@ -35,17 +35,25 @@ class ACC_Trainer:
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()
 
-        self.value_normalizer = ValueNorm(1).to(device)
+        self.act_value_normalizer = ValueNorm(1).to(device)
+        self.comm_value_normalizer = ValueNorm(1).to(device)
 
     def _compute_advantages(self):
-         # Compute and normalize advantages
-        advantages = self.buffer.returns[:-1] - self.value_normalizer.denormalize(
-            self.buffer.value_preds[:-1])
-        advantages_copy = advantages.copy()
-        mean_advantages = np.nanmean(advantages_copy)
-        std_advantages = np.nanstd(advantages_copy)
-        advantages = (advantages - mean_advantages) / (std_advantages + 1e-5)
-        return advantages
+         # Compute and normalize action advantages
+        act_advantages = self.buffer.act_returns[:-1] - self.act_value_normalizer.denormalize(
+            self.buffer.act_value_preds[:-1])
+        act_advantages_copy = act_advantages.copy()
+        mean_act_advantages = np.nanmean(act_advantages_copy)
+        std_act_advantages = np.nanstd(act_advantages_copy)
+        act_advantages = (act_advantages - mean_act_advantages) / (std_act_advantages + 1e-5)
+         # Compute and normalize communication advantages
+        comm_advantages = self.buffer.comm_returns[:-1] - self.comm_value_normalizer.denormalize(
+            self.buffer.comm_value_preds[:-1])
+        comm_advantages_copy = comm_advantages.copy()
+        mean_comm_advantages = np.nanmean(comm_advantages_copy)
+        std_comm_advantages = np.nanstd(comm_advantages_copy)
+        comm_advantages = (comm_advantages - mean_comm_advantages) / (std_comm_advantages + 1e-5)
+        return act_advantages, comm_advantages
 
     def _compute_policy_loss(self, 
             action_log_probs, old_action_log_probs_batch, adv_targ, dist_entropy):
@@ -64,23 +72,23 @@ class ACC_Trainer:
 
         return loss
 
-    def _compute_value_loss(self, values, value_preds_batch, return_batch):
+    def _compute_value_loss(self, 
+            values, value_preds_batch, return_batch, value_norm):
         """
         Calculate value function loss.
         :param values: (torch.Tensor) value function predictions.
         :param value_preds_batch: (torch.Tensor) "old" value  predictions from
             data batch (used for value clip loss)
         :param return_batch: (torch.Tensor) reward to go returns.
+        :param value_norm: (ValueNorm) value normalizer instance.
 
         :return value_loss: (torch.Tensor) value function loss.
         """
         value_pred_clipped = value_preds_batch + \
             (values - value_preds_batch).clamp(-self.clip_param, self.clip_param)
-        self.value_normalizer.update(return_batch)
-        error_clipped = self.value_normalizer.normalize(
-            return_batch) - value_pred_clipped
-        error_original = self.value_normalizer.normalize(
-            return_batch) - values
+        value_norm.update(return_batch)
+        error_clipped = value_norm.normalize(return_batch) - value_pred_clipped
+        error_original = value_norm.normalize(return_batch) - values
 
         value_loss_clipped = huber_loss(error_clipped, self.huber_delta)
         value_loss_original = huber_loss(error_original, self.huber_delta)
@@ -91,43 +99,12 @@ class ACC_Trainer:
 
         return value_loss
 
-    # def _compute_language_losses(self, 
-    #         agent, obs_batch, parsed_obs_batch, policy_input_batch, 
-    #         rnn_states_batch, masks_batch):
-    #     """
-    #     :param agent: (ACC_Agent) Agent model used in the update.
-    #     :param obs_batch: (torch.Tensor) Batch of observations, 
-    #         dim=(ep_length * n_mini_batch * n_agents, obs_dim).
-    #     :param parsed_obs_batch: (list(list(str))) Batch of sentences parsed 
-    #         from observations, one for each observation in batch.
-    #     """
-    #     # Encode observations
-    #     obs_context_batch = self.lang_learner.obs_encoder(obs_batch)
-    #     # Encode sentences
-    #     lang_context_batch = self.lang_learner.lang_encoder(parsed_obs_batch)
-    #     lang_context_batch = lang_context_batch.squeeze()
-    #     # CLIP loss
-    #     clip_loss, mean_sim = self._compute_clip_loss(
-    #         obs_context_batch, lang_context_batch)
-
-    #     # Pass through acc
-    #     comm_actions = agent.get_comm_actions(
-    #         policy_input_batch, rnn_states_batch, masks_batch)
-    #     # Decode
-    #     encoded_targets = self.lang_learner.word_encoder.encode_batch(
-    #         parsed_obs_batch)
-    #     decoder_outputs, _ = self.lang_learner.decoder(
-    #         comm_actions, encoded_targets)
-    #     # Captioning loss
-    #     capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
-        
-    #     return clip_loss, capt_loss, mean_sim
-
     def _train_mappo(self, agent, sample, train_comm_head):
         policy_input_batch, critic_input_batch, rnn_states_batch, \
             critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
-            value_preds_batch, returns_batch, masks_batch, advantages_batch \
+            act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
+            comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch \
                 = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
@@ -137,18 +114,23 @@ class ACC_Trainer:
             self.device)
         env_actions_batch = torch.from_numpy(env_actions_batch).to(self.device)
         comm_actions_batch = torch.from_numpy(comm_actions_batch).to(self.device)
-        value_preds_batch = torch.from_numpy(value_preds_batch).to(self.device)
-        returns_batch = torch.from_numpy(returns_batch).to(self.device)
+        act_value_preds_batch = torch.from_numpy(
+            act_value_preds_batch).to(self.device)
+        comm_value_preds_batch = torch.from_numpy(
+            comm_value_preds_batch).to(self.device)
+        act_returns_batch = torch.from_numpy(act_returns_batch).to(self.device)
+        comm_returns_batch = torch.from_numpy(comm_returns_batch).to(self.device)
         masks_batch = torch.from_numpy(masks_batch).to(self.device)
         old_env_action_log_probs_batch = torch.from_numpy(
             old_env_action_log_probs_batch).to(self.device)
         old_comm_action_log_probs_batch = torch.from_numpy(
             old_comm_action_log_probs_batch).to(self.device)
-        advantages_batch = torch.from_numpy(advantages_batch).to(self.device)
+        act_advt_batch = torch.from_numpy(act_advt_batch).to(self.device)
+        comm_advt_batch = torch.from_numpy(comm_advt_batch).to(self.device)
 
         # Agent forward pass
-        values, env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
-            comm_dist_entropy = agent.evaluate_actions(
+        act_values, comm_values, env_action_log_probs, act_dist_entropy, \
+            comm_action_log_probs, comm_dist_entropy = agent.evaluate_actions(
                 policy_input_batch, critic_input_batch, rnn_states_batch, 
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, 
                 masks_batch, train_comm_head)
@@ -157,8 +139,8 @@ class ACC_Trainer:
         actor_loss = self._compute_policy_loss(
             env_action_log_probs, 
             old_env_action_log_probs_batch, 
-            advantages_batch, 
-            env_dist_entropy)
+            act_advt_batch, 
+            act_dist_entropy)
 
         log_losses = {"actor_loss": actor_loss.item()}
 
@@ -167,19 +149,28 @@ class ACC_Trainer:
             comm_loss = self._compute_policy_loss(
                 comm_action_log_probs, 
                 old_comm_action_log_probs_batch, 
-                advantages_batch, 
+                comm_advt_batch, 
                 comm_dist_entropy)
             log_losses["comm_loss"] = comm_loss.item()
         else:
             comm_loss = torch.zeros_like(actor_loss)
 
         # Value loss
-        value_loss = self._compute_value_loss(
-            values, value_preds_batch, returns_batch)
+        act_value_loss = self._compute_value_loss(
+            act_values, 
+            act_value_preds_batch, 
+            act_returns_batch, 
+            self.act_value_normalizer)
+        comm_value_loss = self._compute_value_loss(
+            comm_values, 
+            comm_value_preds_batch, 
+            comm_returns_batch, 
+            self.comm_value_normalizer)
 
-        log_losses["value_loss"] = value_loss.item()
+        log_losses["act_value_loss"] = act_value_loss.item()
+        log_losses["comm_value_loss"] = comm_value_loss.item()
 
-        loss = actor_loss + comm_loss + value_loss
+        loss = actor_loss + comm_loss + act_value_loss + comm_value_loss
         
         # Update
         agent.act_comm_optim.zero_grad()
@@ -306,10 +297,11 @@ class ACC_Trainer:
         for a in self.agents:
             a.warmup_lr(warmup)
             
-        advantages = self._compute_advantages()
+        act_advantages, comm_advantages = self._compute_advantages()
         
         losses = {
-            "value_loss": 0.0,
+            "act_value_loss": 0.0,
+            "comm_value_loss": 0.0,
             "actor_loss": 0.0}
         if train_comm_head:
             losses["comm_loss"] = 0.0
@@ -317,7 +309,8 @@ class ACC_Trainer:
         # Train policy
         num_updates = self.ppo_epoch * self.n_mini_batch
         for _ in range(self.ppo_epoch):
-            data_generator = self.buffer.recurrent_policy_generator(advantages)
+            data_generator = self.buffer.recurrent_policy_generator(
+                act_advantages, comm_advantages)
     
             for sample in data_generator:
                 if self.share_params:
