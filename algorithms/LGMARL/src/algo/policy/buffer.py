@@ -108,6 +108,14 @@ class ACC_ReplayBuffer:
         self.masks = np.ones((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
         self.step = 0
 
+    def start_new_episode(self):
+        self.obs[0] = self.obs[-1].copy()
+        self.shared_obs[0] = self.shared_obs[-1].copy()
+        self.rnn_states[0] = self.rnn_states[-1].copy()
+        self.critic_rnn_states[0] = self.critic_rnn_states[-1].copy()
+        self.masks[0] = self.masks[-1].copy()
+        self.step = 0
+
     def get_act_params(self):
         return self.obs[self.step], self.shared_obs[self.step], \
                self.rnn_states[self.step], self.critic_rnn_states[self.step], \

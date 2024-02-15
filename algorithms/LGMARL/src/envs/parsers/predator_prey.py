@@ -4,7 +4,6 @@ import numpy as np
 class PredatorPrey_Parser():
 
     # vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
-    vocab = ["Prey", "Center", "North", "South", "East", "West"]
 
     def __init__(self, env_size, obs_range):
         self.env_size = env_size

@@ -756,4 +756,12 @@ models/magym_PredPrey/ACC_NO-SHAREDOBS-AUGMENT_8x8_pt_perfect_comm/*
 models/magym_PredPrey/ACC_NO-SHAREDOBS-AUGMENT_8x8_pt_no_comm/*
 !models/magym_PredPrey/ACC_NO-SHAREDOBS-AUGMENT_8x8_pt_no_comm/train_data
 
+!models/magym_PredPrey/ACC_9x9_pt_perfect_comm
+models/magym_PredPrey/ACC_9x9_pt_perfect_comm/*
+!models/magym_PredPrey/ACC_9x9_pt_perfect_comm/train_data
+
+!models/magym_PredPrey/ACC_9x9_pt_no_comm
+models/magym_PredPrey/ACC_9x9_pt_no_comm/*
+!models/magym_PredPrey/ACC_9x9_pt_no_comm/train_data
+
 
