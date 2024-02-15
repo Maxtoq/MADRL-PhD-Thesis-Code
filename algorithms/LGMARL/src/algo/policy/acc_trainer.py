@@ -141,34 +141,34 @@ class ACC_Trainer:
             old_env_action_log_probs_batch, 
             act_advt_batch, 
             act_dist_entropy)
+        # Act Value loss
+        act_value_loss = self._compute_value_loss(
+            act_values, 
+            act_value_preds_batch, 
+            act_returns_batch, 
+            self.act_value_normalizer)
 
-        log_losses = {"actor_loss": actor_loss.item()}
+        log_losses = {
+            "actor_loss": actor_loss.item(),
+            "act_value_loss": act_value_loss.item()}
 
-        # Communicator loss
+        # Communicator losses
         if train_comm_head:
             comm_loss = self._compute_policy_loss(
                 comm_action_log_probs, 
                 old_comm_action_log_probs_batch, 
                 comm_advt_batch, 
                 comm_dist_entropy)
+            comm_value_loss = self._compute_value_loss(
+                comm_values, 
+                comm_value_preds_batch, 
+                comm_returns_batch, 
+                self.comm_value_normalizer)
             log_losses["comm_loss"] = comm_loss.item()
+            log_losses["comm_value_loss"] = comm_value_loss.item()
         else:
             comm_loss = torch.zeros_like(actor_loss)
-
-        # Value loss
-        act_value_loss = self._compute_value_loss(
-            act_values, 
-            act_value_preds_batch, 
-            act_returns_batch, 
-            self.act_value_normalizer)
-        comm_value_loss = self._compute_value_loss(
-            comm_values, 
-            comm_value_preds_batch, 
-            comm_returns_batch, 
-            self.comm_value_normalizer)
-
-        log_losses["act_value_loss"] = act_value_loss.item()
-        log_losses["comm_value_loss"] = comm_value_loss.item()
+            comm_value_loss = torch.zeros_like(act_value_loss)
 
         loss = actor_loss + comm_loss + act_value_loss + comm_value_loss
         
@@ -301,9 +301,9 @@ class ACC_Trainer:
         
         losses = {
             "act_value_loss": 0.0,
-            "comm_value_loss": 0.0,
             "actor_loss": 0.0}
         if train_comm_head:
+            losses["comm_value_loss"] = 0.0
             losses["comm_loss"] = 0.0
 
         # Train policy
