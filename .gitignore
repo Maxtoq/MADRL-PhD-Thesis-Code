@@ -764,4 +764,23 @@ models/magym_PredPrey/ACC_9x9_pt_perfect_comm/*
 models/magym_PredPrey/ACC_9x9_pt_no_comm/*
 !models/magym_PredPrey/ACC_9x9_pt_no_comm/train_data
 
+!models/magym_Foraging
+models/magym_Foraging/*
+
+!models/magym_Foraging/ACC_10x10_pt_no_comm
+models/magym_Foraging/ACC_10x10_pt_no_comm/*
+!models/magym_Foraging/ACC_10x10_pt_no_comm/train_data
+!models/magym_Foraging/ACC_10x10_pt_no_comm/run8
+models/magym_Foraging/ACC_10x10_pt_no_comm/run8/*
+!models/magym_Foraging/ACC_10x10_pt_no_comm/run8/model_ep.pt
+!models/magym_Foraging/ACC_10x10_pt_no_comm/run8/args.txt
+
+!models/magym_Foraging/ACC_10x10_pt_perfect_comm
+models/magym_Foraging/ACC_10x10_pt_perfect_comm/*
+!models/magym_Foraging/ACC_10x10_pt_perfect_comm/train_data
+!models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3
+models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/*
+!models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/model_ep.pt
+!models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/args.txt
+
 

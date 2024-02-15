@@ -66,10 +66,7 @@ def run():
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
-
         for ep_s_i in range(cfg.episode_length):
-            # Store language inputs in buffer
-            # model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             actions, broadcasts, agent_messages = model.comm_n_act(
