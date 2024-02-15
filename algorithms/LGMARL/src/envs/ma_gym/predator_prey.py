@@ -7,9 +7,9 @@ from PIL import ImageColor
 from gym import spaces
 from gym.utils import seeding
 
-from ..utils.action_space import MultiAgentActionSpace
-from ..utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
-from ..utils.observation_space import MultiAgentObservationSpace
+from .utils.action_space import MultiAgentActionSpace
+from .utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
+from .utils.observation_space import MultiAgentObservationSpace
 
 logger = logging.getLogger(__name__)
 
@@ -160,9 +160,10 @@ class PredatorPrey(gym.Env):
                 np.array([pp for pp in self.prey_pos.values()])
                 / np.array(self._grid_shape)
             ).reshape(-1)
+            return _obs, state
         else:
             state = None
-        return _obs, state
+            return _obs
 
     def reset(self):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]

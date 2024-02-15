@@ -1,23 +1,33 @@
-#!/bin/sh
-n_run=4
-experiment_name="ACC_10x10_pt_no_comm"
-n_parallel_envs=250
-n_steps=10000000
+#!/bin/bash
+#SBATCH --partition=hard
+#SBATCH --nodelist=led
+#SBATCH --job-name=FT_nocommenc
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
+#SBATCH --time=2500
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
+#SBATCH --output=outputs/%x-%j.out
+
+source venv/bin/activate
+
+n_run=1
+experiment_name="FIXEDACC_9x9_pt_no_comm_encobs"
+n_parallel_envs=128
+n_steps=5000000
 ppo_epoch=15 # default 15
-n_mini_batch=1 # default 2
+n_mini_batch=4 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_Foraging"
+env_name="magym_PredPrey"
 episode_length=100
 comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
 context_dim=16 # default 16
 lang_lr=0.0009 # default 0.0007
-lang_clip_n_epochs=1 # default 2
-lang_clip_batch_size=128 # default 128
-magym_env_size=10
+lang_n_epochs=1 # default 2
+lang_batch_size=128 # default 128
+magym_env_size=9
 cuda_device="cuda:0"
-
-source venv3.8/bin/activate
 
 for n in $(seq 1 $n_run)
 do
@@ -37,11 +47,11 @@ do
     --comm_ec_strategy ${comm_ec_strategy}\
     --context_dim ${context_dim}\
     --lang_lr ${lang_lr}\
-    --lang_clip_n_epochs ${lang_clip_n_epochs}\
-    --lang_clip_batch_size ${lang_clip_batch_size}\
-    --magym_env_size ${magym_env_size}"
-    # --no_comm_head_learns_rl"
-    # --enc_obs\
+    --lang_n_epochs ${lang_n_epochs}\
+    --lang_batch_size ${lang_batch_size}\
+    --magym_env_size ${magym_env_size}\
+    --enc_obs"
+    #--comm_head_learns_rl"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm
     printf "DONE\n\n"

@@ -3,6 +3,8 @@ import numpy as np
 
 from .language.lang_learner import LanguageLearner
 from .policy.acc_mappo import ACC_MAPPO
+from .policy.acc_buffer import ACC_ReplayBuffer
+from .policy.acc_trainer import ACC_Trainer
 from .policy.utils import get_shape_from_obs_space, torch2numpy
 
 
@@ -20,46 +22,61 @@ class LanguageGroundedMARL:
         self.comm_type = args.comm_type
         self.comm_ec_strategy = args.comm_ec_strategy
         self.enc_obs = args.enc_obs
+        self.recurrent_N = args.policy_recurrent_N
+        self.hidden_dim = args.hidden_dim
         self.comm_logger = comm_logger
         self.device = device
 
         if args.comm_type == "no_comm":
-            obs_dim = get_shape_from_obs_space(obs_space[0])
-            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
+            policy_input_dim = get_shape_from_obs_space(obs_space[0])
+            critic_input_dim = get_shape_from_obs_space(shared_obs_space[0])
         elif self.enc_obs:
-            obs_dim = self.context_dim * 2
-            shared_obs_dim = self.context_dim * (self.n_agents + 1)
+            policy_input_dim = self.context_dim * 2
+            critic_input_dim = self.context_dim * (self.n_agents + 1)
         else:
-            obs_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
-            shared_obs_dim = get_shape_from_obs_space(shared_obs_space[0]) \
+            policy_input_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
+            critic_input_dim = get_shape_from_obs_space(shared_obs_space[0]) \
                                 + self.context_dim
         act_dim = act_space[0].n
 
         # Modules
+        obs_dim = obs_space[0].shape[0]
         self.lang_learner = LanguageLearner(
-            obs_space[0].shape[0], 
-            self.context_dim, 
-            args.lang_hidden_dim, 
+            args,
+            obs_dim, 
+            self.context_dim,
             vocab, 
-            device,
-            args.lang_lr,
-            args.lang_n_epochs,
-            args.lang_batch_size)
+            device,)
+            # args.lang_n_epochs,
+            # args.lang_batch_size)
 
-        self.comm_n_act_policy = ACC_MAPPO(
+        self.acc = ACC_MAPPO(
             args, 
             self.lang_learner, 
             n_agents, 
-            obs_dim, 
-            shared_obs_dim, 
+            policy_input_dim, 
+            critic_input_dim, 
             act_dim, 
             device)
+
+        self.buffer = ACC_ReplayBuffer(
+            self.args, 
+            n_agents, 
+            policy_input_dim, 
+            critic_input_dim,
+            1, 
+            self.context_dim, 
+            obs_dim)
+
+        self.trainer = ACC_Trainer(
+            args, self.acc.agents, self.lang_learner, self.buffer, self.device)
 
         # Language context, to carry to next steps
         self.lang_contexts = np.zeros(
             (self.n_envs, self.context_dim), dtype=np.float32)
         # Matrices used during rollout
-        self.values = None
+        self.act_values = None
+        self.comm_values = None
         self.actions = None
         self.action_log_probs = None
         self.comm_actions = None
@@ -71,32 +88,33 @@ class LanguageGroundedMARL:
         if device is not None:
             self.device = device
         self.lang_learner.prep_training(self.device)
-        self.comm_n_act_policy.prep_training(self.device)
+        self.acc.prep_training(self.device)
+        self.trainer.device = self.device
+        if self.trainer.act_value_normalizer is not None:
+            self.trainer.act_value_normalizer.to(self.device)
+            self.trainer.comm_value_normalizer.to(self.device)
 
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
         self.lang_learner.prep_rollout(self.device)
-        self.comm_n_act_policy.prep_rollout(self.device)
+        self.acc.prep_rollout(self.device)
+        self.trainer.device = self.device
+        if self.trainer.act_value_normalizer is not None:
+            self.trainer.act_value_normalizer.to(self.device)
+            self.trainer.comm_value_normalizer.to(self.device)
 
     def reset_context(self, env_dones):
         """
         Reset language contexts.
-        :param env_dones (np.ndarray): Done state for each parallel environment,
-            default None.
+        :param env_dones (np.ndarray): Done state for each parallel environment
         """
-        # if self.lang_contexts is None:
-        #     self.lang_contexts = np.zeros(
-        #         (self.n_envs, self.context_dim), dtype=np.float32)
-        # else:
-        assert env_dones is not None
         self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
             np.float32)[..., np.newaxis]
 
-    def _make_obs(self, obs):
+    def _make_acc_inputs(self, obs):
         """
-        Generate observations and shared_observations, with the message 
-        contexts concatenated.
+        Generate inputs for the ACC agents.
         :param obs: (np.ndarray) Local observations, dim=(n_envs, 
             n_agents, obs_dim).
         """
@@ -105,10 +123,10 @@ class LanguageGroundedMARL:
                 self.n_agents, axis=1)
 
         # Make all possible shared observations
-        # shared_obs = []
+        # critic_input = []
         # ids = list(range(self.n_agents)) * 2
         # for a_i in range(self.n_agents):
-        #     shared_obs.append(
+        #     critic_input.append(
         #         obs[:, ids[a_i:a_i + self.n_agents]].reshape(
         #             n_envs, 1, -1))
 
@@ -116,52 +134,79 @@ class LanguageGroundedMARL:
             obs = torch.from_numpy(obs).reshape(
                     self.n_envs * self.n_agents, -1).to(
                         self.device, dtype=torch.float32)
-            obs = self.lang_learner.encode_observations(obs)
-            obs = torch2numpy(obs.reshape(self.n_envs, self.n_agents, -1))
-        
-        shared_obs = obs.reshape(self.n_envs, -1).repeat(4, 0).reshape(
-            self.n_envs, self.n_agents, -1)
-        
-            # shared_obs = np.concatenate(shared_obs, axis=1)
-        if self.comm_type != "no_comm":
-            shared_obs = np.concatenate(
-                (shared_obs, lang_contexts), axis=-1)
-            obs = np.concatenate((obs, lang_contexts), axis=-1)
-        
-        return obs, shared_obs
-
-    # def reset_policy_buffer(self):
-    #     self.comm_n_act_policy.reset_buffer()
-
-    def store_obs(self, obs):
-        obs, shared_obs = self._make_obs(obs)
-        self.comm_n_act_policy.store_obs(obs, shared_obs)
-
-    def init_episode(self, obs=None):
-        if obs is not None:
-            self.comm_n_act_policy.reset_buffer()
-            self.store_obs(obs)
+            policy_input = self.lang_learner.encode_observations(obs)
+            policy_input = torch2numpy(
+                policy_input.reshape(self.n_envs, self.n_agents, -1))
         else:
-            self.comm_n_act_policy.buffer.start_new_episode()
+            policy_input = obs.copy()
+        
+        critic_input = policy_input.reshape(self.n_envs, -1).repeat(
+            4, 0).reshape(self.n_envs, self.n_agents, -1)
+        
+            # critic_input = np.concatenate(critic_input, axis=1)
+        if self.comm_type != "no_comm":
+            critic_input = np.concatenate(
+                (critic_input, lang_contexts), axis=-1)
+            policy_input = np.concatenate(
+                (policy_input, lang_contexts), axis=-1)
+        
+        return policy_input, critic_input
 
-    def store_language_inputs(self, obs, parsed_obs):
-        obs = obs.reshape(-1, obs.shape[-1])
-        parsed_obs = [
-            sent for env_sent in parsed_obs for sent in env_sent]
-        self.lang_learner.store(obs, parsed_obs)
+    def _store_obs(self, obs, parsed_obs):
+        """
+        Store observations in replay buffer.
+        :param obs: (np.ndarray) Observations for each agent, 
+            dim=(n_envs, n_agents, obs_dim).
+        :param parsed_obs: (list(list(list(str)))) Sentences parsed from 
+            observations, dim=(n_envs, n_agents, len(sentence)).
+        """
+        policy_input, critic_input = self._make_acc_inputs(obs)
+        self.buffer.insert_obs(policy_input, critic_input, obs, parsed_obs)
 
-    def store_exp(self, next_obs, rewards, dones):
-        self.comm_n_act_policy.store_act(
-            rewards[..., np.newaxis], 
-            dones, 
-            self.values, 
-            self.actions, 
-            self.action_log_probs, 
-            self.comm_actions, 
-            self.comm_action_log_probs, 
-            self.rnn_states, 
-            self.rnn_states_critic)
-        self.store_obs(next_obs)
+    def init_episode(self, obs=None, parsed_obs=None):
+        # If obs is given -> very first step of all training
+        if obs is not None:
+            self.buffer.reset_episode()
+            self._store_obs(obs, parsed_obs)
+        # Else -> reset after rollout, we start with the last step of previous 
+        # rollout
+        else:
+            self.buffer.start_new_episode()
+
+    def store_exp(self, next_obs, next_parsed_obs, act_rewards, dones):
+        # Reset rnn_states and masks for done environments
+        self.rnn_states[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        self.rnn_states_critic[dones == True] = np.zeros(
+            ((dones == True).sum(), 
+             self.recurrent_N, 
+             self.hidden_dim),
+            dtype=np.float32)
+        masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
+        masks[dones == True] = np.zeros(
+            ((dones == True).sum(), 1), dtype=np.float32)
+
+        self.comm_rewards = np.zeros_like(act_rewards[..., np.newaxis])
+
+        # Insert action data in buffer
+        self.buffer.insert_act(
+            self.rnn_states,
+            self.rnn_states_critic,
+            self.actions,
+            self.action_log_probs,
+            self.comm_actions,
+            self.comm_action_log_probs,
+            self.act_values,
+            self.comm_values,
+            act_rewards[..., np.newaxis],
+            self.comm_rewards,
+            masks)
+
+        # Insert next obs in buffer
+        self._store_obs(next_obs, next_parsed_obs)
 
     @torch.no_grad()
     def comm_n_act(self, perfect_messages=None):
@@ -169,8 +214,6 @@ class LanguageGroundedMARL:
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
 
-        :param obs (np.ndarray): Observations for each agent in each parallel 
-            environment, dim=(n_envs, n_agents, obs_dim).
         :param perfect_messages (list(list(list(str)))): "Perfect" messages 
             given by the parser, default None.
 
@@ -182,9 +225,13 @@ class LanguageGroundedMARL:
             agent.
         """
         # Get actions
-        self.values, self.actions, self.action_log_probs, self.comm_actions, \
-            self.comm_action_log_probs, self.rnn_states, \
-            self.rnn_states_critic = self.comm_n_act_policy.get_actions()
+        policy_input, critic_input, rnn_states, critic_rnn_states, masks \
+            = self.buffer.get_act_params()
+
+        self.act_values, self.comm_values, self.actions, self.action_log_probs, \
+            self.comm_actions, self.comm_action_log_probs, self.rnn_states, \
+            self.rnn_states_critic = self.acc.get_actions(
+                policy_input, critic_input, rnn_states, critic_rnn_states, masks)
 
         # Get messages
         if self.comm_type in ["language", "emergent_discrete"]:
@@ -250,38 +297,62 @@ class LanguageGroundedMARL:
 
         return self.actions, broadcasts, messages_by_env
 
-    def train(self, 
-            step, train_policy=True, comm_head_learns_rl=True, train_lang=True):
+    @torch.no_grad()
+    def _compute_returns(self):
+        critic_input = torch.from_numpy(
+                self.buffer.critic_input[-1]).to(self.device)
+        critic_rnn_states = torch.from_numpy(
+            self.buffer.critic_rnn_states[-1]).to(self.device)
+        masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
+
+        next_act_values, next_comm_values = self.acc.compute_last_value(
+            self.buffer.critic_input[-1], 
+            self.buffer.critic_rnn_states[-1],
+            self.buffer.masks[-1])
+
+        self.buffer.compute_returns(
+            next_act_values, 
+            next_comm_values, 
+            self.trainer.act_value_normalizer,
+            self.trainer.comm_value_normalizer)
+
+    def train(self, step, 
+            train_act_head=True, 
+            comm_head_learns_rl=True, 
+            train_value_head=True,
+            train_lang=True):
         self.prep_training()
 
         warmup = step < self.n_warmup_steps
 
-        losses = {}
+        if self.comm_type in ["no_comm", "perfect_comm"]:
+            comm_head_learns_rl = False
+        if self.comm_type not in ["perfect_comm", "language"]:
+            train_lang = False
 
-        if train_policy:
-            if self.comm_type in ["no_comm", "perfect_comm"]:
-                comm_head_learns_rl = False
-            losses.update(
-                self.comm_n_act_policy.train(warmup, comm_head_learns_rl))
-        
-        if self.comm_type in ["perfect_comm", "language"] and train_lang:
-            lang_losses = self.lang_learner.train()
-            for k, l in lang_losses.items():
-                losses["lang_" + k] = l
+        # Compute last value
+        self._compute_returns()
+
+        # Train 
+        losses = self.trainer.train(warmup, comm_head_learns_rl, train_lang)
         
         return losses
 
     def save(self, path):
         self.prep_rollout("cpu")
         save_dict = {
-            "acc": self.comm_n_act_policy.get_save_dict(),
-            "lang_learner": self.lang_learner.get_save_dict()
+            "acc": self.acc.get_save_dict(),
+            "lang_learner": self.lang_learner.get_save_dict(),
+            "act_vnorm": self.trainer.act_value_normalizer.state_dict(),
+            "comm_vnorm": self.trainer.comm_value_normalizer.state_dict()
         }
         torch.save(save_dict, path)
 
     def load(self, path):
         save_dict = torch.load(path, map_location=torch.device('cpu'))
-        self.comm_n_act_policy.load_params(save_dict["acc"])
+        self.acc.load_params(save_dict["acc"])
         self.lang_learner.load_params(save_dict["lang_learner"])
+        self.trainer.act_value_normalizer.load_state_dict(params["act_vnorm"])
+        self.trainer.commvalue_normalizer.load_state_dict(params["comm_vnorm"])
 
         

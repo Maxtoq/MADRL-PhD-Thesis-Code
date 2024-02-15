@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from .actor_communicator import ActorCommunicator
-from .critic import Critic
+from .critic import ACC_Critic
 from .utils import update_linear_schedule, update_lr
 
 
@@ -16,8 +16,8 @@ class ACC_Agent(nn.Module):
         # Actor-Communicator
         self.act_comm = ActorCommunicator(args, obs_dim, act_dim)
 
-        # Critic
-        self.critic = Critic(args, shared_obs_dim)
+        # Two-headed Critic
+        self.critic = ACC_Critic(args, shared_obs_dim)
 
         self.act_comm_optim = torch.optim.Adam(
             self.act_comm.parameters(), 
@@ -52,25 +52,32 @@ class ACC_Agent(nn.Module):
         actions, action_log_probs, comm_actions, comm_action_log_probs, \
             act_rnn_states = self.act_comm(obs, act_rnn_states, masks)
 
-        values, critic_rnn_states = self.critic(
+        act_values, comm_values, critic_rnn_states = self.critic(
             shared_obs, critic_rnn_states, masks)
 
-        return values, actions, action_log_probs, comm_actions, \
+        return act_values, comm_values, actions, action_log_probs, comm_actions, \
             comm_action_log_probs, act_rnn_states, critic_rnn_states
+
+    def get_comm_actions(self, obs, act_rnn_states, masks):
+        _, _, comm_actions, _, _ = self.act_comm(
+                obs, act_rnn_states, masks, do_act=False)
+        return comm_actions
 
     def get_values(self, shared_obs, rnn_states_critic, masks):
         """
         Get value function predictions.
-        :param shared_obs (torch.Tensor): centralized input to the critic.
+        :param shared_obs (torch.Tensor): centralized input for the critic.
         :param rnn_states_critic: (torch.Tensor) if critic is RNN, RNN states for
             critic.
         :param masks: (torch.Tensor) denotes points at which RNN states should be 
             reset.
 
-        :return values: (torch.Tensor) value function predictions.
+        :return act_values: (torch.Tensor) action value predictions.
+        :return comm_values: (torch.Tensor) communication value predictions.
         """
-        values, _ = self.critic(shared_obs, rnn_states_critic, masks)
-        return values
+        act_values, comm_values, _ = self.critic(
+            shared_obs, rnn_states_critic, masks)
+        return act_values, comm_values
 
     def evaluate_actions(self, 
             obs, shared_obs, rnn_states_actor, rnn_states_critic, 
@@ -92,7 +99,8 @@ class ACC_Agent(nn.Module):
             be reset.
         :param eval_comm: (bool) whether to compute comm_actions probs.
 
-        :return values: (torch.Tensor) value function predictions.
+        :return act_values: (torch.Tensor) action value predictions.
+        :return comm_values: (torch.Tensor) communication value predictions.
         :return env_action_log_probs: (torch.Tensor) log probabilities of the
             environment actions.
         :return env_dist_entropy: (torch.Tensor) environment action 
@@ -107,7 +115,8 @@ class ACC_Agent(nn.Module):
                 obs, rnn_states_actor, env_actions, comm_actions, masks, 
                 eval_comm)
 
-        values, _ = self.critic(shared_obs, rnn_states_critic, masks)
+        act_values, comm_values, _ = self.critic(
+            shared_obs, rnn_states_critic, masks)
 
-        return values, env_action_log_probs, env_dist_entropy, \
+        return act_values, comm_values, env_action_log_probs, env_dist_entropy, \
                 comm_action_log_probs, comm_dist_entropy

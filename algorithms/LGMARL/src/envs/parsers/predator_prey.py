@@ -101,25 +101,26 @@ class PredatorPrey_Parser():
         prey_map = np.array(
             agent_obs[2:]).reshape((self.obs_range, self.obs_range))
 
-        d = (np.arange(self.obs_range) - (self.obs_range // 2)) / (self.env_size - 1)
+        d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
+                / (self.env_size - 1)
         rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
         abs_prey_pos = pos + rel_prey_pos
 
-        for p_i in range(len(abs_prey_pos)):
+        for abs_pos, rel_pos in zip(abs_prey_pos, rel_prey_pos):
             # p = ["Prey", "Located"]
             p = ["Prey"]
 
             if self.obs_range > 5:
-                if max(np.abs(rel_prey_pos[p_i] * (self.env_size - 1))) < 3:
+                if max(np.abs(rel_pos * (self.env_size - 1))) < 3:
                     p.append("Close")
 
-            if abs_prey_pos[p_i][0] <= 0.25:
+            if abs_pos[0] <= 0.25:
                 p.append("North")
-            elif abs_prey_pos[p_i][0] >= 0.75:
+            elif abs_pos[0] >= 0.75:
                 p.append("South")
-            if abs_prey_pos[p_i][1] <= 0.25:
+            if abs_pos[1] <= 0.25:
                 p.append("West")
-            elif abs_prey_pos[p_i][1] >= 0.75:
+            elif abs_pos[1] >= 0.75:
                 p.append("East")
 
             if len(p) == 1:

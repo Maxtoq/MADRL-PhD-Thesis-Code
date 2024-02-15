@@ -44,7 +44,6 @@ def run():
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
     act_space = envs.action_space
-    global_state_dim = envs.global_state_dim
     model = LanguageGroundedMARL(
         cfg, 
         n_agents, 
@@ -61,23 +60,22 @@ def run():
     # Reset env
     last_save_step = 0
     last_eval_step = 0
-    obs, _ = envs.reset()
-    model.init_episode(obs)
+    obs = envs.reset()
+    parsed_obs = parser.get_perfect_messages(obs)
+    model.init_episode(obs, parsed_obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
+
         for ep_s_i in range(cfg.episode_length):
-            # Parse obs
-            parsed_obs = parser.get_perfect_messages(obs)
             # Store language inputs in buffer
-            model.store_language_inputs(obs, parsed_obs)
+            # model.store_language_inputs(obs, parsed_obs)
             # Perform step
             # Get action
             actions, broadcasts, agent_messages = model.comm_n_act(
-                    parsed_obs)
+                parsed_obs)
             # Perform action and get reward and next obs
-            obs, _, rewards, dones, infos = envs.step(actions)
-            # obs = np.ones_like(obs) * (ep_s_i + 1)
+            obs, rewards, dones, infos = envs.step(actions)
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
@@ -87,12 +85,14 @@ def run():
             logger.count_returns(s_i, rewards, dones)
 
             # Insert data into policy buffer
-            model.store_exp(obs, rewards, dones)
-            
+            parsed_obs = parser.get_perfect_messages(obs)
+            model.store_exp(obs, parsed_obs, rewards, dones)
+
         # Training
         train_losses = model.train(
             s_i + n_steps_per_update,
-            comm_head_learns_rl=cfg.comm_head_learns_rl)
+            comm_head_learns_rl=not cfg.no_comm_head_learns_rl,
+            train_lang=not cfg.no_train_lang)
         model.init_episode()
 
         # Log train data
