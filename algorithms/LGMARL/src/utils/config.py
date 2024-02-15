@@ -22,8 +22,8 @@ def get_config():
     #                     help="Number of parallel envs for evaluating rollouts")
     parser.add_argument("--n_steps", type=int, default=int(10e6),
                         help='Number of environment steps to train (default: 10e6)')
-    parser.add_argument("--n_steps_per_update", type=int, default=100,
-                        help='Number of environment steps between training updates (default: 100)')
+    # parser.add_argument("--n_steps_per_update", type=int, default=100,
+    #                     help='Number of environment steps between training updates (default: 100)')
 
     # env parameters
     parser.add_argument("--env_name", type=str, default='magym_PredPrey', help="specify the names of environment and the task")

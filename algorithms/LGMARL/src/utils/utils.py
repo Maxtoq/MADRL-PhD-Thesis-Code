@@ -35,9 +35,13 @@ def load_args(cfg):
         args.pop("seed")
         args.pop("cuda_device")
         args.pop("model_dir")
+        args.pop("n_parallel_envs")
+        args.pop("use_render")
         args.pop("render_wait_input")
-        if "no_render" in args:
-            args.pop("no_render")
+        # if "no_render" in args:
+        #     args.pop("no_render")
         for a in args:
-            assert hasattr(cfg, a), f"Argument {a} not found in config."
-            setattr(cfg, a, args[a])
+            if not hasattr(cfg, a):
+                print(f"WARNING: Argument {a} not found in config.")
+            else:
+                setattr(cfg, a, args[a])
