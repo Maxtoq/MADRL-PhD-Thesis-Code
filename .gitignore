@@ -782,5 +782,3 @@ models/magym_Foraging/ACC_10x10_pt_perfect_comm/*
 models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/*
 !models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/model_ep.pt
 !models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/args.txt
-
-

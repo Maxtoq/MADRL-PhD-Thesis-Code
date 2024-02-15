@@ -1,13 +1,13 @@
 #!/bin/sh
-n_run=4
-experiment_name="ACC_10x10_pt_no_comm"
+n_run=8
+experiment_name="ACC_10x10-50_pt_no_comm"
 n_parallel_envs=250
 n_steps=10000000
 ppo_epoch=15 # default 15
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_Foraging"
-episode_length=100
+episode_length=50
 comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
 context_dim=16 # default 16
@@ -15,7 +15,7 @@ lang_lr=0.0009 # default 0.0007
 lang_clip_n_epochs=1 # default 2
 lang_clip_batch_size=128 # default 128
 magym_env_size=10
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
