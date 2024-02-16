@@ -8,7 +8,7 @@ from .utils import update_linear_schedule, update_lr
 
 class ACC_Agent(nn.Module):
 
-    def __init__(self, args, obs_dim, shared_obs_dim, act_dim):
+    def __init__(self, args, obs_dim, shared_obs_dim, act_dim, lang_learner):
         super(ACC_Agent, self).__init__()
         self.lr = args.lr
         self.warming_up = False
@@ -29,6 +29,13 @@ class ACC_Agent(nn.Module):
             lr=self.lr, 
             eps=args.opti_eps, 
             weight_decay=args.weight_decay)
+
+        if args.comm_type != "no_comm":
+            # Optimizer dedicated to captioning task
+            self.capt_optim = torch.optim.Adam(
+                list(self.act_comm.parameters()) +
+                list(self.decoder.parameters()),
+                lr=args.lang_capt_lr)
 
     def lr_decay(self, episode, episodes):
         """

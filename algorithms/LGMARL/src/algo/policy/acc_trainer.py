@@ -278,11 +278,9 @@ class ACC_Trainer:
         capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
 
         # Update
-        agent.act_comm_optim.zero_grad()
-        self.lang_learner.optim.zero_grad()
+        agent.capt_optim.zero_grad()
         capt_loss.backward()
-        agent.act_comm_optim.step()
-        self.lang_learner.optim.step()
+        agent.capt_optim.step()
 
         return capt_loss.item() / policy_input_batch.shape[0]
 

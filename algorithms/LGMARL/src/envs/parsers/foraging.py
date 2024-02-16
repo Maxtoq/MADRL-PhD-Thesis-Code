@@ -23,77 +23,6 @@ class Foraging_Parser():
         if self.obs_range > 5:
             self.vocab.append("Close")
 
-    # def _get_pos_sent(self, pos):
-    #     """
-    #     Construct part of sentence describing the position of an agent.
-    #     :param pos: (list(float)) 2D position.
-    #     :return sent: (list(str)) Language position.
-    #     """
-    #     sent = ["Located"]
-    #     if pos[0] <= 0.25:
-    #         sent.append("North")
-    #     elif pos[0] >= 0.75:
-    #         sent.append("South")
-    #     if pos[1] <= 0.25:
-    #         sent.append("West")
-    #     elif pos[1] >= 0.75:
-    #         sent.append("East")
-
-    #     if len(sent) == 1:
-    #         sent.append("Center")
-
-    #     return sent
-
-    # def _get_gem_sent(self, gems):
-    #     """
-    #     Construct part of sentence describing the position of an agent.
-    #     :param gems: (list(float)) List of surrounding tiles.
-    #     :return sent: (list(str)) Sentence describing observed gems.
-    #     """
-    #     if 1.0 in gems:
-    #         gem_map = np.array(gems).reshape((5, 5))
-    #         gem_pos = [(x, y) 
-    #             for x in range(5) 
-    #                 for y in range(5) 
-    #                     if gem_map[y, x] == 1.0]
-    #         sent = []
-    #         for p in gem_pos:
-    #             sent.append("Prey")
-    #             sent.append("Observed")
-    #             if p[1] < 2:
-    #                 sent.append("North")
-    #             elif p[1] > 2:
-    #                 sent.append("South")
-    #             if p[0] < 2:
-    #                 sent.append("West")
-    #             elif p[0] > 2:
-    #                 sent.append("East")
-
-    #         return sent
-    #     else:
-    #         return []
-
-    # def parse_observations(self, obs):
-    #     """
-    #     Parse local observations.
-    #     :param obs: (list(list(float))) List of observations.
-    #     :return sentences: (list(list(str))) List of sentences.
-    #     """
-    #     sentences = []
-    #     for o in obs:
-    #         s = []
-    #         pos = o[:2]
-    #         gems = o[2:]
-
-    #         # Get position part of sentence
-    #         s += self._get_pos_sent(pos)
-
-    #         # Get gem part of the observation
-    #         s += self._get_gem_sent(gems)
-
-    #         sentences.append(s)
-    #     return sentences
-
     def _gen_perfect_message(self, agent_obs):
         m = []
         pos = agent_obs[:2]
@@ -106,9 +35,25 @@ class Foraging_Parser():
         gem_values = gem_map[np.nonzero(gem_map)]
         abs_gem_pos = pos + rel_gem_pos
 
+        # Sort by distance
+        # for rel_pos in rel_gem_pos:
+        #     print(rel_pos, np.abs(rel_pos * (self.env_size - 1)))
+        
+        # colors_seen = {
+        #     "Yellow": False,
+        #     "Green": False,
+        #     "Purple": False}
         for abs_pos, rel_pos, gem_val in zip(
                 abs_gem_pos, rel_gem_pos, gem_values):
-            p = [GEM_COLORS[gem_val], "Gem"]
+            color = GEM_COLORS[gem_val]
+
+            # # Stop if this color is already seen
+            # if not colors_seen[color]:
+            #     colors_seen[color] = True
+            # else:
+            #     continue
+
+            p = [color, "Gem"]
 
             if self.obs_range > 5:
                 if max(np.abs(rel_pos * (self.env_size - 1))) < 3:

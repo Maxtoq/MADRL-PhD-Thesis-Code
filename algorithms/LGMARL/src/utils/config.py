@@ -9,7 +9,8 @@ def get_config():
     # parser.add_argument("--policy_algo", type=str,
     #                     default='mappo', choices=["mappo", "rmappo", "ippo"])
 
-    parser.add_argument("--experiment_name", type=str, default="TEST", help="an identifier to distinguish different experiment.")
+    parser.add_argument("--experiment_name", type=str, default="TEST", 
+                        help="an identifier to distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
     parser.add_argument("--cuda_device", default=None, type=str)
     parser.add_argument("--cuda_deterministic", action='store_false', default=True, 
@@ -26,7 +27,8 @@ def get_config():
     #                     help='Number of environment steps between training updates (default: 100)')
 
     # env parameters
-    parser.add_argument("--env_name", type=str, default='magym_PredPrey', help="specify the names of environment and the task")
+    parser.add_argument("--env_name", type=str, default='magym_PredPrey', 
+                        help="specify the names of environment and the task")
 
     # replay buffer parameters
     parser.add_argument("--episode_length", type=int,
@@ -147,7 +149,8 @@ def get_config():
     # Language Learning parameters
     parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
-    parser.add_argument("--lang_lr", type=float, default=0.007)
+    parser.add_argument("--lang_clip_lr", type=float, default=0.007)
+    parser.add_argument("--lang_capt_lr", type=float, default=0.0005)
     parser.add_argument("--lang_clip_n_epochs", type=int, default=2)
     parser.add_argument("--lang_clip_batch_size", type=int, default=256)
     parser.add_argument("--lang_temp", type=float, default=1.0)
