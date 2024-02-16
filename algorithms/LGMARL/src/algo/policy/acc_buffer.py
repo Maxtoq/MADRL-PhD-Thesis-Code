@@ -32,7 +32,7 @@ class ACC_ReplayBuffer:
         self.share_params = args.share_params
 
         self.clip_batch_size = args.lang_clip_batch_size
-        self.clip_n_epochs = args.lang_clip_n_epochs
+        self.clip_n_mini_batch = args.lang_clip_n_mini_batch
 
         self.capt_batch_size = args.lang_capt_batch_size
 
@@ -228,10 +228,10 @@ class ACC_ReplayBuffer:
 
         tot_batch_size = all_obs.shape[0]
         assert tot_batch_size >= self.clip_batch_size
-        if tot_batch_size < self.clip_batch_size * self.clip_n_epochs:
+        if tot_batch_size < self.clip_batch_size * self.clip_n_mini_batch:
             n_mini_batch = tot_batch_size // self.clip_batch_size
         else:
-            n_mini_batch = self.clip_n_epochs
+            n_mini_batch = self.clip_n_mini_batch
 
         # Randomly sample steps
         ids = np.random.choice(
@@ -278,8 +278,7 @@ class ACC_ReplayBuffer:
                  for e_i in ids]
                 for a_i in range(self.n_agents)]
 
-        return policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch
-            
+        return policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch       
 
     def recurrent_policy_generator(self, act_advt, comm_advt):
         """

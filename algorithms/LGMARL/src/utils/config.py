@@ -156,6 +156,7 @@ def get_config():
                         help="Number of steps sampled in batch for CLIP training.")
     parser.add_argument("--lang_capt_batch_size", type=int, default=4, 
                         help="Number of *episodes* sampled in batch for captioning training.")
+    parser.add_argument("--lang_clip_n_mini_batch", type=int, default=2)
     parser.add_argument("--lang_temp", type=float, default=1.0)
     parser.add_argument("--lang_clip_weight", type=float, default=1.0)
     parser.add_argument("--lang_capt_weight", type=float, default=1.0)

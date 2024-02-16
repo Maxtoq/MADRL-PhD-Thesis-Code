@@ -27,6 +27,7 @@ class ACC_Trainer:
 
         # Language params
         self.clip_batch_size = args.lang_clip_batch_size
+        self.capt_n_epochs = args.lang_capt_n_epochs
         self.temp = args.lang_temp
         self.clip_weight = args.lang_clip_weight
         self.capt_weight = args.lang_capt_weight
@@ -322,22 +323,22 @@ class ACC_Trainer:
             clip_loss, mean_sim = self._train_clip(sample)
 
             # Train captioning
-            sample = self.buffer.sample_capt()
-            if self.share_params:
-                dec_loss = self._train_capt(self.agents[0], sample)
-            else:
-                dec_loss = 0.0
-                for a_i in range(len(self.agents)):
-                    sample_i = (
-                        *[batch[:, a_i] for batch in sample[:-1]],
-                        sample[-1][a_i])
+            dec_loss = 0.0
+            for i in range(self.capt_n_epochs):
+                sample = self.buffer.sample_capt()
+                if self.share_params:
+                    dec_loss += self._train_capt(self.agents[0], sample)
+                else:
+                    for a_i in range(len(self.agents)):
+                        sample_i = (
+                            *[batch[:, a_i] for batch in sample[:-1]],
+                            sample[-1][a_i])
 
-                    dec_loss += self._train_capt(self.agents[a_i], sample_i)
-
-                dec_loss /= len(self.agents)
+                        dec_loss += self._train_capt(self.agents[a_i], sample_i) \
+                                        / len(self.agents)
 
             losses["clip_loss"] = clip_loss
-            losses["dec_loss"] = dec_loss
+            losses["dec_loss"] = dec_loss / self.capt_n_epochs
             losses["mean_sim"] = mean_sim
 
         return losses
