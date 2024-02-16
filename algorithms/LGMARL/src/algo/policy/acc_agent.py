@@ -34,7 +34,7 @@ class ACC_Agent(nn.Module):
             # Optimizer dedicated to captioning task
             self.capt_optim = torch.optim.Adam(
                 list(self.act_comm.parameters()) +
-                list(self.decoder.parameters()),
+                list(lang_learner.decoder.parameters()),
                 lr=args.lang_capt_lr)
 
     def lr_decay(self, episode, episodes):

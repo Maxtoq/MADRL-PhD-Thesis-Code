@@ -217,7 +217,7 @@ class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, word_encoder, n_layers=1, max_length=15,
+    def __init__(self, context_dim, word_encoder, n_layers=1, max_length=20,
                  device='cpu'):
         """
         Inputs:

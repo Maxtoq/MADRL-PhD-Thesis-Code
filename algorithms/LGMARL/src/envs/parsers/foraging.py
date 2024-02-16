@@ -35,23 +35,14 @@ class Foraging_Parser():
         gem_values = gem_map[np.nonzero(gem_map)]
         abs_gem_pos = pos + rel_gem_pos
 
-        # Sort by distance
+        # Sort by gem value
+        # print(rel_pos)
         # for rel_pos in rel_gem_pos:
         #     print(rel_pos, np.abs(rel_pos * (self.env_size - 1)))
         
-        # colors_seen = {
-        #     "Yellow": False,
-        #     "Green": False,
-        #     "Purple": False}
         for abs_pos, rel_pos, gem_val in zip(
                 abs_gem_pos, rel_gem_pos, gem_values):
             color = GEM_COLORS[gem_val]
-
-            # # Stop if this color is already seen
-            # if not colors_seen[color]:
-            #     colors_seen[color] = True
-            # else:
-            #     continue
 
             p = [color, "Gem"]
 

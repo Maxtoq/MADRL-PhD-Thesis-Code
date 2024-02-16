@@ -21,7 +21,7 @@ class LanguageLearner:
                 #  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
                 #  buffer_size=100000):
         self.train_device = device
-        self.lr = args.lang_lr
+        # self.lr = args.lang_clip_lr
         # self.n_epochs = n_epochs
         # self.batch_size = batch_size
         # self.temp = temp
@@ -41,11 +41,11 @@ class LanguageLearner:
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()
 
-        self.optim = torch.optim.Adam(
+        self.clip_optim = torch.optim.Adam(
             list(self.obs_encoder.parameters()) + 
-            list(self.lang_encoder.parameters()) + 
-            list(self.decoder.parameters()), 
-            lr=args.lang_lr)
+            list(self.lang_encoder.parameters()),
+            # list(self.decoder.parameters()), 
+            lr=args.lang_clip_lr)
 
         # self.buffer = LanguageBuffer(buffer_size)
 
@@ -146,49 +146,49 @@ class LanguageLearner:
         
         return clip_loss, dec_loss, mean_sim
 
-    def train(self):
-        clip_losses = []
-        dec_losses = []
-        mean_sims = []
-        for it in range(self.n_epochs):
-            self.optim.zero_grad()
-            # Sample batch from buffer
-            obs_batch, sent_batch = self.buffer.sample(self.batch_size)
+    # def train(self):
+    #     clip_losses = []
+    #     dec_losses = []
+    #     mean_sims = []
+    #     for it in range(self.n_epochs):
+    #         self.optim.zero_grad()
+    #         # Sample batch from buffer
+    #         obs_batch, sent_batch = self.buffer.sample(self.batch_size)
 
-            # Compute losses
-            clip_loss, dec_loss, mean_sim = self.compute_losses(obs_batch, sent_batch)
+    #         # Compute losses
+    #         clip_loss, dec_loss, mean_sim = self.compute_losses(obs_batch, sent_batch)
 
-            # Update
-            tot_loss = self.clip_weight * clip_loss + self.capt_weight * dec_loss
-            tot_loss.backward()
-            self.optim.step()
+    #         # Update
+    #         tot_loss = self.clip_weight * clip_loss + self.capt_weight * dec_loss
+    #         tot_loss.backward()
+    #         self.optim.step()
 
-            clip_losses.append(clip_loss.item() / self.batch_size)
-            dec_losses.append(dec_loss.item() / self.batch_size)
-            mean_sims.append(mean_sim.item())
+    #         clip_losses.append(clip_loss.item() / self.batch_size)
+    #         dec_losses.append(dec_loss.item() / self.batch_size)
+    #         mean_sims.append(mean_sim.item())
         
         
-        clip_loss = sum(clip_losses) / len(clip_losses)
-        dec_loss = sum(dec_losses) / len(dec_losses)
-        mean_sim = sum(mean_sims) / len(mean_sims)
+    #     clip_loss = sum(clip_losses) / len(clip_losses)
+    #     dec_loss = sum(dec_losses) / len(dec_losses)
+    #     mean_sim = sum(mean_sims) / len(mean_sims)
 
-        losses = {
-            "clip_loss": clip_loss, 
-            "dec_loss": dec_loss, 
-            "mean_sim": mean_sim}
+    #     losses = {
+    #         "clip_loss": clip_loss, 
+    #         "dec_loss": dec_loss, 
+    #         "mean_sim": mean_sim}
         
-        return losses
+    #     return losses
 
     def get_save_dict(self):
         save_dict = {
             "obs_encoder": self.obs_encoder.state_dict(),
             "lang_encoder": self.lang_encoder.state_dict(),
             "decoder": self.decoder.state_dict(),
-            "optim": self.optim.state_dict()}
+            "clip_optim": self.clip_optim.state_dict()}
         return save_dict
 
     def load_params(self, save_dict):
         self.obs_encoder.load_state_dict(save_dict["obs_encoder"])
         self.lang_encoder.load_state_dict(save_dict["lang_encoder"])
         self.decoder.load_state_dict(save_dict["decoder"])
-        self.optim.load_state_dict(save_dict["optim"])
+        self.clip_optim.load_state_dict(save_dict["clip_optim"])

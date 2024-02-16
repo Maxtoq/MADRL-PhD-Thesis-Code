@@ -240,9 +240,9 @@ class ACC_Trainer:
         clip_loss = sum(tot_clip_loss)
 
         # Update
-        self.lang_learner.optim.zero_grad()
+        self.lang_learner.clip_optim.zero_grad()
         clip_loss.backward()
-        self.lang_learner.optim.step()
+        self.lang_learner.clip_optim.step()
 
         clip_loss = clip_loss / (n_mini_batch * self.clip_batch_size)
         mean_sim = sum(tot_mean_sim) / n_mini_batch
