@@ -27,7 +27,6 @@ class ACC_Trainer:
 
         # Language params
         self.clip_batch_size = args.lang_clip_batch_size
-        self.clip_n_epochs = args.lang_clip_n_epochs
         self.temp = args.lang_temp
         self.clip_weight = args.lang_clip_weight
         self.capt_weight = args.lang_capt_weight
@@ -199,24 +198,11 @@ class ACC_Trainer:
         return clip_loss, mean_sim.item()
 
     def _train_clip(self, sample):
-        all_obs, all_parsed_obs = sample
-
-        tot_batch_size = all_obs.shape[0]
-        assert tot_batch_size >= self.clip_batch_size
-        if tot_batch_size < self.clip_batch_size * self.clip_n_epochs:
-            n_mini_batch = tot_batch_size // self.clip_batch_size
-        else:
-            n_mini_batch = self.clip_n_epochs
-
-        ids = np.random.choice(
-            tot_batch_size, 
-            size=n_mini_batch * self.clip_batch_size, 
-            replace=False)   
-        obs_batch = torch.from_numpy(all_obs[ids]).to(self.device)
-        parsed_obs_batch = [all_parsed_obs[s_i] for s_i in ids]     
+        obs_batch, parsed_obs_batch, n_mini_batch = sample 
 
         # Encode observations
-        obs_contexts = self.lang_learner.obs_encoder(obs_batch)
+        obs_contexts = self.lang_learner.obs_encoder(
+            torch.from_numpy(obs_batch).to(self.device))
         # Encode sentences
         lang_contexts = self.lang_learner.lang_encoder(parsed_obs_batch)
         lang_contexts = lang_contexts.squeeze()
