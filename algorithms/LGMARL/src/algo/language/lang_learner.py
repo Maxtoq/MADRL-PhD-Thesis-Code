@@ -14,7 +14,7 @@ class LanguageLearner:
     Observation Encoder and the Decoder. 
     """
 
-    def __init__(self, args, obs_dim, context_dim, vocab, device="cpu"):
+    def __init__(self, args, obs_dim, context_dim, parser, device="cpu"):
                 #  , n_epochs=2):
                 #  , batch_size=128)
                 #  , temp=1.0, embed_dim=4,
@@ -31,12 +31,17 @@ class LanguageLearner:
 
         self.device = self.train_device
 
-        self.word_encoder = OneHotEncoder(vocab)
+        self.word_encoder = OneHotEncoder(parser.vocab)
 
-        self.obs_encoder = ObservationEncoder(obs_dim, context_dim, args.lang_hidden_dim)
+        self.obs_encoder = ObservationEncoder(
+            obs_dim, context_dim, args.lang_hidden_dim)
         self.lang_encoder = GRUEncoder(
-            context_dim, args.lang_hidden_dim, args.lang_embed_dim, self.word_encoder)
-        self.decoder = GRUDecoder(context_dim, self.word_encoder)
+            context_dim, 
+            args.lang_hidden_dim, 
+            args.lang_embed_dim, 
+            self.word_encoder)
+        self.decoder = GRUDecoder(
+            context_dim, self.word_encoder, max_length=parser.max_message_len)
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()

@@ -10,9 +10,11 @@ class PredatorPrey_Parser():
         self.obs_range = obs_range
 
         self.vocab = ["Prey", "Center", "North", "South", "East", "West"]
+        self.max_message_len = 6
 
         if self.obs_range > 5:
             self.vocab.append("Close")
+            self.max_message_len += 2
 
     def parse_global_state(self, state):
         """

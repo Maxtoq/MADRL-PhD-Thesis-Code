@@ -11,7 +11,7 @@ from .policy.utils import get_shape_from_obs_space, torch2numpy
 class LanguageGroundedMARL:
 
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 vocab, device="cpu", comm_logger=None):
+                 parser, device="cpu", comm_logger=None):
         self.args = args
         self.n_agents = n_agents
         self.context_dim = args.context_dim
@@ -45,10 +45,8 @@ class LanguageGroundedMARL:
             args,
             obs_dim, 
             self.context_dim,
-            vocab, 
-            device,)
-            # args.lang_n_epochs,
-            # args.lang_batch_size)
+            parser, 
+            device)
 
         self.acc = ACC_MAPPO(
             args, 

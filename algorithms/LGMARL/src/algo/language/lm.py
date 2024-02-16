@@ -236,7 +236,7 @@ class GRUDecoder(nn.Module):
         # Number of recurrent layers
         self.n_layers = n_layers
         # Max length of generated sentences
-        self.max_length = max_length
+        self.max_length = max_length + 1 # +1 for EOS
         # Model
         self.gru = nn.GRU(
             self.word_encoder.enc_dim, 

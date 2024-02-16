@@ -4,15 +4,14 @@ import numpy as np
 GEM_COLORS = {
     1: 'Yellow',
     2: 'Green',
-    3: 'Purple'
-}
+    3: 'Purple'}
 
 
 class Foraging_Parser():
 
     # vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, env_size, obs_range):
+    def __init__(self, env_size, obs_range, max_gems_in_message=3):
         self.env_size = env_size
         self.obs_range = obs_range
 
@@ -20,8 +19,12 @@ class Foraging_Parser():
             "Gem", "Yellow", "Green", "Purple", "Center", "North", "South", 
             "East", "West"]
 
+        self.max_gems_in_message = max_gems_in_message
+        self.max_message_len = max_gems_in_message * 4
+
         if self.obs_range > 5:
             self.vocab.append("Close")
+            self.max_message_len += max_gems_in_message
 
     def _gen_perfect_message(self, agent_obs):
         m = []
@@ -35,34 +38,37 @@ class Foraging_Parser():
         gem_values = gem_map[np.nonzero(gem_map)]
         abs_gem_pos = pos + rel_gem_pos
 
-        # Sort by gem value
-        # print(rel_pos)
-        # for rel_pos in rel_gem_pos:
-        #     print(rel_pos, np.abs(rel_pos * (self.env_size - 1)))
-        
-        for abs_pos, rel_pos, gem_val in zip(
-                abs_gem_pos, rel_gem_pos, gem_values):
-            color = GEM_COLORS[gem_val]
+        # Permute and sort by decreasing gem value (permutation allows that 
+        # gems aren't always communicated from North-West to South-East)
+        perm_ids = np.random.permutation(len(gem_values))
+        sorted_ids = perm_ids[np.argsort(gem_values[perm_ids])][::-1]
 
-            p = [color, "Gem"]
+        # Take only the first few and permute again to not have better gems 
+        # always first in message
+        ids = np.random.permutation(
+            sorted_ids[:min(len(sorted_ids), self.max_gems_in_message)])
+        
+        for g_i in ids:
+            color = GEM_COLORS[gem_values[g_i]]
+            g = [color, "Gem"]
 
             if self.obs_range > 5:
-                if max(np.abs(rel_pos * (self.env_size - 1))) < 3:
-                    p.append("Close")
+                if max(np.abs(rel_gem_pos[g_i] * (self.env_size - 1))) < 3:
+                    g.append("Close")
 
-            if abs_pos[0] <= 0.25:
-                p.append("North")
-            elif abs_pos[0] >= 0.75:
-                p.append("South")
-            if abs_pos[1] <= 0.25:
-                p.append("West")
-            elif abs_pos[1] >= 0.75:
-                p.append("East")
+            if abs_gem_pos[g_i][0] <= 0.25:
+                g.append("North")
+            elif abs_gem_pos[g_i][0] >= 0.75:
+                g.append("South")
+            if abs_gem_pos[g_i][1] <= 0.25:
+                g.append("West")
+            elif abs_gem_pos[g_i][1] >= 0.75:
+                g.append("East")
 
-            if len(p) == 1:
-                p.append("Center")
+            if len(g) == 2:
+                g.append("Center")
 
-            m.extend(p)
+            m.extend(g)
         
         return m
 

@@ -50,7 +50,7 @@ def run():
         obs_space, 
         shared_obs_space, 
         act_space,
-        parser.vocab, 
+        parser, 
         device)
 
     # Start training
