@@ -155,15 +155,15 @@ class PredatorPrey(gym.Env):
             _obs = np.array(_obs).flatten().tolist()
             _obs = [_obs for _ in range(self.n_agents)]
 
-        if self.global_state:
-            state = (
-                np.array([pp for pp in self.prey_pos.values()])
-                / np.array(self._grid_shape)
-            ).reshape(-1)
-            return _obs, state
-        else:
-            state = None
-            return _obs
+        # if self.global_state:
+        #     state = (
+        #         np.array([pp for pp in self.prey_pos.values()])
+        #         / np.array(self._grid_shape)
+        #     ).reshape(-1)
+        #     return _obs, state
+        # else:
+        #     state = None
+        return _obs
 
     def reset(self):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
@@ -337,7 +337,7 @@ class PredatorPrey(gym.Env):
                     )
                 self._steps_beyond_done += 1
 
-        return *self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
+        return self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
 
     def __get_neighbour_coordinates(self, pos):
         neighbours = []
