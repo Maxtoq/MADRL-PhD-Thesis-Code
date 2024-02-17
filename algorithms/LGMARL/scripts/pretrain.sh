@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="TAT_ACC_9x9_pt_perfect_comm_shared_001"
+experiment_name="TAT_ACC_9x9_pt_perfect_comm_shared_annealcaptlr"
 n_parallel_envs=200
 n_steps=10000000
 ppo_epoch=15 # default 15
@@ -14,6 +14,7 @@ context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
 lang_clip_n_mini_batch=1 # default 2
 lang_clip_batch_size=128 # default 256
+lang_capt_lr=0.01 # default 0.01
 lang_capt_n_epochs=2 # default 2
 lang_capt_batch_size=10 # default 100
 magym_env_size=9
@@ -41,6 +42,7 @@ do
     --lang_clip_lr ${lang_clip_lr}\
     --lang_clip_n_mini_batch ${lang_clip_n_mini_batch}\
     --lang_clip_batch_size ${lang_clip_batch_size}\
+    --lang_capt_lr ${lang_capt_lr}\
     --lang_capt_n_epochs ${lang_capt_n_epochs}\
     --lang_capt_batch_size ${lang_capt_batch_size}\
     --magym_env_size ${magym_env_size}\

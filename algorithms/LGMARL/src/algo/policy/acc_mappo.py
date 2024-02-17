@@ -51,7 +51,6 @@ class ACC_MAPPO:
 
     def update_lrs(self, new_capt_lr):
         for agent in self.agents:
-            print(new_capt_lr)
             update_lr(agent.capt_optim, new_capt_lr)
 
     @torch.no_grad()

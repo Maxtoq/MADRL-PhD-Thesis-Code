@@ -83,7 +83,7 @@ class Logger():
                 self._reset_env(e_i)
 
     def log_comm(self, step, comm_rewards, losses=None):
-        self.comm_data["Step"].append(step)
+        # self.comm_data["Step"].append(step)
         # self.comm_data["Mean message return"].append(
         #     comm_rewards["message_reward"])    
 
