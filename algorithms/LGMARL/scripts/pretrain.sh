@@ -1,15 +1,16 @@
 #!/bin/sh
-n_run=1
-experiment_name="TAT_ACC_9x9_pt_perfect_comm_shared_annealcaptlr"
-n_parallel_envs=200
+n_run=6
+experiment_name="ACC_12x2_nocomm"
+n_parallel_envs=250
 n_steps=10000000
 ppo_epoch=15 # default 15
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_PredPrey"
+env_name="magym_Foraging"
 episode_length=100
-comm_type="perfect_comm" # default language
+comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
+comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
 lang_clip_n_mini_batch=1 # default 2
@@ -17,8 +18,8 @@ lang_clip_batch_size=128 # default 256
 lang_capt_lr=0.01 # default 0.01
 lang_capt_n_epochs=2 # default 2
 lang_capt_batch_size=10 # default 100
-magym_env_size=9
-cuda_device="cuda:2"
+magym_env_size=12
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
@@ -38,6 +39,7 @@ do
     --cuda_device ${cuda_device}\
     --comm_type ${comm_type}\
     --comm_ec_strategy ${comm_ec_strategy}\
+    --comm_token_penalty ${comm_token_penalty}\
     --context_dim ${context_dim}\
     --lang_clip_lr ${lang_clip_lr}\
     --lang_clip_n_mini_batch ${lang_clip_n_mini_batch}\
@@ -45,9 +47,9 @@ do
     --lang_capt_lr ${lang_capt_lr}\
     --lang_capt_n_epochs ${lang_capt_n_epochs}\
     --lang_capt_batch_size ${lang_capt_batch_size}\
-    --magym_env_size ${magym_env_size}\
-    --share_params\
-    --no_comm_head_learns_rl"
+    --magym_env_size ${magym_env_size}"
+    # --share_params\
+    # --no_comm_head_learns_rl"
     # --enc_obs\
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm

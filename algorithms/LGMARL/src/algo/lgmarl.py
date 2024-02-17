@@ -214,8 +214,6 @@ class LanguageGroundedMARL:
         self._store_obs(next_obs, next_parsed_obs)
 
     def _reward_comm(self, messages):
-        self.comm_rewards = np.zeros((self.n_envs, self.n_agents, 1))
-
         if self.comm_type == "emergent-continuous":
             return self.comm_rewards
 
@@ -309,8 +307,11 @@ class LanguageGroundedMARL:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
         # Reward messages
+        self.comm_rewards = np.zeros((self.n_envs, self.n_agents, 1))
         if self.comm_type != "no_comm":
             comm_rewards = self._reward_comm(messages_by_env)
+        else:
+            comm_rewards = {}
 
         # Log communication
         if self.comm_logger is not None:

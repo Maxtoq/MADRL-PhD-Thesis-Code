@@ -344,8 +344,8 @@ GEM_COLORS = {
 }
 GEM_REWARDS = {
     1: 1,
-    2: 3,
-    3: 10
+    2: 5,
+    3: 20
 }
 
 CELL_SIZE = 35
