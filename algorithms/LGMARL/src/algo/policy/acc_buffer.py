@@ -191,8 +191,12 @@ class ACC_ReplayBuffer:
         :param act_value_normalizer: (ValueNorm) Value normalizer instance.
         :param comm_value_normalizer: (ValueNorm) Value normalizer instance.
         """
+        # Messages get rewards from next step
+        self.comm_rewards[:-1] += self.act_rewards[1:]
+
         self.act_value_preds[-1] = next_act_value
         self.comm_value_preds[-1] = next_comm_value
+
         act_gae = 0
         comm_gae = 0
         for step in reversed(range(self.act_rewards.shape[0])):

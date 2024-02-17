@@ -72,6 +72,8 @@ class LanguageGroundedMARL:
         # Language context, to carry to next steps
         self.lang_contexts = np.zeros(
             (self.n_envs, self.context_dim), dtype=np.float32)
+        # Messages rewards
+        self.comm_rewards = None
         # Matrices used during rollout
         self.act_values = None
         self.comm_values = None
@@ -187,8 +189,6 @@ class LanguageGroundedMARL:
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
 
-        self.comm_rewards = np.zeros_like(act_rewards[..., np.newaxis])
-
         # Insert action data in buffer
         self.buffer.insert_act(
             self.rnn_states,
@@ -205,6 +205,22 @@ class LanguageGroundedMARL:
 
         # Insert next obs in buffer
         self._store_obs(next_obs, next_parsed_obs)
+
+    def _reward_comm(self, messages):
+        self.comm_rewards = np.zeros((self.n_envs, self.n_agents, 1))
+
+        if self.comm_type == "emergent-continuous":
+            return self.comm_rewards
+
+        # Penalty for message length
+        for e_i in range(self.n_envs):
+            for a_i in range(self.n_agents):
+                self.comm_rewards[e_i, a_i] = \
+                    -len(messages[e_i][a_i]) * self.token_penalty
+        comm_rewards = {
+            "message_len": self.comm_rewards.mean()}
+
+        return comm_rewards
 
     @torch.no_grad()
     def comm_n_act(self, perfect_messages=None):
@@ -285,6 +301,10 @@ class LanguageGroundedMARL:
         else:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
+        # Reward messages
+        if self.comm_type != "no_comm":
+            comm_rewards = self._reward_comm(messages_by_env)
+
         # Log communication
         if self.comm_logger is not None:
             self.comm_logger.store_messages(
@@ -293,7 +313,7 @@ class LanguageGroundedMARL:
                 perfect_messages, 
                 broadcasts)
 
-        return self.actions, broadcasts, messages_by_env
+        return self.actions, broadcasts, messages_by_env, comm_rewards
 
     @torch.no_grad()
     def _compute_returns(self):

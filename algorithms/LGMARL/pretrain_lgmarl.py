@@ -36,9 +36,6 @@ def run():
     # Create train environment
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
 
-    # if cfg.do_eval:
-    #     eval_envs, eval_parser = make_env(cfg, cfg.n_parallel_envs)
-
     # Create model
     n_agents = envs.n_agents
     obs_space = envs.observation_space
@@ -69,8 +66,8 @@ def run():
         for ep_s_i in range(cfg.episode_length):
             # Perform step
             # Get action
-            actions, broadcasts, agent_messages = model.comm_n_act(
-                parsed_obs)
+            actions, broadcasts, agent_messages, comm_rewards \
+                = model.comm_n_act(parsed_obs)
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
@@ -78,8 +75,10 @@ def run():
             if True in env_dones:
                 model.reset_context(env_dones)
 
-            # Save data for logging
+            # Log rewards
             logger.count_returns(s_i, rewards, dones)
+            logger.log_comm(
+                s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
 
             # Insert data into policy buffer
             parsed_obs = parser.get_perfect_messages(obs)

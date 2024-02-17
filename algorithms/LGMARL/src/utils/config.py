@@ -188,7 +188,7 @@ def get_config():
     parser.add_argument("--comm_train_topk", type=int, default=1, 
                         help="k value for top-k sampling during training.")
     # Communication evaluation
-    parser.add_argument("--comm_token_penalty", type=float, default=0.1)
+    parser.add_argument("--comm_token_penalty", type=float, default=0.05)
     # parser.add_argument("--comm_klpretrain_coef", type=float, default=0.01)
     parser.add_argument("--comm_env_reward_coef", type=float, default=1.0)
     # Communication evaluation (context)
