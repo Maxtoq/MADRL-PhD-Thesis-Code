@@ -29,8 +29,6 @@ class ACC_Trainer:
         self.clip_batch_size = args.lang_clip_batch_size
         self.capt_n_epochs = args.lang_capt_n_epochs
         self.temp = args.lang_temp
-        # self.clip_weight = args.lang_clip_weight
-        # self.capt_weight = args.lang_capt_weight
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()

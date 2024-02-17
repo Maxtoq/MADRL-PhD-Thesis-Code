@@ -5,10 +5,9 @@ def update_lr(optimizer, new_lr):
     for param_group in optimizer.param_groups:
         param_group['lr'] = new_lr
 
-def update_linear_schedule(optimizer, epoch, total_num_epochs, initial_lr):
+def update_linear_schedule(step, max_steps, start_lr, end_lr):
     """Decreases the learning rate linearly"""
-    lr = initial_lr - (initial_lr * (epoch / float(total_num_epochs)))
-    update_lr(optimizer, lr)
+    return start_lr - ((start_lr - end_lr) * (step / float(max_steps)))
 
 def get_shape_from_obs_space(obs_space):
     if obs_space.__class__.__name__ == 'Box':

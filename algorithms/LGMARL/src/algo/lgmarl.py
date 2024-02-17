@@ -5,15 +5,15 @@ from .language.lang_learner import LanguageLearner
 from .policy.acc_mappo import ACC_MAPPO
 from .policy.acc_buffer import ACC_ReplayBuffer
 from .policy.acc_trainer import ACC_Trainer
-from .policy.utils import get_shape_from_obs_space, torch2numpy
+from .policy.utils import get_shape_from_obs_space, torch2numpy, update_linear_schedule
 
 
 class LanguageGroundedMARL:
 
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
                  parser, device="cpu", comm_logger=None):
-        self.args = args
         self.n_agents = n_agents
+        self.n_steps = args.n_steps
         self.context_dim = args.context_dim
         self.n_envs = args.n_parallel_envs
         self.n_warmup_steps = args.n_warmup_steps
@@ -27,14 +27,21 @@ class LanguageGroundedMARL:
         self.comm_logger = comm_logger
         self.device = device
 
-        if args.comm_type == "no_comm":
+        # Parameters for annealing learning rates
+        self.capt_lr = args.lang_capt_lr
+        self.capt_lr_anneal_to = args.lang_capt_lr_anneal_to
+        self.anneal_capt_lr = self.capt_lr_anneal_to < self.capt_lr \
+            and self.comm_type in ["language", "perfect_comm"]
+
+        if self.comm_type == "no_comm":
             policy_input_dim = get_shape_from_obs_space(obs_space[0])
             critic_input_dim = get_shape_from_obs_space(shared_obs_space[0])
         elif self.enc_obs:
             policy_input_dim = self.context_dim * 2
             critic_input_dim = self.context_dim * (self.n_agents + 1)
         else:
-            policy_input_dim = get_shape_from_obs_space(obs_space[0]) + self.context_dim
+            policy_input_dim = \
+                get_shape_from_obs_space(obs_space[0]) + self.context_dim
             critic_input_dim = get_shape_from_obs_space(shared_obs_space[0]) \
                                 + self.context_dim
         act_dim = act_space[0].n
@@ -58,7 +65,7 @@ class LanguageGroundedMARL:
             device)
 
         self.buffer = ACC_ReplayBuffer(
-            self.args, 
+            args, 
             n_agents, 
             policy_input_dim, 
             critic_input_dim,
@@ -315,6 +322,12 @@ class LanguageGroundedMARL:
 
         return self.actions, broadcasts, messages_by_env, comm_rewards
 
+    def _anneal_lr(self, step):
+        if self.anneal_capt_lr:
+            new_lr = update_linear_schedule(
+                step, self.n_steps, self.capt_lr, self.capt_lr_anneal_to)
+            self.acc.update_lrs(new_lr)
+
     @torch.no_grad()
     def _compute_returns(self):
         critic_input = torch.from_numpy(
@@ -340,6 +353,8 @@ class LanguageGroundedMARL:
             train_value_head=True,
             train_lang=True):
         self.prep_training()
+
+        self._anneal_lr(step)
 
         warmup = step < self.n_warmup_steps
 
