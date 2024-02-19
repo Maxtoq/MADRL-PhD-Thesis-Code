@@ -195,7 +195,7 @@ class LanguageGroundedMARL:
         masks = np.ones((self.n_envs, self.n_agents, 1), dtype=np.float32)
         masks[dones == True] = np.zeros(
             ((dones == True).sum(), 1), dtype=np.float32)
-
+        
         # Insert action data in buffer
         self.buffer.insert_act(
             self.rnn_states,
@@ -228,13 +228,16 @@ class LanguageGroundedMARL:
         return comm_rewards
 
     @torch.no_grad()
-    def comm_n_act(self, perfect_messages=None):
+    def comm_n_act(self, perfect_messages=None, gen_messages=True):
         """
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
 
         :param perfect_messages (list(list(list(str)))): "Perfect" messages 
             given by the parser, default None.
+        :param gen_messages: (np.ndarray) Array of boolean controlling whether
+            to generate messages of use perfect messages, one for each parallel
+            environment, used for comm_type=language only.
 
         :return actions (np.ndarray): Actions for each agent, 
             dim=(n_envs, n_agents, 1).
@@ -253,7 +256,7 @@ class LanguageGroundedMARL:
                 policy_input, critic_input, rnn_states, critic_rnn_states, masks)
 
         # Get messages
-        if self.comm_type in ["language", "emergent_discrete"]:
+        if self.comm_type in ["language"]:
             messages = self.lang_learner.generate_sentences(
                 np.concatenate(self.comm_actions))
 
@@ -261,12 +264,18 @@ class LanguageGroundedMARL:
             broadcasts = []
             messages_by_env = []
             for e_i in range(self.n_envs):
+                if gen_messages[e_i]:
+                    env_messages = messages[
+                        e_i * self.n_agents:(e_i + 1) * self.n_agents]
+                else:
+                    env_messages = perfect_messages[e_i]
+
                 env_broadcast = []
-                for a_i in range(self.n_agents):
-                    env_broadcast.extend(messages[e_i * self.n_agents + a_i])
+                for message in env_messages:
+                    env_broadcast.extend(message)
+
                 broadcasts.append(env_broadcast)
-                messages_by_env.append(messages[
-                    e_i * self.n_agents:e_i * self.n_agents + self.n_agents])
+                messages_by_env.append(env_messages)
 
             # Get lang contexts
             self.lang_contexts = self.lang_learner.encode_sentences(
@@ -350,7 +359,7 @@ class LanguageGroundedMARL:
 
     def train(self, step, 
             train_act_head=True, 
-            comm_head_learns_rl=True, 
+            envs_train_comm=None, 
             train_value_head=True,
             train_lang=True):
         self.prep_training()
@@ -361,6 +370,8 @@ class LanguageGroundedMARL:
 
         if self.comm_type in ["no_comm", "perfect_comm"]:
             comm_head_learns_rl = False
+        else:
+            comm_head_learns_rl = True
         if self.comm_type not in ["perfect_comm", "language"]:
             train_lang = False
 
@@ -368,7 +379,8 @@ class LanguageGroundedMARL:
         self._compute_returns()
 
         # Train 
-        losses = self.trainer.train(warmup, comm_head_learns_rl, train_lang)
+        losses = self.trainer.train(
+            warmup, comm_head_learns_rl, train_lang, envs_train_comm)
         
         return losses
 

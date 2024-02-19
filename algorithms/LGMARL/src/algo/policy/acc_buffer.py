@@ -95,7 +95,7 @@ class ACC_ReplayBuffer:
             (self.episode_length, 
              self.n_parallel_envs, 
              self.n_agents, 
-             self.comm_act_dim),
+             1),
             dtype=np.float32)
 
         self.act_rewards = np.zeros(
@@ -133,7 +133,7 @@ class ACC_ReplayBuffer:
         self.env_actions = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
         self.env_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
         self.comm_actions = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
-        self.comm_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
+        self.comm_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
         self.act_rewards = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32) 
         self.comm_rewards = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)    
         self.masks = np.ones((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
@@ -284,12 +284,19 @@ class ACC_ReplayBuffer:
 
         return policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch       
 
-    def recurrent_policy_generator(self, act_advt, comm_advt):
+    def recurrent_policy_generator(self, act_advt, comm_advt, envs_train_comm=None):
         """
         Generates sample for policy training.
         :param act_advt: (np.ndarray) Env actions advantages.
         :param comm_advt: (np.ndarray) Communication actions advantages.
         """
+        # Shape the envs_train_comm to be the same shape as others
+        if envs_train_comm is not None:
+            envs_train_comm = envs_train_comm[:, None, None].repeat(
+                self.episode_length, 1).transpose(1, 0, 2).repeat(self.n_agents, -1)
+        else:
+            envs_train_comm = np.ones_like(self.comm_rewards)
+
         # Shuffled env ids
         env_ids = np.random.choice(
             self.n_parallel_envs, size=self.n_parallel_envs, replace=False)
@@ -319,6 +326,8 @@ class ACC_ReplayBuffer:
             masks_batch = self.masks[:-1, ids]
             act_advt_batch = act_advt[:, ids]
             comm_advt_batch = comm_advt[:, ids]
+
+            envs_train_comm_batch = envs_train_comm[:, ids]
 
             if self.share_params:
                 policy_input_batch = policy_input_batch.reshape(
@@ -353,6 +362,9 @@ class ACC_ReplayBuffer:
                 critic_rnn_states_batch = critic_rnn_states_batch.reshape(
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
 
+                envs_train_comm_batch = envs_train_comm_batch.reshape(
+                    self.episode_length * mini_batch_size * self.n_agents)
+
             else:
                 policy_input_batch = policy_input_batch.reshape(
                     self.episode_length * mini_batch_size, self.n_agents, -1)
@@ -381,8 +393,12 @@ class ACC_ReplayBuffer:
                 comm_advt_batch = comm_advt_batch.reshape(
                     self.episode_length * mini_batch_size, self.n_agents, -1)
 
+                envs_train_comm_batch = envs_train_comm_batch.reshape(
+                    self.episode_length * mini_batch_size, self.n_agents)
+
             yield policy_input_batch, critic_input_batch, rnn_states_batch, \
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
                 act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
-                comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch
+                comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
+                envs_train_comm_batch

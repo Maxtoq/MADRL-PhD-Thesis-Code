@@ -102,8 +102,8 @@ class ACC_Trainer:
             critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
-            comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch \
-                = sample
+            comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
+            envs_train_comm = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -152,11 +152,17 @@ class ACC_Trainer:
 
         # Communicator losses
         if train_comm_head:
-            comm_loss = self._compute_policy_loss(
-                comm_action_log_probs, 
-                old_comm_action_log_probs_batch, 
-                comm_advt_batch, 
-                comm_dist_entropy)
+            # The comm head is trained only on envs that used generated comm
+            if envs_train_comm.sum() > 0:
+                print("TRAIN COMM")
+                comm_loss = self._compute_policy_loss(
+                    comm_action_log_probs[envs_train_comm], 
+                    old_comm_action_log_probs_batch[envs_train_comm], 
+                    comm_advt_batch[envs_train_comm], 
+                    comm_dist_entropy)
+            else:
+                comm_loss = torch.zeros_like(actor_loss)
+
             comm_value_loss = self._compute_value_loss(
                 comm_values, 
                 comm_value_preds_batch, 
@@ -269,13 +275,18 @@ class ACC_Trainer:
 
         return capt_loss.item() / policy_input_batch.shape[0]
 
-    def train(self, warmup=False, train_comm_head=True, train_lang=True):
+    def train(self, 
+            warmup=False, train_comm_head=True, train_lang=True, 
+            envs_train_comm=None):
         """
         Train LGMARL.
-        :param train_comm_head: (bool) whether to train the communicator head.
 
-        :return losses: (dict) contains information regarding training 
-            update (e.g. loss, grad norms, etc).
+        :param train_comm_head: (bool) Whether to train the communicator head.
+        :param train_lang: (bool) Whether to train language modules.
+        :param envs_train_comm: (nd.ndarray) Booleans indicating which 
+            environment must be used for training the communication head.
+
+        :return losses: (dict) Contains losses obtained during update.
         """
         for a in self.agents:
             a.warmup_lr(warmup)
@@ -293,7 +304,7 @@ class ACC_Trainer:
         num_updates = self.ppo_epoch * self.n_mini_batch
         for _ in range(self.ppo_epoch):
             data_generator = self.buffer.recurrent_policy_generator(
-                act_advantages, comm_advantages)
+                act_advantages, comm_advantages, envs_train_comm)
     
             for sample in data_generator:
                 if self.share_params:

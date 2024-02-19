@@ -139,8 +139,8 @@ def get_config():
 
     # LMC parameters
     parser.add_argument("--context_dim", type=int, default=16)
-    parser.add_argument("--no_comm_head_learns_rl", default=False, 
-                        action="store_true")
+    # parser.add_argument("--no_comm_head_learns_rl", default=False, 
+    #                     action="store_true")
     parser.add_argument("--no_train_lang", default=False, 
                         action="store_true")
     parser.add_argument("--enc_obs", default=False, action="store_true",
