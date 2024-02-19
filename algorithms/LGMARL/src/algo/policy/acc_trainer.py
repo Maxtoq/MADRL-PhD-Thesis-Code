@@ -159,6 +159,7 @@ class ACC_Trainer:
                     old_comm_action_log_probs_batch[envs_train_comm], 
                     comm_advt_batch[envs_train_comm], 
                     comm_dist_entropy)
+                log_losses["comm_loss"] = comm_loss.item()
             else:
                 comm_loss = torch.zeros_like(actor_loss)
 
@@ -167,7 +168,7 @@ class ACC_Trainer:
                 comm_value_preds_batch, 
                 comm_returns_batch, 
                 self.comm_value_normalizer)
-            log_losses["comm_loss"] = comm_loss.item()
+            
             log_losses["comm_value_loss"] = comm_value_loss.item()
         else:
             comm_loss = torch.zeros_like(actor_loss)
