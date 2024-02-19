@@ -154,7 +154,6 @@ class ACC_Trainer:
         if train_comm_head:
             # The comm head is trained only on envs that used generated comm
             if envs_train_comm.sum() > 0:
-                print("TRAIN COMM")
                 comm_loss = self._compute_policy_loss(
                     comm_action_log_probs[envs_train_comm], 
                     old_comm_action_log_probs_batch[envs_train_comm], 
