@@ -15,19 +15,7 @@ class LanguageLearner:
     """
 
     def __init__(self, args, obs_dim, context_dim, parser, device="cpu"):
-                #  , n_epochs=2):
-                #  , batch_size=128)
-                #  , temp=1.0, embed_dim=4,
-                #  clip_weight=1.0, capt_weight=1.0, obs_learn_capt=True, 
-                #  buffer_size=100000):
         self.train_device = device
-        # self.lr = args.lang_clip_lr
-        # self.n_epochs = n_epochs
-        # self.batch_size = batch_size
-        # self.temp = temp
-        # self.clip_weight = clip_weight
-        # self.capt_weight = capt_weight
-        # self.obs_learn_capt = obs_learn_capt
 
         self.device = self.train_device
 
@@ -49,10 +37,7 @@ class LanguageLearner:
         self.clip_optim = torch.optim.Adam(
             list(self.obs_encoder.parameters()) + 
             list(self.lang_encoder.parameters()),
-            # list(self.decoder.parameters()), 
             lr=args.lang_clip_lr)
-
-        # self.buffer = LanguageBuffer(buffer_size)
 
     def prep_rollout(self, device=None):
         self.device = self.train_device if device is None else device
@@ -150,39 +135,6 @@ class LanguageLearner:
             dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
         
         return clip_loss, dec_loss, mean_sim
-
-    # def train(self):
-    #     clip_losses = []
-    #     dec_losses = []
-    #     mean_sims = []
-    #     for it in range(self.n_epochs):
-    #         self.optim.zero_grad()
-    #         # Sample batch from buffer
-    #         obs_batch, sent_batch = self.buffer.sample(self.batch_size)
-
-    #         # Compute losses
-    #         clip_loss, dec_loss, mean_sim = self.compute_losses(obs_batch, sent_batch)
-
-    #         # Update
-    #         tot_loss = self.clip_weight * clip_loss + self.capt_weight * dec_loss
-    #         tot_loss.backward()
-    #         self.optim.step()
-
-    #         clip_losses.append(clip_loss.item() / self.batch_size)
-    #         dec_losses.append(dec_loss.item() / self.batch_size)
-    #         mean_sims.append(mean_sim.item())
-        
-        
-    #     clip_loss = sum(clip_losses) / len(clip_losses)
-    #     dec_loss = sum(dec_losses) / len(dec_losses)
-    #     mean_sim = sum(mean_sims) / len(mean_sims)
-
-    #     losses = {
-    #         "clip_loss": clip_loss, 
-    #         "dec_loss": dec_loss, 
-    #         "mean_sim": mean_sim}
-        
-    #     return losses
 
     def get_save_dict(self):
         save_dict = {
