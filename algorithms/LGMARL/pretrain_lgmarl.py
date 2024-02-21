@@ -52,7 +52,7 @@ def run():
         device)
 
     # Epsilon parameter for choosing what communication 
-    comm_eps = ParameterDecay(1.0, 0.01, cfg.n_steps, "sigmoid")
+    comm_eps = ParameterDecay(1.0, 0.01, cfg.n_steps, "sigmoid", 1.0)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
