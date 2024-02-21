@@ -204,6 +204,7 @@ class ACC_Trainer:
 
     def _train_clip(self, sample):
         obs_batch, parsed_obs_batch, n_mini_batch = sample 
+        print(obs_batch.shape, len(parsed_obs_batch), n_mini_batch)
 
         # Encode observations
         obs_contexts = self.lang_learner.obs_encoder(
@@ -221,12 +222,14 @@ class ACC_Trainer:
             lang_context_batch = lang_contexts[
                 b_i * self.clip_batch_size:(b_i + 1) * self.clip_batch_size]
             
+            print(obs_context_batch.shape, lang_context_batch.shape)
             # CLIP loss
             clip_loss, mean_sim = self._compute_clip_loss(
                 obs_context_batch, lang_context_batch)
 
             tot_clip_loss.append(clip_loss)
             tot_mean_sim.append(mean_sim)
+        exit()
 
         clip_loss = sum(tot_clip_loss)
 
@@ -274,6 +277,19 @@ class ACC_Trainer:
         agent.capt_optim.step()
 
         return capt_loss.item() / policy_input_batch.shape[0]
+
+    def _train_language(self, agent, sample):
+        policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch \
+            = sample
+
+        policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
+        masks_batch = torch.from_numpy(masks_batch).to(self.device)
+        rnn_states_batch = torch.from_numpy(rnn_states_batch).to(self.device)
+
+        # Pass through acc
+        comm_actions = agent.get_comm_actions(
+            policy_input_batch, rnn_states_batch, masks_batch)
+
 
     def train(self, 
             warmup=False, train_comm_head=True, train_lang=True, 
