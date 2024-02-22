@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=15
-experiment_name="mappo_2a_4040"
+experiment_name="mappo_2a_4040_JIM"
 n_rollout_threads=250
 n_steps=5000000
 algorithm_name="mappo"
@@ -9,12 +9,12 @@ env_name="rel_overgen"
 ro_n_agents=2
 ro_state_dim=40
 ro_optim_diff_coeff=40.0
-ir_algo="none"
-ir_mode="local"
+ir_algo="e2s_noveld"
+ir_mode="central"
 ir_coeff=1.0
 ir_enc_dim=64
 ir_hidden_dim=128
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
