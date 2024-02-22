@@ -28,9 +28,9 @@ class LanguageGroundedMARL:
         self.device = device
 
         # Parameters for annealing learning rates
-        self.capt_lr = args.lang_capt_lr
-        self.capt_lr_anneal_to = args.lang_capt_lr_anneal_to
-        self.anneal_capt_lr = self.capt_lr_anneal_to < self.capt_lr \
+        self.lang_lr = args.lang_lr
+        self.lang_lr_anneal_to = args.lang_lr_anneal_to
+        self.anneal_lang_lr = self.lang_lr_anneal_to < self.lang_lr \
             and self.comm_type in ["language", "perfect_comm"]
 
         if self.comm_type == "no_comm":
@@ -333,9 +333,9 @@ class LanguageGroundedMARL:
         return self.actions, broadcasts, messages_by_env, comm_rewards
 
     def _anneal_lr(self, step):
-        if self.anneal_capt_lr:
+        if self.anneal_lang_lr:
             new_lr = update_linear_schedule(
-                step, self.n_steps, self.capt_lr, self.capt_lr_anneal_to)
+                step, self.n_steps, self.lang_lr, self.lang_lr_anneal_to)
             self.acc.update_lrs(new_lr)
 
     @torch.no_grad()

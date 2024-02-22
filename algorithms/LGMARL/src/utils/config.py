@@ -149,16 +149,25 @@ def get_config():
     # Language Learning parameters
     parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
-    parser.add_argument("--lang_clip_lr", type=float, default=0.007)
-    parser.add_argument("--lang_capt_lr", type=float, default=0.01)
-    parser.add_argument("--lang_clip_n_mini_batch", type=int, default=2)
-    parser.add_argument("--lang_clip_batch_size", type=int, default=256,
-                        help="Number of steps sampled in batch for CLIP training.")
-    parser.add_argument("--lang_capt_batch_size", type=int, default=100, 
+    parser.add_argument("--lang_lr", type=float, default=0.01)
+    parser.add_argument("--lang_lr_anneal_to", type=float, default=0.0001)
+    parser.add_argument("--lang_batch_size", type=int, default=100, 
                         help="Number of *episodes* sampled in batch for captioning training.")
-    parser.add_argument("--lang_capt_n_epochs", type=int, default=2)
+    parser.add_argument("--lang_n_epochs", type=int, default=2)
     parser.add_argument("--lang_temp", type=float, default=1.0)
-    parser.add_argument("--lang_capt_lr_anneal_to", type=float, default=0.0001)
+
+
+
+    # parser.add_argument("--lang_clip_lr", type=float, default=0.007)
+    # parser.add_argument("--lang_capt_lr", type=float, default=0.01)
+    # parser.add_argument("--lang_clip_n_mini_batch", type=int, default=2)
+    # parser.add_argument("--lang_clip_batch_size", type=int, default=256,
+    #                     help="Number of steps sampled in batch for CLIP training.")
+    # parser.add_argument("--lang_capt_batch_size", type=int, default=100, 
+    #                     help="Number of *episodes* sampled in batch for captioning training.")
+    # parser.add_argument("--lang_capt_n_epochs", type=int, default=2)
+    # parser.add_argument("--lang_temp", type=float, default=1.0)
+    # parser.add_argument("--lang_capt_lr_anneal_to", type=float, default=0.0001)
 
     # Communication parameters
     parser.add_argument("--comm_type", default="language", 

@@ -30,12 +30,13 @@ class ACC_Agent(nn.Module):
             eps=args.opti_eps, 
             weight_decay=args.weight_decay)
 
-        if args.comm_type != "no_comm":
-            # Optimizer dedicated to captioning task
-            self.capt_optim = torch.optim.Adam(
+        if args.comm_type in ["language", "perfect_commq"]:
+            # Optimizer dedicated to language learning modules
+            self.lang_optim = torch.optim.Adam(
                 list(self.act_comm.parameters()) +
-                list(lang_learner.decoder.parameters()),
-                lr=args.lang_capt_lr)
+                list(lang_learner.decoder.parameters()) +
+                list(lang_learner.lang_encoder.parameters()),
+                lr=args.lang_lr)
 
     def lr_decay(self, episode, episodes):
         """
