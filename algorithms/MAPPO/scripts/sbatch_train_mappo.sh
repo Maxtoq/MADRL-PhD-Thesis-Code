@@ -1,4 +1,16 @@
-#!/bin/sh
+#!/bin/bash
+#SBATCH --partition=hard
+#SBATCH --nodelist=zz
+#SBATCH --job-name=mappo
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
+#SBATCH --time=6000
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
+#SBATCH --output=outputs/%x-%j.out
+
+source venv/bin/activate
+
 n_run=15
 experiment_name="mappo_2a_4030_LIM"
 n_rollout_threads=250
