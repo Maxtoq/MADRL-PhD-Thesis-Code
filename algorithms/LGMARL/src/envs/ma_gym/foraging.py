@@ -21,7 +21,7 @@ class Foraging(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=10,
-                 penalty=-0.0, step_cost=-0.01, max_steps=100,
+                 penalty=-0.0, step_cost=-0.1, max_steps=100,
                  agent_view_mask=(5, 5)):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \

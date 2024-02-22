@@ -245,7 +245,7 @@ class ACC_ReplayBuffer:
         obs_batch = all_obs[ids]
         parsed_obs_batch = [all_parsed_obs[s_i] for s_i in ids] 
 
-        return all_obs, all_parsed_obs, n_mini_batch
+        return obs_batch, parsed_obs_batch, n_mini_batch
 
     def sample_capt(self):
         """

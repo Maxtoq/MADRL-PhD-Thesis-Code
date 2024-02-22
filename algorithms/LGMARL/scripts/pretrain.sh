@@ -1,12 +1,12 @@
 #!/bin/sh
-n_run=1
-experiment_name="ACC_12x12_language"
+n_run=8
+experiment_name="ACC_9x9_language"
 n_parallel_envs=250
-n_steps=20000000
+n_steps=10000000
 ppo_epoch=15 # default 15
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_Foraging"
+env_name="magym_PredPrey"
 episode_length=100
 comm_type="language" # default language
 comm_ec_strategy="mean" # default sum
@@ -14,12 +14,12 @@ comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
 lang_clip_n_mini_batch=1 # default 2
-lang_clip_batch_size=128 # default 256
+lang_clip_batch_size=256 # default 256
 lang_capt_lr=0.01 # default 0.01
-lang_capt_n_epochs=5 # default 2
-lang_capt_batch_size=20 # default 100
-magym_env_size=12
-cuda_device="cuda:0"
+lang_capt_n_epochs=2 # default 2
+lang_capt_batch_size=10 # default 100
+magym_env_size=9
+cuda_device="cuda:2"
 
 source venv3.8/bin/activate
 
