@@ -294,8 +294,30 @@ class ACC_Trainer:
         lang_contexts = self.lang_learner.lang_encoder(parsed_obs_batch)
         lang_contexts = lang_contexts.squeeze()
         # CLIP loss
-        clip_loss, mean_sim = self._compute_clip_loss(
-            comm_actions, lang_contexts)
+        # clip_loss, mean_sim = self._compute_clip_loss(
+        #     comm_actions, lang_contexts)
+        # Compute CLIP loss per mini-batch
+        n_mini_batch = 2
+        mini_batch_size = 256
+        ids = np.random.choice(
+            comm_actions.shape[0], 
+            size=mini_batch_size * n_mini_batch, 
+            replace=False)
+        tot_clip_loss = []
+        tot_mean_sim = []
+        for b_i in range(n_mini_batch):
+            comm_action_batch = comm_actions[
+                b_i * mini_batch_size:(b_i + 1) * mini_batch_size]
+            lang_context_batch = lang_contexts[
+                b_i * mini_batch_size:(b_i + 1) * mini_batch_size]
+            
+            # CLIP loss
+            clip_loss, mean_sim = self._compute_clip_loss(
+                comm_action_batch, lang_context_batch)
+
+            tot_clip_loss.append(clip_loss)
+            tot_mean_sim.append(mean_sim)
+        clip_loss = sum(tot_clip_loss)
 
         # Captioning
         # Decode
@@ -312,8 +334,11 @@ class ACC_Trainer:
         tot_loss.backward()
         agent.lang_optim.step()
 
-        return capt_loss.item() / policy_input_batch.shape[0], \
-                clip_loss.item() / policy_input_batch.shape[0], mean_sim
+        capt_loss = capt_loss.item() / policy_input_batch.shape[0]
+        clip_loss = clip_loss.item() / n_mini_batch
+        mean_sim = sum(tot_mean_sim) / n_mini_batch
+
+        return capt_loss, clip_loss, mean_sim
 
 
     def train(self, 

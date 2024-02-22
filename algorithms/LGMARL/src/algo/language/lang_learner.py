@@ -140,12 +140,10 @@ class LanguageLearner:
         save_dict = {
             # "obs_encoder": self.obs_encoder.state_dict(),
             "lang_encoder": self.lang_encoder.state_dict(),
-            "decoder": self.decoder.state_dict(),
-            "clip_optim": self.clip_optim.state_dict()}
+            "decoder": self.decoder.state_dict()}
         return save_dict
 
     def load_params(self, save_dict):
         # self.obs_encoder.load_state_dict(save_dict["obs_encoder"])
         self.lang_encoder.load_state_dict(save_dict["lang_encoder"])
         self.decoder.load_state_dict(save_dict["decoder"])
-        self.clip_optim.load_state_dict(save_dict["clip_optim"])

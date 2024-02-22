@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=8
-experiment_name="ACC_9x9_language"
+n_run=1
+experiment_name="ACC_9x9_language_NOOBSENC"
 n_parallel_envs=250
 n_steps=10000000
 ppo_epoch=15 # default 15
@@ -12,12 +12,9 @@ comm_type="language" # default language
 comm_ec_strategy="mean" # default sum
 comm_token_penalty=0.001
 context_dim=16 # default 16
-lang_clip_lr=0.0009 # default 0.007
-lang_clip_n_mini_batch=1 # default 2
-lang_clip_batch_size=256 # default 256
-lang_capt_lr=0.01 # default 0.01
-lang_capt_n_epochs=2 # default 2
-lang_capt_batch_size=10 # default 100
+lang_lr=0.001 # default 0.001
+lang_n_epochs=2 # default 2
+lang_batch_size=10 # default 100
 magym_env_size=9
 cuda_device="cuda:2"
 
@@ -41,12 +38,9 @@ do
     --comm_ec_strategy ${comm_ec_strategy}\
     --comm_token_penalty ${comm_token_penalty}\
     --context_dim ${context_dim}\
-    --lang_clip_lr ${lang_clip_lr}\
-    --lang_clip_n_mini_batch ${lang_clip_n_mini_batch}\
-    --lang_clip_batch_size ${lang_clip_batch_size}\
-    --lang_capt_lr ${lang_capt_lr}\
-    --lang_capt_n_epochs ${lang_capt_n_epochs}\
-    --lang_capt_batch_size ${lang_capt_batch_size}\
+    --lang_lr ${lang_lr}\
+    --lang_n_epochs ${lang_n_epochs}\
+    --lang_batch_size ${lang_batch_size}\
     --magym_env_size ${magym_env_size}"
     # --share_params\
     # --no_comm_head_learns_rl"

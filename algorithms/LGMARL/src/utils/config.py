@@ -149,7 +149,7 @@ def get_config():
     # Language Learning parameters
     parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
-    parser.add_argument("--lang_lr", type=float, default=0.01)
+    parser.add_argument("--lang_lr", type=float, default=0.001)
     parser.add_argument("--lang_lr_anneal_to", type=float, default=0.0001)
     parser.add_argument("--lang_batch_size", type=int, default=100, 
                         help="Number of *episodes* sampled in batch for captioning training.")
