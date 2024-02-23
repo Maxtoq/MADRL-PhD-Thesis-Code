@@ -604,6 +604,18 @@ models/rel_overgen/qmix_4a_40_09_JIM/*
 models/rel_overgen/qmix_4a_40_09_LIM/*
 !models/rel_overgen/qmix_4a_40_09_LIM/train_data
 
+!models/rel_overgen/mappo_2a_4040
+models/rel_overgen/mappo_2a_4040/*
+!models/rel_overgen/mappo_2a_4040/train_data
+
+!models/rel_overgen/mappo_2a_4040_JIM
+models/rel_overgen/mappo_2a_4040_JIM/*
+!models/rel_overgen/mappo_2a_4040_JIM/train_data
+
+!models/rel_overgen/mappo_2a_4040_LIM
+models/rel_overgen/mappo_2a_4040_LIM/*
+!models/rel_overgen/mappo_2a_4040_LIM/train_data
+
 
 !models/push_buttons
 models/push_buttons/*
