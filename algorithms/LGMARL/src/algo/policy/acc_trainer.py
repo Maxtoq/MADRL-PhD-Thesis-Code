@@ -302,14 +302,12 @@ class ACC_Trainer:
         ids = np.random.choice(
             comm_actions.shape[0], 
             size=mini_batch_size * n_mini_batch, 
-            replace=False)
+            replace=False).reshape((n_mini_batch, mini_batch_size))
         tot_clip_loss = []
         tot_mean_sim = []
         for b_i in range(n_mini_batch):
-            comm_action_batch = comm_actions[
-                b_i * mini_batch_size:(b_i + 1) * mini_batch_size]
-            lang_context_batch = lang_contexts[
-                b_i * mini_batch_size:(b_i + 1) * mini_batch_size]
+            comm_action_batch = comm_actions[ids[b_i]]
+            lang_context_batch = lang_contexts[ids[b_i]]
             
             # CLIP loss
             clip_loss, mean_sim = self._compute_clip_loss(
