@@ -66,8 +66,8 @@ class ACC_Agent(nn.Module):
             comm_action_log_probs, act_rnn_states, critic_rnn_states
 
     def get_comm_actions(self, obs, act_rnn_states, masks):
-        _, _, comm_actions, _, _ = self.act_comm(
-                obs, act_rnn_states, masks, do_act=False)
+        comm_actions = self.act_comm.get_comm_actions(
+                obs, act_rnn_states, masks)
         return comm_actions
 
     def get_values(self, shared_obs, rnn_states_critic, masks):

@@ -89,4 +89,14 @@ class ActorCommunicator(nn.Module):
 
         return env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
                 comm_dist_entropy
+
+    def get_comm_actions(self, obs, rnn_states, masks):
+        x = self.obs_encoder(obs)
+
+        x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
+
+        comm_action_logits = self.comm_head(x)
+        comm_actions = comm_action_logits.mode() 
+
+        return comm_actions
         
