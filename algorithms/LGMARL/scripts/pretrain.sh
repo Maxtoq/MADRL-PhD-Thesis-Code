@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="ACC_9x9_language_NOOBSENC"
+experiment_name="ACC_9x9_language_NOOBSENC_FIXEDTRAIN"
 n_parallel_envs=250
 n_steps=10000000
 ppo_epoch=15 # default 15
@@ -16,7 +16,7 @@ lang_lr=0.001 # default 0.001
 lang_n_epochs=2 # default 2
 lang_batch_size=10 # default 100
 magym_env_size=9
-cuda_device="cuda:2"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 

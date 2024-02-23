@@ -293,6 +293,7 @@ class ACC_Trainer:
         # Encode sentences
         lang_contexts = self.lang_learner.lang_encoder(parsed_obs_batch)
         lang_contexts = lang_contexts.squeeze()
+
         # CLIP loss
         # clip_loss, mean_sim = self._compute_clip_loss(
         #     comm_actions, lang_contexts)
@@ -328,7 +329,8 @@ class ACC_Trainer:
         
         # Update
         agent.lang_optim.zero_grad()
-        tot_loss = clip_loss + capt_loss
+        # tot_loss = clip_loss + capt_loss
+        tot_loss = clip_loss
         tot_loss.backward()
         agent.lang_optim.step()
 
