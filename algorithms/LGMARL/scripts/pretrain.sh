@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="ACC_9x9_language_clip2048"
+experiment_name="ACC_9x9_language_noannealcaptlr"
 n_parallel_envs=250
 n_steps=10000000
 ppo_epoch=15 # default 15
@@ -15,11 +15,12 @@ context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
 lang_clip_n_mini_batch=1 # default 2
 lang_clip_batch_size=2048 # default 256
-lang_capt_lr=0.01 # default 0.01
+lang_capt_lr=0.001 # default 0.007
+lang_capt_lr_anneal_to=0.001 # default 0.0001
 lang_capt_n_epochs=2 # default 2
 lang_capt_batch_size=10 # default 100
 magym_env_size=9
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
@@ -45,6 +46,7 @@ do
     --lang_clip_n_mini_batch ${lang_clip_n_mini_batch}\
     --lang_clip_batch_size ${lang_clip_batch_size}\
     --lang_capt_lr ${lang_capt_lr}\
+    --lang_capt_lr_anneal_to ${lang_capt_lr_anneal_to}\
     --lang_capt_n_epochs ${lang_capt_n_epochs}\
     --lang_capt_batch_size ${lang_capt_batch_size}\
     --magym_env_size ${magym_env_size}"
