@@ -1,9 +1,10 @@
 #!/bin/sh
 n_run=1
-experiment_name="ACC_9x9_language_NOOBSENC_FIXEDTRAIN"
+experiment_name="FIXED_ACC_9x9_perf_NOOBSENC"
 n_parallel_envs=250
 n_steps=10000000
 ppo_epoch=15 # default 15
+lr=0.0009 # default 0.0005
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
@@ -16,7 +17,7 @@ lang_lr=0.001 # default 0.001
 lang_n_epochs=2 # default 2
 lang_batch_size=10 # default 100
 magym_env_size=9
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 
@@ -29,6 +30,7 @@ do
     --n_parallel_envs ${n_parallel_envs}\
     --n_steps ${n_steps}\
     --ppo_epoch ${ppo_epoch}\
+    --lr ${lr}\
     --n_mini_batch ${n_mini_batch}\
     --entropy_coef ${entropy_coef}\
     --env_name ${env_name}\
