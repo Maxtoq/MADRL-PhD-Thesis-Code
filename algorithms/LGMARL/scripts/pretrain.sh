@@ -16,7 +16,7 @@ lang_lr=0.001 # default 0.001
 lang_n_epochs=2 # default 2
 lang_batch_size=10 # default 100
 magym_env_size=9
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
