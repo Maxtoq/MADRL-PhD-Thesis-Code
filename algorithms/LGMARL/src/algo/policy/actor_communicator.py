@@ -16,9 +16,15 @@ class ActorCommunicator(nn.Module):
         self.rnn_encoder = RNNLayer(
             args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
 
-        self.action_head = Categorical(args.hidden_dim, act_dim)
+        # self.action_head = Categorical(args.hidden_dim, act_dim)
+        self.action_head = nn.Sequential(
+            MLPNetwork(args.hidden_dim, args.hidden_dim, out_activation_fn="relu"),
+            Categorical(args.hidden_dim, act_dim))
 
-        self.comm_head = DiagGaussian(args.hidden_dim, args.context_dim)
+        # self.comm_head = DiagGaussian(args.hidden_dim, args.context_dim)
+        self.comm_head = nn.Sequential(
+            MLPNetwork(args.hidden_dim, args.hidden_dim, out_activation_fn="relu"),
+            DiagGaussian(args.hidden_dim, args.context_dim))
 
     def forward(self, obs, rnn_states, masks, do_act=True, do_comm=True):
         x = self.obs_encoder(obs)

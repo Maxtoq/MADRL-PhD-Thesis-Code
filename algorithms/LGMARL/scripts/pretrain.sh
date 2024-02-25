@@ -1,22 +1,24 @@
 #!/bin/sh
-n_run=1
-experiment_name="FIXED_ACC_9x9_perf"
+n_run=3
+experiment_name="ACC_9x9_language"
 n_parallel_envs=250
 n_steps=10000000
+hidden_dim=64 # default 64
+policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
-lr=0.0009 # default 0.0005
+lr=0.0005 # default 0.0005
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_type="perfect_comm" # default language
+comm_type="language" # default language
 comm_ec_strategy="mean" # default sum
 comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
 lang_clip_n_mini_batch=1 # default 2
 lang_clip_batch_size=256 # default 256
-lang_capt_lr=0.007 # default 0.007
+lang_capt_lr=0.001 # default 0.007
 lang_capt_lr_anneal_to=0.0001 # default 0.0001
 lang_capt_n_epochs=2 # default 2
 lang_capt_batch_size=10 # default 100
@@ -33,6 +35,8 @@ do
     --experiment_name ${experiment_name}\
     --n_parallel_envs ${n_parallel_envs}\
     --n_steps ${n_steps}\
+    --hidden_dim ${hidden_dim}\
+    --policy_recurrent_N ${policy_recurrent_N}\
     --ppo_epoch ${ppo_epoch}\
     --lr ${lr}\
     --n_mini_batch ${n_mini_batch}\
