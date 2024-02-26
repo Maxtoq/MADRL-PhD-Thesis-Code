@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --nodelist=zz
-#SBATCH --job-name=mappo
+#SBATCH --nodelist=aerosmith
+#SBATCH --job-name=mappo_lim
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -24,8 +24,8 @@ ro_optim_diff_coeff=30.0
 ir_algo="e2s_noveld"
 ir_mode="local"
 ir_coeff=1.0
-ir_enc_dim=64
-ir_hidden_dim=128
+ir_enc_dim=32
+ir_hidden_dim=64
 cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
