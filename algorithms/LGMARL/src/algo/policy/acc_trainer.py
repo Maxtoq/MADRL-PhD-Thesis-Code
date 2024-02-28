@@ -211,7 +211,7 @@ class ACC_Trainer:
             clip_loss, mean_sim = self._compute_clip_loss(
                 obs_contexts, lang_contexts)
 
-            log_losses["clip_loss"] = clip_loss.item()
+            log_losses["clip_loss"] = clip_loss.item() / self.clip_batch_size
             log_losses["mean_sim"] = mean_sim
         else:
             clip_loss = torch.zeros_like(act_value_loss)

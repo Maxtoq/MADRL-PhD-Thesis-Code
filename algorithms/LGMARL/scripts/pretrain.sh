@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=3
-experiment_name="ACC_9x9_perf_CRITICOBSENC_mb1024"
+n_run=4
+experiment_name="ACC_9x9_perf_CRITICOBSENC_mb128"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -16,13 +16,13 @@ comm_ec_strategy="mean" # default sum
 comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
-lang_clip_batch_size=1024 # default 256
+lang_clip_batch_size=128 # default 256
 lang_capt_lr=0.001 # default 0.007
 lang_capt_lr_anneal_to=0.0001 # default 0.0001
 lang_capt_n_epochs=2 # default 2
 lang_capt_batch_size=10 # default 100
 magym_env_size=9
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
