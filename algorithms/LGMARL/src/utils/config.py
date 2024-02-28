@@ -143,17 +143,18 @@ def get_config():
     #                     action="store_true")
     parser.add_argument("--no_train_lang", default=False, 
                         action="store_true")
-    parser.add_argument("--enc_obs", default=False, action="store_true",
-                        help="Whether we use the observation encoder as input of the policy.")
 
     # Language Learning parameters
     parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
-    parser.add_argument("--lang_lr", type=float, default=0.001)
-    parser.add_argument("--lang_lr_anneal_to", type=float, default=0.0001)
-    parser.add_argument("--lang_batch_size", type=int, default=100, 
+    parser.add_argument("--lang_clip_lr", type=float, default=0.007)
+    parser.add_argument("--lang_capt_lr", type=float, default=0.007)
+    parser.add_argument("--lang_capt_lr_anneal_to", type=float, default=0.0001)
+    parser.add_argument("--lang_clip_batch_size", type=int, default=256,
+                        help="Number of steps sampled in batch for CLIP training.")
+    parser.add_argument("--lang_capt_batch_size", type=int, default=100, 
                         help="Number of *episodes* sampled in batch for captioning training.")
-    parser.add_argument("--lang_n_epochs", type=int, default=2)
+    parser.add_argument("--lang_capt_n_epochs", type=int, default=2)
     parser.add_argument("--lang_temp", type=float, default=1.0)
 
 

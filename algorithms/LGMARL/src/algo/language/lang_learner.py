@@ -34,10 +34,9 @@ class LanguageLearner:
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()
 
-        # self.clip_optim = torch.optim.Adam(
-        #     list(self.obs_encoder.parameters()) + 
-        #     list(self.lang_encoder.parameters()),
-        #     lr=args.lang_clip_lr)
+        self.clip_optim = torch.optim.Adam( 
+            list(self.lang_encoder.parameters()),
+            lr=args.lang_clip_lr)
 
     def prep_rollout(self, device=None):
         self.device = self.train_device if device is None else device

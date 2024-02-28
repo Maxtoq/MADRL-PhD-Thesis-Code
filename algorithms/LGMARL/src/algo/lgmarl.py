@@ -21,24 +21,20 @@ class LanguageGroundedMARL:
         self.env_reward_coef = args.comm_env_reward_coef
         self.comm_type = args.comm_type
         self.comm_ec_strategy = args.comm_ec_strategy
-        self.enc_obs = args.enc_obs
         self.recurrent_N = args.policy_recurrent_N
         self.hidden_dim = args.hidden_dim
         self.comm_logger = comm_logger
         self.device = device
 
         # Parameters for annealing learning rates
-        self.lang_lr = args.lang_lr
-        self.lang_lr_anneal_to = args.lang_lr_anneal_to
-        self.anneal_lang_lr = self.lang_lr_anneal_to < self.lang_lr \
+        self.capt_lr = args.lang_capt_lr
+        self.capt_lr_anneal_to = args.lang_capt_lr_anneal_to
+        self.anneal_capt_lr = self.capt_lr_anneal_to < self.capt_lr \
             and self.comm_type in ["language", "perfect_comm"]
 
         if self.comm_type == "no_comm":
             policy_input_dim = get_shape_from_obs_space(obs_space[0])
             critic_input_dim = get_shape_from_obs_space(shared_obs_space[0])
-        elif self.enc_obs:
-            policy_input_dim = self.context_dim * 2
-            critic_input_dim = self.context_dim * (self.n_agents + 1)
         else:
             policy_input_dim = \
                 get_shape_from_obs_space(obs_space[0]) + self.context_dim
@@ -70,8 +66,7 @@ class LanguageGroundedMARL:
             policy_input_dim, 
             critic_input_dim,
             1, 
-            self.context_dim, 
-            obs_dim)
+            self.context_dim)
 
         self.trainer = ACC_Trainer(
             args, self.acc.agents, self.lang_learner, self.buffer, self.device)
@@ -137,15 +132,7 @@ class LanguageGroundedMARL:
         #         obs[:, ids[a_i:a_i + self.n_agents]].reshape(
         #             n_envs, 1, -1))
 
-        if self.enc_obs and self.comm_type in ["perfect_comm", "language"]:
-            obs = torch.from_numpy(obs).reshape(
-                    self.n_envs * self.n_agents, -1).to(
-                        self.device, dtype=torch.float32)
-            policy_input = self.lang_learner.encode_observations(obs)
-            policy_input = torch2numpy(
-                policy_input.reshape(self.n_envs, self.n_agents, -1))
-        else:
-            policy_input = obs.copy()
+        policy_input = obs.copy()
         
         critic_input = policy_input.reshape(self.n_envs, -1).repeat(
             4, 0).reshape(self.n_envs, self.n_agents, -1)
@@ -168,7 +155,14 @@ class LanguageGroundedMARL:
             observations, dim=(n_envs, n_agents, len(sentence)).
         """
         policy_input, critic_input = self._make_acc_inputs(obs)
-        self.buffer.insert_obs(policy_input, critic_input, obs, parsed_obs)
+        broadcasts = []
+        for env_messages in parsed_obs:
+            env_broadcast = []
+            for message in env_messages:
+                env_broadcast.extend(message)
+            broadcasts.append([env_broadcast] * self.n_agents)
+        self.buffer.insert_obs(
+            policy_input, critic_input, parsed_obs, broadcasts)
 
     def init_episode(self, obs=None, parsed_obs=None):
         # If obs is given -> very first step of all training
@@ -247,8 +241,8 @@ class LanguageGroundedMARL:
             agent.
         """
         # Get actions
-        policy_input, critic_input, rnn_states, critic_rnn_states, masks \
-            = self.buffer.get_act_params()
+        policy_input, critic_input, rnn_states, critic_rnn_states, masks, \
+            perfect_broadcasts = self.buffer.get_act_params()
 
         self.act_values, self.comm_values, self.actions, self.action_log_probs, \
             self.comm_actions, self.comm_action_log_probs, self.rnn_states, \
@@ -298,13 +292,15 @@ class LanguageGroundedMARL:
         elif self.comm_type == "perfect_comm":
             assert perfect_messages is not None
             messages_by_env = perfect_messages
-            broadcasts = []
-            for env_messages in messages_by_env:
-                env_broadcast = []
-                for message in env_messages:
-                    env_broadcast.extend(message)
-                broadcasts.append(env_broadcast)
+            # broadcasts = []
+            # for env_messages in messages_by_env:
+            #     env_broadcast = []
+            #     for message in env_messages:
+            #         env_broadcast.extend(message)
+            #     broadcasts.append(env_broadcast)
             # Get lang contexts
+            broadcasts = [
+                env_br[0] for env_br in perfect_broadcasts]
             self.lang_contexts = self.lang_learner.encode_sentences(
                 broadcasts).cpu().numpy()
 
@@ -333,9 +329,9 @@ class LanguageGroundedMARL:
         return self.actions, broadcasts, messages_by_env, comm_rewards
 
     def _anneal_lr(self, step):
-        if self.anneal_lang_lr:
+        if self.anneal_capt_lr:
             new_lr = update_linear_schedule(
-                step, self.n_steps, self.lang_lr, self.lang_lr_anneal_to)
+                step, self.n_steps, self.capt_lr, self.capt_lr_anneal_to)
             self.acc.update_lrs(new_lr)
 
     @torch.no_grad()

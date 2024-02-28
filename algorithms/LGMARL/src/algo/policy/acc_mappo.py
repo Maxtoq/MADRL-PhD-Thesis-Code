@@ -2,7 +2,6 @@ import torch
 import numpy as np
 
 from .acc_agent import ACC_Agent
-from .acc_mappo_trainer import ACC_MAPPOTrainAlgo
 from .utils import torch2numpy, update_lr
 
 
@@ -51,7 +50,7 @@ class ACC_MAPPO:
 
     def update_lrs(self, new_capt_lr):
         for agent in self.agents:
-            update_lr(agent.lang_optim, new_capt_lr)
+            update_lr(agent.capt_optim, new_capt_lr)
 
     @torch.no_grad()
     def get_actions(self, obs, shared_obs, rnn_states, critic_rnn_states, masks):

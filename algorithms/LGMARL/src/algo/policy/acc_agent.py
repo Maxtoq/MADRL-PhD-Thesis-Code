@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from .actor_communicator import ActorCommunicator
-from .critic import ACC_Critic
+from .acc_critic import ACC_Critic
 from .utils import update_linear_schedule, update_lr
 
 
@@ -32,11 +32,10 @@ class ACC_Agent(nn.Module):
 
         if args.comm_type in ["language", "perfect_comm"]:
             # Optimizer dedicated to language learning modules
-            self.lang_optim = torch.optim.Adam(
+            self.capt_optim = torch.optim.Adam(
                 list(self.act_comm.parameters()) +
-                list(lang_learner.decoder.parameters()) +
-                list(lang_learner.lang_encoder.parameters()),
-                lr=args.lang_lr)
+                list(lang_learner.decoder.parameters()),
+                lr=args.lang_capt_lr)
 
     def lr_decay(self, episode, episodes):
         """
@@ -123,8 +122,8 @@ class ACC_Agent(nn.Module):
                 obs, rnn_states_actor, env_actions, comm_actions, masks, 
                 eval_comm)
 
-        act_values, comm_values, _ = self.critic(
-            shared_obs, rnn_states_critic, masks)
+        act_values, comm_values, _, obs_encs = self.critic(
+            shared_obs, rnn_states_critic, masks, get_obs_encs=True)
 
         return act_values, comm_values, env_action_log_probs, env_dist_entropy, \
-                comm_action_log_probs, comm_dist_entropy
+                comm_action_log_probs, comm_dist_entropy, obs_encs
