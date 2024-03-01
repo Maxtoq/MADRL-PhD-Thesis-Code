@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=4
-experiment_name="ACC_9x9_perf_CRITICOBSENC_mb128"
+n_run=7
+experiment_name="ACC_9x9_no_CRITICOBSENC_mb128"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -11,7 +11,7 @@ n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_type="perfect_comm" # default language
+comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
 comm_token_penalty=0.001
 context_dim=16 # default 16
@@ -22,7 +22,7 @@ lang_capt_lr_anneal_to=0.0001 # default 0.0001
 lang_capt_n_epochs=2 # default 2
 lang_capt_batch_size=10 # default 100
 magym_env_size=9
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 
