@@ -2,7 +2,6 @@ import torch
 import numpy as np
 
 from .acc_agent import ACC_Agent
-from .acc_mappo_trainer import ACC_MAPPOTrainAlgo
 from .utils import torch2numpy, update_lr
 
 

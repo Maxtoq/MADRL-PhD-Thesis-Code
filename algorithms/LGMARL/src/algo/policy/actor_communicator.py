@@ -18,12 +18,20 @@ class ActorCommunicator(nn.Module):
 
         # self.action_head = Categorical(args.hidden_dim, act_dim)
         self.action_head = nn.Sequential(
-            MLPNetwork(args.hidden_dim, args.hidden_dim, out_activation_fn="relu"),
+            MLPNetwork(
+                args.hidden_dim, 
+                args.hidden_dim, 
+                args.hidden_dim, 
+                out_activation_fn="relu"),
             Categorical(args.hidden_dim, act_dim))
 
         # self.comm_head = DiagGaussian(args.hidden_dim, args.context_dim)
         self.comm_head = nn.Sequential(
-            MLPNetwork(args.hidden_dim, args.hidden_dim, out_activation_fn="relu"),
+            MLPNetwork(
+                args.hidden_dim, 
+                args.hidden_dim, 
+                args.hidden_dim, 
+                out_activation_fn="relu"),
             DiagGaussian(args.hidden_dim, args.context_dim))
 
     def forward(self, obs, rnn_states, masks, do_act=True, do_comm=True):
@@ -105,4 +113,3 @@ class ActorCommunicator(nn.Module):
         comm_actions = comm_action_logits.mode() 
 
         return comm_actions
-        
