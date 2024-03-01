@@ -784,6 +784,14 @@ models/magym_PredPrey/ACC_9x9_no/*
 models/magym_PredPrey/ACC_9x9_perf/*
 !models/magym_PredPrey/ACC_9x9_perf/train_data
 
+!models/magym_PredPrey/ACC_9x9_no_CRITICOBSENC
+models/magym_PredPrey/ACC_9x9_no_CRITICOBSENC/*
+!models/magym_PredPrey/ACC_9x9_no_CRITICOBSENC/train_data
+
+!models/magym_PredPrey/ACC_9x9_perf_CRITICOBSENC
+models/magym_PredPrey/ACC_9x9_perf_CRITICOBSENC/*
+!models/magym_PredPrey/ACC_9x9_perf_CRITICOBSENC/train_data
+
 !models/magym_Foraging
 models/magym_Foraging/*
 
