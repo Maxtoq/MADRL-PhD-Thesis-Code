@@ -1,17 +1,17 @@
 #!/bin/sh
-n_run=7
-experiment_name="ACC_9x9_lang_CRITICOBSENC"
+n_run=3
+experiment_name="ACC_9x9_perf_CRITICOBSENC"
 n_parallel_envs=250
-n_steps=10000000
+n_steps=20000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 lr=0.0005 # default 0.0005
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_PredPrey"
+env_name="magym_Foraging"
 episode_length=100
-comm_type="language" # default language
+comm_type="perfect_comm" # default language
 comm_ec_strategy="mean" # default sum
 comm_token_penalty=0.001
 context_dim=16 # default 16
