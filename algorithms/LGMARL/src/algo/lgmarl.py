@@ -394,7 +394,5 @@ class LanguageGroundedMARL:
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.acc.load_params(save_dict["acc"])
         self.lang_learner.load_params(save_dict["lang_learner"])
-        self.trainer.act_value_normalizer.load_state_dict(params["act_vnorm"])
-        self.trainer.commvalue_normalizer.load_state_dict(params["comm_vnorm"])
-
-        
+        self.trainer.act_value_normalizer.load_state_dict(save_dict["act_vnorm"])
+        self.trainer.comm_value_normalizer.load_state_dict(save_dict["comm_vnorm"])

@@ -9,7 +9,6 @@ from src.algo.lgmarl import LanguageGroundedMARL
 
 def render(cfg, envs):
     if cfg.use_render:
-
         envs.render("human")
     if cfg.render_wait_input:
         input()
@@ -49,7 +48,7 @@ def run():
         obs_space, 
         shared_obs_space, 
         act_space,
-        parser.vocab, 
+        parser, 
         device)
 
     # Load params
@@ -64,24 +63,22 @@ def run():
     model.prep_rollout(device)
     for ep_s_i in range(1000):#cfg.episode_length):
         # Get action
-        actions, broadcasts, agent_messages = model.comm_n_act(
+        actions, broadcasts, agent_messages, comm_rewards = model.comm_n_act(
             parsed_obs)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
+
+        obs = next_obs
+        parsed_obs = parser.get_perfect_messages(obs)
         
-        print(f"\nStep #{ep_s_i}")
+        print(f"\nStep #{ep_s_i + 1}")
         print("Observations", obs)
         print("Perfect Messages", parsed_obs)
         print("Agent Messages", agent_messages)
-        print("Actions", actions)
+        print("Actions (t-1)", actions)
         print("Rewards", rewards)
-
-        # Reward communication
-        # comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)
-        # states = next_states
-
-        # print("Communication Rewards", comm_rewards)
+        print("Communication Rewards", comm_rewards)
 
         render(cfg, envs)
 
@@ -89,9 +86,6 @@ def run():
         if True in env_dones:
             print("ENV DONE")
             model.init_episode()
-
-        obs = next_obs
-        parsed_obs = parser.get_perfect_messages(obs)
             
     envs.close()
 
