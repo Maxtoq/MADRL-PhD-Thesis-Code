@@ -8,6 +8,11 @@ from src.envs.make_env import make_env
 # from src.lmc.lmc_context import LMC
 
 
+def render(envs):
+    envs.render("human")
+    input()
+    time.sleep(0.1)
+
 def run():
     # Load config
     parser = get_config()
@@ -22,12 +27,7 @@ def run():
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
 
     obs = envs.reset()
-    if cfg.use_render:
-        envs.render("human")
-    if cfg.render_wait_input:
-        input()
-    else:
-        time.sleep(0.1)
+    render(envs)
 
     for ep_s_i in range(cfg.episode_length):
         # Parse obs
@@ -39,25 +39,13 @@ def run():
         # Perform action and get reward and next obs
         obs, rewards, dones, infos = envs.step(actions)
         
-        print(f"\nStep #{ep_s_i}")
+        print(f"\nStep #{ep_s_i + 1}")
         print("Observations", obs)
         print("Perfect Messages", parsed_obs)
-        print("Actions", actions)
+        print("Actions (t-1)", actions)
         print("Rewards", rewards)
-        # print("Messages", agent_messages)
 
-        if cfg.use_render:
-            envs.render("human")
-        if cfg.render_wait_input:
-            input()
-        else:
-            time.sleep(0.1)
-
-        # Reward communication
-        # comm_rewards = model.eval_comm(rewards, agent_messages, states, dones)
-        # states = next_states
-
-        # print("Communication Rewards", comm_rewards)
+        render(envs)
 
         env_dones = dones.all(axis=1)
         if True in env_dones:
