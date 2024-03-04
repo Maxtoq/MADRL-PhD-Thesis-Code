@@ -61,7 +61,7 @@ class ActorCommunicator(nn.Module):
                 comm_action_log_probs, new_rnn_states
 
     def evaluate_actions(self, 
-            obs, rnn_states, env_actions, comm_actions, masks, eval_comm=True):
+            obs, rnn_states, env_actions, comm_actions, masks):
         """
         Compute log probability and entropy of given actions.
         :param obs: (torch.Tensor) observation inputs into network.
@@ -82,6 +82,7 @@ class ActorCommunicator(nn.Module):
             distribution entropy for the given inputs.
         :return comm_action_log_probs: (torch.Tensor) log probabilities of the
             communication actions.
+
         """
         x = self.obs_encoder(obs)
 
@@ -93,23 +94,20 @@ class ActorCommunicator(nn.Module):
         env_dist_entropy = env_action_logits.entropy().mean()
 
         # Eval communication actions
-        if eval_comm:
-            comm_action_logits = self.comm_head(x)
-            comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
-            comm_dist_entropy = comm_action_logits.entropy().mean()
-        else:
-            comm_action_log_probs = None
-            comm_dist_entropy = None
-
-        return env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
-                comm_dist_entropy
-
-    def get_comm_actions(self, obs, rnn_states, masks):
-        x = self.obs_encoder(obs)
-
-        x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
-
         comm_action_logits = self.comm_head(x)
         comm_actions = comm_action_logits.mode() 
+        comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
+        comm_dist_entropy = comm_action_logits.entropy().mean()
 
-        return comm_actions
+        return env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
+                comm_dist_entropy, comm_actions
+
+    # def get_comm_actions(self, obs, rnn_states, masks):
+    #     x = self.obs_encoder(obs)
+
+    #     x, new_rnn_states = self.rnn_encoder(x, rnn_states, masks)
+
+    #     comm_action_logits = self.comm_head(x)
+    #     comm_actions = comm_action_logits.mode() 
+
+    #     return comm_actions

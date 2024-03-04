@@ -114,13 +114,20 @@ class ACC_Trainer:
 
         return clip_loss, mean_sim.item()
 
+    def _compute_capt_loss(self, preds, targets):
+        dec_loss = 0
+        for d_o, e_t in zip(preds, targets):
+            e_t = torch.argmax(e_t, dim=1).to(self.device)
+            dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
+        return dec_loss
+
     def _train_mappo(self, agent, sample, train_comm_head, train_lang):
         policy_input_batch, critic_input_batch, rnn_states_batch, \
             critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
             comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-            envs_train_comm, broadcasts_batch = sample
+            envs_train_comm, broadcasts_batch, parsed_obs_batch = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -145,11 +152,11 @@ class ACC_Trainer:
 
         # Agent forward pass
         act_values, comm_values, env_action_log_probs, act_dist_entropy, \
-        comm_action_log_probs, comm_dist_entropy, critic_obs_encs \
+        comm_action_log_probs, comm_dist_entropy, comm_actions, critic_obs_encs \
             = agent.evaluate_actions(
                 policy_input_batch, critic_input_batch, rnn_states_batch, 
                 critic_rnn_states_batch, env_actions_batch, 
-                comm_actions_batch, masks_batch, train_comm_head)
+                comm_actions_batch, masks_batch)
 
         # Actor loss
         actor_loss = self._compute_policy_loss(
@@ -192,79 +199,87 @@ class ACC_Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(act_value_loss)
 
-        # CLIP loss
         if train_lang:
-            # Sample a mini-batch for CLIP
+            # Sample a mini-batch
             ids = np.random.choice(
                 critic_input_batch.shape[0], 
                 size=self.clip_batch_size, 
                 replace=False)
-
+            # CLIP loss 
             # Encode sentences
             sample_sentences = [broadcasts_batch[i] for i in ids]
             lang_contexts = self.lang_learner.lang_encoder(sample_sentences)
             lang_contexts = lang_contexts.squeeze()
-
             obs_contexts = critic_obs_encs[ids]
-            
             # CLIP loss
             clip_loss, mean_sim = self._compute_clip_loss(
                 obs_contexts, lang_contexts)
 
             log_losses["clip_loss"] = clip_loss.item() / self.clip_batch_size
             log_losses["mean_sim"] = mean_sim
+
+            # Captioning loss
+            sample_parsed_obs = [parsed_obs_batch[i] for i in ids]
+            dec_inputs = comm_actions[ids]
+            # Decode
+            encoded_targets = self.lang_learner.word_encoder.encode_batch(
+                sample_parsed_obs)
+            decoder_outputs, _ = self.lang_learner.decoder(
+                dec_inputs, encoded_targets)
+            # Captioning loss
+            capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
+
+            log_losses["capt_loss"] = capt_loss.item() / self.clip_batch_size
         else:
             clip_loss = torch.zeros_like(act_value_loss)
+            capt_loss = torch.zeros_like(act_value_loss)
             
 
         loss = actor_loss + comm_loss + act_value_loss + comm_value_loss \
-                + clip_loss
+                + clip_loss + capt_loss
         
         # Update
         agent.act_comm_optim.zero_grad()
         agent.critic_optim.zero_grad()
-        self.lang_learner.clip_optim.zero_grad()
+        if train_lang:
+            agent.capt_optim.zero_grad()
+            self.lang_learner.clip_optim.zero_grad()
         loss.backward()
         agent.act_comm_optim.step()
         agent.critic_optim.step()
-        self.lang_learner.clip_optim.step()
+        if train_lang:
+            agent.capt_optim.step()
+            self.lang_learner.clip_optim.step()
 
         return log_losses
 
-    def _compute_capt_loss(self, preds, targets):
-        dec_loss = 0
-        for d_o, e_t in zip(preds, targets):
-            e_t = torch.argmax(e_t, dim=1).to(self.device)
-            dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
-        return dec_loss
+    # def _train_capt(self, agent, sample):
+    #     policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch \
+    #         = sample
 
-    def _train_capt(self, agent, sample):
-        policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch \
-            = sample
+    #     policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
+    #     masks_batch = torch.from_numpy(masks_batch).to(self.device)
+    #     rnn_states_batch = torch.from_numpy(rnn_states_batch).to(self.device)
 
-        policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
-        masks_batch = torch.from_numpy(masks_batch).to(self.device)
-        rnn_states_batch = torch.from_numpy(rnn_states_batch).to(self.device)
+    #     # Pass through acc
+    #     comm_actions = agent.get_comm_actions(
+    #         policy_input_batch, rnn_states_batch, masks_batch)
 
-        # Pass through acc
-        comm_actions = agent.get_comm_actions(
-            policy_input_batch, rnn_states_batch, masks_batch)
+    #     # Decode
+    #     encoded_targets = self.lang_learner.word_encoder.encode_batch(
+    #         parsed_obs_batch)
+    #     decoder_outputs, _ = self.lang_learner.decoder(
+    #         comm_actions, encoded_targets)
 
-        # Decode
-        encoded_targets = self.lang_learner.word_encoder.encode_batch(
-            parsed_obs_batch)
-        decoder_outputs, _ = self.lang_learner.decoder(
-            comm_actions, encoded_targets)
+    #     # Captioning loss
+    #     capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
 
-        # Captioning loss
-        capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
+    #     # Update
+    #     agent.capt_optim.zero_grad()
+    #     capt_loss.backward()
+    #     agent.capt_optim.step()
 
-        # Update
-        agent.capt_optim.zero_grad()
-        capt_loss.backward()
-        agent.capt_optim.step()
-
-        return capt_loss.item() / policy_input_batch.shape[0]
+    #     return capt_loss.item() / policy_input_batch.shape[0]
 
 
     def train(self, 
@@ -294,6 +309,7 @@ class ACC_Trainer:
         if train_lang:
             losses["clip_loss"] = 0.0
             losses["mean_sim"] = 0.0
+            losses["capt_loss"] = 0.0
 
         # Train policy
         num_updates = self.ppo_epoch * self.n_mini_batch
@@ -311,7 +327,8 @@ class ACC_Trainer:
                 else:
                     for a_i in range(len(self.agents)):
                         sample_i = (
-                            *[batch[:, a_i] for batch in sample[:-1]],
+                            *[batch[:, a_i] for batch in sample[:-2]],
+                            [s[a_i] for s in sample[-2]],
                             [s[a_i] for s in sample[-1]])
                             # sample[-1][a_i])
 
@@ -326,21 +343,21 @@ class ACC_Trainer:
                                 num_updates * len(self.agents))
 
         # Train captioning
-        if train_lang:
-            dec_loss = 0.0
-            for i in range(self.capt_n_epochs):
-                sample = self.buffer.sample_capt()
-                if self.share_params:
-                    dec_loss += self._train_capt(self.agents[0], sample)
-                else:
-                    for a_i in range(len(self.agents)):
-                        sample_i = (
-                            *[batch[:, a_i] for batch in sample[:-1]],
-                            sample[-1][a_i])
+        # if train_lang:
+        #     dec_loss = 0.0
+        #     for i in range(self.capt_n_epochs):
+        #         sample = self.buffer.sample_capt()
+        #         if self.share_params:
+        #             dec_loss += self._train_capt(self.agents[0], sample)
+        #         else:
+        #             for a_i in range(len(self.agents)):
+        #                 sample_i = (
+        #                     *[batch[:, a_i] for batch in sample[:-1]],
+        #                     sample[-1][a_i])
 
-                        dec_loss += self._train_capt(self.agents[a_i], sample_i) \
-                                        / len(self.agents)
+        #                 dec_loss += self._train_capt(self.agents[a_i], sample_i) \
+        #                                 / len(self.agents)
 
-            losses["dec_loss"] = dec_loss
+        #     losses["dec_loss"] = dec_loss
 
         return losses

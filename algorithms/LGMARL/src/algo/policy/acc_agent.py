@@ -65,10 +65,10 @@ class ACC_Agent(nn.Module):
         return act_values, comm_values, actions, action_log_probs, comm_actions, \
             comm_action_log_probs, act_rnn_states, critic_rnn_states
 
-    def get_comm_actions(self, obs, act_rnn_states, masks):
-        comm_actions = self.act_comm.get_comm_actions(
-                obs, act_rnn_states, masks)
-        return comm_actions
+    # def get_comm_actions(self, obs, act_rnn_states, masks):
+    #     comm_actions = self.act_comm.get_comm_actions(
+    #             obs, act_rnn_states, masks)
+    #     return comm_actions
 
     def get_values(self, shared_obs, rnn_states_critic, masks):
         """
@@ -88,7 +88,7 @@ class ACC_Agent(nn.Module):
 
     def evaluate_actions(self, 
             obs, shared_obs, rnn_states_actor, rnn_states_critic, 
-            env_actions, comm_actions, masks, eval_comm=True):
+            env_actions, comm_actions, masks):
         """
         Get action logprobs / entropy and value function predictions for actor
         update.
@@ -104,7 +104,6 @@ class ACC_Agent(nn.Module):
             probabilites and entropy to compute.
         :param masks: (torch.Tensor) denotes points at which RNN states should
             be reset.
-        :param eval_comm: (bool) whether to compute comm_actions probs.
 
         :return act_values: (torch.Tensor) action value predictions.
         :return comm_values: (torch.Tensor) communication value predictions.
@@ -116,14 +115,14 @@ class ACC_Agent(nn.Module):
             communication actions.
         :return comm_dist_entropy: (torch.Tensor) communication action 
             distribution entropy for the given inputs.
+
         """
         env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
-            comm_dist_entropy = self.act_comm.evaluate_actions(
-                obs, rnn_states_actor, env_actions, comm_actions, masks, 
-                eval_comm)
+            comm_dist_entropy, comm_actions = self.act_comm.evaluate_actions(
+                obs, rnn_states_actor, env_actions, comm_actions, masks)
 
         act_values, comm_values, _, obs_encs = self.critic(
             shared_obs, rnn_states_critic, masks, get_obs_encs=True)
 
         return act_values, comm_values, env_action_log_probs, env_dist_entropy, \
-                comm_action_log_probs, comm_dist_entropy, obs_encs
+                comm_action_log_probs, comm_dist_entropy, comm_actions, obs_encs

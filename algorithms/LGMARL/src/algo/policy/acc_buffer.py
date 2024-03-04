@@ -309,6 +309,11 @@ class ACC_ReplayBuffer:
                 step_sentences[i] 
                 for step_sentences in self.broadcasts[:-1]
                 for i in ids]
+            # Same for 
+            parsed_obs_batch = [
+                step_sentences[i] 
+                for step_sentences in self.parsed_obs[:-1]
+                for i in ids]
 
             if self.share_params:
                 policy_input_batch = policy_input_batch.reshape(
@@ -351,6 +356,10 @@ class ACC_ReplayBuffer:
                     env_sentences[a_i]
                     for env_sentences in broadcasts_batch
                     for a_i in range(self.n_agents)]
+                parsed_obs_batch = [
+                    env_sentences[a_i]
+                    for env_sentences in parsed_obs_batch
+                    for a_i in range(self.n_agents)]
 
             else:
                 policy_input_batch = policy_input_batch.reshape(
@@ -388,4 +397,4 @@ class ACC_ReplayBuffer:
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
                 act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
                 comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-                envs_train_comm_batch, broadcasts_batch
+                envs_train_comm_batch, broadcasts_batch, parsed_obs_batch
