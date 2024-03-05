@@ -6,6 +6,7 @@ from .policy.acc_mappo import ACC_MAPPO
 from .policy.acc_buffer import ACC_ReplayBuffer
 from .policy.acc_trainer import ACC_Trainer
 from .policy.utils import get_shape_from_obs_space, torch2numpy, update_linear_schedule
+from src.utils.decay import ParameterDecay
 
 
 class LanguageGroundedMARL:
@@ -28,9 +29,15 @@ class LanguageGroundedMARL:
 
         # Parameters for annealing learning rates
         self.capt_lr = args.lang_capt_lr
-        self.capt_lr_anneal_to = args.lang_capt_lr_anneal_to
-        self.anneal_capt_lr = self.capt_lr_anneal_to < self.capt_lr \
+        self.anneal_capt_lr = args.lang_capt_lr_anneal_to < self.capt_lr \
             and self.comm_type in ["language", "perfect_comm"]
+        if self.anneal_capt_lr:
+            self.capt_lr_decay = ParameterDecay(
+                self.capt_lr, 
+                args.lang_capt_lr_anneal_to, 
+                args.n_steps, 
+                "exp", 
+                10)        
 
         if self.comm_type == "no_comm":
             policy_input_dim = get_shape_from_obs_space(obs_space[0])
@@ -330,8 +337,7 @@ class LanguageGroundedMARL:
 
     def _anneal_lr(self, step):
         if self.anneal_capt_lr:
-            new_lr = update_linear_schedule(
-                step, self.n_steps, self.capt_lr, self.capt_lr_anneal_to)
+            new_lr = self.capt_lr_decay.get_explo_rate(step)
             self.acc.update_lrs(new_lr)
 
     @torch.no_grad()
