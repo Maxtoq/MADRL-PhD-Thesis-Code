@@ -238,13 +238,21 @@ class ACC_Trainer:
         loss = actor_loss + comm_loss + act_value_loss + comm_value_loss \
                 + clip_loss + capt_loss
         
-        # Update
+        # Compute gradients
         agent.act_comm_optim.zero_grad()
         agent.critic_optim.zero_grad()
         if train_lang:
             agent.capt_optim.zero_grad()
             self.lang_learner.clip_optim.zero_grad()
         loss.backward()
+
+        # Clip gradients
+        # actcomm_grad_norm = nn.utils.clip_grad_norm_(
+        #     agent.act_comm.parameters(), self.max_grad_norm)
+        # critic_grad_norm = nn.utils.clip_grad_norm_(
+        #     agent.critic.parameters(), self.max_grad_norm)
+
+        # Update
         agent.act_comm_optim.step()
         agent.critic_optim.step()
         if train_lang:
