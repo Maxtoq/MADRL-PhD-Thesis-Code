@@ -224,6 +224,7 @@ def get_config():
     parser.add_argument("--magym_env_size", type=int, default=7)
     parser.add_argument("--magym_n_preys", type=int, default=2)
     parser.add_argument("--magym_obs_range", type=int, default=5)
+    parser.add_argument("--magym_no_purple", default=False, action="store_true")
 
     # Fine-tune parameters
     # parser.add_argument("--FT_pretrained_model_path", type=str, default=None)
