@@ -64,7 +64,7 @@ def run():
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
     model.init_episode(obs, parsed_obs)
-    n_steps_per_update = cfg.n_parallel_envs * cfg.episode_length
+    n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
         
@@ -72,7 +72,7 @@ def run():
         eps = comm_eps.get_explo_rate(s_i)
         gen_comm = np.random.random(cfg.n_parallel_envs) > eps
 
-        for ep_s_i in range(cfg.episode_length):
+        for ep_s_i in range(cfg.rollout_length):
             # Perform step
             # Get action
             actions, broadcasts, agent_messages, comm_rewards \

@@ -247,10 +247,10 @@ class ACC_Trainer:
         loss.backward()
 
         # Clip gradients
-        # actcomm_grad_norm = nn.utils.clip_grad_norm_(
-        #     agent.act_comm.parameters(), self.max_grad_norm)
-        # critic_grad_norm = nn.utils.clip_grad_norm_(
-        #     agent.critic.parameters(), self.max_grad_norm)
+        actcomm_grad_norm = nn.utils.clip_grad_norm_(
+            agent.act_comm.parameters(), self.max_grad_norm)
+        critic_grad_norm = nn.utils.clip_grad_norm_(
+            agent.critic.parameters(), self.max_grad_norm)
 
         # Update
         agent.act_comm_optim.step()

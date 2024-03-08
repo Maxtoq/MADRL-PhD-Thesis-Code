@@ -19,9 +19,8 @@ class ACC_ReplayBuffer:
         self.critic_input_dim = critic_input_dim
         self.env_act_dim = env_act_dim
         self.comm_act_dim = comm_act_dim
-        # self.obs_dim = obs_dim
 
-        self.episode_length = args.episode_length
+        self.rollout_length = args.rollout_length
         self.n_parallel_envs = args.n_parallel_envs
         self.hidden_size = args.hidden_dim
         self.recurrent_N = args.policy_recurrent_N
@@ -34,20 +33,20 @@ class ACC_ReplayBuffer:
         self.capt_batch_size = args.lang_capt_batch_size
 
         self.policy_input = np.zeros(
-            (self.episode_length + 1, 
+            (self.rollout_length + 1, 
              self.n_parallel_envs, 
              self.n_agents, 
              self.policy_input_dim),
             dtype=np.float32)
         self.critic_input = np.zeros(
-            (self.episode_length + 1, 
+            (self.rollout_length + 1, 
              self.n_parallel_envs, 
              self.n_agents,
              self.critic_input_dim),
             dtype=np.float32)
 
         self.rnn_states = np.zeros(
-            (self.episode_length + 1, 
+            (self.rollout_length + 1, 
              self.n_parallel_envs, 
              self.n_agents,
              self.recurrent_N, 
@@ -56,60 +55,60 @@ class ACC_ReplayBuffer:
         self.critic_rnn_states = np.zeros_like(self.rnn_states)
 
         self.act_value_preds = np.zeros(
-            (self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1),
+            (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1),
             dtype=np.float32)
         self.act_returns = np.zeros(
-            (self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1),
+            (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1),
             dtype=np.float32)
 
         self.comm_value_preds = np.zeros(
-            (self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1),
+            (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1),
             dtype=np.float32)
         self.comm_returns = np.zeros(
-            (self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1),
+            (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1),
             dtype=np.float32)
 
         self.env_actions = np.zeros(
-            (self.episode_length, 
+            (self.rollout_length, 
              self.n_parallel_envs, 
              self.n_agents, 
              self.env_act_dim),
             dtype=np.float32)
         self.env_action_log_probs = np.zeros(
-            (self.episode_length, 
+            (self.rollout_length, 
              self.n_parallel_envs, 
              self.n_agents, 
              self.env_act_dim),
             dtype=np.float32)
 
         self.comm_actions = np.zeros(
-            (self.episode_length, 
+            (self.rollout_length, 
              self.n_parallel_envs, 
              self.n_agents, 
              self.comm_act_dim),
             dtype=np.float32)
         self.comm_action_log_probs = np.zeros(
-            (self.episode_length, 
+            (self.rollout_length, 
              self.n_parallel_envs, 
              self.n_agents, 
              1),
             dtype=np.float32)
 
         self.act_rewards = np.zeros(
-            (self.episode_length, self.n_parallel_envs, self.n_agents, 1), 
+            (self.rollout_length, self.n_parallel_envs, self.n_agents, 1), 
             dtype=np.float32)
 
         self.comm_rewards = np.zeros(
-            (self.episode_length, self.n_parallel_envs, self.n_agents, 1), 
+            (self.rollout_length, self.n_parallel_envs, self.n_agents, 1), 
             dtype=np.float32)
         
         self.masks = np.ones(
-            (self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), 
+            (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), 
             dtype=np.float32)
 
         # Language data
         # self.obs = np.zeros(
-        #     (self.episode_length + 1, 
+        #     (self.rollout_length + 1, 
         #      self.n_parallel_envs, 
         #      self.n_agents, 
         #      self.obs_dim),
@@ -120,22 +119,22 @@ class ACC_ReplayBuffer:
         self.step = 0
     
     def reset_episode(self):
-        self.policy_input = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.policy_input_dim), dtype=np.float32)
-        self.critic_input = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.critic_input_dim), dtype=np.float32)
-        self.rnn_states = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.recurrent_N, self.hidden_size), dtype=np.float32)
+        self.policy_input = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.policy_input_dim), dtype=np.float32)
+        self.critic_input = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.critic_input_dim), dtype=np.float32)
+        self.rnn_states = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.recurrent_N, self.hidden_size), dtype=np.float32)
         self.critic_rnn_states = np.zeros_like(self.rnn_states)
-        self.act_value_preds = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.act_returns = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.comm_value_preds = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.comm_returns = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.env_actions = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
-        self.env_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
-        self.comm_actions = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
-        self.comm_action_log_probs = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.act_rewards = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32) 
-        self.comm_rewards = np.zeros((self.episode_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)    
-        self.masks = np.ones((self.episode_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        # self.obs = np.zeros((self.episode_length + 1, self.n_parallel_envs, self.n_agents, self.obs_dim), dtype=np.float32)
+        self.act_value_preds = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.act_returns = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.comm_value_preds = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.comm_returns = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.env_actions = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
+        self.env_action_log_probs = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, self.env_act_dim), dtype=np.float32)
+        self.comm_actions = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
+        self.comm_action_log_probs = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.act_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32) 
+        self.comm_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)    
+        self.masks = np.ones((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        # self.obs = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.obs_dim), dtype=np.float32)
         self.parsed_obs = []
         self.broadcasts = []
         self.step = 0
@@ -232,9 +231,9 @@ class ACC_ReplayBuffer:
 
         if self.share_params:
             policy_input_batch = policy_input_batch.reshape(
-                (self.episode_length + 1) * n_sample_envs * self.n_agents, -1)
+                (self.rollout_length + 1) * n_sample_envs * self.n_agents, -1)
             masks_batch = masks_batch.reshape(
-                (self.episode_length + 1) * n_sample_envs * self.n_agents, -1)
+                (self.rollout_length + 1) * n_sample_envs * self.n_agents, -1)
             rnn_states_batch = rnn_states_batch.reshape(
                 n_sample_envs * self.n_agents, self.recurrent_N, -1)
             parsed_obs_batch = [
@@ -244,9 +243,9 @@ class ACC_ReplayBuffer:
                 for a_i in range(self.n_agents)]
         else:
             policy_input_batch = policy_input_batch.reshape(
-                (self.episode_length + 1) * n_sample_envs, self.n_agents, -1)
+                (self.rollout_length + 1) * n_sample_envs, self.n_agents, -1)
             masks_batch = masks_batch.reshape(
-                (self.episode_length + 1) * n_sample_envs, self.n_agents, -1)
+                (self.rollout_length + 1) * n_sample_envs, self.n_agents, -1)
             
             parsed_obs_batch = [
                 [step_sentences[e_i][a_i]
@@ -266,7 +265,7 @@ class ACC_ReplayBuffer:
         # Shape the envs_train_comm to be the same shape as others
         if envs_train_comm is not None:
             envs_train_comm = envs_train_comm[:, None, None].repeat(
-                self.episode_length, 1).transpose(1, 0, 2).repeat(
+                self.rollout_length, 1).transpose(1, 0, 2).repeat(
                     self.n_agents, -1)
         else:
             envs_train_comm = np.ones_like(self.comm_rewards)
@@ -317,31 +316,31 @@ class ACC_ReplayBuffer:
 
             if self.share_params:
                 policy_input_batch = policy_input_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 critic_input_batch = critic_input_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 env_actions_batch = env_actions_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 comm_actions_batch = comm_actions_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 env_action_log_probs_batch = env_action_log_probs_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 act_value_preds_batch = act_value_preds_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 act_returns_batch = act_returns_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 comm_value_preds_batch = comm_value_preds_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 comm_returns_batch = comm_returns_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 masks_batch = masks_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 act_advt_batch = act_advt_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 comm_advt_batch = comm_advt_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents, -1)
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
 
                 rnn_states_batch = rnn_states_batch.reshape(
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
@@ -349,7 +348,7 @@ class ACC_ReplayBuffer:
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
 
                 envs_train_comm_batch = envs_train_comm_batch.reshape(
-                    self.episode_length * mini_batch_size * self.n_agents)
+                    self.rollout_length * mini_batch_size * self.n_agents)
 
                 # Flatten all broadcasts
                 broadcasts_batch = [
@@ -363,34 +362,34 @@ class ACC_ReplayBuffer:
 
             else:
                 policy_input_batch = policy_input_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 critic_input_batch = critic_input_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 env_actions_batch = env_actions_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 comm_actions_batch = comm_actions_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 env_action_log_probs_batch = env_action_log_probs_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 act_value_preds_batch = act_value_preds_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 act_returns_batch = act_returns_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 comm_value_preds_batch = comm_value_preds_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 comm_returns_batch = comm_returns_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 masks_batch = masks_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 act_advt_batch = act_advt_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 comm_advt_batch = comm_advt_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents, -1)
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
 
                 envs_train_comm_batch = envs_train_comm_batch.reshape(
-                    self.episode_length * mini_batch_size, self.n_agents)
+                    self.rollout_length * mini_batch_size, self.n_agents)
 
             yield policy_input_batch, critic_input_batch, rnn_states_batch, \
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \

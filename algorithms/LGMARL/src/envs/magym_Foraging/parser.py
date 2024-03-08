@@ -11,7 +11,7 @@ class Parser():
 
     # vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, env_size, obs_range, max_gems_in_message=3):
+    def __init__(self, env_size, obs_range, max_gems_in_message=2):
         self.env_size = env_size
         self.obs_range = obs_range
 

@@ -1,17 +1,18 @@
 #!/bin/sh
-n_run=4
-experiment_name="ACC_9x9_NoP_perf_CRITICOBSENC"
+n_run=5
+experiment_name="ACC_9x9_no"
 n_parallel_envs=250
-n_steps=20000000
+n_steps=10000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 lr=0.0005 # default 0.0005
+rollout_length=50 # default 100
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_Foraging"
 episode_length=100
-comm_type="perfect_comm" # default language
+comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
 comm_token_penalty=0.001
 context_dim=16 # default 16
@@ -38,6 +39,7 @@ do
     --policy_recurrent_N ${policy_recurrent_N}\
     --ppo_epoch ${ppo_epoch}\
     --lr ${lr}\
+    --rollout_length ${rollout_length}\
     --n_mini_batch ${n_mini_batch}\
     --entropy_coef ${entropy_coef}\
     --env_name ${env_name}\
