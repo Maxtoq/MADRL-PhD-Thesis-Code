@@ -31,6 +31,14 @@ def _get_env(cfg):
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             no_purple=cfg.magym_no_purple)
+    elif cfg.env_name == "magym_Foraging_fixedpos":
+        from .magym_Foraging_fixedpos.env import Env
+        env = Env(
+            n_agents=cfg.magym_n_agents, 
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+            max_steps=cfg.episode_length,
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+            no_purple=cfg.magym_no_purple)
     return env
 
 def _get_parser(cfg):
@@ -42,6 +50,9 @@ def _get_parser(cfg):
         return Lumberjack_Parser(cfg.magym_env_size)
     elif cfg.env_name == "magym_Foraging":
         from .magym_Foraging.parser import Parser
+        return Parser(cfg.magym_env_size, cfg.magym_obs_range)
+    elif cfg.env_name == "magym_Foraging_fixedpos":
+        from .magym_Foraging_fixedpos.parser import Parser
         return Parser(cfg.magym_env_size, cfg.magym_obs_range)
     else:
         print("WARNING: No Parser for", cfg.env_name)
