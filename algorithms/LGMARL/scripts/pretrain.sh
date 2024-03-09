@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=2
-experiment_name="ACC_9x9_perf"
+n_run=5
+experiment_name="ACC_10o3_no"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -12,7 +12,7 @@ n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_Foraging_fixedpos"
 episode_length=100
-comm_type="perfect_comm" # default language
+comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
 comm_eps_smooth=1.0 # default 1.0
 comm_token_penalty=0.001
@@ -24,6 +24,7 @@ lang_capt_lr_anneal_to=0.00001 # default 0.0001
 lang_capt_n_epochs=15 # default 2
 lang_capt_batch_size=10 # default 100
 magym_env_size=10
+magym_obs_range=3 #default 5
 cuda_device="cuda:0"
 
 source venv3.8/bin/activate
@@ -57,8 +58,8 @@ do
     --lang_capt_lr_anneal_to ${lang_capt_lr_anneal_to}\
     --lang_capt_n_epochs ${lang_capt_n_epochs}\
     --lang_capt_batch_size ${lang_capt_batch_size}\
-    --magym_env_size ${magym_env_size}
-    --magym_no_purple"
+    --magym_env_size ${magym_env_size}\
+    --magym_obs_range ${magym_obs_range}"
     # --share_params\
     # --no_comm_head_learns_rl"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"

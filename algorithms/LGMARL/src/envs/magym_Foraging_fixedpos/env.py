@@ -238,6 +238,7 @@ class Env(gym.Env):
                     if predator_neighbour_count >= self.gem_colors[gem_i]:
                         _reward = GEM_REWARDS[self.gem_colors[gem_i]]
                         self._gem_alive[gem_i] = False
+                        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['empty']
                     else:
                         _reward = self._penalty
 
@@ -312,8 +313,8 @@ GEM_COLORS = {
     3: 'purple'
 }
 GEM_REWARDS = {
-    1: 1,
-    2: 5,
+    1: 2,
+    2: 8,
     3: 20
 }
 
