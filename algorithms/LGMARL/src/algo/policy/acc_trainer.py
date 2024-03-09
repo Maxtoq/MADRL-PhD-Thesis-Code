@@ -199,12 +199,15 @@ class ACC_Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(act_value_loss)
 
-        if train_lang:
+        perfect_envs_ids = np.where(envs_train_comm == False)[0]
+        if train_lang and len(perfect_envs_ids) > 1:
             # Sample a mini-batch
+            batch_size = min(len(perfect_envs_ids), self.clip_batch_size)
             ids = np.random.choice(
-                critic_input_batch.shape[0], 
-                size=self.clip_batch_size, 
+                perfect_envs_ids, 
+                size=batch_size, 
                 replace=False)
+
             # CLIP loss 
             # Encode sentences
             sample_sentences = [broadcasts_batch[i] for i in ids]
@@ -260,34 +263,6 @@ class ACC_Trainer:
             self.lang_learner.clip_optim.step()
 
         return log_losses
-
-    # def _train_capt(self, agent, sample):
-    #     policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch \
-    #         = sample
-
-    #     policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
-    #     masks_batch = torch.from_numpy(masks_batch).to(self.device)
-    #     rnn_states_batch = torch.from_numpy(rnn_states_batch).to(self.device)
-
-    #     # Pass through acc
-    #     comm_actions = agent.get_comm_actions(
-    #         policy_input_batch, rnn_states_batch, masks_batch)
-
-    #     # Decode
-    #     encoded_targets = self.lang_learner.word_encoder.encode_batch(
-    #         parsed_obs_batch)
-    #     decoder_outputs, _ = self.lang_learner.decoder(
-    #         comm_actions, encoded_targets)
-
-    #     # Captioning loss
-    #     capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
-
-    #     # Update
-    #     agent.capt_optim.zero_grad()
-    #     capt_loss.backward()
-    #     agent.capt_optim.step()
-
-    #     return capt_loss.item() / policy_input_batch.shape[0]
 
 
     def train(self, 
@@ -349,23 +324,5 @@ class ACC_Trainer:
                         for key in loss:
                             losses[key] += loss[key] / (
                                 num_updates * len(self.agents))
-
-        # Train captioning
-        # if train_lang:
-        #     dec_loss = 0.0
-        #     for i in range(self.capt_n_epochs):
-        #         sample = self.buffer.sample_capt()
-        #         if self.share_params:
-        #             dec_loss += self._train_capt(self.agents[0], sample)
-        #         else:
-        #             for a_i in range(len(self.agents)):
-        #                 sample_i = (
-        #                     *[batch[:, a_i] for batch in sample[:-1]],
-        #                     sample[-1][a_i])
-
-        #                 dec_loss += self._train_capt(self.agents[a_i], sample_i) \
-        #                                 / len(self.agents)
-
-        #     losses["dec_loss"] = dec_loss
 
         return losses

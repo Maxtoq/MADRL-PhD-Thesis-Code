@@ -108,6 +108,7 @@ def get_config():
     parser.add_argument("--comm_ec_strategy", default="sum", 
                         choices=["sum", "mean", "random", "nn"],
                         help="When doing emergent continuous communication, strategy for transforming incoming messages into the social context.")
+    parser.add_argument("--comm_eps_smooth", type=float, default=1.0)
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
     parser.add_argument("--comm_train_topk", type=int, default=1, 
