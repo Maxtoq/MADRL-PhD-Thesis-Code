@@ -20,7 +20,7 @@ class Env(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=6,
+    def __init__(self, grid_shape=(10, 10), n_agents=4, n_spice=4,
                  penalty=-0.0, step_cost=-1.0, max_steps=100,
                  agent_view_mask=(5, 5), no_purple=False):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
@@ -30,7 +30,6 @@ class Env(gym.Env):
         assert 0 < agent_view_mask[0] <= grid_shape[0], 'agent view mask has to be within (0,{}]'.format(grid_shape[0])
         assert 0 < agent_view_mask[1] <= grid_shape[1], 'agent view mask has to be within (0,{}]'.format(grid_shape[1])
         assert n_agents >= 3, "n_agents must be > 2."
-        assert n_gems <= 8, "n_gems must be less than 9."
 
         self._grid_shape = grid_shape
         self.n_agents = n_agents
@@ -50,21 +49,12 @@ class Env(gym.Env):
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
 
-        # Init initial gem set
+        # Init initial spices 
         self.gem_pos = {_: None for _ in range(self.n_gems)}
         self.gem_colors = {0: 2 if no_purple else 3, 1: 2}
         for g_i in range(len(self.gem_colors), self.n_gems):
             self.gem_colors[g_i] = 1
         self._gem_alive = None
-        self._gem_positions = np.array([
-            [1, 1],
-            [1, grid_shape[1] - 2],
-            [grid_shape[0] - 2, 1],
-            [grid_shape[0] - 2, grid_shape[1] - 2],
-            [1, grid_shape[1] // 2 - 1],
-            [grid_shape[0] - 2, grid_shape[1] // 2],
-            [grid_shape[0] // 2 , 1],
-            [grid_shape[0] // 2 - 1, grid_shape[1] - 2]])
 
         self._base_grid = self.__create_grid()  # with no agents
         self._full_obs = self.__create_grid()
@@ -109,12 +99,22 @@ class Env(gym.Env):
         self._full_obs = self.__create_grid()
 
         for agent_i in range(self.n_agents):
+            # while True:
+            #     pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+            #            self.np_random.randint(0, self._grid_shape[1] - 1)]
+            #     if self._is_cell_vacant(pos):
+            #         self.agent_pos[agent_i] = pos
+                    # break
             self.agent_pos[agent_i] = self._agent_init_pos[agent_i]
             self.__update_agent_view(agent_i)
 
-        gem_pos_ids = np.random.choice(8, size=self.n_gems, replace=False)
         for gem_i in range(self.n_gems):
-            self.gem_pos[gem_i] = self._gem_positions[gem_pos_ids[gem_i]]
+            while True:
+                pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+                       self.np_random.randint(0, self._grid_shape[1] - 1)]
+                if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0) and (pos not in self._gem_forbid_pos):
+                    self.gem_pos[gem_i] = pos
+                    break
             self.__update_gem_view(gem_i)
 
         self.__draw_base_img()

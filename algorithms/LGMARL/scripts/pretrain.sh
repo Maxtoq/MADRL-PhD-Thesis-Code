@@ -1,19 +1,20 @@
 #!/bin/sh
-n_run=5
-experiment_name="ACC_9x9_no"
+n_run=2
+experiment_name="ACC_9x9_perf"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 lr=0.0005 # default 0.0005
-rollout_length=50 # default 100
+rollout_length=100 # default 100
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_Foraging"
+env_name="magym_Foraging_fixedpos"
 episode_length=100
-comm_type="no_comm" # default language
+comm_type="perfect_comm" # default language
 comm_ec_strategy="mean" # default sum
+comm_eps_smooth=1.0 # default 1.0
 comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
@@ -22,8 +23,8 @@ lang_capt_lr=0.001 # default 0.007
 lang_capt_lr_anneal_to=0.00001 # default 0.0001
 lang_capt_n_epochs=15 # default 2
 lang_capt_batch_size=10 # default 100
-magym_env_size=9
-cuda_device="cuda:3"
+magym_env_size=10
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
@@ -47,6 +48,7 @@ do
     --cuda_device ${cuda_device}\
     --comm_type ${comm_type}\
     --comm_ec_strategy ${comm_ec_strategy}\
+    --comm_eps_smooth ${comm_eps_smooth}\
     --comm_token_penalty ${comm_token_penalty}\
     --context_dim ${context_dim}\
     --lang_clip_lr ${lang_clip_lr}\
