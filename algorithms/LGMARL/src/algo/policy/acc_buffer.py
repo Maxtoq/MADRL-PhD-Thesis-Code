@@ -30,8 +30,6 @@ class ACC_ReplayBuffer:
         self.data_chunk_length = args.data_chunk_length
         self.share_params = args.share_params
 
-        self.capt_batch_size = args.lang_capt_batch_size
-
         self.policy_input = np.zeros(
             (self.rollout_length + 1, 
              self.n_parallel_envs, 
@@ -218,42 +216,42 @@ class ACC_ReplayBuffer:
             self.comm_returns[step] = comm_gae + comm_value_normalizer.denormalize(
                 self.comm_value_preds[step])
 
-    def sample_capt(self):
-        """
-        Returns all buffered data for captioning training.
-        """
-        n_sample_envs = min(self.n_parallel_envs, self.capt_batch_size)
-        ids = np.random.choice(
-            self.n_parallel_envs, n_sample_envs, replace=False)
-        policy_input_batch = self.policy_input[:, ids]
-        masks_batch = self.masks[:, ids]
-        rnn_states_batch = self.rnn_states[0, ids]
+    # def sample_capt(self):
+    #     """
+    #     Returns all buffered data for captioning training.
+    #     """
+    #     n_sample_envs = min(self.n_parallel_envs, self.capt_batch_size)
+    #     ids = np.random.choice(
+    #         self.n_parallel_envs, n_sample_envs, replace=False)
+    #     policy_input_batch = self.policy_input[:, ids]
+    #     masks_batch = self.masks[:, ids]
+    #     rnn_states_batch = self.rnn_states[0, ids]
 
-        if self.share_params:
-            policy_input_batch = policy_input_batch.reshape(
-                (self.rollout_length + 1) * n_sample_envs * self.n_agents, -1)
-            masks_batch = masks_batch.reshape(
-                (self.rollout_length + 1) * n_sample_envs * self.n_agents, -1)
-            rnn_states_batch = rnn_states_batch.reshape(
-                n_sample_envs * self.n_agents, self.recurrent_N, -1)
-            parsed_obs_batch = [
-                step_sentences[e_i][a_i]
-                for step_sentences in self.parsed_obs
-                for e_i in ids
-                for a_i in range(self.n_agents)]
-        else:
-            policy_input_batch = policy_input_batch.reshape(
-                (self.rollout_length + 1) * n_sample_envs, self.n_agents, -1)
-            masks_batch = masks_batch.reshape(
-                (self.rollout_length + 1) * n_sample_envs, self.n_agents, -1)
+    #     if self.share_params:
+    #         policy_input_batch = policy_input_batch.reshape(
+    #             (self.rollout_length + 1) * n_sample_envs * self.n_agents, -1)
+    #         masks_batch = masks_batch.reshape(
+    #             (self.rollout_length + 1) * n_sample_envs * self.n_agents, -1)
+    #         rnn_states_batch = rnn_states_batch.reshape(
+    #             n_sample_envs * self.n_agents, self.recurrent_N, -1)
+    #         parsed_obs_batch = [
+    #             step_sentences[e_i][a_i]
+    #             for step_sentences in self.parsed_obs
+    #             for e_i in ids
+    #             for a_i in range(self.n_agents)]
+    #     else:
+    #         policy_input_batch = policy_input_batch.reshape(
+    #             (self.rollout_length + 1) * n_sample_envs, self.n_agents, -1)
+    #         masks_batch = masks_batch.reshape(
+    #             (self.rollout_length + 1) * n_sample_envs, self.n_agents, -1)
             
-            parsed_obs_batch = [
-                [step_sentences[e_i][a_i]
-                 for step_sentences in self.parsed_obs
-                 for e_i in ids]
-                for a_i in range(self.n_agents)]
+    #         parsed_obs_batch = [
+    #             [step_sentences[e_i][a_i]
+    #              for step_sentences in self.parsed_obs
+    #              for e_i in ids]
+    #             for a_i in range(self.n_agents)]
 
-        return policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch     
+    #     return policy_input_batch, masks_batch, rnn_states_batch, parsed_obs_batch     
 
     def recurrent_policy_generator(self, 
             act_advt, comm_advt, envs_train_comm=None):

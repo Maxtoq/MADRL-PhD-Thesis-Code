@@ -21,10 +21,8 @@ lang_clip_lr=0.0009 # default 0.007
 lang_clip_batch_size=256 # default 256
 lang_capt_loss_weight=0.0001 # default 0.0001
 lang_capt_loss_weight_anneal=0.000001 # default 0.0001
-lang_capt_n_epochs=15 # default 2
-lang_capt_batch_size=10 # default 100
 magym_env_size=10
-magym_obs_range=5 #default 5
+magym_obs_range=5 # default 5
 cuda_device="cuda:0"
 
 source venv3.8/bin/activate
@@ -56,8 +54,6 @@ do
     --lang_clip_batch_size ${lang_clip_batch_size}\
     --lang_capt_loss_weight ${lang_capt_loss_weight}\
     --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}\
-    --lang_capt_n_epochs ${lang_capt_n_epochs}\
-    --lang_capt_batch_size ${lang_capt_batch_size}\
     --magym_env_size ${magym_env_size}\
     --magym_obs_range ${magym_obs_range}"
     # --share_params\

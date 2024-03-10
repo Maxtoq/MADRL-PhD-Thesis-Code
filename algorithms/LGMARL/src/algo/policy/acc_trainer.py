@@ -27,7 +27,6 @@ class ACC_Trainer:
 
         # Language params
         self.clip_batch_size = args.lang_clip_batch_size
-        self.capt_n_epochs = args.lang_capt_n_epochs
         self.temp = args.lang_temp
         self.capt_loss_weight = args.lang_capt_loss_weight
 
