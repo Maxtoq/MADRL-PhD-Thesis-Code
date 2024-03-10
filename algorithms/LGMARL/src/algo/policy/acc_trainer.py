@@ -29,6 +29,7 @@ class ACC_Trainer:
         self.clip_batch_size = args.lang_clip_batch_size
         self.capt_n_epochs = args.lang_capt_n_epochs
         self.temp = args.lang_temp
+        self.capt_loss_weight = args.lang_capt_loss_weight
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()
@@ -237,15 +238,14 @@ class ACC_Trainer:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
             
-
         loss = actor_loss + comm_loss + act_value_loss + comm_value_loss \
-                + clip_loss + capt_loss
+                + clip_loss + self.capt_loss_weight * capt_loss
         
         # Compute gradients
         agent.act_comm_optim.zero_grad()
         agent.critic_optim.zero_grad()
         if train_lang:
-            agent.capt_optim.zero_grad()
+            # agent.capt_optim.zero_grad()
             self.lang_learner.clip_optim.zero_grad()
         loss.backward()
 
@@ -259,7 +259,7 @@ class ACC_Trainer:
         agent.act_comm_optim.step()
         agent.critic_optim.step()
         if train_lang:
-            agent.capt_optim.step()
+            # agent.capt_optim.step()
             self.lang_learner.clip_optim.step()
 
         return log_losses

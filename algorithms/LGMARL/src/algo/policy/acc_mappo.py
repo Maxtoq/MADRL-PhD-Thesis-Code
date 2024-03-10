@@ -48,9 +48,10 @@ class ACC_MAPPO:
             a.critic.train()
             a.critic.to(self.train_device)
 
-    def update_lrs(self, new_capt_lr):
-        for agent in self.agents:
-            update_lr(agent.capt_optim, new_capt_lr)
+    # def update_lrs(self, new_capt_lr):
+    #     for agent in self.agents:
+    #         break
+    #         update_lr(agent.capt_optim, new_capt_lr)
 
     @torch.no_grad()
     def get_actions(self, obs, shared_obs, rnn_states, critic_rnn_states, masks):

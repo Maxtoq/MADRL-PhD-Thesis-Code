@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=5
-experiment_name="ACC_10o3_no"
+experiment_name="ACC_10o5_no"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -10,7 +10,7 @@ lr=0.0005 # default 0.0005
 rollout_length=100 # default 100
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_Foraging_fixedpos"
+env_name="magym_Foraging"
 episode_length=100
 comm_type="no_comm" # default language
 comm_ec_strategy="mean" # default sum
@@ -19,12 +19,12 @@ comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_clip_lr=0.0009 # default 0.007
 lang_clip_batch_size=256 # default 256
-lang_capt_lr=0.001 # default 0.007
-lang_capt_lr_anneal_to=0.00001 # default 0.0001
+lang_capt_loss_weight=0.0001 # default 0.0001
+lang_capt_loss_weight_anneal=0.000001 # default 0.0001
 lang_capt_n_epochs=15 # default 2
 lang_capt_batch_size=10 # default 100
 magym_env_size=10
-magym_obs_range=3 #default 5
+magym_obs_range=5 #default 5
 cuda_device="cuda:0"
 
 source venv3.8/bin/activate
@@ -54,8 +54,8 @@ do
     --context_dim ${context_dim}\
     --lang_clip_lr ${lang_clip_lr}\
     --lang_clip_batch_size ${lang_clip_batch_size}\
-    --lang_capt_lr ${lang_capt_lr}\
-    --lang_capt_lr_anneal_to ${lang_capt_lr_anneal_to}\
+    --lang_capt_loss_weight ${lang_capt_loss_weight}\
+    --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}\
     --lang_capt_n_epochs ${lang_capt_n_epochs}\
     --lang_capt_batch_size ${lang_capt_batch_size}\
     --magym_env_size ${magym_env_size}\

@@ -28,13 +28,14 @@ class LanguageGroundedMARL:
         self.device = device
 
         # Parameters for annealing learning rates
-        self.capt_lr = args.lang_capt_lr
-        self.anneal_capt_lr = args.lang_capt_lr_anneal_to < self.capt_lr \
+        # self.capt_lr = args.lang_capt_lr
+        self.anneal_capt_weight = \
+            args.lang_capt_loss_weight_anneal < args.lang_capt_loss_weight \
             and self.comm_type in ["language", "perfect_comm"]
-        if self.anneal_capt_lr:
-            self.capt_lr_decay = ParameterDecay(
-                self.capt_lr, 
-                args.lang_capt_lr_anneal_to, 
+        if self.anneal_capt_weight:
+            self.capt_weight_decay = ParameterDecay(
+                args.lang_capt_loss_weight, 
+                args.lang_capt_loss_weight_anneal, 
                 args.n_steps, 
                 "exp", 
                 10)        
@@ -335,10 +336,9 @@ class LanguageGroundedMARL:
 
         return self.actions, broadcasts, messages_by_env, comm_rewards
 
-    def _anneal_lr(self, step):
-        if self.anneal_capt_lr:
-            new_lr = self.capt_lr_decay.get_explo_rate(step)
-            self.acc.update_lrs(new_lr)
+    def _anneal_capt_weight(self, step):
+        if self.anneal_capt_weight:
+            self.trainer.capt_loss_weight = self.capt_weight_decay.get_explo_rate(step)
 
     @torch.no_grad()
     def _compute_returns(self):
@@ -366,7 +366,7 @@ class LanguageGroundedMARL:
             train_lang=True):
         self.prep_training()
 
-        self._anneal_lr(step)
+        self._anneal_capt_weight(step)
 
         warmup = step < self.n_warmup_steps
 

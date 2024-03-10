@@ -20,7 +20,7 @@ class Env(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=6,
+    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=10,
                  penalty=-0.0, step_cost=-1.0, max_steps=100,
                  agent_view_mask=(5, 5), no_purple=False):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
@@ -54,9 +54,9 @@ class Env(gym.Env):
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
 
-        # Init initial gem set
+        # Init gem set
         self.gem_pos = {_: None for _ in range(self.n_gems)}
-        self.gem_colors = {0: 2 if no_purple else 3, 1: 2}
+        self.gem_colors = {0: 2 if no_purple else 3, 1: 2, 2: 2}
         for g_i in range(len(self.gem_colors), self.n_gems):
             self.gem_colors[g_i] = 1
         self._gem_alive = None
@@ -243,6 +243,7 @@ class Env(gym.Env):
                     if predator_neighbour_count >= self.gem_colors[gem_i]:
                         _reward = GEM_REWARDS[self.gem_colors[gem_i]]
                         self._gem_alive[gem_i] = False
+                        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['empty']
                     else:
                         _reward = self._penalty
 
