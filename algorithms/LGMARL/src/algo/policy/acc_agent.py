@@ -8,7 +8,7 @@ from .utils import update_linear_schedule, update_lr
 
 class ACC_Agent(nn.Module):
 
-    def __init__(self, args, obs_dim, shared_obs_dim, act_dim, lang_learner):
+    def __init__(self, args, obs_dim, shared_obs_dim, act_dim): #, lang_learner):
         super(ACC_Agent, self).__init__()
         self.lr = args.lr
         self.warming_up = False
@@ -20,8 +20,7 @@ class ACC_Agent(nn.Module):
         self.critic = ACC_Critic(args, shared_obs_dim)
 
         self.act_comm_optim = torch.optim.Adam(
-            list(self.act_comm.parameters()) +
-            list(lang_learner.decoder.parameters()), 
+            self.act_comm.parameters(), 
             lr=self.lr, 
             eps=args.opti_eps, 
             weight_decay=args.weight_decay)

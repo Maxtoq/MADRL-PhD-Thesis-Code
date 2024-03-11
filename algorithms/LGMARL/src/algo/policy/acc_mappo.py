@@ -24,10 +24,10 @@ class ACC_MAPPO:
 
         if self.share_params:
             self.agents = [
-                ACC_Agent(args, obs_dim, shared_obs_dim, act_dim, lang_learner)]
+                ACC_Agent(args, obs_dim, shared_obs_dim, act_dim)] # , lang_learner)]
         else:
             self.agents = [
-                ACC_Agent(args, obs_dim, shared_obs_dim, act_dim, lang_learner)
+                ACC_Agent(args, obs_dim, shared_obs_dim, act_dim) # , lang_learner)
                 for a_i in range(self.n_agents)]
 
     def prep_rollout(self, device=None):

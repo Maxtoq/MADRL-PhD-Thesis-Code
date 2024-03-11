@@ -1,8 +1,8 @@
 #!/bin/sh
-n_run=5
-experiment_name="ACC_10o5_no"
+n_run=1
+experiment_name="14o3_ACC_perf"
 n_parallel_envs=250
-n_steps=10000000
+n_steps=20000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
@@ -12,17 +12,17 @@ n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_Foraging"
 episode_length=100
-comm_type="no_comm" # default language
+comm_type="perfect_comm" # default language
 comm_ec_strategy="mean" # default sum
 comm_eps_smooth=1.0 # default 1.0
 comm_token_penalty=0.001
 context_dim=16 # default 16
-lang_clip_lr=0.0009 # default 0.007
+lang_lr=0.001 # default 0.007
 lang_clip_batch_size=256 # default 256
-lang_capt_loss_weight=0.0001 # default 0.0001
-lang_capt_loss_weight_anneal=0.000001 # default 0.0001
-magym_env_size=10
-magym_obs_range=5 # default 5
+lang_capt_loss_weight=0.00001 # default 0.0001
+lang_capt_loss_weight_anneal=0.00001 # default 0.0001
+magym_env_size=14
+magym_obs_range=3 # default 5
 cuda_device="cuda:0"
 
 source venv3.8/bin/activate
@@ -50,7 +50,7 @@ do
     --comm_eps_smooth ${comm_eps_smooth}\
     --comm_token_penalty ${comm_token_penalty}\
     --context_dim ${context_dim}\
-    --lang_clip_lr ${lang_clip_lr}\
+    --lang_lr ${lang_lr}\
     --lang_clip_batch_size ${lang_clip_batch_size}\
     --lang_capt_loss_weight ${lang_capt_loss_weight}\
     --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}\

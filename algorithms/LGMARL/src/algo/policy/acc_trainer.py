@@ -245,7 +245,7 @@ class ACC_Trainer:
         agent.critic_optim.zero_grad()
         if train_lang:
             # agent.capt_optim.zero_grad()
-            self.lang_learner.clip_optim.zero_grad()
+            self.lang_learner.optim.zero_grad()
         loss.backward()
 
         # Clip gradients
@@ -259,7 +259,7 @@ class ACC_Trainer:
         agent.critic_optim.step()
         if train_lang:
             # agent.capt_optim.step()
-            self.lang_learner.clip_optim.step()
+            self.lang_learner.optim.step()
 
         return log_losses
 
