@@ -69,8 +69,10 @@ def run():
         model.prep_rollout(device)
         
         # Choose between perfect and generated messages
-        eps = comm_eps.get_explo_rate(s_i)
-        gen_comm = np.random.random(cfg.n_parallel_envs) > eps
+        gen_comm = None
+        if cfg.comm_type == "language":
+            eps = comm_eps.get_explo_rate(s_i)
+            gen_comm = np.random.random(cfg.n_parallel_envs) > eps
 
         for ep_s_i in range(cfg.rollout_length):
             # Perform step

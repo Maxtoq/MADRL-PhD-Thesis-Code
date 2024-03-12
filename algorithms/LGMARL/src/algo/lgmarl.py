@@ -230,7 +230,7 @@ class LanguageGroundedMARL:
         return comm_rewards
 
     @torch.no_grad()
-    def comm_n_act(self, perfect_messages=None, gen_messages=True):
+    def comm_n_act(self, perfect_messages=None, gen_messages=None):
         """
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
