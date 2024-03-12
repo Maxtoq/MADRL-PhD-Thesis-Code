@@ -11,7 +11,7 @@
 source venv/bin/activate
 
 n_run=7
-experiment_name="ACC_9_perf"
+experiment_name="9o5_ACC_perf"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -28,11 +28,11 @@ comm_ec_strategy="mean" # default sum
 comm_eps_smooth=1.0 # default 1.0
 comm_token_penalty=0.001
 context_dim=16 # default 16
-lang_clip_lr=0.0009 # default 0.007
+lang_lr=0.0009 # default 0.007
 lang_clip_batch_size=256 # default 256
 lang_capt_loss_weight=0.0001 # default 0.0001
-lang_capt_loss_weight_anneal=0.000001 # default 0.0001
-magym_env_size=10
+lang_capt_loss_weight_anneal=0.00001 # default 0.0001
+magym_env_size=9
 magym_obs_range=5 # default 5
 cuda_device="cuda:0"
 
@@ -59,7 +59,7 @@ do
     --comm_eps_smooth ${comm_eps_smooth}\
     --comm_token_penalty ${comm_token_penalty}\
     --context_dim ${context_dim}\
-    --lang_clip_lr ${lang_clip_lr}\
+    --lang_lr ${lang_lr}\
     --lang_clip_batch_size ${lang_clip_batch_size}\
     --lang_capt_loss_weight ${lang_capt_loss_weight}\
     --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}\
