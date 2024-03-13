@@ -94,7 +94,7 @@ def get_config():
     parser.add_argument("--lang_lr", type=float, default=0.007)
     parser.add_argument("--lang_capt_loss_weight", type=float, default=0.0001)
     parser.add_argument("--lang_capt_loss_weight_anneal", type=float, default=0.0001)
-    parser.add_argument("--lang_clip_batch_size", type=int, default=256,
+    parser.add_argument("--lang_batch_size", type=int, default=256,
                         help="Number of steps sampled in batch for CLIP training.")
     parser.add_argument("--lang_temp", type=float, default=1.0)
 

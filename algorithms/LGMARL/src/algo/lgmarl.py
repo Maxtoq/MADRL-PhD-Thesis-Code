@@ -154,35 +154,35 @@ class LanguageGroundedMARL:
         
         return policy_input, critic_input
 
-    def _store_obs(self, obs, parsed_obs):
+    def _store_obs(self, obs, perf_messages):
         """
         Store observations in replay buffer.
         :param obs: (np.ndarray) Observations for each agent, 
             dim=(n_envs, n_agents, obs_dim).
-        :param parsed_obs: (list(list(list(str)))) Sentences parsed from 
+        :param perf_messages: (list(list(list(str)))) Sentences parsed from 
             observations, dim=(n_envs, n_agents, len(sentence)).
         """
         policy_input, critic_input = self._make_acc_inputs(obs)
-        broadcasts = []
-        for env_messages in parsed_obs:
-            env_broadcast = []
-            for message in env_messages:
-                env_broadcast.extend(message)
-            broadcasts.append([env_broadcast] * self.n_agents)
+        perf_broadcast = []
+        for env_pm in perf_messages:
+            env_perf_bc = []
+            for m in env_pm:
+                env_perf_bc.extend(m)
+            perf_broadcast.append([env_perf_bc] * self.n_agents)
         self.buffer.insert_obs(
-            policy_input, critic_input, parsed_obs, broadcasts)
+            policy_input, critic_input, perf_messages, perf_broadcast)
 
-    def init_episode(self, obs=None, parsed_obs=None):
+    def init_episode(self, obs=None, perf_messages=None):
         # If obs is given -> very first step of all training
         if obs is not None:
             self.buffer.reset_episode()
-            self._store_obs(obs, parsed_obs)
+            self._store_obs(obs, perf_messages)
         # Else -> reset after rollout, we start with the last step of previous 
         # rollout
         else:
             self.buffer.start_new_episode()
 
-    def store_exp(self, next_obs, next_parsed_obs, act_rewards, dones):
+    def store_exp(self, next_obs, next_perf_messages, act_rewards, dones):
         # Reset rnn_states and masks for done environments
         self.rnn_states[dones == True] = np.zeros(
             ((dones == True).sum(), 
@@ -213,7 +213,7 @@ class LanguageGroundedMARL:
             masks)
 
         # Insert next obs in buffer
-        self._store_obs(next_obs, next_parsed_obs)
+        self._store_obs(next_obs, next_perf_messages)
 
     def _reward_comm(self, messages):
         if self.comm_type == "emergent-continuous":
@@ -269,12 +269,13 @@ class LanguageGroundedMARL:
                 if gen_messages[e_i]:
                     env_messages = messages[
                         e_i * self.n_agents:(e_i + 1) * self.n_agents]
+
+                    env_broadcast = []
+                    for message in env_messages:
+                        env_broadcast.extend(message)
                 else:
                     env_messages = perfect_messages[e_i]
-
-                env_broadcast = []
-                for message in env_messages:
-                    env_broadcast.extend(message)
+                    env_broadcast = perfect_broadcasts[e_i][0]
 
                 broadcasts.append(env_broadcast)
                 messages_by_env.append(env_messages)
@@ -300,12 +301,6 @@ class LanguageGroundedMARL:
         elif self.comm_type == "perfect_comm":
             assert perfect_messages is not None
             messages_by_env = perfect_messages
-            # broadcasts = []
-            # for env_messages in messages_by_env:
-            #     env_broadcast = []
-            #     for message in env_messages:
-            #         env_broadcast.extend(message)
-            #     broadcasts.append(env_broadcast)
             # Get lang contexts
             broadcasts = [
                 env_br[0] for env_br in perfect_broadcasts]

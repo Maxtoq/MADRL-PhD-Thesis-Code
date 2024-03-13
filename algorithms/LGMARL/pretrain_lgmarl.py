@@ -52,7 +52,7 @@ def run():
         device)
 
     # Epsilon parameter for choosing what communication 
-    comm_eps = ParameterDecay(1.0, 0.01, cfg.n_steps, "sigmoid", cfg.comm_eps_smooth)
+    comm_eps = ParameterDecay(1.0, 0.001, cfg.n_steps, "sigmoid", cfg.comm_eps_smooth)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
@@ -69,11 +69,10 @@ def run():
         model.prep_rollout(device)
         
         # Choose between perfect and generated messages
+        gen_comm = None
         if cfg.comm_type == "language":
             eps = comm_eps.get_explo_rate(s_i)
             gen_comm = np.random.random(cfg.n_parallel_envs) > eps
-        else:
-            gen_comm = np.array([False] * cfg.n_parallel_envs)
 
         for ep_s_i in range(cfg.rollout_length):
             # Perform step

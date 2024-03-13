@@ -26,7 +26,7 @@ class ACC_Trainer:
         self.huber_delta = args.huber_delta
 
         # Language params
-        self.clip_batch_size = args.lang_clip_batch_size
+        self.lang_batch_size = args.lang_batch_size
         self.temp = args.lang_temp
         self.capt_loss_weight = args.lang_capt_loss_weight
 
@@ -55,16 +55,17 @@ class ACC_Trainer:
 
     def _compute_policy_loss(self, 
             action_log_probs, old_action_log_probs_batch, adv_targ, dist_entropy):
-        imp_weights = torch.exp(action_log_probs - old_action_log_probs_batch)
+        ratio = torch.exp(action_log_probs - old_action_log_probs_batch)
 
-        surr1 = imp_weights * adv_targ
+        surr1 = ratio * adv_targ
         surr2 = torch.clamp(
-            imp_weights, 
+            ratio, 
             1.0 - self.clip_param, 
             1.0 + self.clip_param) * adv_targ
 
-        loss = -torch.sum(
-            torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
+        # loss = -torch.sum(
+        #     torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
+        loss = -torch.min(surr1, surr2).mean()
         
         loss = loss - dist_entropy * self.entropy_coef
 
@@ -116,8 +117,13 @@ class ACC_Trainer:
 
     def _compute_capt_loss(self, preds, targets):
         dec_loss = 0
+        # print(preds,targets)
+        # print(torch.cat(targets).shape, preds.shape)
+        # exit()
         for d_o, e_t in zip(preds, targets):
+            # print(d_o.shape, e_t.shape)
             e_t = torch.argmax(e_t, dim=1).to(self.device)
+            # print(nn.NLLLoss(reduction="none")(d_o[:e_t.size(0)], e_t).var())
             dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
         return dec_loss
 
@@ -127,7 +133,7 @@ class ACC_Trainer:
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
             comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-            envs_train_comm, broadcasts_batch, parsed_obs_batch = sample
+            envs_train_comm, perf_broadcasts_batch, perf_messages_batch = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -199,18 +205,17 @@ class ACC_Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(act_value_loss)
 
-        perfect_envs_ids = np.where(envs_train_comm == False)[0]
-        if train_lang and len(perfect_envs_ids) > 1:
+        if train_lang:
             # Sample a mini-batch
-            batch_size = min(len(perfect_envs_ids), self.clip_batch_size)
+            batch_size = min(len(perf_broadcasts_batch), self.lang_batch_size)
             ids = np.random.choice(
-                perfect_envs_ids, 
+                len(perf_broadcasts_batch), 
                 size=batch_size, 
                 replace=False)
 
             # CLIP loss 
             # Encode sentences
-            sample_sentences = [broadcasts_batch[i] for i in ids]
+            sample_sentences = [perf_broadcasts_batch[i] for i in ids]
             lang_contexts = self.lang_learner.lang_encoder(sample_sentences)
             lang_contexts = lang_contexts.squeeze()
             obs_contexts = critic_obs_encs[ids]
@@ -218,33 +223,33 @@ class ACC_Trainer:
             clip_loss, mean_sim = self._compute_clip_loss(
                 obs_contexts, lang_contexts)
 
-            log_losses["clip_loss"] = clip_loss.item() / self.clip_batch_size
+            log_losses["clip_loss"] = clip_loss.item() / self.lang_batch_size
             log_losses["mean_sim"] = mean_sim
 
             # Captioning loss
-            sample_parsed_obs = [parsed_obs_batch[i] for i in ids]
+            sample_perf_messages = [perf_messages_batch[i] for i in ids]
             dec_inputs = comm_actions[ids]
             # Decode
             encoded_targets = self.lang_learner.word_encoder.encode_batch(
-                sample_parsed_obs)
+                sample_perf_messages)
             decoder_outputs, _ = self.lang_learner.decoder(
                 dec_inputs, encoded_targets)
             # Captioning loss
             capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
 
-            log_losses["capt_loss"] = capt_loss.item() / self.clip_batch_size
+            log_losses["capt_loss"] = capt_loss.item() / self.lang_batch_size
         else:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
             
-        loss = actor_loss + comm_loss + act_value_loss + comm_value_loss \
+        # print(actor_loss, capt_loss, comm_loss)
+        loss = 10000 * actor_loss + comm_loss + act_value_loss + comm_value_loss \
                 + clip_loss + self.capt_loss_weight * capt_loss
         
         # Compute gradients
         agent.act_comm_optim.zero_grad()
         agent.critic_optim.zero_grad()
         if train_lang:
-            # agent.capt_optim.zero_grad()
             self.lang_learner.optim.zero_grad()
         loss.backward()
 
@@ -258,7 +263,6 @@ class ACC_Trainer:
         agent.act_comm_optim.step()
         agent.critic_optim.step()
         if train_lang:
-            # agent.capt_optim.step()
             self.lang_learner.optim.step()
 
         return log_losses
@@ -323,5 +327,6 @@ class ACC_Trainer:
                         for key in loss:
                             losses[key] += loss[key] / (
                                 num_updates * len(self.agents))
+                # exit()
 
         return losses
