@@ -57,6 +57,7 @@ class LanguageGroundedMARL:
             obs_dim, 
             self.context_dim,
             parser, 
+            n_agents,
             device)
 
         self.acc = ACC_MAPPO(

@@ -31,7 +31,7 @@ class ACC_Trainer:
         self.capt_loss_weight = args.lang_capt_loss_weight
 
         self.clip_loss = nn.CrossEntropyLoss()
-        self.captioning_loss = nn.NLLLoss()
+        self.captioning_loss = nn.NLLLoss(reduction="mean", ignore_index=0)
 
         self.act_value_normalizer = ValueNorm(1).to(device)
         self.comm_value_normalizer = ValueNorm(1).to(device)
@@ -117,15 +117,10 @@ class ACC_Trainer:
 
     def _compute_capt_loss(self, preds, targets):
         dec_loss = 0
-        # print(preds,targets)
-        # print(torch.cat(targets).shape, preds.shape)
-        # exit()
-        for d_o, e_t in zip(preds, targets):
-            # print(d_o.shape, e_t.shape)
-            e_t = torch.argmax(e_t, dim=1).to(self.device)
-            # print(nn.NLLLoss(reduction="none")(d_o[:e_t.size(0)], e_t).var())
-            dec_loss += self.captioning_loss(d_o[:e_t.size(0)], e_t)
-        return dec_loss
+        preds = preds.reshape(-1, preds.shape[-1])
+        targets = torch.argmax(targets, dim=-1).reshape(-1)
+        capt_loss = self.captioning_loss(preds, targets)
+        return capt_loss
 
     def _train_mappo(self, agent, sample, train_comm_head, train_lang):
         policy_input_batch, critic_input_batch, rnn_states_batch, \
@@ -205,6 +200,7 @@ class ACC_Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(act_value_loss)
 
+        # Language losses
         if train_lang:
             # Sample a mini-batch
             batch_size = min(len(perf_broadcasts_batch), self.lang_batch_size)
@@ -231,7 +227,7 @@ class ACC_Trainer:
             dec_inputs = comm_actions[ids]
             # Decode
             encoded_targets = self.lang_learner.word_encoder.encode_batch(
-                sample_perf_messages)
+                sample_perf_messages, pad=True)
             decoder_outputs, _ = self.lang_learner.decoder(
                 dec_inputs, encoded_targets)
             # Captioning loss
