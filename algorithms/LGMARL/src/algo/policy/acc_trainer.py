@@ -227,7 +227,7 @@ class ACC_Trainer:
             dec_inputs = comm_actions[ids]
             # Decode
             encoded_targets = self.lang_learner.word_encoder.encode_batch(
-                sample_perf_messages, pad=True)
+                sample_perf_messages, pad=True).to(self.device)
             decoder_outputs, _ = self.lang_learner.decoder(
                 dec_inputs, encoded_targets)
             # Captioning loss
