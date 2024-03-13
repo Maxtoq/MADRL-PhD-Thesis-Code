@@ -233,7 +233,7 @@ class ACC_Trainer:
             # Captioning loss
             capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
 
-            log_losses["capt_loss"] = capt_loss.item() / self.lang_batch_size
+            log_losses["capt_loss"] = capt_loss.item()
         else:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
