@@ -227,13 +227,13 @@ class ACC_Trainer:
             dec_inputs = comm_actions[ids]
             # Decode
             encoded_targets = self.lang_learner.word_encoder.encode_batch(
-                sample_perf_messages, pad=True)
+                sample_perf_messages, pad=True).to(self.device)
             decoder_outputs, _ = self.lang_learner.decoder(
                 dec_inputs, encoded_targets)
             # Captioning loss
             capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
 
-            log_losses["capt_loss"] = capt_loss.item() / self.lang_batch_size
+            log_losses["capt_loss"] = capt_loss.item()
         else:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
