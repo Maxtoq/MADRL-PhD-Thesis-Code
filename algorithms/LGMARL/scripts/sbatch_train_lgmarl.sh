@@ -11,7 +11,7 @@
 source venv/bin/activate
 
 n_run=7
-experiment_name="9o5_ACC_perf_weightactorloss_FIXED"
+experiment_name="9o5_ACC_perf_weightactorloss_EMBED"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64

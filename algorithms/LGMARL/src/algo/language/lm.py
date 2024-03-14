@@ -233,8 +233,8 @@ class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, embed_dim, word_encoder, n_layers=1, 
-                 device="cpu"):
+    def __init__(self, context_dim, embed_dim, word_encoder, max_len, 
+                 n_layers=1, device="cpu"):
         """
         Inputs:
             :param context_dim (int): Dimension of the context vectors
@@ -245,6 +245,7 @@ class GRUDecoder(nn.Module):
         """
         super(GRUDecoder, self).__init__()
         self.device = device
+        self.max_len = max_len
         # Dimension of hidden states
         self.hidden_dim = context_dim
         # Word encoder
@@ -303,7 +304,7 @@ class GRUDecoder(nn.Module):
         teacher_forcing = target_encs is not None
         batch_size = context_batch.size(0)
         max_sent_len = target_encs.shape[1] if teacher_forcing \
-            else self.word_encoder.max_len
+            else self.max_len
 
         if teacher_forcing:
             # Embed
