@@ -233,7 +233,8 @@ class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, word_encoder, n_layers=1, device='cpu'):
+    def __init__(self, context_dim, embed_dim, word_encoder, n_layers=1, 
+                 device="cpu"):
         """
         Inputs:
             :param context_dim (int): Dimension of the context vectors
@@ -250,9 +251,11 @@ class GRUDecoder(nn.Module):
         self.word_encoder = word_encoder
         # Number of recurrent layers
         self.n_layers = n_layers
+        # Embedding layer
+        self.embed_layer = nn.Embedding(self.word_encoder.enc_dim, embed_dim)
         # Model
         self.gru = nn.GRU(
-            self.word_encoder.enc_dim, 
+            embed_dim, 
             self.hidden_dim, 
             self.n_layers)
         init_rnn_params(self.gru)
@@ -302,9 +305,17 @@ class GRUDecoder(nn.Module):
         max_sent_len = target_encs.shape[1] if teacher_forcing \
             else self.word_encoder.max_len
 
+        if teacher_forcing:
+            # Embed
+            target_ids = target_encs.argmax(-1)
+            target_embeds = self.embed_layer(target_ids)
+
         hidden = context_batch.unsqueeze(0)
-        last_tokens = torch.Tensor(self.word_encoder.SOS_ENC).view(
-            1, 1, -1).float().repeat(1, batch_size, 1).to(self.device)
+        # Init last token to the SOS token, embedded
+        last_tokens = self.embed_layer(
+            torch.zeros((1, batch_size), dtype=torch.int).to(self.device))
+        # torch.Tensor(self.word_encoder.SOS_ENC).view(
+        #     1, 1, -1).float().repeat(1, batch_size, 1).to(self.device)
 
         tokens = []
         decoder_outputs = []
@@ -317,13 +328,11 @@ class GRUDecoder(nn.Module):
 
             # Sample next tokens
             if teacher_forcing:
-                last_tokens = target_encs[:, t_i].unsqueeze(0)
+                last_tokens = target_embeds[:, t_i].unsqueeze(0)
             else:
                 _, topi = outputs.topk(1)
                 topi = topi.squeeze()
-                last_tokens = torch.Tensor(
-                    self.word_encoder.token_encodings[topi.cpu()]).unsqueeze(0).to(
-                        self.device)
+                last_tokens = self.embed_layer(topi).unsqueeze(0)
 
                 for b_i in range(batch_size):
                     if topi[b_i] == self.word_encoder.EOS_ID:
@@ -339,39 +348,39 @@ class GRUDecoder(nn.Module):
 
         return decoder_outputs, sentences
 
-    def compute_pp(self, enc_sent):
-        """
-        :param enc_sent: (list(torch.Tensor))
-        """
-        batch_size = len(enc_sent)
-        max_sent_len = max([len(s) for s in enc_sent])
+    # def compute_pp(self, enc_sent):
+    #     """
+    #     :param enc_sent: (list(torch.Tensor))
+    #     """
+    #     batch_size = len(enc_sent)
+    #     max_sent_len = max([len(s) for s in enc_sent])
 
-        hidden = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
-        last_tokens = torch.Tensor(self.word_encoder.SOS_ENC).view(
-            1, 1, -1).repeat(1, batch_size, 1).to(self.device)
+    #     hidden = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
+    #     last_tokens = torch.Tensor(self.word_encoder.SOS_ENC).view(
+    #         1, 1, -1).repeat(1, batch_size, 1).to(self.device)
 
-        pnorm = torch.ones(batch_size)
-        for t_i in range(max_sent_len):
-            # RNN pass
-            outputs, hidden = self.forward_step(last_tokens, hidden)
+    #     pnorm = torch.ones(batch_size)
+    #     for t_i in range(max_sent_len):
+    #         # RNN pass
+    #         outputs, hidden = self.forward_step(last_tokens, hidden)
 
-            # Compute PP
-            probs = outputs.exp().squeeze(0)
-            for s_i in range(batch_size):
-                len_s = enc_sent[s_i].size(0)
-                if t_i < len_s:
-                    token_prob = (probs[s_i] * enc_sent[s_i][t_i]).sum(-1)
-                    pnorm[s_i] *= (token_prob ** (1 / len_s))
+    #         # Compute PP
+    #         probs = outputs.exp().squeeze(0)
+    #         for s_i in range(batch_size):
+    #             len_s = enc_sent[s_i].size(0)
+    #             if t_i < len_s:
+    #                 token_prob = (probs[s_i] * enc_sent[s_i][t_i]).sum(-1)
+    #                 pnorm[s_i] *= (token_prob ** (1 / len_s))
 
-            # Do teacher forcing
-            last_tokens = torch.zeros_like(last_tokens).to(self.device)
-            for s_i in range(batch_size):
-                if t_i < enc_sent[s_i].size(0):
-                    last_tokens[0, s_i] = enc_sent[s_i][t_i]
+    #         # Do teacher forcing
+    #         last_tokens = torch.zeros_like(last_tokens).to(self.device)
+    #         for s_i in range(batch_size):
+    #             if t_i < enc_sent[s_i].size(0):
+    #                 last_tokens[0, s_i] = enc_sent[s_i][t_i]
 
-        pp = 1 / pnorm
+    #     pp = 1 / pnorm
 
-        return pp
+    #     return pp
 
     def get_params(self):
         return {'gru': self.gru.state_dict(),

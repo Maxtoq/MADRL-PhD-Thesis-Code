@@ -28,7 +28,8 @@ class LanguageLearner:
             args.lang_hidden_dim, 
             args.lang_embed_dim, 
             self.word_encoder)
-        self.decoder = GRUDecoder(context_dim, self.word_encoder)
+        self.decoder = GRUDecoder(
+            context_dim, args.lang_embed_dim, self.word_encoder)
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()
