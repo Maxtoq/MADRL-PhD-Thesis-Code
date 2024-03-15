@@ -796,6 +796,10 @@ models/magym_PredPrey/ACC_9x9_perf_CRITICOBSENC/*
 models/magym_PredPrey/ACC_9x9_lang_CRITICOBSENC/*
 !models/magym_PredPrey/ACC_9x9_lang_CRITICOBSENC/train_data
 
+!models/magym_PredPrey/9o5_ACC_perf_weightactorloss_EMBED
+models/magym_PredPrey/9o5_ACC_perf_weightactorloss_EMBED/*
+!models/magym_PredPrey/9o5_ACC_perf_weightactorloss_EMBED/train_data
+
 !models/magym_Foraging
 models/magym_Foraging/*
 
