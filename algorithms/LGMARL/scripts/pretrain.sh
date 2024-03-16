@@ -1,7 +1,7 @@
 #!/bin/sh
-n_run=3
-experiment_name="9o5_ACC_no"
-n_parallel_envs=250
+n_run=1
+experiment_name="9o5_ACC_perf_LSTMdec"
+n_parallel_envs=20
 n_steps=10000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
@@ -12,18 +12,19 @@ n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_type="no_comm" # default language
+comm_type="perfect_comm" # default language
 comm_ec_strategy="mean" # default sum
 comm_eps_smooth=2.0 # default 1.0
 comm_token_penalty=0.001
 context_dim=16 # default 16
 lang_lr=0.0009 # default 0.007
-lang_batch_size=256 # default 256
+lang_batch_size=512 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_capt_loss_weight_anneal=1 # default 0.0001
+lang_embed_dim=4 # default 4
 magym_env_size=9
 magym_obs_range=5 # default 5
-cuda_device="cuda:0"
+cuda_device="cuda:2"
 
 source venv3.8/bin/activate
 

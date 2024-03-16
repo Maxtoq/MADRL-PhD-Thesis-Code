@@ -7,14 +7,14 @@ from PIL import ImageColor
 from gym import spaces
 from gym.utils import seeding
 
-from .utils.action_space import MultiAgentActionSpace
-from .utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
-from .utils.observation_space import MultiAgentObservationSpace
+from src.envs.ma_gym.utils.action_space import MultiAgentActionSpace
+from src.envs.ma_gym.utils.draw import draw_grid, fill_cell, draw_circle, write_cell_text
+from src.envs.ma_gym.utils.observation_space import MultiAgentObservationSpace
 
 logger = logging.getLogger(__name__)
 
 
-class PredatorPrey(gym.Env):
+class Env(gym.Env):
     """
     Predator-prey involves a grid world, in which multiple predators attempt to capture randomly moving prey.
     Agents have a 5 × 5 view and select one of five actions ∈ {Left, Right, Up, Down, Stop} at each time step.
@@ -134,6 +134,8 @@ class PredatorPrey(gym.Env):
         self.__draw_base_img()
 
     def get_agent_obs(self):
+        from pprint import pprint
+        pprint(self._full_obs)
         _obs = []
         for agent_i in range(self.n_agents):
             pos = self.agent_pos[agent_i]

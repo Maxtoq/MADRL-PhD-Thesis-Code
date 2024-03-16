@@ -27,7 +27,7 @@ def run():
     assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
     print("Starting eval with config:")
     print(cfg)
-    # cfg.comm_type = "language"
+    cfg.comm_type = "language"
 
     set_seeds(cfg.seed)
 
@@ -64,13 +64,10 @@ def run():
     for ep_s_i in range(1000):#cfg.episode_length):
         # Get action
         actions, broadcasts, agent_messages, comm_rewards = model.comm_n_act(
-            parsed_obs)
+            parsed_obs, [True])
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
-
-        obs = next_obs
-        parsed_obs = parser.get_perfect_messages(obs)
         
         print(f"\nStep #{ep_s_i + 1}")
         print("Observations", obs)
@@ -80,12 +77,15 @@ def run():
         print("Rewards", rewards)
         print("Communication Rewards", comm_rewards)
 
+        obs = next_obs
+        parsed_obs = parser.get_perfect_messages(obs)
+
         render(cfg, envs)
 
         env_dones = dones.all(axis=1)
         if True in env_dones:
             print("ENV DONE")
-            model.init_episode()
+            model.reset_context(env_dones)
             
     envs.close()
 

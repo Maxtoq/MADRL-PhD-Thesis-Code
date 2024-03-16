@@ -18,8 +18,8 @@ from src.algo.lgmarl import LanguageGroundedMARL
 
 def run():
      # Load config
-    parser = get_config()
-    cfg = parser.parse_args()
+    argparse = get_config()
+    cfg = argparse.parse_args()
 
     # Get paths for saving logs and model
     run_dir, model_cp_path, log_dir = get_paths(cfg)

@@ -17,6 +17,7 @@ class LanguageLearner:
     def __init__(self, args, obs_dim, context_dim, parser, n_agents, 
                  device="cpu"):
         self.train_device = device
+        self.parser = parser
 
         self.device = self.train_device
 
@@ -27,12 +28,15 @@ class LanguageLearner:
             context_dim, 
             args.lang_hidden_dim, 
             args.lang_embed_dim, 
-            self.word_encoder)
+            self.word_encoder,
+            device=device)
         self.decoder = GRUDecoder(
             context_dim, 
             args.lang_embed_dim, 
             self.word_encoder, 
-            parser.max_message_len + 1)
+            parser.max_message_len + 1,
+            embed_layer=self.lang_encoder.embed_layer,
+            device=device)
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss()

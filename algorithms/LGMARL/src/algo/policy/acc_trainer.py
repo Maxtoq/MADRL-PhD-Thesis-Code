@@ -211,8 +211,8 @@ class ACC_Trainer:
 
             # CLIP loss 
             # Encode sentences
-            sample_sentences = [perf_broadcasts_batch[i] for i in ids]
-            lang_contexts = self.lang_learner.lang_encoder(sample_sentences)
+            sample_broadcasts = [perf_broadcasts_batch[i] for i in ids]
+            lang_contexts = self.lang_learner.lang_encoder(sample_broadcasts)
             lang_contexts = lang_contexts.squeeze()
             obs_contexts = critic_obs_encs[ids]
             # CLIP loss
@@ -224,6 +224,7 @@ class ACC_Trainer:
 
             # Captioning loss
             sample_perf_messages = [perf_messages_batch[i] for i in ids]
+
             dec_inputs = comm_actions[ids]
             # Decode
             encoded_targets = self.lang_learner.word_encoder.encode_batch(

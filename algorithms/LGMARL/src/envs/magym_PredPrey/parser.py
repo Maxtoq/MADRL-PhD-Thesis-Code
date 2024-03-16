@@ -1,13 +1,15 @@
 import numpy as np
 
 
-class PredatorPrey_Parser():
+class Parser():
 
     # vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
 
     def __init__(self, env_size, obs_range):
         self.env_size = env_size
         self.obs_range = obs_range
+
+        self.obs_dim = 2 + obs_range * obs_range
 
         self.vocab = ["Prey", "Center", "North", "South", "East", "West"]
         self.max_message_len = 6
@@ -132,16 +134,22 @@ class PredatorPrey_Parser():
         
         return m
 
-    def get_perfect_messages(self, obs):
+    def get_perfect_messages(self, obs_batch):
         """
         Recurrent method for generating perfect messages corresponding to
         given observations.
-        :param obs (np.ndarray): Batch of observations
+        :param obs_batch (np.ndarray): Batch of observations
         """
         out = []
-        for e_i in range(obs.shape[0]):
+        for e_i in range(obs_batch.shape[0]):
             env_out = []
-            for a_i in range(obs.shape[1]):
-                env_out.append(self._gen_perfect_message(obs[e_i, a_i]))
+            for a_i in range(obs_batch.shape[1]):
+                env_out.append(self._gen_perfect_message(obs_batch[e_i, a_i]))
             out.append(env_out)
         return out
+
+    def check_obs(self, obs, sentence):
+        if len(obs) > self.obs_dim:
+            obs = obs[:self.obs_dim]
+        parsed = self._gen_perfect_message(obs)
+        return parsed == sentence

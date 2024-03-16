@@ -9,8 +9,8 @@ from .mpe.environment import MultiAgentEnv
 
 def _get_env(cfg):
     if cfg.env_name == "magym_PredPrey":
-        from .ma_gym.predator_prey import PredatorPrey
-        env = PredatorPrey(
+        from .magym_PredPrey.env import Env
+        env = Env(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
@@ -43,8 +43,8 @@ def _get_env(cfg):
 
 def _get_parser(cfg):
     if cfg.env_name == "magym_PredPrey":
-        from .parsers.predator_prey import PredatorPrey_Parser
-        return PredatorPrey_Parser(cfg.magym_env_size, cfg.magym_obs_range)
+        from .magym_PredPrey.parser import Parser
+        return Parser(cfg.magym_env_size, cfg.magym_obs_range)
     elif cfg.env_name == "magym_Lumber":
         from .parsers.lumberjack import Lumberjack_Parser
         return Lumberjack_Parser(cfg.magym_env_size)
