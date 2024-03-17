@@ -8,8 +8,8 @@ from .valuenorm import ValueNorm
 
 class ACC_Trainer:
 
-    def __init__(self, 
-            args, agents, lang_learner, buffer, device=torch.device("cpu")):
+    def __init__(self, args, agents, lang_learner, buffer, 
+                 device=torch.device("cpu")):
         self.agents = agents
         self.lang_learner = lang_learner
         self.buffer = buffer

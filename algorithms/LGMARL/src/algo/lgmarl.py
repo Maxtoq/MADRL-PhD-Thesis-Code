@@ -12,7 +12,7 @@ from src.utils.decay import ParameterDecay
 class LanguageGroundedMARL:
 
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 parser, device="cpu", comm_logger=None):
+                 parser, device="cpu", log_dir=None):
         self.n_agents = n_agents
         self.n_steps = args.n_steps
         self.context_dim = args.context_dim
@@ -24,7 +24,6 @@ class LanguageGroundedMARL:
         self.comm_ec_strategy = args.comm_ec_strategy
         self.recurrent_N = args.policy_recurrent_N
         self.hidden_dim = args.hidden_dim
-        self.comm_logger = comm_logger
         self.device = device
 
         # Parameters for annealing learning rates
@@ -75,10 +74,15 @@ class LanguageGroundedMARL:
             policy_input_dim, 
             critic_input_dim,
             1, 
-            self.context_dim)
+            self.context_dim, 
+            log_dir)
 
         self.trainer = ACC_Trainer(
-            args, self.acc.agents, self.lang_learner, self.buffer, self.device)
+            args, 
+            self.acc.agents, 
+            self.lang_learner, 
+            self.buffer, 
+            self.device)
 
         # Language context, to carry to next steps
         self.lang_contexts = np.zeros(
@@ -176,7 +180,7 @@ class LanguageGroundedMARL:
     def init_episode(self, obs=None, perf_messages=None):
         # If obs is given -> very first step of all training
         if obs is not None:
-            self.buffer.reset_episode()
+            self.buffer.reset()
             self._store_obs(obs, perf_messages)
         # Else -> reset after rollout, we start with the last step of previous 
         # rollout
@@ -231,14 +235,14 @@ class LanguageGroundedMARL:
         return comm_rewards
 
     @torch.no_grad()
-    def comm_n_act(self, perfect_messages=None, gen_messages=None):
+    def comm_n_act(self, perfect_messages=None, env_gen_messages=None):
         """
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
 
         :param perfect_messages (list(list(list(str)))): "Perfect" messages 
             given by the parser, default None.
-        :param gen_messages: (np.ndarray) Array of boolean controlling whether
+        :param env_gen_messages: (np.ndarray) Array of boolean controlling whether
             to generate messages of use perfect messages, one for each parallel
             environment, used for comm_type=language only.
 
@@ -267,7 +271,7 @@ class LanguageGroundedMARL:
             broadcasts = []
             messages_by_env = []
             for e_i in range(self.n_envs):
-                if gen_messages[e_i]:
+                if env_gen_messages[e_i]:
                     env_messages = messages[
                         e_i * self.n_agents:(e_i + 1) * self.n_agents]
 
@@ -321,14 +325,6 @@ class LanguageGroundedMARL:
             comm_rewards = self._reward_comm(messages_by_env)
         else:
             comm_rewards = {}
-
-        # Log communication
-        if self.comm_logger is not None:
-            self.comm_logger.store_messages(
-                obs, 
-                messages_by_env, 
-                perfect_messages, 
-                broadcasts)
 
         return self.actions, broadcasts, messages_by_env, comm_rewards
 

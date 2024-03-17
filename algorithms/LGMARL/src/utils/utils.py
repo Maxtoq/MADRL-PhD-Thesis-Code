@@ -38,6 +38,7 @@ def load_args(cfg):
         args.pop("n_parallel_envs")
         args.pop("use_render")
         args.pop("render_wait_input")
+        args.pop("n_steps")
         # if "no_render" in args:
         #     args.pop("no_render")
         for a in args:

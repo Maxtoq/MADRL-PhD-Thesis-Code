@@ -77,7 +77,7 @@ def get_config():
     # log parameters
     parser.add_argument("--log_tensorboard", action='store_false', default=True, 
                         help='log training data in tensorboard')
-    parser.add_argument("--log_communication", action='store_true', default=False)
+    parser.add_argument("--log_comm", action='store_true', default=False)
 
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, 

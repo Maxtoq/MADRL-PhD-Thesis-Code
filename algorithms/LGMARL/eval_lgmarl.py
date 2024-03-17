@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 
+from tqdm import trange
+
 from src.utils.config import get_config
 from src.utils.utils import set_seeds, load_args, set_cuda_device
 from src.envs.make_env import make_env
@@ -35,7 +37,7 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
-    envs, parser = make_env(cfg, 1)
+    envs, parser = make_env(cfg, cfg.n_parallel_envs)
     
     # Create model
     n_agents = envs.n_agents
@@ -61,33 +63,43 @@ def run():
 
     model.init_episode(obs, parsed_obs)
     model.prep_rollout(device)
-    for ep_s_i in range(1000):#cfg.episode_length):
+
+    count_returns = np.zeros(cfg.n_parallel_envs)
+    returns = []
+    for ep_s_i in trange(0, cfg.n_steps, cfg.n_parallel_envs):
         # Get action
         actions, broadcasts, agent_messages, comm_rewards = model.comm_n_act(
-            parsed_obs, [True])
+            parsed_obs, [True] * cfg.n_parallel_envs)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
         
-        print(f"\nStep #{ep_s_i + 1}")
-        print("Observations", obs)
-        print("Perfect Messages", parsed_obs)
-        print("Agent Messages", agent_messages)
-        print("Actions (t-1)", actions)
-        print("Rewards", rewards)
-        print("Communication Rewards", comm_rewards)
+        # print(f"\nStep #{ep_s_i + 1}")
+        # print("Observations", obs)
+        # print("Perfect Messages", parsed_obs)
+        # print("Agent Messages", agent_messages)
+        # print("Actions (t-1)", actions)
+        # print("Rewards", rewards)
+        # print("Communication Rewards", comm_rewards)
 
         obs = next_obs
         parsed_obs = parser.get_perfect_messages(obs)
 
+        count_returns += rewards.mean(-1)
         render(cfg, envs)
 
         env_dones = dones.all(axis=1)
         if True in env_dones:
             print("ENV DONE")
             model.reset_context(env_dones)
+            returns += list(count_returns[env_dones == True])
+            count_returns *= (1 - env_dones)
             
     envs.close()
+
+    print("Done", len(returns), "complete episodes.")
+    print("Mean return:", sum(returns) / len(returns))
+    input()
 
 if __name__ == '__main__':
     run()

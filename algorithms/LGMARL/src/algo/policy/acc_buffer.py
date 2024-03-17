@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 
+from src.log.comm_logs import CommunicationLogger
+
 
 def _flatten(T, N, x):
     return x.reshape(T * N, *x.shape[2:])
@@ -13,7 +15,7 @@ class ACC_ReplayBuffer:
 
     def __init__(self, 
             args, n_agents, policy_input_dim, critic_input_dim, env_act_dim, 
-            comm_act_dim):
+            comm_act_dim, log_dir=None):
         self.n_agents = n_agents
         self.policy_input_dim = policy_input_dim
         self.critic_input_dim = critic_input_dim
@@ -109,8 +111,14 @@ class ACC_ReplayBuffer:
         self.perf_broadcasts = []
 
         self.step = 0
+
+        if args.log_comm:
+            print("LOGGING COMUNICATION IN", log_dir)
+            self.comm_logger = CommunicationLogger(log_dir)
+        else:
+            self.comm_logger = None
     
-    def reset_episode(self):
+    def reset(self):
         self.policy_input = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.policy_input_dim), dtype=np.float32)
         self.critic_input = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.critic_input_dim), dtype=np.float32)
         self.rnn_states = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.recurrent_N, self.hidden_size), dtype=np.float32)
@@ -131,6 +139,13 @@ class ACC_ReplayBuffer:
         self.step = 0
 
     def start_new_episode(self):
+        if self.comm_logger is not None:
+            self.comm_logger.log(
+                self.policy_input, 
+                self.comm_rewards, 
+                self.comm_returns, 
+                self.perf_messages, 
+                self.perf_broadcasts)
         self.policy_input[0] = self.policy_input[-1].copy()
         self.critic_input[0] = self.critic_input[-1].copy()
         self.rnn_states[0] = self.rnn_states[-1].copy()

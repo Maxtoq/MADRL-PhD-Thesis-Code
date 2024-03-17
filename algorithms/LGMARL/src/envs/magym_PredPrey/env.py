@@ -134,8 +134,8 @@ class Env(gym.Env):
         self.__draw_base_img()
 
     def get_agent_obs(self):
-        from pprint import pprint
-        pprint(self._full_obs)
+        # from pprint import pprint
+        # pprint(self._full_obs)
         _obs = []
         for agent_i in range(self.n_agents):
             pos = self.agent_pos[agent_i]

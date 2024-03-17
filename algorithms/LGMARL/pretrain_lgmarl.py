@@ -49,7 +49,8 @@ def run():
         shared_obs_space, 
         act_space,
         parser, 
-        device)
+        device,
+        log_dir)
 
     # Epsilon parameter for choosing what communication 
     comm_eps = ParameterDecay(1.0, 0.001, cfg.n_steps, "sigmoid", cfg.comm_eps_smooth)
