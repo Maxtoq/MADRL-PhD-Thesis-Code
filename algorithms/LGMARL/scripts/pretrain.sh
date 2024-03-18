@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=1
-experiment_name="9o5_ACC_perf_llr007"
-n_parallel_envs=250
+experiment_name="TEST"
+n_parallel_envs=25
 n_steps=10000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
@@ -32,32 +32,32 @@ for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
-    comm="python algorithms/LGMARL/pretrain_lgmarl.py --seed ${seed}\
-    --experiment_name ${experiment_name}\
-    --n_parallel_envs ${n_parallel_envs}\
-    --n_steps ${n_steps}\
-    --hidden_dim ${hidden_dim}\
-    --policy_recurrent_N ${policy_recurrent_N}\
-    --ppo_epoch ${ppo_epoch}\
-    --lr ${lr}\
-    --rollout_length ${rollout_length}\
-    --n_mini_batch ${n_mini_batch}\
-    --entropy_coef ${entropy_coef}\
-    --env_name ${env_name}\
-    --episode_length ${episode_length}\
-    --cuda_device ${cuda_device}\
-    --comm_type ${comm_type}\
-    --comm_ec_strategy ${comm_ec_strategy}\
-    --comm_eps_smooth ${comm_eps_smooth}\
-    --comm_token_penalty ${comm_token_penalty}\
-    --context_dim ${context_dim}\
-    --lang_lr ${lang_lr}\
-    --lang_batch_size ${lang_batch_size}\
-    --lang_capt_loss_weight ${lang_capt_loss_weight}\
-    --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}\
-    --magym_env_size ${magym_env_size}\
-    --magym_obs_range ${magym_obs_range}
-    --log_comm"
+    comm="python algorithms/LGMARL/pretrain_lgmarl.py --seed ${seed}
+    --experiment_name ${experiment_name}
+    --n_parallel_envs ${n_parallel_envs}
+    --n_steps ${n_steps}
+    --hidden_dim ${hidden_dim}
+    --policy_recurrent_N ${policy_recurrent_N}
+    --ppo_epoch ${ppo_epoch}
+    --lr ${lr}
+    --rollout_length ${rollout_length}
+    --n_mini_batch ${n_mini_batch}
+    --entropy_coef ${entropy_coef}
+    --env_name ${env_name}
+    --episode_length ${episode_length}
+    --cuda_device ${cuda_device}
+    --comm_type ${comm_type}
+    --comm_ec_strategy ${comm_ec_strategy}
+    --comm_eps_smooth ${comm_eps_smooth}
+    --comm_token_penalty ${comm_token_penalty}
+    --context_dim ${context_dim}
+    --lang_lr ${lang_lr}
+    --lang_batch_size ${lang_batch_size}
+    --lang_capt_loss_weight ${lang_capt_loss_weight}
+    --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}
+    --magym_env_size ${magym_env_size}
+    --magym_obs_range ${magym_obs_range}"
+    # --log_comm"
     # --share_params\
     # --no_comm_head_learns_rl"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"

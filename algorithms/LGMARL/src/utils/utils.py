@@ -39,6 +39,7 @@ def load_args(cfg):
         args.pop("use_render")
         args.pop("render_wait_input")
         args.pop("n_steps")
+        args.pop("log_comm")
         # if "no_render" in args:
         #     args.pop("no_render")
         for a in args:
