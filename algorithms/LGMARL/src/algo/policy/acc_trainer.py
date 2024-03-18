@@ -28,7 +28,11 @@ class ACC_Trainer:
         # Language params
         self.lang_batch_size = args.lang_batch_size
         self.temp = args.lang_temp
-        self.capt_loss_weight = args.lang_capt_loss_weight
+
+        # Init loss weights
+        self.dyna_weight_loss = args.dyna_weight_loss
+        self.capt_loss_w = args.lang_capt_loss_weight
+        self.actor_loss_w = args.actor_loss_weight
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss(reduction="mean", ignore_index=0)
@@ -238,10 +242,9 @@ class ACC_Trainer:
         else:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
-            
-        # print(actor_loss, capt_loss, comm_loss)
-        loss = 10000 * actor_loss + comm_loss + act_value_loss + comm_value_loss \
-                + clip_loss + self.capt_loss_weight * capt_loss
+
+        loss = self.actor_loss_w * actor_loss + comm_loss + act_value_loss \
+                + comm_value_loss + clip_loss + self.capt_loss_w * capt_loss
         
         # Compute gradients
         agent.act_comm_optim.zero_grad()
@@ -324,6 +327,9 @@ class ACC_Trainer:
                         for key in loss:
                             losses[key] += loss[key] / (
                                 num_updates * len(self.agents))
-                # exit()
+            
+        if self.dyna_weight_loss:
+            self.actor_loss_w = 1 / abs(losses["actor_loss"])
+            self.capt_loss_w = 1 / abs(losses["capt_loss"])
 
         return losses
