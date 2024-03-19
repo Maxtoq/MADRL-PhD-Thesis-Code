@@ -22,7 +22,7 @@ class LanguageLearner:
         self.device = self.train_device
 
         self.word_encoder = OneHotEncoder(
-            parser.vocab, n_agents * parser.max_message_len + 1)
+            parser.vocab, parser.max_message_len)
 
         self.lang_encoder = GRUEncoder(
             context_dim, 
@@ -72,7 +72,7 @@ class LanguageLearner:
     def encode_sentences(self, sentence_batch):
         """ 
         Encode a batch of sentences. 
-        :param sentence_batch (list(list(str))): Batch of sentences.
+        :param sentence_batch (list(list(int))): Batch of enoded sentences.
 
         :return context_batch (torch.Tensor): Batch of context vectors, 
             dim=(batch_size, context_dim).

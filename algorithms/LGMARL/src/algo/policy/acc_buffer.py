@@ -15,12 +15,13 @@ class ACC_ReplayBuffer:
 
     def __init__(self, 
             args, n_agents, policy_input_dim, critic_input_dim, env_act_dim, 
-            comm_act_dim, log_dir=None):
+            comm_act_dim, max_message_len, log_dir=None):
         self.n_agents = n_agents
         self.policy_input_dim = policy_input_dim
         self.critic_input_dim = critic_input_dim
         self.env_act_dim = env_act_dim
         self.comm_act_dim = comm_act_dim
+        self.max_message_len = max_message_len
 
         self.rollout_length = args.rollout_length
         self.n_parallel_envs = args.n_parallel_envs
@@ -107,7 +108,12 @@ class ACC_ReplayBuffer:
             dtype=np.float32)
 
         # Language data
-        self.perf_messages = []
+        self.perf_messages = np.zeros(
+            (self.rollout_length + 1, 
+             self.n_parallel_envs, 
+             self.n_agents, 
+             self.max_message_len),
+            dtype=np.float32)
         self.perf_broadcasts = []
 
         self.step = 0
@@ -134,7 +140,7 @@ class ACC_ReplayBuffer:
         self.act_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32) 
         self.comm_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)    
         self.masks = np.ones((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.perf_messages = []
+        self.perf_messages = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.max_message_len), dtype=np.float32)
         self.perf_broadcasts = []
         self.step = 0
 
@@ -151,20 +157,21 @@ class ACC_ReplayBuffer:
         self.rnn_states[0] = self.rnn_states[-1].copy()
         self.critic_rnn_states[0] = self.critic_rnn_states[-1].copy()
         self.masks[0] = self.masks[-1].copy()
-        self.perf_messages = [self.perf_messages[-1]]
+        self.perf_messages[0] = self.perf_messages[-1].copy()
         self.perf_broadcasts = [self.perf_broadcasts[-1]]
         self.step = 0
-
-    def get_act_params(self):
-        return self.policy_input[self.step], self.critic_input[self.step], \
-               self.rnn_states[self.step], self.critic_rnn_states[self.step], \
-               self.masks[self.step], self.perf_broadcasts[self.step]
 
     def insert_obs(self, policy_input, critic_input, perf_messages, perf_broadcasts):
         self.policy_input[self.step] = policy_input
         self.critic_input[self.step] = critic_input
-        self.perf_messages.append(perf_messages)
+        self.perf_messages[self.step] = perf_messages
         self.perf_broadcasts.append(perf_broadcasts)
+
+    def get_act_params(self):
+        return self.policy_input[self.step], self.critic_input[self.step], \
+               self.rnn_states[self.step], self.critic_rnn_states[self.step], \
+               self.masks[self.step], self.perf_messages[self.step], \
+               self.perf_broadcasts[self.step]
 
     def insert_act(self, 
             rnn_states, critic_rnn_states, env_actions, env_action_log_probs, 
@@ -269,6 +276,7 @@ class ACC_ReplayBuffer:
 
             envs_train_comm_batch = envs_train_comm[:, ids]
 
+            perf_messages_batch = self.perf_messages[:-1, ids]
             # Flatten the broadcasts first dimension (env_step) and get only 
             # broadcasts from envs[ids]
             perf_broadcasts_batch = [
@@ -276,10 +284,10 @@ class ACC_ReplayBuffer:
                 for step_sentences in self.perf_broadcasts[:-1]
                 for i in ids]
             # Same for 
-            perf_messages_batch = [
-                step_sentences[i] 
-                for step_sentences in self.perf_messages[:-1]
-                for i in ids]
+            # perf_messages_batch = [
+            #     step_sentences[i] 
+            #     for step_sentences in self.perf_messages[:-1]
+            #     for i in ids]
 
             if self.share_params:
                 policy_input_batch = policy_input_batch.reshape(
@@ -317,15 +325,17 @@ class ACC_ReplayBuffer:
                 envs_train_comm_batch = envs_train_comm_batch.reshape(
                     self.rollout_length * mini_batch_size * self.n_agents)
 
+                perf_messages_batch = perf_messages_batch.reshape(
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 # Flatten all perf_broadcasts
                 perf_broadcasts_batch = [
                     env_sentences[a_i]
                     for env_sentences in perf_broadcasts_batch
                     for a_i in range(self.n_agents)]
-                perf_messages_batch = [
-                    env_sentences[a_i]
-                    for env_sentences in perf_messages_batch
-                    for a_i in range(self.n_agents)]
+                # perf_messages_batch = [
+                #     env_sentences[a_i]
+                #     for env_sentences in perf_messages_batch
+                #     for a_i in range(self.n_agents)]
 
             else:
                 policy_input_batch = policy_input_batch.reshape(
@@ -358,9 +368,12 @@ class ACC_ReplayBuffer:
                 envs_train_comm_batch = envs_train_comm_batch.reshape(
                     self.rollout_length * mini_batch_size, self.n_agents)
 
+                perf_messages_batch = perf_messages_batch.reshape(
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
+
             yield policy_input_batch, critic_input_batch, rnn_states_batch, \
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
                 act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
                 comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-                envs_train_comm_batch, perf_broadcasts_batch, perf_messages_batch
+                envs_train_comm_batch, perf_messages_batch, perf_broadcasts_batch

@@ -16,7 +16,7 @@ class OneHotEncoder:
     """
     Class managing the vocabulary and its one-hot encodings
     """
-    def __init__(self, vocab, max_len=20):
+    def __init__(self, vocab, max_message_len=10):
         """
         Inputs:
             :param vocab (list): List of tokens that can appear in the language
@@ -24,7 +24,7 @@ class OneHotEncoder:
         self.tokens = ["<SOS>", "<EOS>"] + vocab
         self.enc_dim = len(self.tokens)
         self.token_encodings = np.eye(self.enc_dim)
-        self.max_len = max_len
+        self.max_message_len = max_message_len + 1
 
         self.SOS_ENC = self.token_encodings[0]
         self.EOS_ENC = self.token_encodings[1]
@@ -74,39 +74,68 @@ class OneHotEncoder:
         ]
         return onehots
 
-    def encode_batch(self, sentence_batch, append_EOS=True, pad=False):
+    def get_ids(self, sentence):
+        ids = [
+            self.tokens.index(t) 
+            for t in sentence]
+        return ids
+
+    def encode_rollout_step(self, messages, pad=True, get_onehots=False):
         """
-        Encodes all sentences in the given batch
+        Encodes all messages of a rollout step: each rollout environment has a
+        list of n_agents messages.
         Inputs:
-            :param sentence_batch (list): List of sentences (lists of tokens)
-            :param append_EOS (bool): Whether to append the End of Sentence 
-                token to the sentence or not.
+            :param messages (list): List of messages.
+            :param pad (bool): Whether to pad the sentences with 0, default=True.
+            :param get_onehots (bool): Whether to return one-hot encodings 
+                instead of token ids, default=False.
         Outputs: 
-            :param encoded_batch (list): List of encoded sentences with onehot
-                vectors for each token
+            :param all_encoded (list/np.ndarray): Encoded messages, if 
+                pad=True it's a np.ndarray of shape (n_rollout_envs, n_agents, 
+                max_message_len(, enc_dim)), if False then it's a list.
+            :param all_broadcasts (list): Encoded broadcasts (concatenated
+                messages), not padded (better for encoder computation).
         """
-        encoded_batch = []
-        max_sent_len = 0
-        for s in sentence_batch:
-            encoded = self.get_onehots(s)
-            if append_EOS:
-                encoded.append(self.EOS_ENC)
+        all_encoded = []
+        all_broadcasts = []
+        for env_messages in messages:
+            env_encoded = []
+            env_broadcast = []
+            for agent_message in env_messages:
+                if get_onehots:
+                    encoded = self.get_onehots(agent_message)
+                else:
+                    encoded = self.get_ids(agent_message)
+                
+                env_broadcast.extend(encoded)
 
-            encoded = np.array(encoded)
+                encoded.append(self.EOS_ID)
 
-            sent_len = len(encoded)
-            max_sent_len = max(max_sent_len, sent_len)
+                if pad:
+                    encoded.extend([0] * (self.max_message_len - len(encoded)))
+                
+                env_encoded.append(encoded)
 
-            if pad:
-                padding = -np.ones((self.max_len - sent_len, self.enc_dim))
-                encoded = np.concatenate((encoded, padding))
 
-            encoded_batch.append(torch.Tensor(encoded))
-        
+            all_encoded.append(env_encoded)
+
+            env_broadcast.append(self.EOS_ID)
+            n_agents = len(env_messages)
+            all_broadcasts.append([env_broadcast] * n_agents)
+
         if pad:
-            encoded_batch = torch.stack(encoded_batch)[:,:max_sent_len]
+            all_encoded = np.array(all_encoded)
+        
+        return all_encoded, all_broadcasts
 
-        return encoded_batch
+    def ids_to_onehots(self, ids_batch):
+        if type(ids_batch) is list:
+            onehots = [
+                self.token_encodings[ids]
+                for ids in ids_batch]
+            return onehots
+        elif type(ids_batch) is np.ndarray:
+            return self.token_encodings[ids]
 
     def decode_batch(self, onehots_batch):
         """
@@ -173,19 +202,16 @@ class GRUEncoder(nn.Module):
         else:
             return enc_sent_batch
 
-    def forward(self, sent_batch):
+    def forward(self, enc_sent_batch):
         """
         Transforms sentences into embeddings
         Inputs:
-            :param sentence_batch (list(list(str))): Batch of sentences.
+            :param enc_sent_batch (list(list(int))): Batch of encoded sentences.
         Outputs:
             :param unsorted_hstates (torch.Tensor): Final hidden states
                 corresponding to each given sentence, dim=(1, batch_size, 
                 context_dim)
         """
-        # Get one-hot encodings
-        enc_sent_batch = self.word_encoder.encode_batch(sent_batch)
-
         # Get order of sententes sorted by length decreasing
         ids = sorted(
             range(len(enc_sent_batch)), 
@@ -194,18 +220,21 @@ class GRUEncoder(nn.Module):
 
         # Sort the sentences by length
         sorted_list = [enc_sent_batch[i] for i in ids]
-
+        
         # Embed
         if self.do_embed:
-            enc_ids_batch = [s.argmax(-1) for s in sorted_list]
+            # enc_ids_batch = [s.argmax(-1) for s in sorted_list]
             model_input = [
-                self.embed_layer(s.to(self.device)) for s in enc_ids_batch]
+                self.embed_layer(torch.from_numpy(
+                    np.array(s)).to(self.device)) 
+                for s in sorted_list]
         else:
-            model_input = sorted_list
+            model_input = [
+                torch.Tensor(self.word_encoder.ids_to_onehots(s))
+                for s in sorted_list]
 
         # Pad sentences
-        padded = nn.utils.rnn.pad_sequence(
-            model_input, batch_first=True)
+        padded = nn.utils.rnn.pad_sequence(model_input, batch_first=True)
 
         # Pack padded sentences (to not care about padded tokens)
         lens = [len(s) for s in sorted_list]
@@ -306,23 +335,23 @@ class GRUDecoder(nn.Module):
         """
         teacher_forcing = target_encs is not None
         batch_size = context_batch.size(0)
-        max_sent_len = target_encs.shape[1] if teacher_forcing \
-            else self.max_len
 
         if teacher_forcing:
             # Embed
-            target_ids = target_encs.argmax(-1)
-            target_embeds = self.embed_layer(target_ids)
+            target_embeds = self.embed_layer(target_encs)
 
         hidden = context_batch.unsqueeze(0)
         # Init last token to the SOS token, embedded
         last_tokens = self.embed_layer(
             torch.zeros((1, batch_size), dtype=torch.int).to(self.device))
 
+        max_sent_len = target_encs.shape[1] if teacher_forcing \
+            else self.max_len
+
         tokens = []
         decoder_outputs = []
-        sentences = [[] for b_i in range(batch_size)]
-        sent_finished = [False] * batch_size
+        sentences = None
+        sent_finished = np.array([False] * batch_size).reshape((1, batch_size, 1))
         for t_i in range(max_sent_len):
             # RNN pass
             outputs, hidden = self.forward_step(last_tokens, hidden)
@@ -333,17 +362,22 @@ class GRUDecoder(nn.Module):
                 last_tokens = target_embeds[:, t_i].unsqueeze(0)
             else:
                 _, topi = outputs.topk(1)
-                topi = topi.squeeze()
-                last_tokens = self.embed_layer(topi).unsqueeze(0)
-
-                for b_i in range(batch_size):
-                    if topi[b_i] == self.word_encoder.EOS_ID:
-                        sent_finished[b_i] = True
-                    if not sent_finished[b_i]:
-                        sentences[b_i].append(
-                            self.word_encoder.index2token(topi[b_i]))
                 
-                if all(sent_finished):
+                # Set next decoder input
+                last_tokens = self.embed_layer(topi.squeeze(-1))
+
+                # Add next token, if sentence is not already finished (then pad with -1)
+                topi = topi.cpu().numpy()
+                next_token_ids = sent_finished * -1 + (1 - sent_finished) * topi
+                if sentences is None:
+                    sentences = next_token_ids
+                else:
+                    sentences = np.concatenate((sentences, next_token_ids), -1)
+
+                # Check for finished sentences
+                sent_finished = sent_finished | (topi == 1)
+                
+                if sent_finished.all():
                     break
                     
         decoder_outputs = torch.cat(decoder_outputs, axis=0).transpose(0, 1)

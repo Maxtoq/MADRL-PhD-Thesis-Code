@@ -118,7 +118,7 @@ class ACC_Trainer:
     def _compute_capt_loss(self, preds, targets):
         dec_loss = 0
         preds = preds.reshape(-1, preds.shape[-1])
-        targets = torch.argmax(targets, dim=-1).reshape(-1)
+        targets = targets.reshape(-1)
         capt_loss = self.captioning_loss(preds, targets)
         return capt_loss
 
@@ -128,7 +128,7 @@ class ACC_Trainer:
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
             comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-            envs_train_comm, perf_broadcasts_batch, perf_messages_batch = sample
+            envs_train_comm, perf_messages_batch, perf_broadcasts_batch = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -150,6 +150,7 @@ class ACC_Trainer:
             old_comm_action_log_probs_batch).to(self.device)
         act_advt_batch = torch.from_numpy(act_advt_batch).to(self.device)
         comm_advt_batch = torch.from_numpy(comm_advt_batch).to(self.device)
+        perf_messages_batch = torch.from_numpy(perf_messages_batch).to(self.device)
 
         # Agent forward pass
         act_values, comm_values, env_action_log_probs, act_dist_entropy, \
@@ -223,16 +224,19 @@ class ACC_Trainer:
             log_losses["mean_sim"] = mean_sim
 
             # Captioning loss
-            sample_perf_messages = [perf_messages_batch[i] for i in ids]
+            # sample_perf_messages = [perf_messages_batch[i] for i in ids]
 
             dec_inputs = comm_actions[ids]
             # Decode
-            encoded_targets = self.lang_learner.word_encoder.encode_batch(
-                sample_perf_messages, pad=True).to(self.device)
+            targets = perf_messages_batch[ids].long()
+            # Remove excess padded tokens
+            targets = targets[:, :-min((targets == 0).sum(-1))]
+            # encoded_targets = self.lang_learner.word_encoder.encode_batch(
+            #     sample_perf_messages, pad=True).to(self.device)
             decoder_outputs, _ = self.lang_learner.decoder(
-                dec_inputs, encoded_targets)
+                dec_inputs, targets)
             # Captioning loss
-            capt_loss = self._compute_capt_loss(decoder_outputs, encoded_targets)
+            capt_loss = self._compute_capt_loss(decoder_outputs, targets)
 
             log_losses["capt_loss"] = capt_loss.item()
         else:
@@ -310,8 +314,7 @@ class ACC_Trainer:
                 else:
                     for a_i in range(len(self.agents)):
                         sample_i = (
-                            *[batch[:, a_i] for batch in sample[:-2]],
-                            [s[a_i] for s in sample[-2]],
+                            *[batch[:, a_i] for batch in sample[:-1]],
                             [s[a_i] for s in sample[-1]])
                             # sample[-1][a_i])
 
