@@ -92,11 +92,15 @@ def get_config():
     parser.add_argument("--lang_embed_dim", type=int, default=4)
     parser.add_argument("--lang_hidden_dim", type=int, default=32)
     parser.add_argument("--lang_lr", type=float, default=0.007)
-    parser.add_argument("--lang_capt_loss_weight", type=float, default=0.0001)
-    parser.add_argument("--lang_capt_loss_weight_anneal", type=float, default=0.0001)
     parser.add_argument("--lang_batch_size", type=int, default=256,
                         help="Number of steps sampled in batch for CLIP training.")
     parser.add_argument("--lang_temp", type=float, default=1.0)
+
+    # Loss weights
+    parser.add_argument("--dyna_weight_loss", default=False, action="store_true")
+    parser.add_argument("--actor_loss_weight", type=float, default=1.0)
+    parser.add_argument("--lang_capt_loss_weight", type=float, default=1.0)
+    parser.add_argument("--lang_capt_loss_weight_anneal", type=float, default=1.0)
 
     # Communication parameters
     parser.add_argument("--comm_type", default="language", 

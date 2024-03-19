@@ -29,7 +29,7 @@ def run():
     assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
     print("Starting eval with config:")
     print(cfg)
-    cfg.comm_type = "language"
+    # cfg.comm_type = "language"
 
     set_seeds(cfg.seed)
 
@@ -74,16 +74,17 @@ def run():
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
         
-        # print(f"\nStep #{ep_s_i + 1}")
-        # print("Observations", obs)
-        # print("Perfect Messages", parsed_obs)
-        # print("Agent Messages", agent_messages)
-        # print("Actions (t-1)", actions)
-        # print("Rewards", rewards)
-        # print("Communication Rewards", comm_rewards)
+        print(f"\nStep #{ep_s_i + 1}")
+        print("Observations", obs)
+        print("Perfect Messages", parsed_obs)
+        print("Agent Messages", agent_messages)
+        print("Actions (t-1)", actions)
+        print("Rewards", rewards)
+        print("Communication Rewards", comm_rewards)
 
         obs = next_obs
         parsed_obs = parser.get_perfect_messages(obs)
+        model.store_exp(obs, parsed_obs, rewards, dones)
 
         count_returns += rewards.mean(-1)
         render(cfg, envs)
