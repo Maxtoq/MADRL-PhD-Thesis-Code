@@ -800,6 +800,10 @@ models/magym_PredPrey/ACC_9x9_lang_CRITICOBSENC/*
 models/magym_PredPrey/9o5_ACC_perf_weightactorloss_EMBED/*
 !models/magym_PredPrey/9o5_ACC_perf_weightactorloss_EMBED/train_data
 
+!models/magym_PredPrey/9o5_ACC_no
+models/magym_PredPrey/9o5_ACC_no/*
+!models/magym_PredPrey/9o5_ACC_no/train_data
+
 !models/magym_PredPrey/9o5_ACC_perf_llr007
 models/magym_PredPrey/9o5_ACC_perf_llr007/*
 !models/magym_PredPrey/9o5_ACC_perf_llr007/run1
