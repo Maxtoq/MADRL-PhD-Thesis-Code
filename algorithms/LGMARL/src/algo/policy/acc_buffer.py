@@ -98,13 +98,17 @@ class ACC_ReplayBuffer:
         self.act_rewards = np.zeros(
             (self.rollout_length, self.n_parallel_envs, self.n_agents, 1), 
             dtype=np.float32)
-
-        self.comm_rewards = np.zeros(
-            (self.rollout_length, self.n_parallel_envs, self.n_agents, 1), 
-            dtype=np.float32)
         
         self.masks = np.ones(
             (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), 
+            dtype=np.float32)
+
+        # Communication
+        self.comm_rewards = np.zeros(
+            (self.rollout_length, self.n_parallel_envs, self.n_agents, 1), 
+            dtype=np.float32)
+        self.gen_comm = np.zeros(
+            (self.rollout_length, self.n_parallel_envs, self.n_agents, 1), 
             dtype=np.float32)
 
         # Language data
@@ -113,7 +117,7 @@ class ACC_ReplayBuffer:
              self.n_parallel_envs, 
              self.n_agents, 
              self.max_message_len),
-            dtype=np.float32)
+            dtype=np.int32)
         self.perf_broadcasts = []
 
         self.step = 0
@@ -138,9 +142,10 @@ class ACC_ReplayBuffer:
         self.comm_actions = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, self.comm_act_dim), dtype=np.float32)
         self.comm_action_log_probs = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
         self.act_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32) 
-        self.comm_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)    
+        self.comm_rewards = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
+        self.gen_comm = np.zeros((self.rollout_length, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
         self.masks = np.ones((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), dtype=np.float32)
-        self.perf_messages = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.max_message_len), dtype=np.float32)
+        self.perf_messages = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.max_message_len), dtype=np.int32)
         self.perf_broadcasts = []
         self.step = 0
 
@@ -176,7 +181,7 @@ class ACC_ReplayBuffer:
     def insert_act(self, 
             rnn_states, critic_rnn_states, env_actions, env_action_log_probs, 
             comm_actions, comm_action_log_probs, act_value_preds, 
-            comm_value_preds, act_rewards, comm_rewards, masks):
+            comm_value_preds, act_rewards, masks, comm_rewards, gen_comm):
         self.rnn_states[self.step + 1] = rnn_states.copy()
         self.critic_rnn_states[self.step + 1] = critic_rnn_states.copy()
         self.env_actions[self.step] = env_actions.copy()
@@ -186,8 +191,9 @@ class ACC_ReplayBuffer:
         self.act_value_preds[self.step] = act_value_preds.copy()
         self.comm_value_preds[self.step] = comm_value_preds.copy()
         self.act_rewards[self.step] = act_rewards.copy()
-        self.comm_rewards[self.step] = comm_rewards.copy()
         self.masks[self.step + 1] = masks.copy()
+        self.comm_rewards[self.step] = comm_rewards.copy()
+        self.gen_comm[self.step] = gen_comm.copy()
         self.step += 1
 
     def compute_returns(self,
@@ -229,21 +235,12 @@ class ACC_ReplayBuffer:
             self.comm_returns[step] = comm_gae + comm_value_normalizer.denormalize(
                 self.comm_value_preds[step])   
 
-    def recurrent_policy_generator(self, 
-            act_advt, comm_advt, envs_train_comm=None):
+    def recurrent_policy_generator(self, act_advt, comm_advt):
         """
         Generates sample for policy training.
         :param act_advt: (np.ndarray) Env actions advantages.
         :param comm_advt: (np.ndarray) Communication actions advantages.
         """
-        # Shape the envs_train_comm to be the same shape as others
-        if envs_train_comm is not None:
-            envs_train_comm = envs_train_comm[:, None, None].repeat(
-                self.rollout_length, 1).transpose(1, 0, 2).repeat(
-                    self.n_agents, -1)
-        else:
-            envs_train_comm = np.zeros_like(self.comm_rewards)
-
         # Shuffled env ids
         env_ids = np.random.choice(
             self.n_parallel_envs, size=self.n_parallel_envs, replace=False)
@@ -271,10 +268,11 @@ class ACC_ReplayBuffer:
             comm_value_preds_batch = self.comm_value_preds[:-1, ids]
             comm_returns_batch = self.comm_returns[:-1, ids]
             masks_batch = self.masks[:-1, ids]
+
+            gen_comm_batch = self.gen_comm[:, ids]
+
             act_advt_batch = act_advt[:, ids]
             comm_advt_batch = comm_advt[:, ids]
-
-            envs_train_comm_batch = envs_train_comm[:, ids]
 
             perf_messages_batch = self.perf_messages[:-1, ids]
             # Flatten the broadcasts first dimension (env_step) and get only 
@@ -312,6 +310,8 @@ class ACC_ReplayBuffer:
                     self.rollout_length * mini_batch_size * self.n_agents, -1)
                 masks_batch = masks_batch.reshape(
                     self.rollout_length * mini_batch_size * self.n_agents, -1)
+                gen_comm_batch = gen_comm_batch.reshape(
+                    self.rollout_length * mini_batch_size * self.n_agents, -1)
                 act_advt_batch = act_advt_batch.reshape(
                     self.rollout_length * mini_batch_size * self.n_agents, -1)
                 comm_advt_batch = comm_advt_batch.reshape(
@@ -321,9 +321,6 @@ class ACC_ReplayBuffer:
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
                 critic_rnn_states_batch = critic_rnn_states_batch.reshape(
                     mini_batch_size * self.n_agents, self.recurrent_N, -1)
-
-                envs_train_comm_batch = envs_train_comm_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents)
 
                 perf_messages_batch = perf_messages_batch.reshape(
                     self.rollout_length * mini_batch_size * self.n_agents, -1)
@@ -360,13 +357,12 @@ class ACC_ReplayBuffer:
                     self.rollout_length * mini_batch_size, self.n_agents, -1)
                 masks_batch = masks_batch.reshape(
                     self.rollout_length * mini_batch_size, self.n_agents, -1)
+                gen_comm_batch = gen_comm_batch.reshape(
+                    self.rollout_length * mini_batch_size, self.n_agents, -1)
                 act_advt_batch = act_advt_batch.reshape(
                     self.rollout_length * mini_batch_size, self.n_agents, -1)
                 comm_advt_batch = comm_advt_batch.reshape(
                     self.rollout_length * mini_batch_size, self.n_agents, -1)
-
-                envs_train_comm_batch = envs_train_comm_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents)
 
                 perf_messages_batch = perf_messages_batch.reshape(
                     self.rollout_length * mini_batch_size, self.n_agents, -1)
@@ -376,4 +372,4 @@ class ACC_ReplayBuffer:
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
                 act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
                 comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-                envs_train_comm_batch, perf_messages_batch, perf_broadcasts_batch
+                gen_comm_batch, perf_messages_batch, perf_broadcasts_batch

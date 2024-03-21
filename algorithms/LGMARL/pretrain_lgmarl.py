@@ -52,9 +52,6 @@ def run():
         device,
         log_dir)
 
-    # Epsilon parameter for choosing what communication 
-    comm_eps = ParameterDecay(1.0, 0.001, cfg.n_steps, "sigmoid", cfg.comm_eps_smooth)
-
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
     print(f"                  updates every {cfg.n_parallel_envs} episodes")
@@ -68,18 +65,12 @@ def run():
     n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
-        
-        # Choose between perfect and generated messages
-        gen_comm = None
-        if cfg.comm_type == "language":
-            eps = comm_eps.get_explo_rate(s_i)
-            gen_comm = np.random.random(cfg.n_parallel_envs) > eps
 
         for ep_s_i in range(cfg.rollout_length):
             # Perform step
             # Get action
             actions, broadcasts, agent_messages, comm_rewards \
-                = model.comm_n_act(gen_comm)
+                = model.comm_n_act()
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
@@ -99,7 +90,6 @@ def run():
         # Training
         train_losses = model.train(
             s_i + n_steps_per_update,
-            envs_train_comm=gen_comm,
             train_lang=not cfg.no_train_lang)
 
         # Log train data

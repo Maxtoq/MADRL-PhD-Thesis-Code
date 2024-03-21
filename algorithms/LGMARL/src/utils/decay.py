@@ -14,13 +14,16 @@ class ParameterDecay:
         self.fn = fn
         self.smooth_param = smooth_param
 
+        self.value = self.start
+
     def get_explo_rate(self, step_i):
         exp_pct_remain = max(0, 1 - step_i / self.n_steps)
         if self.fn == "linear":
-            return self.finish + self.diff * exp_pct_remain
+            self.value = self.finish + self.diff * exp_pct_remain
         elif self.fn == "exp":
-            return self.diff * math.exp(self.smooth_param * (exp_pct_remain - 1)) \
+            self.value = self.diff * math.exp(self.smooth_param * (exp_pct_remain - 1)) \
                         * exp_pct_remain + self.finish
         elif self.fn == "sigmoid":
-            return self.diff / ((1 + math.exp(-16 * exp_pct_remain / \
+            self.value = self.diff / ((1 + math.exp(-16 * exp_pct_remain / \
                         self.smooth_param)) ** 20) + self.finish
+        return self.value

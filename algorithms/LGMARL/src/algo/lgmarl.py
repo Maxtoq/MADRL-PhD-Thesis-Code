@@ -37,7 +37,10 @@ class LanguageGroundedMARL:
         #         args.lang_capt_loss_weight_anneal, 
         #         args.n_steps, 
         #         "exp", 
-        #         10)        
+        #         10)  
+        # Communication Epsilon-greedy
+        self.comm_eps = ParameterDecay(
+            1.0, 0.0001, self.n_steps, "sigmoid", args.comm_eps_smooth)      
 
         if self.comm_type == "no_comm":
             policy_input_dim = get_shape_from_obs_space(obs_space[0])
@@ -99,6 +102,7 @@ class LanguageGroundedMARL:
         self.comm_action_log_probs = None
         self.rnn_states = None
         self.rnn_states_critic = None
+        self.gen_comm = None
 
     def prep_training(self, device=None):
         if device is not None:
@@ -224,8 +228,9 @@ class LanguageGroundedMARL:
             self.act_values,
             self.comm_values,
             act_rewards[..., np.newaxis],
+            masks,
             self.comm_rewards,
-            masks)
+            self.gen_comm)
 
         # Insert next obs in buffer
         self._store_obs(next_obs, next_perf_messages)
@@ -236,8 +241,11 @@ class LanguageGroundedMARL:
             return {}
 
         # Penalty for message length
-        self.comm_rewards = (((
-            messages != 0).sum(-1) - 1) * self.token_penalty)[..., np.newaxis]
+        lengths = (np.concatenate(
+            (messages, np.ones((*messages.shape[:-1], 1))), -1) == 1).argmax(-1)
+        self.comm_rewards = (
+            np.ones((self.n_envs, self.n_agents)) * lengths * self.token_penalty
+        )[..., np.newaxis]
 
         comm_rewards = {
             "message_len": self.comm_rewards.mean()}
@@ -245,14 +253,14 @@ class LanguageGroundedMARL:
         return comm_rewards
 
     @torch.no_grad()
-    def comm_n_act(self, env_gen_messages=None):
+    def comm_n_act(self):
         """
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
 
-        :param env_gen_messages: (np.ndarray) Array of boolean controlling whether
-            to generate messages or use perfect messages, one for each parallel
-            environment, used for comm_type=language only.
+        :param env_gen_messages: (np.ndarray) Array of boolean controlling 
+            whether to generate messages or use perfect messages, one for each 
+            parallel environment, used for comm_type=language only.
 
         :return actions (np.ndarray): Actions for each agent, 
             dim=(n_envs, n_agents, 1).
@@ -272,31 +280,43 @@ class LanguageGroundedMARL:
 
         # Get messages
         if self.comm_type in ["language"]:
-            # messages = self.lang_learner.generate_sentences(
-            #     np.concatenate(self.comm_actions))
+            messages_by_env = self.lang_learner.generate_sentences(np.concatenate(
+                self.comm_actions)).reshape(self.n_envs, self.n_agents, -1)
 
-            # # Arrange messages by env and construct broadcasts
-            # broadcasts = []
-            # messages_by_env = []
-            # for e_i in range(self.n_envs):
-            #     if env_gen_messages[e_i]:
-            #         env_messages = messages[
-            #             e_i * self.n_agents:(e_i + 1) * self.n_agents]
+            # Decide which comm strategy 
+            self.gen_comm = np.random.random(
+                (self.n_envs, self.n_agents, 1)) > self.comm_eps.value
 
-            #         env_broadcast = []
-            #         for message in env_messages:
-            #             env_broadcast.extend(message)
-            #     else:
-            #         env_messages = perfect_messages[e_i]
-            #         env_broadcast = perfect_broadcasts[e_i][0]
+            # Build broadcasts
+            broadcasts = []
+            for e_i in range(self.n_envs):
+                env_br = []
+                for a_i in range(self.n_agents):
+                    # Replace message by perfect message if not gen_comm
+                    if self.gen_comm[e_i, a_i, 0]:
+                        agent_m = messages_by_env[e_i, a_i]
+                    else:
+                        agent_m = perfect_messages[e_i, a_i]
 
-            #     broadcasts.append(env_broadcast)
-            #     messages_by_env.append(env_messages)
+                    # De-pad message and add to broadcast
+                    end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
+                    env_br.extend(agent_m[:end_i])
+                env_br.append(1)
+                broadcasts.append(env_br)
 
-            # # Get lang contexts
-            # self.lang_contexts = self.lang_learner.encode_sentences(
-            #     broadcasts).cpu().numpy()
-            pass
+            # Get lang contexts
+            self.lang_contexts = self.lang_learner.encode_sentences(
+                broadcasts).cpu().numpy()
+
+        elif self.comm_type == "perfect_comm":
+            messages_by_env = perfect_messages
+            
+            # Get lang contexts
+            broadcasts = [
+                env_br[0] for env_br in perfect_broadcasts]
+
+            self.lang_contexts = self.lang_learner.encode_sentences(
+                broadcasts).cpu().numpy()
 
         elif self.comm_type == "emergent_continuous":
             messages_by_env = self.comm_actions
@@ -312,14 +332,6 @@ class LanguageGroundedMARL:
                 raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
             broadcasts = self.lang_contexts
 
-        elif self.comm_type == "perfect_comm":
-            messages_by_env = perfect_messages
-            # Get lang contexts
-            broadcasts = [
-                env_br[0] for env_br in perfect_broadcasts]
-            self.lang_contexts = self.lang_learner.encode_sentences(
-                broadcasts).cpu().numpy()
-
         elif self.comm_type == "no_comm":
             messages_by_env = None
             broadcasts = None
@@ -328,7 +340,6 @@ class LanguageGroundedMARL:
             raise NotImplementedError("Communication type not implemented:", self.comm_type)
 
         # Reward messages
-        self.comm_rewards = np.zeros((self.n_envs, self.n_agents, 1))
         if self.comm_type != "no_comm":
             comm_rewards = self._reward_comm(messages_by_env)
         else:
@@ -339,6 +350,10 @@ class LanguageGroundedMARL:
     # def _anneal_capt_weight(self, step):
     #     if self.anneal_capt_weight:
     #         self.trainer.capt_loss_weight = self.capt_weight_decay.get_explo_rate(step)
+
+    def _update_comm_eps(self, step):
+        if self.comm_type == "language":
+            self.comm_eps.get_explo_rate(step)
 
     @torch.no_grad()
     def _compute_returns(self):
@@ -361,12 +376,12 @@ class LanguageGroundedMARL:
 
     def train(self, step, 
             train_act_head=True, 
-            envs_train_comm=None, 
             train_value_head=True,
             train_lang=True):
         self.prep_training()
 
         # self._anneal_capt_weight(step)
+        self._update_comm_eps(step)
 
         warmup = step < self.n_warmup_steps
 
@@ -382,7 +397,7 @@ class LanguageGroundedMARL:
 
         # Train 
         losses = self.trainer.train(
-            warmup, comm_head_learns_rl, train_lang, envs_train_comm)
+            warmup, comm_head_learns_rl, train_lang)
 
         return losses
 

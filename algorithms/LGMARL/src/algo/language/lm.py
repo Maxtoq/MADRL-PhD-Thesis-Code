@@ -368,7 +368,7 @@ class GRUDecoder(nn.Module):
 
                 # Add next token, if sentence is not already finished (then pad with -1)
                 topi = topi.cpu().numpy()
-                next_token_ids = sent_finished * -1 + (1 - sent_finished) * topi
+                next_token_ids = sent_finished * 0 + (1 - sent_finished) * topi
                 if sentences is None:
                     sentences = next_token_ids
                 else:

@@ -44,27 +44,27 @@ class ACC_Trainer:
         self.act_value_normalizer = ValueNorm(1).to(device)
         self.comm_value_normalizer = ValueNorm(1).to(device)
 
-    def _update_loss_weights(self, a_i, losses, train_comm_head, train_lang):
+    def _update_loss_weights(self, a_i, losses):
         self.actor_loss_w[a_i] = 1 / (
             abs(losses["actor_loss"]) 
-            if losses["actor_loss"] != 0 else self.actor_loss_w)
+            if losses["actor_loss"] != 0 else self.actor_loss_w[a_i])
         self.act_value_loss_w[a_i] = 1 / (
             abs(losses["act_value_loss"]) 
-            if losses["act_value_loss"] != 0 else self.act_value_loss_w)
-        if train_comm_head:
+            if losses["act_value_loss"] != 0 else self.act_value_loss_w[a_i])
+        if "comm_loss" in losses:
             self.comm_loss_w[a_i] = 1 / (
                 abs(losses["comm_loss"]) 
-                if losses["comm_loss"] != 0 else self.comm_loss_w)
+                if losses["comm_loss"] != 0 else self.comm_loss_w[a_i])
             self.comm_value_loss_w[a_i] = 1 / (
                 abs(losses["comm_value_loss"]) 
-                if losses["comm_value_loss"] != 0 else self.comm_value_loss_w)
-        if train_lang:
+                if losses["comm_value_loss"] != 0 else self.comm_value_loss_w[a_i])
+        if "clip_loss" in losses:
             self.clip_loss_w[a_i] = 1 / (
                 abs(losses["clip_loss"]) 
-                if losses["clip_loss"] != 0 else self.clip_loss_w)
+                if losses["clip_loss"] != 0 else self.clip_loss_w[a_i])
             self.capt_loss_w[a_i] = 1 / (
                 abs(losses["capt_loss"]) 
-                if losses["capt_loss"] != 0 else self.capt_loss_w)
+                if losses["capt_loss"] != 0 else self.capt_loss_w[a_i])
 
     def _compute_advantages(self, train_comm_head):
          # Compute and normalize action advantages
@@ -165,7 +165,7 @@ class ACC_Trainer:
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
             comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-            envs_train_comm, perf_messages_batch, perf_broadcasts_batch = sample
+            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -216,12 +216,13 @@ class ACC_Trainer:
 
         # Communicator losses
         if train_comm_head:
-            # The comm head is trained only on envs that used generated comm
-            if envs_train_comm.sum() > 0:
+            # The comm head is trained only on generated messages
+            gen_comm_batch = gen_comm_batch == 1.0
+            if gen_comm_batch.sum() > 32:
                 comm_loss = self._compute_policy_loss(
-                    comm_action_log_probs[envs_train_comm], 
-                    old_comm_action_log_probs_batch[envs_train_comm], 
-                    comm_advt_batch[envs_train_comm], 
+                    comm_action_log_probs[gen_comm_batch], 
+                    old_comm_action_log_probs_batch[gen_comm_batch], 
+                    comm_advt_batch[gen_comm_batch], 
                     comm_dist_entropy)
                 log_losses["comm_loss"] = comm_loss.item()
             else:
@@ -309,20 +310,16 @@ class ACC_Trainer:
             self.lang_learner.optim.step()
 
         if self.dyna_weight_loss:
-            self._update_loss_weights(agent_i, log_losses, train_comm_head, train_lang)
+            self._update_loss_weights(agent_i, log_losses)
 
         return log_losses
 
-    def train(self, 
-            warmup=False, train_comm_head=True, train_lang=True, 
-            envs_train_comm=None):
+    def train(self, warmup=False, train_comm_head=True, train_lang=True):
         """
         Train LGMARL.
 
         :param train_comm_head: (bool) Whether to train the communicator head.
         :param train_lang: (bool) Whether to train language modules.
-        :param envs_train_comm: (nd.ndarray) Booleans indicating which 
-            environment must be used for training the communication head.
 
         :return losses: (dict) Contains losses obtained during update.
         """
@@ -347,7 +344,7 @@ class ACC_Trainer:
         num_updates = self.ppo_epoch * self.n_mini_batch
         for _ in range(self.ppo_epoch):
             data_generator = self.buffer.recurrent_policy_generator(
-                act_advantages, comm_advantages, envs_train_comm)
+                act_advantages, comm_advantages)
     
             for sample in data_generator:
                 if self.share_params:
