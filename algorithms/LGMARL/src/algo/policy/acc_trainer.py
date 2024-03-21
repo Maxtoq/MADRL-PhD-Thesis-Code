@@ -31,8 +31,12 @@ class ACC_Trainer:
 
         # Init loss weights
         self.dyna_weight_loss = args.dyna_weight_loss
-        self.capt_loss_w = args.lang_capt_loss_weight
-        self.actor_loss_w = args.actor_loss_weight
+        self.capt_loss_w = [args.lang_capt_loss_weight] * len(self.agents)
+        self.actor_loss_w = [args.actor_loss_weight] * len(self.agents)
+        self.comm_loss_w = [1.0] * len(self.agents)
+        self.act_value_loss_w =[1.0] * len(self.agents)
+        self.comm_value_loss_w = [1.0] * len(self.agents)
+        self.clip_loss_w = [1.0] * len(self.agents)
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss(reduction="mean", ignore_index=0)
@@ -40,21 +44,50 @@ class ACC_Trainer:
         self.act_value_normalizer = ValueNorm(1).to(device)
         self.comm_value_normalizer = ValueNorm(1).to(device)
 
-    def _compute_advantages(self):
+    def _update_loss_weights(self, a_i, losses, train_comm_head, train_lang):
+        self.actor_loss_w[a_i] = 1 / (
+            abs(losses["actor_loss"]) 
+            if losses["actor_loss"] != 0 else self.actor_loss_w)
+        self.act_value_loss_w[a_i] = 1 / (
+            abs(losses["act_value_loss"]) 
+            if losses["act_value_loss"] != 0 else self.act_value_loss_w)
+        if train_comm_head:
+            self.comm_loss_w[a_i] = 1 / (
+                abs(losses["comm_loss"]) 
+                if losses["comm_loss"] != 0 else self.comm_loss_w)
+            self.comm_value_loss_w[a_i] = 1 / (
+                abs(losses["comm_value_loss"]) 
+                if losses["comm_value_loss"] != 0 else self.comm_value_loss_w)
+        if train_lang:
+            self.clip_loss_w[a_i] = 1 / (
+                abs(losses["clip_loss"]) 
+                if losses["clip_loss"] != 0 else self.clip_loss_w)
+            self.capt_loss_w[a_i] = 1 / (
+                abs(losses["capt_loss"]) 
+                if losses["capt_loss"] != 0 else self.capt_loss_w)
+
+    def _compute_advantages(self, train_comm_head):
          # Compute and normalize action advantages
-        act_advantages = self.buffer.act_returns[:-1] - self.act_value_normalizer.denormalize(
-            self.buffer.act_value_preds[:-1])
+        act_advantages = self.buffer.act_returns[:-1] \
+            - self.act_value_normalizer.denormalize(
+                self.buffer.act_value_preds[:-1])
         act_advantages_copy = act_advantages.copy()
         mean_act_advantages = np.nanmean(act_advantages_copy)
         std_act_advantages = np.nanstd(act_advantages_copy)
-        act_advantages = (act_advantages - mean_act_advantages) / (std_act_advantages + 1e-5)
+        act_advantages = (act_advantages - mean_act_advantages) \
+            / (std_act_advantages + 1e-5)
          # Compute and normalize communication advantages
-        comm_advantages = self.buffer.comm_returns[:-1] - self.comm_value_normalizer.denormalize(
-            self.buffer.comm_value_preds[:-1])
-        comm_advantages_copy = comm_advantages.copy()
-        mean_comm_advantages = np.nanmean(comm_advantages_copy)
-        std_comm_advantages = np.nanstd(comm_advantages_copy)
-        comm_advantages = (comm_advantages - mean_comm_advantages) / (std_comm_advantages + 1e-5)
+        if train_comm_head:
+            comm_advantages = self.buffer.comm_returns[:-1] \
+                - self.comm_value_normalizer.denormalize(
+                    self.buffer.comm_value_preds[:-1])
+            comm_advantages_copy = comm_advantages.copy()
+            mean_comm_advantages = np.nanmean(comm_advantages_copy)
+            std_comm_advantages = np.nanstd(comm_advantages_copy)
+            comm_advantages = (comm_advantages - mean_comm_advantages) \
+                / (std_comm_advantages + 1e-5)
+        else:
+            comm_advantages = np.zeros_like(act_advantages)
         return act_advantages, comm_advantages
 
     def _compute_policy_loss(self, 
@@ -126,7 +159,7 @@ class ACC_Trainer:
         capt_loss = self.captioning_loss(preds, targets)
         return capt_loss
 
-    def _train_mappo(self, agent, sample, train_comm_head, train_lang):
+    def _train_mappo(self, agent_i, sample, train_comm_head, train_lang):
         policy_input_batch, critic_input_batch, rnn_states_batch, \
             critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
@@ -159,7 +192,7 @@ class ACC_Trainer:
         # Agent forward pass
         act_values, comm_values, env_action_log_probs, act_dist_entropy, \
         comm_action_log_probs, comm_dist_entropy, comm_actions, critic_obs_encs \
-            = agent.evaluate_actions(
+            = self.agents[agent_i].evaluate_actions(
                 policy_input_batch, critic_input_batch, rnn_states_batch, 
                 critic_rnn_states_batch, env_actions_batch, 
                 comm_actions_batch, masks_batch)
@@ -224,7 +257,7 @@ class ACC_Trainer:
             clip_loss, mean_sim = self._compute_clip_loss(
                 obs_contexts, lang_contexts)
 
-            log_losses["clip_loss"] = clip_loss.item() / self.lang_batch_size
+            log_losses["clip_loss"] = clip_loss.item()
             log_losses["mean_sim"] = mean_sim
 
             # Captioning loss
@@ -234,7 +267,9 @@ class ACC_Trainer:
             # Decode
             targets = perf_messages_batch[ids].long()
             # Remove excess padded tokens
-            targets = targets[:, :-min((targets == 0).sum(-1))]
+            n_excess = min((targets == 0).sum(-1))
+            if n_excess > 0:
+                targets = targets[:, :-min((targets == 0).sum(-1))]
             # encoded_targets = self.lang_learner.word_encoder.encode_batch(
             #     sample_perf_messages, pad=True).to(self.device)
             decoder_outputs, _ = self.lang_learner.decoder(
@@ -247,30 +282,36 @@ class ACC_Trainer:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
 
-        loss = self.actor_loss_w * actor_loss + comm_loss + act_value_loss \
-                + comm_value_loss + clip_loss + self.capt_loss_w * capt_loss
+        loss = self.actor_loss_w[agent_i] * actor_loss \
+                + self.comm_loss_w[agent_i] * comm_loss \
+                + self.act_value_loss_w[agent_i] * act_value_loss \
+                + self.comm_value_loss_w[agent_i] * comm_value_loss \
+                + self.clip_loss_w[agent_i] * clip_loss \
+                + self.capt_loss_w[agent_i] * capt_loss
         
         # Compute gradients
-        agent.act_comm_optim.zero_grad()
-        agent.critic_optim.zero_grad()
+        self.agents[agent_i].act_comm_optim.zero_grad()
+        self.agents[agent_i].critic_optim.zero_grad()
         if train_lang:
             self.lang_learner.optim.zero_grad()
         loss.backward()
 
         # Clip gradients
         actcomm_grad_norm = nn.utils.clip_grad_norm_(
-            agent.act_comm.parameters(), self.max_grad_norm)
+            self.agents[agent_i].act_comm.parameters(), self.max_grad_norm)
         critic_grad_norm = nn.utils.clip_grad_norm_(
-            agent.critic.parameters(), self.max_grad_norm)
+            self.agents[agent_i].critic.parameters(), self.max_grad_norm)
 
         # Update
-        agent.act_comm_optim.step()
-        agent.critic_optim.step()
+        self.agents[agent_i].act_comm_optim.step()
+        self.agents[agent_i].critic_optim.step()
         if train_lang:
             self.lang_learner.optim.step()
 
-        return log_losses
+        if self.dyna_weight_loss:
+            self._update_loss_weights(agent_i, log_losses, train_comm_head, train_lang)
 
+        return log_losses
 
     def train(self, 
             warmup=False, train_comm_head=True, train_lang=True, 
@@ -288,7 +329,8 @@ class ACC_Trainer:
         for a in self.agents:
             a.warmup_lr(warmup)
             
-        act_advantages, comm_advantages = self._compute_advantages()
+        act_advantages, comm_advantages = self._compute_advantages(
+            train_comm_head)
         
         losses = {
             "act_value_loss": 0.0,
@@ -310,7 +352,7 @@ class ACC_Trainer:
             for sample in data_generator:
                 if self.share_params:
                     loss = self._train_mappo(
-                        self.agents[0], sample, train_comm_head, train_lang)
+                        0, sample, train_comm_head, train_lang)
                     
                     for key in loss:
                         losses[key] += loss[key] / num_updates
@@ -322,7 +364,7 @@ class ACC_Trainer:
                             # sample[-1][a_i])
 
                         loss = self._train_mappo(
-                            self.agents[a_i], 
+                            a_i, 
                             sample_i, 
                             train_comm_head, 
                             train_lang)
@@ -330,9 +372,5 @@ class ACC_Trainer:
                         for key in loss:
                             losses[key] += loss[key] / (
                                 num_updates * len(self.agents))
-            
-        if self.dyna_weight_loss:
-            self.actor_loss_w = 1 / abs(losses["actor_loss"])
-            self.capt_loss_w = 1 / abs(losses["capt_loss"])
 
         return losses

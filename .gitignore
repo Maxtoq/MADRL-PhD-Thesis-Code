@@ -808,6 +808,14 @@ models/magym_PredPrey/9o5_ACC_perf_llr007/run1/*
 models/magym_PredPrey/9o5_ACC_perf_llr007/run1/logs/*
 !models/magym_PredPrey/9o5_ACC_perf_llr007/run1/logs/comm_logs
 
+!models/magym_PredPrey/ACC_9o5_perf_dynawl
+models/magym_PredPrey/ACC_9o5_perf_dynawl/*
+!models/magym_PredPrey/ACC_9o5_perf_dynawl/train_data
+
+!models/magym_PredPrey/ACC_9o5_perf_alldynawl
+models/magym_PredPrey/ACC_9o5_perf_alldynawl/*
+!models/magym_PredPrey/ACC_9o5_perf_alldynawl/train_data
+
 !models/magym_Foraging
 models/magym_Foraging/*
 

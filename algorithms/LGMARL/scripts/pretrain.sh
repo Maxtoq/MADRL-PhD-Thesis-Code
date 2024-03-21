@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=1
-experiment_name="ACC_9o5_perf_dynawl"
+n_run=3
+experiment_name="ACC_9o5_perf_alldynawl"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -17,14 +17,13 @@ comm_ec_strategy="mean" # default sum
 comm_eps_smooth=2.0 # default 1.0
 comm_token_penalty=0.001
 context_dim=16 # default 16
-lang_lr=0.007 # default 0.007
-lang_batch_size=2048 # default 256
+lang_lr=0.005 # default 0.007
+lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
-lang_capt_loss_weight_anneal=1 # default 0.0001
 lang_embed_dim=4 # default 4
 magym_env_size=9
 magym_obs_range=5 # default 5
-cuda_device="cuda:2"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 
@@ -54,7 +53,6 @@ do
     --lang_lr ${lang_lr}
     --lang_batch_size ${lang_batch_size}
     --lang_capt_loss_weight ${lang_capt_loss_weight}
-    --lang_capt_loss_weight_anneal ${lang_capt_loss_weight_anneal}
     --magym_env_size ${magym_env_size}
     --magym_obs_range ${magym_obs_range}
     --dyna_weight_loss"

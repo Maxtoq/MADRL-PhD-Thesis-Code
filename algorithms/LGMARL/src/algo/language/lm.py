@@ -344,7 +344,7 @@ class GRUDecoder(nn.Module):
         # Init last token to the SOS token, embedded
         last_tokens = self.embed_layer(
             torch.zeros((1, batch_size), dtype=torch.int).to(self.device))
-
+            
         max_sent_len = target_encs.shape[1] if teacher_forcing \
             else self.max_len
 
@@ -379,7 +379,7 @@ class GRUDecoder(nn.Module):
                 
                 if sent_finished.all():
                     break
-                    
+        
         decoder_outputs = torch.cat(decoder_outputs, axis=0).transpose(0, 1)
 
         return decoder_outputs, sentences
