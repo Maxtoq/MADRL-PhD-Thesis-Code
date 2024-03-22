@@ -244,7 +244,7 @@ class LanguageGroundedMARL:
         lengths = (np.concatenate(
             (messages, np.ones((*messages.shape[:-1], 1))), -1) == 1).argmax(-1)
         self.comm_rewards = (
-            np.ones((self.n_envs, self.n_agents)) * lengths * self.token_penalty
+            np.ones((self.n_envs, self.n_agents)) * lengths * -self.token_penalty
         )[..., np.newaxis]
 
         comm_rewards = {
