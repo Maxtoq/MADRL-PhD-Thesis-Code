@@ -95,6 +95,7 @@ def get_config():
     parser.add_argument("--lang_batch_size", type=int, default=256,
                         help="Number of steps sampled in batch for CLIP training.")
     parser.add_argument("--lang_temp", type=float, default=1.0)
+    parser.add_argument("--lang_imp_sample", default=False, action="store_true")
 
     # Loss weights
     parser.add_argument("--dyna_weight_loss", default=False, action="store_true")

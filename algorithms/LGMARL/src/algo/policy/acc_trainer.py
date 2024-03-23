@@ -27,6 +27,7 @@ class ACC_Trainer:
 
         # Language params
         self.lang_batch_size = args.lang_batch_size
+        self.lang_imp_sample = args.lang_imp_sample
         self.temp = args.lang_temp
 
         # Init loss weights
@@ -165,7 +166,8 @@ class ACC_Trainer:
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
             comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch = sample
+            gen_comm_batch, perf_messages_batch, mess_sampling_probs, \
+            perf_broadcasts_batch = sample
 
         policy_input_batch = torch.from_numpy(policy_input_batch).to(self.device)
         critic_input_batch = torch.from_numpy(critic_input_batch).to(self.device)
@@ -246,7 +248,8 @@ class ACC_Trainer:
             ids = np.random.choice(
                 len(perf_broadcasts_batch), 
                 size=batch_size, 
-                replace=False)
+                replace=False,
+                p=mess_sampling_probs if self.lang_imp_sample else None)
 
             # CLIP loss 
             # Encode sentences

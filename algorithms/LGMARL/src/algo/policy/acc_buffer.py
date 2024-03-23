@@ -11,6 +11,45 @@ def _cast(x):
     return x.transpose(1, 2, 0, 3).reshape(-1, *x.shape[3:])
 
 
+
+
+class MessageSampler():
+
+    def __init__(self):
+        self.observed_messages = {}
+        self.n_messages = 0
+
+    def add_messages(self, messages):
+        messages = messages.reshape(-1, messages.shape[-1])
+        for mess in messages:
+            # key = mess.tobytes()
+            key = str(mess)
+            if key in self.observed_messages:
+                self.observed_messages[key] += 1
+            else:
+                self.observed_messages[key] = 1
+            self.n_messages += 1
+
+    def get_message_probs(self, message_batch):
+        batch_size = message_batch.shape[0]
+
+        # Get number of occurence of each message
+        n_occs = np.zeros(batch_size)
+        for m_i, mess in enumerate(message_batch):
+            # key = mess.tobytes()
+            key = str(mess)
+            if key in self.observed_messages:
+                n_occs[m_i] = self.observed_messages[key]
+            else:
+                n_occs[m_i] = 1 / self.n_messages
+        
+        # Compute probalities
+        probs = 1 / n_occs
+        probs = np.exp(probs) / np.exp(probs).sum()
+
+        return probs
+
+
 class ACC_ReplayBuffer:
 
     def __init__(self, 
@@ -32,6 +71,9 @@ class ACC_ReplayBuffer:
         self.n_mini_batch = args.n_mini_batch
         self.data_chunk_length = args.data_chunk_length
         self.share_params = args.share_params
+
+        self.lang_imp_sample = args.lang_imp_sample
+        self.message_sampler = MessageSampler()
 
         self.policy_input = np.zeros(
             (self.rollout_length + 1, 
@@ -171,6 +213,8 @@ class ACC_ReplayBuffer:
         self.critic_input[self.step] = critic_input
         self.perf_messages[self.step] = perf_messages
         self.perf_broadcasts.append(perf_broadcasts)
+        if self.lang_imp_sample:
+            self.message_sampler.add_messages(perf_messages)
 
     def get_act_params(self):
         return self.policy_input[self.step], self.critic_input[self.step], \
@@ -193,7 +237,8 @@ class ACC_ReplayBuffer:
         self.act_rewards[self.step] = act_rewards.copy()
         self.masks[self.step + 1] = masks.copy()
         self.comm_rewards[self.step] = comm_rewards.copy()
-        self.gen_comm[self.step] = gen_comm.copy()
+        if gen_comm is not None:
+            self.gen_comm[self.step] = gen_comm.copy()
         self.step += 1
 
     def compute_returns(self,
@@ -234,6 +279,16 @@ class ACC_ReplayBuffer:
                 * comm_gae
             self.comm_returns[step] = comm_gae + comm_value_normalizer.denormalize(
                 self.comm_value_preds[step])   
+
+    def _get_mess_sampl_probs(self, messages):
+        if len(messages.shape) == 3:
+            probs = np.zeros(messages.shape[:-1])
+            for a_i in range(self.n_agents):
+                probs[:, a_i] = self.message_sampler.get_message_probs(messages[:, a_i])
+            probs = probs.reshape(messages.shape[0], self.n_agents)
+        else:
+            probs = self.message_sampler.get_message_probs(messages)
+        return probs
 
     def recurrent_policy_generator(self, act_advt, comm_advt):
         """
@@ -367,9 +422,17 @@ class ACC_ReplayBuffer:
                 perf_messages_batch = perf_messages_batch.reshape(
                     self.rollout_length * mini_batch_size, self.n_agents, -1)
 
+            # Get probabilities of sampling each message for language training
+            if self.lang_imp_sample:
+                mess_sampling_probs = self._get_mess_sampl_probs(
+                    perf_messages_batch)
+            else:
+                mess_sampling_probs = np.zeros_like(perf_messages_batch)
+
             yield policy_input_batch, critic_input_batch, rnn_states_batch, \
                 critic_rnn_states_batch, env_actions_batch, comm_actions_batch, \
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
                 act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
                 comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-                gen_comm_batch, perf_messages_batch, perf_broadcasts_batch
+                gen_comm_batch, perf_messages_batch, mess_sampling_probs, \
+                perf_broadcasts_batch
