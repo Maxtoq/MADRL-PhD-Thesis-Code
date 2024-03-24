@@ -107,8 +107,8 @@ def get_config():
     parser.add_argument("--comm_type", default="language", 
                         choices=["language", "emergent_continuous", "no_comm",
                             "emergent_discrete", "perfect_comm"])
-    parser.add_argument("--comm_ec_strategy", default="sum", 
-                        choices=["sum", "mean", "random", "nn"],
+    parser.add_argument("--comm_ec_strategy", default="cat", 
+                        choices=["cat", "sum", "mean", "random", "nn"],
                         help="When doing emergent continuous communication, strategy for transforming incoming messages into the social context.")
     parser.add_argument("--comm_eps_smooth", type=float, default=1.0)
     # Message generation

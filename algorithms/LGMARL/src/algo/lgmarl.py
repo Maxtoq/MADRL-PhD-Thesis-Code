@@ -15,7 +15,6 @@ class LanguageGroundedMARL:
                  parser, device="cpu", log_dir=None):
         self.n_agents = n_agents
         self.n_steps = args.n_steps
-        self.context_dim = args.context_dim
         self.n_envs = args.n_parallel_envs
         self.n_warmup_steps = args.n_warmup_steps
         self.token_penalty = args.comm_token_penalty
@@ -42,14 +41,19 @@ class LanguageGroundedMARL:
         self.comm_eps = ParameterDecay(
             1.0, 0.0001, self.n_steps, "sigmoid", args.comm_eps_smooth)      
 
+        # Get model input dims
+        obs_dim = get_shape_from_obs_space(obs_space[0])
+        joint_obs_dim = get_shape_from_obs_space(shared_obs_space[0])
         if self.comm_type == "no_comm":
-            policy_input_dim = get_shape_from_obs_space(obs_space[0])
-            critic_input_dim = get_shape_from_obs_space(shared_obs_space[0])
+            policy_input_dim = obs_dim
+            critic_input_dim = joint_obs_dim
+        elif (self.comm_type == "emergent_continuous" 
+                and self.comm_ec_strategy == "cat"):
+            policy_input_dim = obs_dim + self.n_agents * args.context_dim
+            critic_input_dim = joint_obs_dim + self.n_agents * args.context_dim
         else:
-            policy_input_dim = \
-                get_shape_from_obs_space(obs_space[0]) + self.context_dim
-            critic_input_dim = get_shape_from_obs_space(shared_obs_space[0]) \
-                                + self.context_dim
+            policy_input_dim = obs_dim + args.context_dim
+            critic_input_dim = joint_obs_dim + args.context_dim
         act_dim = act_space[0].n
 
         # Modules
@@ -57,7 +61,7 @@ class LanguageGroundedMARL:
         self.lang_learner = LanguageLearner(
             args,
             obs_dim, 
-            self.context_dim,
+            args.context_dim,
             parser, 
             n_agents,
             device)
@@ -77,7 +81,7 @@ class LanguageGroundedMARL:
             policy_input_dim, 
             critic_input_dim,
             1, 
-            self.context_dim, 
+            args.context_dim, 
             self.lang_learner.word_encoder.max_message_len,
             log_dir)
 
@@ -89,8 +93,12 @@ class LanguageGroundedMARL:
             self.device)
 
         # Language context, to carry to next steps
+        comm_act_dim = args.context_dim
+        if (self.comm_type == "emergent_continuous" 
+                and self.comm_ec_strategy == "cat"):
+            comm_act_dim *= self.n_agents
         self.lang_contexts = np.zeros(
-            (self.n_envs, self.context_dim), dtype=np.float32)
+            (self.n_envs, comm_act_dim), dtype=np.float32)
         # Messages rewards
         self.comm_rewards = None
         # Matrices used during rollout
@@ -141,7 +149,7 @@ class LanguageGroundedMARL:
             n_agents, obs_dim).
         """
         lang_contexts = self.lang_contexts.reshape(
-            self.n_envs, 1, self.context_dim).repeat(
+            self.n_envs, 1, -1).repeat(
                 self.n_agents, axis=1)
 
         # Make all possible shared observations
@@ -236,7 +244,7 @@ class LanguageGroundedMARL:
         self._store_obs(next_obs, next_perf_messages)
 
     def _reward_comm(self, messages):
-        if self.comm_type == "emergent-continuous":
+        if self.comm_type == "emergent_continuous":
             self.comm_rewards = np.zeros((self.n_envs, self.n_agents, 1))
             return {}
 
@@ -321,13 +329,16 @@ class LanguageGroundedMARL:
         elif self.comm_type == "emergent_continuous":
             messages_by_env = self.comm_actions
             # Get lang contexts
-            if self.comm_ec_strategy == "sum":
+            if self.comm_ec_strategy == "cat":
+                self.lang_contexts = self.comm_actions.reshape(self.n_envs, -1)
+            elif self.comm_ec_strategy == "sum":
                 self.lang_contexts = self.comm_actions.sum(axis=1)
             elif self.comm_ec_strategy == "mean":
                 self.lang_contexts = self.comm_actions.mean(axis=1)
             elif self.comm_ec_strategy == "random":
                 rand_ids = np.random.randint(self.n_agents, size=self.n_envs)
-                self.lang_contexts = self.comm_actions[np.arange(self.n_envs), rand_ids]
+                self.lang_contexts = self.comm_actions[
+                    np.arange(self.n_envs), rand_ids]
             else:
                 raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
             broadcasts = self.lang_contexts
