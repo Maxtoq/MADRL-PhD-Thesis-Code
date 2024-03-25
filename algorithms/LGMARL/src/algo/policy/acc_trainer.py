@@ -56,6 +56,7 @@ class ACC_Trainer:
             self.comm_loss_w[a_i] = 1 / (
                 abs(losses["comm_loss"]) 
                 if losses["comm_loss"] != 0 else self.comm_loss_w[a_i])
+            # self.comm_loss_w[a_i] = min(self.comm_loss_w[a_i], new_weight)
             self.comm_value_loss_w[a_i] = 1 / (
                 abs(losses["comm_value_loss"]) 
                 if losses["comm_value_loss"] != 0 else self.comm_value_loss_w[a_i])
@@ -286,8 +287,9 @@ class ACC_Trainer:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
 
+
         loss = self.actor_loss_w[agent_i] * actor_loss \
-                + self.comm_loss_w[agent_i] * comm_loss \
+                + 1.0 * self.comm_loss_w[agent_i] * comm_loss \
                 + self.act_value_loss_w[agent_i] * act_value_loss \
                 + self.comm_value_loss_w[agent_i] * comm_value_loss \
                 + self.clip_loss_w[agent_i] * clip_loss \

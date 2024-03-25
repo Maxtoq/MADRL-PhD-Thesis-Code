@@ -328,6 +328,7 @@ class LanguageGroundedMARL:
 
         elif self.comm_type == "emergent_continuous":
             messages_by_env = self.comm_actions
+            self.gen_comm = np.ones((self.n_envs, self.n_agents, 1))
             # Get lang contexts
             if self.comm_ec_strategy == "cat":
                 self.lang_contexts = self.comm_actions.reshape(self.n_envs, -1)
