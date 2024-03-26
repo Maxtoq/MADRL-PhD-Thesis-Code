@@ -95,12 +95,13 @@ class ActorCommunicator(nn.Module):
 
         # Eval communication actions
         comm_action_logits = self.comm_head(x)
-        comm_actions = comm_action_logits.sample() 
+        # comm_actions = comm_action_logits.sample() 
+        comm_actions_mode = comm_action_logits.mode() 
         comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
         comm_dist_entropy = comm_action_logits.entropy().mean()
 
         return env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
-                comm_dist_entropy, comm_actions
+                comm_dist_entropy, comm_actions_mode
 
     # def get_comm_actions(self, obs, rnn_states, masks):
     #     x = self.obs_encoder(obs)

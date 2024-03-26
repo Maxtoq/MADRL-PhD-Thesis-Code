@@ -1,6 +1,6 @@
 #!/bin/sh
 n_run=1
-experiment_name="9o5_ACC_perf_test"
+experiment_name="9o5_ACC_perf_testbef"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -23,7 +23,7 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 magym_env_size=9
 magym_obs_range=5 # default 5
-cuda_device="cuda:0"
+cuda_device="cuda:2"
 
 source venv3.8/bin/activate
 
