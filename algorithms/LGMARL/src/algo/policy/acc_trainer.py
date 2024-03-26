@@ -287,6 +287,8 @@ class ACC_Trainer:
             clip_loss = torch.zeros_like(act_value_loss)
             capt_loss = torch.zeros_like(act_value_loss)
 
+        if self.dyna_weight_loss:
+            self._update_loss_weights(agent_i, log_losses)
 
         loss = self.actor_loss_w[agent_i] * actor_loss \
                 + 1.0 * self.comm_loss_w[agent_i] * comm_loss \
@@ -313,9 +315,6 @@ class ACC_Trainer:
         self.agents[agent_i].critic_optim.step()
         if train_lang:
             self.lang_learner.optim.step()
-
-        if self.dyna_weight_loss:
-            self._update_loss_weights(agent_i, log_losses)
 
         return log_losses
 
