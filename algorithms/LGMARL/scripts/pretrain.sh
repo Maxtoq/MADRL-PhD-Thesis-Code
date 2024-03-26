@@ -1,19 +1,19 @@
 #!/bin/sh
 n_run=1
-experiment_name="9o5_ACC_perf_testbef"
-n_parallel_envs=250
+experiment_name="TEST"
+n_parallel_envs=2
 n_steps=10000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 lr=0.0005 # default 0.0005
-rollout_length=100 # default 100
+rollout_length=10 # default 100
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey"
 episode_length=100
-comm_type="perfect_comm" # default language
-comm_ec_strategy="cat" # default sum
+comm_type="emergent_continuous" # default language
+comm_ec_strategy="nn" # default cat
 comm_eps_smooth=2.0 # default 1.0
 comm_token_penalty=0.001
 context_dim=16 # default 16
@@ -23,7 +23,7 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 magym_env_size=9
 magym_obs_range=5 # default 5
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 

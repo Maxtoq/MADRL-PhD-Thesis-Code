@@ -9,7 +9,7 @@ from .valuenorm import ValueNorm
 class ACC_Trainer:
 
     def __init__(self, args, agents, lang_learner, buffer, 
-                 device=torch.device("cpu")):
+                 comm_encoder=None, device=torch.device("cpu")):
         self.agents = agents
         self.lang_learner = lang_learner
         self.buffer = buffer
@@ -44,6 +44,8 @@ class ACC_Trainer:
 
         self.act_value_normalizer = ValueNorm(1).to(device)
         self.comm_value_normalizer = ValueNorm(1).to(device)
+
+        self.comm_encoder = comm_encoder
 
     def _update_loss_weights(self, a_i, losses):
         self.actor_loss_w[a_i] = 1 / (
@@ -191,6 +193,13 @@ class ACC_Trainer:
         act_advt_batch = torch.from_numpy(act_advt_batch).to(self.device)
         comm_advt_batch = torch.from_numpy(comm_advt_batch).to(self.device)
         perf_messages_batch = torch.from_numpy(perf_messages_batch).to(self.device)
+
+        if self.comm_encoder is not None:
+            torch.set_printoptions(profile="full")
+            print(policy_input_batch, policy_input_batch.shape)
+            print(comm_actions_batch)
+            print(self.comm_encoder(comm_actions_batch))
+            exit()
 
         # Agent forward pass
         act_values, comm_values, env_action_log_probs, act_dist_entropy, \

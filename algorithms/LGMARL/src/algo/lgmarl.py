@@ -6,6 +6,7 @@ from .policy.acc_mappo import ACC_MAPPO
 from .policy.acc_buffer import ACC_ReplayBuffer
 from .policy.acc_trainer import ACC_Trainer
 from .policy.utils import get_shape_from_obs_space, torch2numpy, update_linear_schedule
+from .nn_modules.mlp import MLPNetwork
 from src.utils.decay import ParameterDecay
 
 
@@ -25,21 +26,12 @@ class LanguageGroundedMARL:
         self.hidden_dim = args.hidden_dim
         self.device = device
 
-        # Parameters for annealing learning rates
-        # self.capt_lr = args.lang_capt_lr
-        # self.anneal_capt_weight = \
-        #     args.lang_capt_loss_weight_anneal < args.lang_capt_loss_weight \
-        #     and self.comm_type in ["language", "perfect_comm"]
-        # if self.anneal_capt_weight:
-        #     self.capt_weight_decay = ParameterDecay(
-        #         args.lang_capt_loss_weight, 
-        #         args.lang_capt_loss_weight_anneal, 
-        #         args.n_steps, 
-        #         "exp", 
-        #         10)  
         # Communication Epsilon-greedy
         self.comm_eps = ParameterDecay(
             1.0, 0.0001, self.n_steps, "sigmoid", args.comm_eps_smooth)      
+
+        self.comm_encoder = None
+        buffer_obs_dim = None
 
         # Get model input dims
         obs_dim = get_shape_from_obs_space(obs_space[0])
@@ -51,6 +43,16 @@ class LanguageGroundedMARL:
                 and self.comm_ec_strategy == "cat"):
             policy_input_dim = obs_dim + self.n_agents * args.context_dim
             critic_input_dim = joint_obs_dim + self.n_agents * args.context_dim
+        elif (self.comm_type == "emergent_continuous" 
+                and self.comm_ec_strategy == "nn"):
+            self.comm_encoder = MLPNetwork(
+                self.n_agents * args.context_dim,
+                args.context_dim,
+                self.hidden_dim)
+            self.comm_encoder.to(self.device)
+            policy_input_dim = obs_dim + args.context_dim
+            critic_input_dim = joint_obs_dim + args.context_dim
+            buffer_obs_dim = obs_dim + self.n_agents * args.context_dim
         else:
             policy_input_dim = obs_dim + args.context_dim
             critic_input_dim = joint_obs_dim + args.context_dim
@@ -78,7 +80,7 @@ class LanguageGroundedMARL:
         self.buffer = ACC_ReplayBuffer(
             args, 
             n_agents, 
-            policy_input_dim, 
+            policy_input_dim if buffer_obs_dim is None else buffer_obs_dim, 
             critic_input_dim,
             1, 
             args.context_dim, 
@@ -90,15 +92,17 @@ class LanguageGroundedMARL:
             self.acc.agents, 
             self.lang_learner, 
             self.buffer, 
+            self.comm_encoder,
             self.device)
 
         # Language context, to carry to next steps
         comm_act_dim = args.context_dim
         if (self.comm_type == "emergent_continuous" 
-                and self.comm_ec_strategy == "cat"):
+                and self.comm_ec_strategy in ["cat", "nn"]):
             comm_act_dim *= self.n_agents
         self.lang_contexts = np.zeros(
             (self.n_envs, comm_act_dim), dtype=np.float32)
+
         # Messages rewards
         self.comm_rewards = None
         # Matrices used during rollout
@@ -122,6 +126,9 @@ class LanguageGroundedMARL:
             self.trainer.act_value_normalizer.to(self.device)
             self.trainer.comm_value_normalizer.to(self.device)
 
+        self.comm_encoder.to(self.device)
+        self.comm_encoder.train()
+
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
@@ -131,6 +138,9 @@ class LanguageGroundedMARL:
         if self.trainer.act_value_normalizer is not None:
             self.trainer.act_value_normalizer.to(self.device)
             self.trainer.comm_value_normalizer.to(self.device)
+
+        self.comm_encoder.to(self.device)
+        self.comm_encoder.eval()
 
     def reset_context(self, env_dones):
         """
@@ -281,6 +291,10 @@ class LanguageGroundedMARL:
         policy_input, critic_input, rnn_states, critic_rnn_states, masks, \
             perfect_messages, perfect_broadcasts = self.buffer.get_act_params()
 
+        if self.comm_encoder is not None:
+            print(policy_input, policy_input.shape)
+            exit()
+
         self.act_values, self.comm_values, self.actions, self.action_log_probs, \
             self.comm_actions, self.comm_action_log_probs, self.rnn_states, \
             self.rnn_states_critic = self.acc.get_actions(
@@ -330,7 +344,7 @@ class LanguageGroundedMARL:
             messages_by_env = self.comm_actions
             self.gen_comm = np.ones((self.n_envs, self.n_agents, 1))
             # Get lang contexts
-            if self.comm_ec_strategy == "cat":
+            if self.comm_ec_strategy in ["cat", "nn"]:
                 self.lang_contexts = self.comm_actions.reshape(self.n_envs, -1)
             elif self.comm_ec_strategy == "sum":
                 self.lang_contexts = self.comm_actions.sum(axis=1)
@@ -340,6 +354,9 @@ class LanguageGroundedMARL:
                 rand_ids = np.random.randint(self.n_agents, size=self.n_envs)
                 self.lang_contexts = self.comm_actions[
                     np.arange(self.n_envs), rand_ids]
+            # elif self.comm_ec_strategy == "nn":
+            #     self.lang_contexts = self.comm_encoder(
+            #         torch.Tensor(self.comm_actions.reshape(self.n_envs, -1)).to(self.device)).cpu().numpy()
             else:
                 raise NotImplementedError("Emergent communication strategy not implemented:", self.comm_ec_strategy)
             broadcasts = self.lang_contexts
