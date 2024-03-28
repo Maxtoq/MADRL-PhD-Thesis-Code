@@ -23,7 +23,7 @@ def set_cuda_device(cfg):
         device = 'cpu'
     return device
 
-def load_args(cfg):
+def load_args(cfg, eval=False):
     args_path = os.path.join(cfg.model_dir, "args.txt")
     if not os.path.isfile(args_path):
         print(f"ERROR: args file {args_path} does not exist.")
@@ -35,15 +35,27 @@ def load_args(cfg):
         args.pop("seed")
         args.pop("cuda_device")
         args.pop("model_dir")
-        args.pop("n_parallel_envs")
         args.pop("use_render")
         args.pop("render_wait_input")
         args.pop("n_steps")
-        args.pop("log_comm")
+        if "log_comm" in args:
+            args.pop("log_comm")
+        args.pop("experiment_name")
+        args.pop("lr")
+        if eval:
+            args.pop("n_parallel_envs")
+
         # if "no_render" in args:
         #     args.pop("no_render")
+
         for a in args:
             if not hasattr(cfg, a):
                 print(f"WARNING: Argument {a} not found in config.")
             else:
                 setattr(cfg, a, args[a])
+
+    # Set finetuning parameters
+    if cfg.FT_env_name is not None:
+        cfg.env_name = cfg.FT_env_name
+    if cfg.FT_magym_env_size is not None:
+        cfg.magym_env_size = cfg.FT_magym_env_size

@@ -278,7 +278,7 @@ class ACC_ReplayBuffer:
             comm_gae = delta + self.gamma * self.gae_lambda * self.masks[step + 1] \
                 * comm_gae
             self.comm_returns[step] = comm_gae + comm_value_normalizer.denormalize(
-                self.comm_value_preds[step])   
+                self.comm_value_preds[step])
 
     def _get_mess_sampl_probs(self, messages):
         if len(messages.shape) == 3:

@@ -20,14 +20,14 @@ def get_paths(cfg):
         else:
             curr_run = 'run%i' % (max(exst_run_nums) + 1)
     run_dir = model_dir / curr_run
-    model_cp_path = run_dir / 'model.pt'
+
     log_dir = run_dir / 'logs'
     if not log_dir.exists():
         os.makedirs(log_dir)
     
     os.makedirs(run_dir / "incremental")
 
-    return run_dir, model_cp_path, log_dir
+    return run_dir, log_dir
 
 def load_scenario_cfg(cfg, run_dir):
     sce_conf = {}

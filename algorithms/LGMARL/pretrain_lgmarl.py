@@ -1,3 +1,4 @@
+import os
 import gym
 import time
 import torch
@@ -7,7 +8,7 @@ import numpy as np
 from tqdm import trange
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, set_cuda_device
+from src.utils.utils import set_seeds, set_cuda_device, load_args
 from src.utils.decay import ParameterDecay
 from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
@@ -21,8 +22,18 @@ def run():
     argparse = get_config()
     cfg = argparse.parse_args()
 
+    # Load pretrained checkpoint if needed
+    if cfg.model_dir is not None:
+        # Get pretrained stuff
+        assert cfg.model_dir is not None, "Must provide model_dir"
+        load_args(cfg)
+        pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
+        assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
+        print("Starting from pretrained model with config:")
+        print(cfg)
+
     # Get paths for saving logs and model
-    run_dir, model_cp_path, log_dir = get_paths(cfg)
+    run_dir, log_dir = get_paths(cfg)
     print("Saving model in dir", run_dir)
     write_params(run_dir, cfg)
 
@@ -51,6 +62,9 @@ def run():
         parser, 
         device,
         log_dir)
+
+    # Load params
+    model.load(pretrained_model_path)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
