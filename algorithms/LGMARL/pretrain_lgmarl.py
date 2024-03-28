@@ -31,6 +31,9 @@ def run():
         assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
         print("Starting from pretrained model with config:")
         print(cfg)
+        comm_eps_start = 0.0001
+    else:
+        comm_eps_start = 1.0
 
     # Get paths for saving logs and model
     run_dir, log_dir = get_paths(cfg)
@@ -61,7 +64,8 @@ def run():
         act_space,
         parser, 
         device,
-        log_dir)
+        log_dir,
+        comm_eps_start)
 
     # Load params
     model.load(pretrained_model_path)

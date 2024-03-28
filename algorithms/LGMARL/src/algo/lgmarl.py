@@ -12,7 +12,7 @@ from src.utils.decay import ParameterDecay
 class LanguageGroundedMARL:
 
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 parser, device="cpu", log_dir=None):
+                 parser, device="cpu", log_dir=None, comm_eps_start=1.0):
         self.n_agents = n_agents
         self.n_steps = args.n_steps
         self.n_envs = args.n_parallel_envs
@@ -39,7 +39,7 @@ class LanguageGroundedMARL:
         #         10)  
         # Communication Epsilon-greedy
         self.comm_eps = ParameterDecay(
-            1.0, 0.0001, self.n_steps, "sigmoid", args.comm_eps_smooth)      
+            comm_eps_start, 0.0001, self.n_steps, "sigmoid", args.comm_eps_smooth)      
 
         # Get model input dims
         obs_dim = get_shape_from_obs_space(obs_space[0])
