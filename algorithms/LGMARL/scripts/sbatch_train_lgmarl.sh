@@ -10,7 +10,7 @@
 
 source venv/bin/activate
 
-n_run=3
+n_run=4
 experiment_name="9o5_ACC_lang"
 n_parallel_envs=250
 n_steps=10000000

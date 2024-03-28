@@ -824,6 +824,10 @@ models/magym_PredPrey/ACC_9o5_perf_alldynawl/*
 models/magym_PredPrey/9o5_ACC_perf_befdyna/*
 !models/magym_PredPrey/9o5_ACC_perf_befdyna/train_data
 
+!models/magym_PredPrey/9o5_ACC_lang
+models/magym_PredPrey/9o5_ACC_lang/*
+!models/magym_PredPrey/9o5_ACC_lang/train_data
+
 
 
 !models/magym_Foraging
