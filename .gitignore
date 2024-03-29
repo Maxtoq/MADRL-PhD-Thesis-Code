@@ -840,6 +840,14 @@ models/magym_PredPrey/Adapt12_ACC_perf/*
 models/magym_PredPrey/Adapt15_ACC_no/*
 !models/magym_PredPrey/Adapt15_ACC_no/train_data
 
+!models/magym_PredPrey/Adapt12_ACC_lang
+models/magym_PredPrey/Adapt12_ACC_lang/*
+!models/magym_PredPrey/Adapt12_ACC_lang/train_data
+
+!models/magym_PredPrey/Adapt15_ACC_lang
+models/magym_PredPrey/Adapt15_ACC_lang/*
+!models/magym_PredPrey/Adapt15_ACC_lang/train_data
+
 
 
 !models/magym_Foraging
