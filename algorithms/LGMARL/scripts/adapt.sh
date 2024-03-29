@@ -1,13 +1,13 @@
 #!/bin/sh
-n_run=3
-experiment_name="Adapt12_ACC_perf"
-n_steps=2000000
+n_run=2
+experiment_name="Adapt15_ACC_perf"
+n_steps=3000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey"
-FT_magym_env_size=12
+FT_magym_env_size=15
 model_dir="models/magym_PredPrey/ACC_9o5_perf_alldynawl/run15"
 # model_dir="models/magym_PredPrey/9o5_ACC_no/run14/"
-cuda_device="cuda:2"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
