@@ -261,7 +261,7 @@ class LanguageGroundedMARL:
         return comm_rewards
 
     @torch.no_grad()
-    def comm_n_act(self):
+    def comm_n_act(self, add_message=None):
         """
         Perform a whole model step, with first a round of communication and 
         then choosing action for each agent.
@@ -309,6 +309,11 @@ class LanguageGroundedMARL:
                     # De-pad message and add to broadcast
                     end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
                     env_br.extend(agent_m[:end_i])
+
+                if add_message is not None:
+                    add_m = self.lang_learner.word_encoder.get_ids(add_message)
+                    env_br.extend(add_m)
+
                 env_br.append(1)
                 broadcasts.append(env_br)
 

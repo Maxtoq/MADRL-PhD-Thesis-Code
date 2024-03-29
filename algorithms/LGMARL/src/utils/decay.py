@@ -17,6 +17,9 @@ class ParameterDecay:
         self.value = self.start
 
     def get_explo_rate(self, step_i):
+        if self.start <= self.finish:
+            return self.start
+            
         exp_pct_remain = max(0, 1 - step_i / self.n_steps)
         if self.fn == "linear":
             self.value = self.finish + self.diff * exp_pct_remain

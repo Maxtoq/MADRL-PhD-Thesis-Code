@@ -17,6 +17,17 @@ def render(cfg, envs):
     else:
         time.sleep(0.1)
 
+def interact(cfg):
+    if cfg.interact:
+        add_mess = input("Input message:")
+        if len(add_mess):
+            add_mess = add_mess.split(" ")
+        else:
+            add_mess = []
+    else:
+        add_mess = None
+    return add_mess
+
 def run():
     # Load config
     parser = get_config()
@@ -24,12 +35,12 @@ def run():
 
     # Get pretrained stuff
     assert cfg.model_dir is not None, "Must provide model_dir"
-    load_args(cfg)
+    load_args(cfg, eval=True)
     pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
     assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
     print("Starting eval with config:")
     print(cfg)
-    # cfg.comm_type = "language"
+    cfg.comm_type = "language"
 
     set_seeds(cfg.seed)
 
@@ -51,7 +62,8 @@ def run():
         shared_obs_space, 
         act_space,
         parser, 
-        device)
+        device,
+        comm_eps_start=0.0)
 
     # Load params
     model.load(pretrained_model_path)
@@ -67,17 +79,22 @@ def run():
     count_returns = np.zeros(cfg.n_parallel_envs)
     returns = []
     for ep_s_i in trange(0, cfg.n_steps, cfg.n_parallel_envs):
+        add_mess = interact(cfg)
+        
         # Get action
         actions, broadcasts, agent_messages, comm_rewards = model.comm_n_act(
-            parsed_obs, [True] * cfg.n_parallel_envs)
+            add_mess)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
+
+        decoded_messages = model.lang_learner.word_encoder.decode_batch(
+            agent_messages[0])
         
         print(f"\nStep #{ep_s_i + 1}")
         print("Observations", obs)
         print("Perfect Messages", parsed_obs)
-        print("Agent Messages", agent_messages)
+        print("Agent Messages", decoded_messages)
         print("Actions (t-1)", actions)
         print("Rewards", rewards)
         print("Communication Rewards", comm_rewards)
