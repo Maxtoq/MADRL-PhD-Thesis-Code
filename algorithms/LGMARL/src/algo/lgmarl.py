@@ -132,6 +132,12 @@ class LanguageGroundedMARL:
             self.trainer.act_value_normalizer.to(self.device)
             self.trainer.comm_value_normalizer.to(self.device)
 
+    def set_eval(self):
+        self.acc.eval = True
+
+    def set_train(self):
+        self.acc.eval = False
+
     def reset_context(self, env_dones):
         """
         Reset language contexts.

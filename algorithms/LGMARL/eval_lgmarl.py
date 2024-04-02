@@ -67,6 +67,7 @@ def run():
 
     # Load params
     model.load(pretrained_model_path)
+    model.set_eval()
 
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)

@@ -55,9 +55,11 @@ class ACC_Agent(nn.Module):
             update_lr(self.critic_optim, lr)
             self.warming_up = warmup
 
-    def forward(self, obs, shared_obs, act_rnn_states, critic_rnn_states, masks):
+    def forward(self, obs, shared_obs, act_rnn_states, critic_rnn_states, masks, 
+                deterministic=False):
         actions, action_log_probs, comm_actions, comm_action_log_probs, \
-            act_rnn_states = self.act_comm(obs, act_rnn_states, masks)
+            act_rnn_states = self.act_comm(
+                obs, act_rnn_states, masks, deterministic=deterministic)
 
         act_values, comm_values, critic_rnn_states = self.critic(
             shared_obs, critic_rnn_states, masks)

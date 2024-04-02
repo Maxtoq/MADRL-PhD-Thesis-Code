@@ -30,6 +30,8 @@ class ACC_MAPPO:
                 ACC_Agent(args, obs_dim, shared_obs_dim, act_dim) # , lang_learner)
                 for a_i in range(self.n_agents)]
 
+        self.eval = False
+
     def prep_rollout(self, device=None):
         self.device = self.train_device if device is None else device
         for a in self.agents:
@@ -74,7 +76,12 @@ class ACC_MAPPO:
             act_values, comm_values, actions, action_log_probs, comm_actions, \
                 comm_action_log_probs, rnn_states, critic_rnn_states \
                     = self.agents[0](
-                        obs, shared_obs, rnn_states, critic_rnn_states, masks)
+                        obs, 
+                        shared_obs, 
+                        rnn_states, 
+                        critic_rnn_states, 
+                        masks, 
+                        self.eval)
 
             act_values = torch2numpy(
                 act_values.reshape(self.n_envs, self.n_agents, -1))
@@ -109,7 +116,8 @@ class ACC_MAPPO:
                             shared_obs[:, a_i], 
                             rnn_states[:, a_i], 
                             critic_rnn_states[:, a_i], 
-                            masks[:, a_i])
+                            masks[:, a_i], 
+                            self.eval)
 
                 act_values.append(act_value)
                 comm_values.append(comm_value)
