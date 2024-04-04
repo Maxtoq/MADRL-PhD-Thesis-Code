@@ -68,7 +68,8 @@ def run():
         comm_eps_start)
 
     # Load params
-    model.load(pretrained_model_path)
+    if cfg.model_dir is not None:
+        model.load(pretrained_model_path)
 
     # Start training
     print(f"Starting training for {cfg.n_steps} frames")
