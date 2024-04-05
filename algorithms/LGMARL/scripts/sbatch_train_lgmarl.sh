@@ -40,7 +40,7 @@ for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
-    comm="python algorithms/LGMARL/pretrain_lgmarl.py --seed ${seed}
+    comm="python algorithms/LGMARL/train_lgmarl.py --seed ${seed}
     --experiment_name ${experiment_name}
     --n_parallel_envs ${n_parallel_envs}
     --n_steps ${n_steps}
