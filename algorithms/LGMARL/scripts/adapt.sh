@@ -1,7 +1,7 @@
 #!/bin/sh
 n_run=2
 experiment_name="Adapt15_ACC_perf"
-n_steps=3000000
+n_steps=5000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey"
 FT_magym_env_size=15

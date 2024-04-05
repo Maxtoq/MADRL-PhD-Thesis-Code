@@ -7,25 +7,31 @@ from pathlib import Path
 from shutil import copyfile
 
 def get_paths(cfg):
-    # Get path of the run directory
-    model_dir = Path('./models') / cfg.env_name / cfg.experiment_name
-    if not model_dir.exists():
-        curr_run = 'run1'
+    if cfg.continue_run:
+        run_dir = Path(cfg.model_dir)
+        log_dir = run_dir / "logs"
+
+        assert run_dir.exists() and log_dir.exists(), f"Model directory {run_dir} does not exist or lacks 'logs' sub-directory."
+    
     else:
-        exst_run_nums = [int(str(folder.name).split('run')[1]) for folder in
-                         model_dir.iterdir() if
-                         str(folder.name).startswith('run')]
-        if len(exst_run_nums) == 0:
+        model_dir = Path('./models') / cfg.env_name / cfg.experiment_name
+        if not model_dir.exists():
             curr_run = 'run1'
         else:
-            curr_run = 'run%i' % (max(exst_run_nums) + 1)
-    run_dir = model_dir / curr_run
+            exst_run_nums = [int(str(folder.name).split('run')[1]) for folder in
+                            model_dir.iterdir() if
+                            str(folder.name).startswith('run')]
+            if len(exst_run_nums) == 0:
+                curr_run = 'run1'
+            else:
+                curr_run = 'run%i' % (max(exst_run_nums) + 1)
+        run_dir = model_dir / curr_run
 
-    log_dir = run_dir / 'logs'
-    if not log_dir.exists():
-        os.makedirs(log_dir)
-    
-    os.makedirs(run_dir / "incremental")
+        log_dir = run_dir / 'logs'
+        if not log_dir.exists():
+            os.makedirs(log_dir)
+        
+        os.makedirs(run_dir / "incremental")
 
     return run_dir, log_dir
 

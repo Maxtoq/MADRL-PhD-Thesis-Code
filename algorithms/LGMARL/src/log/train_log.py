@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 
@@ -11,7 +12,7 @@ class Logger():
     :param args: (argparse.Namespace) training arguments
     :param log_dir_path: (str) path of directory where logs are saved
     """
-    def __init__(self, args, log_dir_path):
+    def __init__(self, args, log_dir_path, n_steps_done=0):
         self.log_dir_path = log_dir_path
         self.max_ep_length = args.episode_length
         self.log_tensorboard = args.log_tensorboard
@@ -28,11 +29,6 @@ class Logger():
         self.success = [False] * self.n_parrallel_envs
         self.ep_lengths = np.zeros(self.n_parrallel_envs)
 
-        self.comm_data = {
-            "Step": [],
-            "Mean message return": []
-        }
-
         self.eval_data = {
             "Step": [],
             "Mean return": [],
@@ -43,7 +39,7 @@ class Logger():
         if self.log_tensorboard:
             self.log_tb = SummaryWriter(str(self.log_dir_path))
 
-        self.n_step_done = 0
+        self.n_step_done = n_steps_done
 
     def reset_all(self):
         self.returns = np.zeros(self.n_parrallel_envs)
@@ -83,9 +79,6 @@ class Logger():
                 self._reset_env(e_i)
 
     def log_comm(self, step, comm_rewards, losses=None):
-        # self.comm_data["Step"].append(step)
-        # self.comm_data["Mean message return"].append(
-        #     comm_rewards["message_reward"])    
 
         # Log Tensorboard
         if self.log_tensorboard:
@@ -124,17 +117,28 @@ class Logger():
 
     def save(self):
         train_df = pd.DataFrame(self.train_data)
-        train_df.to_csv(str(self.log_dir_path / 'training_data.csv'))
-        if len(self.comm_data["Step"]) > 0:
-            comm_df = pd.DataFrame(self.comm_data)
-            comm_df.to_csv(str(self.log_dir_path / 'comm_data.csv'))
+
+        # Append to previous data
+        train_path = str(self.log_dir_path / 'training_data.csv')
+        if os.path.isfile(train_path):
+            previous_data = pd.read_csv(train_path)
+            train_df = pd.concat([previous_data, train_df])
+
+        train_df.to_csv(train_path)
+
+
         if self.do_eval:
             eval_df = pd.DataFrame(self.eval_data)
+            # Append to previous data
+            eval_path = str(self.log_dir_path / 'evaluation_data.csv')
+            if os.path.isfile(eval_path):
+                previous_data = pd.read_csv(eval_path)
+                eval_df = pd.concat([previous_data, eval_df])
             eval_df.to_csv(str(self.log_dir_path / 'evaluation_data.csv'))
 
     def save_n_close(self):
         self.save()
         if self.log_tensorboard:
-            self.log_tb.export_scalars_to_json(
-                str(self.log_dir_path / 'summary.json'))
+            # self.log_tb.export_scalars_to_json(
+            #     str(self.log_dir_path / 'summary.json'))
             self.log_tb.close()

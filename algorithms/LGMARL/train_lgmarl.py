@@ -26,7 +26,7 @@ def run():
     if cfg.model_dir is not None:
         # Get pretrained stuff
         assert cfg.model_dir is not None, "Must provide model_dir"
-        load_args(cfg)
+        steps_done = load_args(cfg)
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
         print("Starting from pretrained model with config:")
@@ -35,13 +35,22 @@ def run():
     else:
         comm_eps_start = 1.0
 
+    # Set training step (if continue previous run)
+    if cfg.continue_run:
+        start_step = steps_done
+        if cfg.n_steps <= start_step:
+            print("No need to train more.")
+            exit()
+    else:
+        start_step = 0
+
     # Get paths for saving logs and model
     run_dir, log_dir = get_paths(cfg)
     print("Saving model in dir", run_dir)
     write_params(run_dir, cfg)
 
     # Init logger
-    logger = Logger(cfg, log_dir)
+    logger = Logger(cfg, log_dir, start_step)
 
     set_seeds(cfg.seed)
 
@@ -72,7 +81,7 @@ def run():
         model.load(pretrained_model_path)
 
     # Start training
-    print(f"Starting training for {cfg.n_steps} frames")
+    print(f"Starting training for {cfg.n_steps - start_step} frames")
     print(f"                  updates every {cfg.n_parallel_envs} episodes")
     print(f"                  with seed {cfg.seed}")
     # Reset env
@@ -82,7 +91,7 @@ def run():
     parsed_obs = parser.get_perfect_messages(obs)
     model.init_episode(obs, parsed_obs)
     n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
-    for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
+    for s_i in trange(start_step, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
 
         for ep_s_i in range(cfg.rollout_length):
@@ -120,7 +129,8 @@ def run():
         # Save
         if s_i + n_steps_per_update - last_save_step > cfg.save_interval:
             last_save_step = s_i + n_steps_per_update
-            model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
+            if cfg.save_increments:
+                model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
             
     envs.close()
     # Save model and training data

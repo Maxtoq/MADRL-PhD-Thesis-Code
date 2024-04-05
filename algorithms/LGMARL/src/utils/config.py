@@ -73,6 +73,8 @@ def get_config():
                         default=False, help='use a linear schedule on the learning rate')
     # save parameters
     parser.add_argument("--save_interval", type=int, default=20000, help="number of steps between models saving")
+    parser.add_argument("--save_increments", action='store_true', default=False, 
+                        help='Save incremental model checkpoints throughout training.')
 
     # log parameters
     parser.add_argument("--log_tensorboard", action='store_false', default=True, 
@@ -148,5 +150,11 @@ def get_config():
     parser.add_argument("--ifi", type=float, default=0.1, 
                         help="the play interval of each rendered image in saved video.")
     parser.add_argument("--render_wait_input", default=False, action="store_true")
+
+
+    parser.add_argument("--continue_run", action='store_true', default=False, 
+                        help="To continue a previously trained run. The argument --model_dir must also be provided.")
+    parser.add_argument("--adapt_run", action='store_true', default=False, 
+                        help="To adapt a previously trained run on different task. The argument --model_dir must also be provided.")
 
     return parser
