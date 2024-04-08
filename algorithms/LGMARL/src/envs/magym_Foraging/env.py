@@ -22,7 +22,7 @@ class Env(gym.Env):
 
     def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=10,
                  penalty=-0.0, step_cost=-1.0, max_steps=100,
-                 agent_view_mask=(5, 5), no_purple=False):
+                 agent_view_mask=(5, 5), no_purple=False, actual_obsrange=None):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
                                           ' but found {}'.format(agent_view_mask)
@@ -39,6 +39,10 @@ class Env(gym.Env):
         self._penalty = penalty
         self._step_cost = step_cost
         self._agent_view_mask = agent_view_mask
+        self._actual_obsrange = actual_obsrange
+        if self._actual_obsrange is not None and self._actual_obsrange >= self._agent_view_mask[0]:
+            print("WARNING: actual_obsrange >= obs_range.")
+
         env_size = grid_shape[0]
         self._agent_init_pos = [
             [grid_shape[0] // 2 - 1, grid_shape[1] // 2 - 1],
@@ -136,6 +140,11 @@ class Env(gym.Env):
             for row in range(max(0, pos[0] - obs_range), min(pos[0] + obs_range + 1, self._grid_shape[0])):
                 for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
                     if PRE_IDS['gem'] in self._full_obs[row][col]:
+                        # If limited obs_range, then check if distance is low enough
+                        if self._actual_obsrange is not None:
+                            dist = np.sqrt((row - pos[0]) ** 2 + (col - pos[1]) ** 2)
+                            if dist > self._actual_obsrange / 2:
+                                continue
                         _gem_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = int(self._full_obs[row][col][-1]) # get relative position for the gem loc.
 
             _agent_i_obs += _gem_pos.flatten().tolist()  # adding gem pos in observable area

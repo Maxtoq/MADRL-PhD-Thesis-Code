@@ -15,14 +15,16 @@ def _get_env(cfg):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length,
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+            actual_obsrange=cfg.FT_magym_actual_obsrange)
     elif cfg.env_name == "magym_Lumber":
         from .ma_gym.lumberjack import Lumberjacks
         env = Lumberjacks(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+            actual_obsrange=cfg.FT_magym_actual_obsrange)
     elif cfg.env_name == "magym_Foraging":
         from .magym_Foraging.env import Env
         env = Env(
@@ -30,7 +32,8 @@ def _get_env(cfg):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            no_purple=cfg.magym_no_purple)
+            no_purple=cfg.magym_no_purple,
+            actual_obsrange=cfg.FT_magym_actual_obsrange)
     elif cfg.env_name == "magym_Foraging_fixedpos":
         from .magym_Foraging_fixedpos.env import Env
         env = Env(
@@ -38,7 +41,8 @@ def _get_env(cfg):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            no_purple=cfg.magym_no_purple)
+            no_purple=cfg.magym_no_purple,
+            actual_obsrange=cfg.FT_magym_actual_obsrange)
     return env
 
 def _get_parser(cfg):

@@ -133,6 +133,7 @@ def get_config():
     # Fine-tuning parameters
     parser.add_argument("--FT_env_name", type=str, default=None)
     parser.add_argument("--FT_magym_env_size", type=int, default=None)
+    parser.add_argument("--FT_magym_actual_obsrange", type=int, default=None)
 
     # eval parameters
     parser.add_argument("--do_eval", action='store_false', default=True, 

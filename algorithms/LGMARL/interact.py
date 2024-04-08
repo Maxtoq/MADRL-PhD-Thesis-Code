@@ -25,19 +25,23 @@ def run():
     
     # Create train environment
     envs, parser = make_env(cfg, cfg.n_parallel_envs)
-
+    
     obs = envs.reset()
+    # Parse obs
+    parsed_obs = parser.get_perfect_messages(obs)
+    print("Observations", obs)
+    print("Perfect Messages", parsed_obs)
     render(envs)
 
     for ep_s_i in range(cfg.episode_length):
-        # Parse obs
-        parsed_obs = parser.get_perfect_messages(obs)
         # Perform step
         # Get action
         actions = np.random.randint(0, 5, (1, 4, 1))
 
         # Perform action and get reward and next obs
         obs, rewards, dones, infos = envs.step(actions)
+        # Parse obs
+        parsed_obs = parser.get_perfect_messages(obs)
         
         print(f"\nStep #{ep_s_i + 1}")
         print("Observations", obs)
