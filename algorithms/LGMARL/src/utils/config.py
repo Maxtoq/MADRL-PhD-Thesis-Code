@@ -106,7 +106,7 @@ def get_config():
     parser.add_argument("--lang_capt_loss_weight_anneal", type=float, default=1.0)
 
     # Communication parameters
-    parser.add_argument("--comm_type", default="language", 
+    parser.add_argument("--comm_type", default="no_comm", 
                         choices=["language", "emergent_continuous", "no_comm",
                             "emergent_discrete", "perfect_comm"])
     parser.add_argument("--comm_ec_strategy", default="cat", 

@@ -144,9 +144,9 @@ class ACC_MAPPO:
 
     @torch.no_grad()
     def compute_last_value(self, shared_obs, critic_rnn_states, masks):
-        shared_obs = torch.from_numpy(shared_obs).to(self.device)
-        critic_rnn_states = torch.from_numpy(critic_rnn_states).to(self.device)
-        masks = torch.from_numpy(masks).to(self.device)
+        # shared_obs = torch.from_numpy(shared_obs).to(self.device)
+        # critic_rnn_states = torch.from_numpy(critic_rnn_states).to(self.device)
+        # masks = torch.from_numpy(masks).to(self.device)
 
         if self.share_params:
             next_act_values, next_comm_values = self.agents[0].get_values(

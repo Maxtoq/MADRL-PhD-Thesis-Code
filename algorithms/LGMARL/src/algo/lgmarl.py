@@ -384,9 +384,7 @@ class LanguageGroundedMARL:
         masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
 
         next_act_values, next_comm_values = self.acc.compute_last_value(
-            self.buffer.critic_input[-1], 
-            self.buffer.critic_rnn_states[-1],
-            self.buffer.masks[-1])
+            critic_input, critic_rnn_states, masks)
 
         self.buffer.compute_returns(
             next_act_values, 
