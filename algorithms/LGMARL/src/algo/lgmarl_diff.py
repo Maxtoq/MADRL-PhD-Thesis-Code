@@ -83,7 +83,7 @@ class LanguageGroundedMARL:
         self.actions, self.action_log_probs, self.values, self.comm_actions, \
             self.comm_action_log_probs, self.comm_values, self.obs_rnn_states, \
             self.joint_obs_rnn_states, self.comm_rnn_states \
-            = self.model(
+            = self.model.get_actions(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, deterministic)
 
@@ -235,6 +235,22 @@ class LanguageGroundedMARL:
 
     def _update_comm_eps(self, step):
         if self.comm_type == "language":
-            self.comm_eps.get_explo_rate(step)
+            self.comm_eps.get_explo_rate(step)    
 
-        
+    def save(self, path):
+        self.prep_rollout("cpu")
+        save_dict = {
+            "acc": self.model.get_save_dict(),
+            "lang_learner": self.lang_learner.get_save_dict(),
+            "act_vnorm": self.trainer.act_value_normalizer.state_dict(),
+            "comm_vnorm": self.trainer.comm_value_normalizer.state_dict()
+        }
+        torch.save(save_dict, path)
+
+    def load(self, path):
+        save_dict = torch.load(path, map_location=torch.device('cpu'))
+        self.model.load_params(save_dict["acc"])
+        if self.comm_type in ["perfect_comm", "language"]:
+            self.lang_learner.load_params(save_dict["lang_learner"])
+        self.trainer.act_value_normalizer.load_state_dict(save_dict["act_vnorm"])
+        self.trainer.comm_value_normalizer.load_state_dict(save_dict["comm_vnorm"])

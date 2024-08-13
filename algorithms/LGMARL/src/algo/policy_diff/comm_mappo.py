@@ -7,11 +7,10 @@ from .comm_agent import Comm_Agent
 from .utils import torch2numpy, update_lr
 
 
-class Comm_MAPPO(nn.Module):
+class Comm_MAPPO():
 
     def __init__(self, args, lang_learner, n_agents, obs_dim, 
                  shared_obs_dim, act_dim, device):
-        super(Comm_MAPPO, self).__init__()
         self.args = args
         self.lang_learner = lang_learner
         self.n_agents = n_agents
@@ -76,7 +75,7 @@ class Comm_MAPPO(nn.Module):
             a.train()
             a.to(self.device)
 
-    def forward(
+    def get_actions(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
             comm_rnn_states, masks, deterministic=False):
         obs = torch.from_numpy(obs).to(self.device)
@@ -162,5 +161,12 @@ class Comm_MAPPO(nn.Module):
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
             new_joint_obs_rnn_states, new_comm_rnn_states
 
+    def get_save_dict(self):
+        self.prep_rollout("cpu")
+        save_dict = {
+            "agents": [a.state_dict() for a in self.agents]}
+        return save_dict
 
-
+    def load_params(self, params):
+        for a, ap in zip(self.agents, params["agents"]):
+            a.load_state_dict(ap)
