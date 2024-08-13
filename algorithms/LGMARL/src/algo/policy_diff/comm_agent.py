@@ -232,6 +232,9 @@ class Comm_Agent(nn.Module):
             pol_input = enc_obs
             val_input = enc_joint_obs
             new_comm_enc_rnn_states = torch.zeros_like(comm_enc_rnn_states)
+        # TODO handle comm
+        # - emergent continuous (diff): redo communication step to have gradients flow between agent
+        # - language: take messages sent during rollout to compute actions
 
         # Compute actions
         action_logits = self.act_pol(pol_input)

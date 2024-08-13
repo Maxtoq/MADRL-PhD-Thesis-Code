@@ -228,7 +228,8 @@ class LanguageGroundedMARL:
         enc_perf_mess, enc_perf_br \
             = self.lang_learner.word_encoder.encode_rollout_step(perf_messages)
 
-        joint_obs = obs.reshape(self.n_envs, -1)
+        joint_obs = obs.reshape(self.n_envs, 1, -1).repeat(
+            self.n_agents, 1)
 
         self.buffer.insert_obs(obs, joint_obs, enc_perf_mess, enc_perf_br)
 

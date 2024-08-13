@@ -202,7 +202,6 @@ class Trainer:
                 obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, 
                 joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, 
                 env_actions_batch, comm_actions_batch, masks_batch)
-        exit()
 
         # Actor loss
         actor_loss = self._compute_policy_loss(
@@ -302,21 +301,21 @@ class Trainer:
                 + self.capt_loss_w[agent_i] * capt_loss
         
         # Compute gradients
-        self.agents[agent_i].act_comm_optim.zero_grad()
-        self.agents[agent_i].critic_optim.zero_grad()
+        self.agents[agent_i].optim.zero_grad()
+        # self.agents[agent_i].critic_optim.zero_grad()
         if train_lang:
             self.lang_learner.optim.zero_grad()
         loss.backward()
 
         # Clip gradients
         actcomm_grad_norm = nn.utils.clip_grad_norm_(
-            self.agents[agent_i].act_comm.parameters(), self.max_grad_norm)
-        critic_grad_norm = nn.utils.clip_grad_norm_(
-            self.agents[agent_i].critic.parameters(), self.max_grad_norm)
+            self.agents[agent_i].parameters(), self.max_grad_norm)
+        # critic_grad_norm = nn.utils.clip_grad_norm_(
+        #     self.agents[agent_i].critic.parameters(), self.max_grad_norm)
 
         # Update
-        self.agents[agent_i].act_comm_optim.step()
-        self.agents[agent_i].critic_optim.step()
+        self.agents[agent_i].optim.step()
+        # self.agents[agent_i].critic_optim.step()
         if train_lang:
             self.lang_learner.optim.step()
 
