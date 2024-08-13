@@ -122,7 +122,7 @@ def run():
             train_lang=not cfg.no_train_lang)
 
         # Log train data
-        # logger.log_losses(train_losses, s_i + n_steps_per_update)
+        logger.log_losses(train_losses, s_i + n_steps_per_update)
 
         # Reset buffer for new episode
         model.init_episode()
