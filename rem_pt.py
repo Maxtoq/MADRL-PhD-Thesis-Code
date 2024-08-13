@@ -13,9 +13,9 @@ def remove_incremental_files(parent_folder_path):
             file_path = os.path.join(root, filename)
             
             # Check if the file path contains the string 'incremental'
-            if '/incremental/' in file_path:
+            if '/incremental/model_ep' in file_path:
                 try:
-                    # os.remove(file_path)
+                    os.remove(file_path)
                     print(f"Removed: {file_path}")
                 except Exception as e:
                     print(f"Error removing {file_path}: {e}")

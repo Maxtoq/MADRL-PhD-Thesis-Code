@@ -87,8 +87,8 @@ def get_config():
 
     # LMC parameters
     parser.add_argument("--context_dim", type=int, default=16)
-    parser.add_argument("--no_train_lang", default=False, 
-                        action="store_true")
+    # parser.add_argument("--no_train_lang", default=False, 
+    #                     action="store_true")
 
     # Language Learning parameters
     parser.add_argument("--lang_embed_dim", type=int, default=4)
@@ -134,6 +134,7 @@ def get_config():
     parser.add_argument("--FT_env_name", type=str, default=None)
     parser.add_argument("--FT_magym_env_size", type=int, default=None)
     parser.add_argument("--FT_magym_actual_obsrange", type=int, default=None)
+    parser.add_argument("--FT_freeze_lang", default=False, action="store_true")
 
     # eval parameters
     parser.add_argument("--do_eval", action='store_false', default=True, 

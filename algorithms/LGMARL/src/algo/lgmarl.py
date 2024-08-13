@@ -407,7 +407,7 @@ class LanguageGroundedMARL:
             comm_head_learns_rl = False
         else:
             comm_head_learns_rl = True
-        if self.comm_type not in ["perfect_comm", "language"]:
+        if self.comm_type in ["no_comm", "perfect_comm"] or not train_lang:
             train_lang = False
 
         # Compute last value

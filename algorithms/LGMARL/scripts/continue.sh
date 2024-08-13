@@ -1,8 +1,8 @@
 #!/bin/sh
 runs=( 1 2 3 4 5 6 7 8 )
-model_dir="models/magym_PredPrey/Adapt12_ACC_perf/"
+model_dir="models/magym_PredPrey/Adapt15_ACC_no/"
 n_steps=5000000
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
