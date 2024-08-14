@@ -59,6 +59,7 @@ class LanguageGroundedMARL:
 
         self.trainer = Trainer(
             args, 
+            self.model,
             self.model.agents, 
             self.lang_learner, 
             self.buffer, 
@@ -83,7 +84,7 @@ class LanguageGroundedMARL:
         self.actions, self.action_log_probs, self.values, self.comm_actions, \
             self.comm_action_log_probs, self.comm_values, self.obs_rnn_states, \
             self.joint_obs_rnn_states, self.comm_rnn_states \
-            = self.model.get_actions(
+            = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, deterministic)
 
@@ -105,8 +106,8 @@ class LanguageGroundedMARL:
         self.lang_learner.prep_training(self.device)
         self.model.prep_training(self.device)
         # self.trainer.device = self.device
-        # if self.trainer.act_value_normalizer is not None:
-        #     self.trainer.act_value_normalizer.to(self.device)
+        # if self.trainer.env_value_normalizer is not None:
+        #     self.trainer.env_value_normalizer.to(self.device)
         #     self.trainer.comm_value_normalizer.to(self.device)
 
     def prep_rollout(self, device=None):
@@ -115,8 +116,8 @@ class LanguageGroundedMARL:
         self.lang_learner.prep_rollout(self.device)
         self.model.prep_rollout(self.device)
         # self.trainer.device = self.device
-        # if self.trainer.act_value_normalizer is not None:
-        #     self.trainer.act_value_normalizer.to(self.device)
+        # if self.trainer.env_value_normalizer is not None:
+        #     self.trainer.env_value_normalizer.to(self.device)
         #     self.trainer.comm_value_normalizer.to(self.device)
 
     def reset_context(self, env_dones):
@@ -150,6 +151,8 @@ class LanguageGroundedMARL:
 
         # TODO
         comm_rewards = np.zeros_like(act_rewards)
+
+        # TODO gen_comm all true for emergent-continuous
         
         # Insert action data in buffer
         self.buffer.insert_act(
@@ -170,10 +173,7 @@ class LanguageGroundedMARL:
         # Insert next obs in buffer
         self._store_obs(next_obs, next_perf_messages)
 
-    def train(self, step, 
-            train_act_head=True, 
-            train_value_head=True,
-            train_lang=True):
+    def train(self, step, train_lang=True):
         self.prep_training()
 
         # self._anneal_capt_weight(step)
@@ -192,7 +192,7 @@ class LanguageGroundedMARL:
         self._compute_returns()
 
         # Train 
-        losses = self.trainer.train(
+        losses = self.trainer.train_diff(
             warmup, comm_head_learns_rl, train_lang)
 
         return losses
@@ -213,7 +213,7 @@ class LanguageGroundedMARL:
         self.buffer.compute_returns(
             next_act_values, 
             next_comm_values, 
-            self.trainer.act_value_normalizer,
+            self.trainer.env_value_normalizer,
             self.trainer.comm_value_normalizer)
 
     def _store_obs(self, obs, perf_messages):
@@ -242,9 +242,8 @@ class LanguageGroundedMARL:
         save_dict = {
             "acc": self.model.get_save_dict(),
             "lang_learner": self.lang_learner.get_save_dict(),
-            "act_vnorm": self.trainer.act_value_normalizer.state_dict(),
-            "comm_vnorm": self.trainer.comm_value_normalizer.state_dict()
-        }
+            "act_vnorm": self.trainer.env_value_normalizer.state_dict(),
+            "comm_vnorm": self.trainer.comm_value_normalizer.state_dict()}
         torch.save(save_dict, path)
 
     def load(self, path):
@@ -252,5 +251,5 @@ class LanguageGroundedMARL:
         self.model.load_params(save_dict["acc"])
         if self.comm_type in ["perfect_comm", "language"]:
             self.lang_learner.load_params(save_dict["lang_learner"])
-        self.trainer.act_value_normalizer.load_state_dict(save_dict["act_vnorm"])
+        self.trainer.env_value_normalizer.load_state_dict(save_dict["act_vnorm"])
         self.trainer.comm_value_normalizer.load_state_dict(save_dict["comm_vnorm"])

@@ -8,8 +8,9 @@ from .valuenorm import ValueNorm
 
 class Trainer:
 
-    def __init__(self, args, agents, lang_learner, buffer, 
+    def __init__(self, args, model, agents, lang_learner, buffer, 
                  device=torch.device("cpu")):
+        self.model = model
         self.agents = agents
         self.lang_learner = lang_learner
         self.buffer = buffer
@@ -32,46 +33,46 @@ class Trainer:
 
         # Init loss weights
         self.dyna_weight_loss = args.dyna_weight_loss
-        self.capt_loss_w = [args.lang_capt_loss_weight] * len(self.agents)
-        self.actor_loss_w = [args.actor_loss_weight] * len(self.agents)
-        self.comm_loss_w = [1.0] * len(self.agents)
-        self.act_value_loss_w =[1.0] * len(self.agents)
-        self.comm_value_loss_w = [1.0] * len(self.agents)
-        self.clip_loss_w = [1.0] * len(self.agents)
+        self.capt_loss_w = args.lang_capt_loss_weight
+        self.actor_loss_w = args.actor_loss_weight
+        self.comm_loss_w = 1.0
+        self.act_value_loss_w =1.0
+        self.comm_value_loss_w = 1.0
+        self.clip_loss_w = 1.0
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss(reduction="mean", ignore_index=0)
 
-        self.act_value_normalizer = ValueNorm(1).to(device)
-        self.comm_value_normalizer = ValueNorm(1).to(device)
+        self.env_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
+        self.comm_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
 
     def _update_loss_weights(self, a_i, losses):
-        self.actor_loss_w[a_i] = 1 / (
+        self.actor_loss_w = 1 / (
             abs(losses["actor_loss"]) 
-            if losses["actor_loss"] != 0 else self.actor_loss_w[a_i])
-        self.act_value_loss_w[a_i] = 1 / (
+            if losses["actor_loss"] != 0 else self.actor_loss_w)
+        self.act_value_loss_w = 1 / (
             abs(losses["act_value_loss"]) 
-            if losses["act_value_loss"] != 0 else self.act_value_loss_w[a_i])
+            if losses["act_value_loss"] != 0 else self.act_value_loss_w)
         if "comm_loss" in losses:
-            self.comm_loss_w[a_i] = 1 / (
+            self.comm_loss_w = 1 / (
                 abs(losses["comm_loss"]) 
-                if losses["comm_loss"] != 0 else self.comm_loss_w[a_i])
+                if losses["comm_loss"] != 0 else self.comm_loss_w)
             # self.comm_loss_w[a_i] = min(self.comm_loss_w[a_i], new_weight)
-            self.comm_value_loss_w[a_i] = 1 / (
+            self.comm_value_loss_w = 1 / (
                 abs(losses["comm_value_loss"]) 
-                if losses["comm_value_loss"] != 0 else self.comm_value_loss_w[a_i])
+                if losses["comm_value_loss"] != 0 else self.comm_value_loss_w)
         if "clip_loss" in losses:
-            self.clip_loss_w[a_i] = 1 / (
+            self.clip_loss_w = 1 / (
                 abs(losses["clip_loss"]) 
-                if losses["clip_loss"] != 0 else self.clip_loss_w[a_i])
-            self.capt_loss_w[a_i] = 1 / (
+                if losses["clip_loss"] != 0 else self.clip_loss_w)
+            self.capt_loss_w = 1 / (
                 abs(losses["capt_loss"]) 
-                if losses["capt_loss"] != 0 else self.capt_loss_w[a_i])
+                if losses["capt_loss"] != 0 else self.capt_loss_w)
 
     def _compute_advantages(self, train_comm_head):
          # Compute and normalize action advantages
         act_advantages = self.buffer.act_returns[:-1] \
-            - self.act_value_normalizer.denormalize(
+            - self.env_value_normalizer.denormalize(
                 self.buffer.act_value_preds[:-1])
         act_advantages_copy = act_advantages.copy()
         mean_act_advantages = np.nanmean(act_advantages_copy)
@@ -102,11 +103,9 @@ class Trainer:
             1.0 - self.clip_param, 
             1.0 + self.clip_param) * adv_targ
 
-        # loss = -torch.sum(
-        #     torch.min(surr1, surr2), dim=-1, keepdim=True).mean()
-        loss = -torch.min(surr1, surr2).mean()
+        loss = -torch.min(surr1, surr2).mean(dim=0)
         
-        loss = loss - dist_entropy * self.entropy_coef
+        loss = (loss - dist_entropy * self.entropy_coef).mean()
 
         return loss
 
@@ -214,7 +213,7 @@ class Trainer:
             act_values, 
             act_value_preds_batch, 
             act_returns_batch, 
-            self.act_value_normalizer)
+            self.env_value_normalizer)
 
         log_losses = {
             "actor_loss": actor_loss.item(),
@@ -293,12 +292,12 @@ class Trainer:
         if self.dyna_weight_loss:
             self._update_loss_weights(agent_i, log_losses)
 
-        loss = self.actor_loss_w[agent_i] * actor_loss \
-                + 1.0 * self.comm_loss_w[agent_i] * comm_loss \
-                + self.act_value_loss_w[agent_i] * act_value_loss \
-                + self.comm_value_loss_w[agent_i] * comm_value_loss \
-                + self.clip_loss_w[agent_i] * clip_loss \
-                + self.capt_loss_w[agent_i] * capt_loss
+        loss = self.actor_loss_w * actor_loss \
+                + 1.0 * self.comm_loss_w * comm_loss \
+                + self.act_value_loss_w * act_value_loss \
+                + self.comm_value_loss_w * comm_value_loss \
+                + self.clip_loss_w * clip_loss \
+                + self.capt_loss_w * capt_loss
         
         # Compute gradients
         self.agents[agent_i].optim.zero_grad()
@@ -320,6 +319,192 @@ class Trainer:
             self.lang_learner.optim.step()
 
         return log_losses
+
+    def _train_mappo_diff(self, sample, train_comm_head, train_lang):
+        obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, \
+            joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, \
+            env_actions_batch, comm_actions_batch, \
+            old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
+            env_value_preds_batch, comm_value_preds_batch, env_returns_batch, \
+            comm_returns_batch, masks_batch, env_advt_batch, comm_advt_batch, \
+            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch = sample
+
+        # obs_batch = torch.from_numpy(obs_batch).to(self.device)
+        # joint_obs_batch = torch.from_numpy(joint_obs_batch).to(self.device)
+        # obs_enc_rnn_states_batch = torch.from_numpy(
+        #     obs_enc_rnn_states_batch).to(self.device)
+        # joint_obs_enc_rnn_states_batch = torch.from_numpy(
+        #     joint_obs_enc_rnn_states_batch).to(self.device)
+        # comm_enc_rnn_states_batch = torch.from_numpy(
+        #     comm_enc_rnn_states_batch).to(self.device)
+        # env_actions_batch = torch.from_numpy(env_actions_batch).to(self.device)
+        # comm_actions_batch = torch.from_numpy(comm_actions_batch).to(self.device)
+        env_value_preds_batch = torch.from_numpy(
+            env_value_preds_batch).to(self.device)
+        # comm_value_preds_batch = torch.from_numpy(
+        #     comm_value_preds_batch).to(self.device)
+        env_returns_batch = torch.from_numpy(env_returns_batch).to(self.device)
+        # comm_returns_batch = torch.from_numpy(comm_returns_batch).to(self.device)
+        # masks_batch = torch.from_numpy(masks_batch).to(self.device)
+        old_env_action_log_probs_batch = torch.from_numpy(
+            old_env_action_log_probs_batch).to(self.device)
+        old_comm_action_log_probs_batch = torch.from_numpy(
+            old_comm_action_log_probs_batch).to(self.device)
+        env_advt_batch = torch.from_numpy(env_advt_batch).to(self.device)
+        comm_advt_batch = torch.from_numpy(comm_advt_batch).to(self.device)
+        # perf_messages_batch = torch.from_numpy(perf_messages_batch).to(self.device)
+        
+        # Forward all agents
+        actions, action_log_probs, env_values, comm_actions, \
+            comm_action_log_probs, comm_values, new_obs_rnn_states, \
+            new_joint_obs_rnn_states, new_comm_rnn_states, \
+            env_action_log_probs, env_dist_entropy, \
+            comm_action_log_probs, comm_dist_entropy \
+            = self.model.comm_n_act(
+                obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, 
+                joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, 
+                masks_batch, deterministic=True, 
+                eval_actions=env_actions_batch, 
+                eval_comm_actions=comm_actions_batch)
+
+        # Actor loss
+        actor_loss = self._compute_policy_loss(
+            env_action_log_probs, 
+            old_env_action_log_probs_batch, 
+            env_advt_batch, 
+            env_dist_entropy)
+
+        # Env Value loss
+        env_value_loss = self._compute_value_loss(
+            env_values, 
+            env_value_preds_batch, 
+            env_returns_batch, 
+            self.env_value_normalizer)
+
+        log_losses = {
+            "actor_loss": actor_loss.item(),
+            "env_value_loss": env_value_loss.item()}
+        
+        # Communicator losses
+        if train_comm_head:
+            # The comm head is trained only on generated messages
+            gen_comm_batch = gen_comm_batch == 1.0
+            if gen_comm_batch.sum() > 32:
+                comm_loss = self._compute_policy_loss(
+                    comm_action_log_probs[gen_comm_batch], 
+                    old_comm_action_log_probs_batch[gen_comm_batch], 
+                    comm_advt_batch[gen_comm_batch], 
+                    comm_dist_entropy)
+                log_losses["comm_loss"] = comm_loss.item()
+            else:
+                comm_loss = torch.zeros_like(actor_loss)
+
+            comm_value_loss = self._compute_value_loss(
+                comm_values, 
+                comm_value_preds_batch, 
+                comm_returns_batch, 
+                self.comm_value_normalizer)
+            
+            log_losses["comm_value_loss"] = comm_value_loss.item()
+        else:
+            comm_loss = torch.zeros_like(actor_loss)
+            comm_value_loss = torch.zeros_like(env_value_loss)
+
+        if self.dyna_weight_loss:
+            self._update_loss_weights(log_losses)
+
+        loss = self.actor_loss_w * actor_loss \
+                + self.comm_loss_w * comm_loss \
+                + self.act_value_loss_w * env_value_loss \
+                + self.comm_value_loss_w * comm_value_loss
+                # + self.clip_loss_w * clip_loss \
+                # + self.capt_loss_w * capt_loss
+
+        # Compute gradients
+        for a in self.agents:
+            a.optim.zero_grad()
+        # self.agents[agent_i].critic_optim.zero_grad()
+        if train_lang:
+            self.lang_learner.optim.zero_grad()
+        loss.backward()
+
+        # Clip gradients
+        for a in self.agents:
+            actcomm_grad_norm = nn.utils.clip_grad_norm_(
+                a.parameters(), self.max_grad_norm)
+        # critic_grad_norm = nn.utils.clip_grad_norm_(
+        #     self.agents[agent_i].critic.parameters(), self.max_grad_norm)
+
+        # Update
+        for a in self.agents:
+            a.optim.step()
+        # self.agents[agent_i].critic_optim.step()
+        if train_lang:
+            self.lang_learner.optim.step()
+
+        return log_losses
+
+        
+
+    def train_diff(self, warmup=False, train_comm_head=True, train_lang=True):
+        """
+        Train LGMARL.
+
+        :param train_comm_head: (bool) Whether to train the communicator head.
+        :param train_lang: (bool) Whether to train language modules.
+
+        :return losses: (dict) Contains losses obtained during update.
+        """
+        for a in self.agents:
+            a.warmup_lr(warmup)
+            
+        act_advantages, comm_advantages = self._compute_advantages(
+            train_comm_head)
+        
+        losses = {
+            "act_value_loss": 0.0,
+            "actor_loss": 0.0}
+        if train_comm_head:
+            losses["comm_value_loss"] = 0.0
+            losses["comm_loss"] = 0.0
+        if train_lang:
+            losses["clip_loss"] = 0.0
+            losses["mean_sim"] = 0.0
+            losses["capt_loss"] = 0.0
+
+        # Train policy
+        num_updates = self.ppo_epoch * self.n_mini_batch
+        for _ in range(self.ppo_epoch):
+            data_generator = self.buffer.recurrent_policy_generator(
+                act_advantages, comm_advantages)
+    
+            for sample in data_generator:
+                # if self.share_params:
+                #     loss = self._train_mappo(
+                #         0, sample, train_comm_head, train_lang)
+                    
+                #     for key in loss:
+                #         losses[key] += loss[key] / num_updates
+                # else:
+                #     for a_i in range(len(self.agents)):
+                #         sample_i = (
+                #             *[batch[:, a_i] for batch in sample[:-1]],
+                #             [s[a_i] for s in sample[-1]])
+                #             # sample[-1][a_i])
+
+                #         loss = self._train_mappo(
+                #             a_i, 
+                #             sample_i, 
+                #             train_comm_head, 
+                #             train_lang)
+                        
+                #         for key in loss:
+                #             losses[key] += loss[key] / (
+                #                 num_updates * len(self.agents))
+                losses = self._train_mappo_diff(
+                    sample, train_comm_head, train_lang)
+
+        return losses
 
     def train(self, warmup=False, train_comm_head=True, train_lang=True):
         """

@@ -119,7 +119,7 @@ def run():
         # Training
         train_losses = model.train(
             s_i + n_steps_per_update,
-            train_lang=not cfg.no_train_lang)
+            train_lang=not cfg.FT_freeze_lang)
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)

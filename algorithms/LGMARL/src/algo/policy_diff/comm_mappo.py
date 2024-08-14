@@ -26,10 +26,12 @@ class Comm_MAPPO():
         if self.share_params:
             raise NotImplementedError
             self.agents = [
-                Comm_Agent(args, obs_dim, shared_obs_dim, act_dim)]
+                Comm_Agent(
+                    args, n_agents, obs_dim, shared_obs_dim, act_dim, device)]
         else:
             self.agents = [
-                Comm_Agent(args, obs_dim, shared_obs_dim, act_dim)
+                Comm_Agent(
+                    args, n_agents, obs_dim, shared_obs_dim, act_dim, device)
                 for a_i in range(self.n_agents)]
 
         self.eval = False
@@ -67,6 +69,7 @@ class Comm_MAPPO():
         for a in self.agents:
             a.eval()
             a.to(self.device)
+            a.set_device(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -74,10 +77,12 @@ class Comm_MAPPO():
         for a in self.agents:
             a.train()
             a.to(self.device)
+            a.set_device(self.device)
 
-    def get_actions(
+    def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
-            comm_rnn_states, masks, deterministic=False):
+            comm_rnn_states, masks, deterministic=False, eval_actions=None, 
+            eval_comm_actions=None):
         obs = torch.from_numpy(obs).to(self.device)
         joint_obs = torch.from_numpy(joint_obs).to(self.device)
         obs_rnn_states = torch.from_numpy(obs_rnn_states).to(self.device)
@@ -85,6 +90,13 @@ class Comm_MAPPO():
             joint_obs_rnn_states).to(self.device)
         comm_rnn_states = torch.from_numpy(comm_rnn_states).to(self.device)
         masks = torch.from_numpy(masks).to(self.device)
+        if eval_actions is not None:
+            eval_actions = torch.from_numpy(eval_actions).to(self.device)
+            eval_comm_actions = torch.from_numpy(
+                eval_comm_actions).to(self.device)
+            _eval = True
+        else:
+            _eval = False
 
         # TODO: handle perfect messages
 
@@ -97,17 +109,21 @@ class Comm_MAPPO():
         agents_comm_values = []
         agents_new_obs_rnn_states = []
         agents_new_joint_obs_rnn_states = []
+        agents_eval_comm_action_log_probs = []
+        agents_eval_comm_dist_entropy = []
         for a_i in range(self.n_agents):
             messages, enc_obs, enc_joint_obs, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
-                new_joint_obs_rnn_states \
-                = self.agents[a_i].get_message(
+                new_joint_obs_rnn_states, eval_comm_action_log_probs, \
+                eval_comm_dist_entropy \
+                = self.agents[a_i].forward_comm(
                     obs[:, a_i], 
                     joint_obs[:, a_i], 
                     obs_rnn_states[:, a_i], 
                     joint_obs_rnn_states[:, a_i], 
                     masks[:, a_i], 
-                    deterministic)
+                    deterministic,
+                    eval_comm_actions[:, a_i] if _eval else None)
 
             agents_messages.append(messages)
             agents_enc_obs.append(enc_obs)
@@ -117,49 +133,94 @@ class Comm_MAPPO():
             agents_comm_values.append(comm_values)
             agents_new_obs_rnn_states.append(new_obs_rnn_states)
             agents_new_joint_obs_rnn_states.append(new_joint_obs_rnn_states)
+            if _eval:
+                agents_eval_comm_action_log_probs.append(
+                    eval_comm_action_log_probs)
+                agents_eval_comm_dist_entropy.append(eval_comm_dist_entropy)
 
         # Aggregate messages
         if self.comm_type == "no_comm":
             messages = None
+        elif self.comm_type == "emergent_continuous":
+            # Concatenate messages to get broadcast
+            messages = torch.concatenate(agents_messages, 1)
 
         # Generate actions
         agents_actions = []
         agents_action_log_probs = []
         agents_values = []
         agents_new_comm_rnn_states = []
+        agents_eval_action_log_probs = []
+        agents_eval_dist_entropy = []
         for a_i in range(self.n_agents):
-            actions, action_log_probs, values, new_comm_rnn_states = \
-                self.agents[a_i].get_actions(
+            actions, action_log_probs, values, new_comm_rnn_states, \
+                eval_action_log_probs, eval_dist_entropy \
+                = self.agents[a_i].forward_act(
                     messages, 
                     agents_enc_obs[a_i],
                     agents_enc_joint_obs[a_i],
                     comm_rnn_states[:, a_i],
                     masks[:, a_i],
-                    deterministic)
+                    deterministic,
+                    eval_actions[:, a_i] if _eval else None)
 
             agents_actions.append(actions)
             agents_action_log_probs.append(action_log_probs)
             agents_values.append(values)
             agents_new_comm_rnn_states.append(new_comm_rnn_states)
+            if _eval:
+                agents_eval_action_log_probs.append(eval_action_log_probs)
+                agents_eval_dist_entropy.append(eval_dist_entropy)
 
-        actions = torch2numpy(torch.stack(agents_actions, dim=1))
-        action_log_probs = torch2numpy(
-            torch.stack(agents_action_log_probs, dim=1))
-        values = torch2numpy(torch.stack(agents_values, dim=1))
-        comm_actions = torch2numpy(torch.stack(agents_comm_actions, dim=1))
-        comm_action_log_probs = torch2numpy(
-            torch.stack(agents_comm_action_log_probs, dim=1))
-        comm_values = torch2numpy(torch.stack(agents_comm_values, dim=1))
-        new_obs_rnn_states = torch2numpy(
-            torch.stack(agents_new_obs_rnn_states, dim=1))
-        new_joint_obs_rnn_states = torch2numpy(
-            torch.stack(agents_new_joint_obs_rnn_states, dim=1))
-        new_comm_rnn_states = torch2numpy(
-            torch.stack(agents_new_comm_rnn_states, dim=1))
+        if not _eval:
+            actions = torch2numpy(torch.stack(agents_actions, dim=1))
+            action_log_probs = torch2numpy(
+                torch.stack(agents_action_log_probs, dim=1))
+            values = torch2numpy(torch.stack(agents_values, dim=1))
+            comm_actions = torch2numpy(torch.stack(agents_comm_actions, dim=1))
+            comm_action_log_probs = torch2numpy(
+                torch.stack(agents_comm_action_log_probs, dim=1))
+            comm_values = torch2numpy(torch.stack(agents_comm_values, dim=1))
+            new_obs_rnn_states = torch2numpy(
+                torch.stack(agents_new_obs_rnn_states, dim=1))
+            new_joint_obs_rnn_states = torch2numpy(
+                torch.stack(agents_new_joint_obs_rnn_states, dim=1))
+            new_comm_rnn_states = torch2numpy(
+                torch.stack(agents_new_comm_rnn_states, dim=1))
+            
+            return actions, action_log_probs, values, comm_actions, \
+                comm_action_log_probs, comm_values, new_obs_rnn_states, \
+                new_joint_obs_rnn_states, new_comm_rnn_states
 
-        return actions, action_log_probs, values, comm_actions, \
-            comm_action_log_probs, comm_values, new_obs_rnn_states, \
-            new_joint_obs_rnn_states, new_comm_rnn_states
+        else:
+            actions = torch.stack(agents_actions, dim=1)
+            action_log_probs = torch.stack(agents_action_log_probs, dim=1)
+            values = torch.stack(agents_values, dim=1)
+            comm_actions = torch.stack(agents_comm_actions, dim=1)
+            comm_action_log_probs = torch.stack(
+                agents_comm_action_log_probs, dim=1)
+            comm_values = torch.stack(agents_comm_values, dim=1)
+            new_obs_rnn_states = torch.stack(agents_new_obs_rnn_states, dim=1)
+            new_joint_obs_rnn_states = torch.stack(
+                agents_new_joint_obs_rnn_states, dim=1)
+            new_comm_rnn_states = torch.stack(agents_new_comm_rnn_states, dim=1)
+            eval_action_log_probs = torch.stack(
+                agents_eval_action_log_probs, dim=1)
+            eval_dist_entropy = torch.stack(agents_eval_dist_entropy).unsqueeze(-1)
+            if self.comm_type != "no_comm":
+                eval_comm_action_log_probs = torch.stack(
+                    agents_eval_comm_action_log_probs, dim=1)
+                eval_comm_dist_entropy = torch.stack(
+                    agents_eval_comm_dist_entropy).unsqueeze(-1)
+            else:
+                eval_comm_action_log_probs = None
+                eval_comm_dist_entropy = None
+
+            return actions, action_log_probs, values, comm_actions, \
+                comm_action_log_probs, comm_values, new_obs_rnn_states, \
+                new_joint_obs_rnn_states, new_comm_rnn_states, \
+                eval_action_log_probs, eval_dist_entropy, \
+                eval_comm_action_log_probs, eval_comm_dist_entropy
 
     def get_save_dict(self):
         self.prep_rollout("cpu")
