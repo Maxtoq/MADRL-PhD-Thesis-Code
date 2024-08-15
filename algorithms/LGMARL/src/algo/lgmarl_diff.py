@@ -105,7 +105,7 @@ class LanguageGroundedMARL:
             self.device = device
         self.lang_learner.prep_training(self.device)
         self.model.prep_training(self.device)
-        # self.trainer.device = self.device
+        self.trainer.device = self.device
         # if self.trainer.env_value_normalizer is not None:
         #     self.trainer.env_value_normalizer.to(self.device)
         #     self.trainer.comm_value_normalizer.to(self.device)
@@ -115,7 +115,7 @@ class LanguageGroundedMARL:
             self.device = device
         self.lang_learner.prep_rollout(self.device)
         self.model.prep_rollout(self.device)
-        # self.trainer.device = self.device
+        self.trainer.device = self.device
         # if self.trainer.env_value_normalizer is not None:
         #     self.trainer.env_value_normalizer.to(self.device)
         #     self.trainer.comm_value_normalizer.to(self.device)

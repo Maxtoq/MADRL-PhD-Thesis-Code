@@ -341,10 +341,10 @@ class Trainer:
         # comm_actions_batch = torch.from_numpy(comm_actions_batch).to(self.device)
         env_value_preds_batch = torch.from_numpy(
             env_value_preds_batch).to(self.device)
-        # comm_value_preds_batch = torch.from_numpy(
-        #     comm_value_preds_batch).to(self.device)
+        comm_value_preds_batch = torch.from_numpy(
+            comm_value_preds_batch).to(self.device)
         env_returns_batch = torch.from_numpy(env_returns_batch).to(self.device)
-        # comm_returns_batch = torch.from_numpy(comm_returns_batch).to(self.device)
+        comm_returns_batch = torch.from_numpy(comm_returns_batch).to(self.device)
         # masks_batch = torch.from_numpy(masks_batch).to(self.device)
         old_env_action_log_probs_batch = torch.from_numpy(
             old_env_action_log_probs_batch).to(self.device)
