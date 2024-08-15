@@ -260,8 +260,8 @@ class ReplayBuffer:
         :param act_value_normalizer: (ValueNorm) Value normalizer instance.
         :param comm_value_normalizer: (ValueNorm) Value normalizer instance.
         """
-        # Messages get rewards from next step
-        self.comm_rewards[:-1] += self.act_rewards[1:]
+        # Messages get environmnent reward
+        self.comm_rewards += self.act_rewards
 
         self.act_value_preds[-1] = next_act_value
         self.comm_value_preds[-1] = next_comm_value

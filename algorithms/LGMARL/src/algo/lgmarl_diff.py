@@ -152,7 +152,9 @@ class LanguageGroundedMARL:
         # TODO
         comm_rewards = np.zeros_like(act_rewards)
 
-        # TODO gen_comm all true for emergent-continuous
+        # gen_comm all true for emergent-continuous
+        if self.comm_type == "emergent_continuous":
+            self.gen_comm = np.ones_like(self.comm_values)
         
         # Insert action data in buffer
         self.buffer.insert_act(
@@ -192,7 +194,7 @@ class LanguageGroundedMARL:
         self._compute_returns()
 
         # Train 
-        losses = self.trainer.train(
+        losses = self.trainer.train_diff(
             warmup, comm_head_learns_rl, train_lang)
 
         return losses
