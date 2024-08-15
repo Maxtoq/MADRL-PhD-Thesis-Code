@@ -46,13 +46,13 @@ class Trainer:
         self.env_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
         self.comm_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
 
-    def _update_loss_weights(self, a_i, losses):
+    def _update_loss_weights(self, losses):
         self.actor_loss_w = 1 / (
             abs(losses["actor_loss"]) 
             if losses["actor_loss"] != 0 else self.actor_loss_w)
         self.act_value_loss_w = 1 / (
-            abs(losses["act_value_loss"]) 
-            if losses["act_value_loss"] != 0 else self.act_value_loss_w)
+            abs(losses["env_value_loss"]) 
+            if losses["env_value_loss"] != 0 else self.act_value_loss_w)
         if "comm_loss" in losses:
             self.comm_loss_w = 1 / (
                 abs(losses["comm_loss"]) 
