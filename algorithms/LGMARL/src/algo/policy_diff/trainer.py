@@ -217,7 +217,7 @@ class Trainer:
 
         log_losses = {
             "actor_loss": actor_loss.item(),
-            "act_value_loss": act_value_loss.item()}
+            "env_value_loss": act_value_loss.item()}
 
         # Communicator losses
         if train_comm_head:
@@ -290,7 +290,7 @@ class Trainer:
             capt_loss = torch.zeros_like(act_value_loss)
 
         if self.dyna_weight_loss:
-            self._update_loss_weights(agent_i, log_losses)
+            self._update_loss_weights(log_losses)
 
         loss = self.actor_loss_w * actor_loss \
                 + 1.0 * self.comm_loss_w * comm_loss \
@@ -462,7 +462,7 @@ class Trainer:
             train_comm_head)
         
         losses = {
-            "act_value_loss": 0.0,
+            "env_value_loss": 0.0,
             "actor_loss": 0.0}
         if train_comm_head:
             losses["comm_value_loss"] = 0.0
@@ -522,7 +522,7 @@ class Trainer:
             train_comm_head)
         
         losses = {
-            "act_value_loss": 0.0,
+            "env_value_loss": 0.0,
             "actor_loss": 0.0}
         if train_comm_head:
             losses["comm_value_loss"] = 0.0
