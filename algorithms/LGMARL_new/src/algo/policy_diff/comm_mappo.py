@@ -8,7 +8,7 @@ from .utils import torch2numpy, update_lr
 
 class Comm_MAPPO_Shared:
 
-    def __init__(self, args, n_agents, obs_dim, 
+    def __init__(self, args, word_encoder, n_agents, obs_dim, 
                  shared_obs_dim, act_dim, device):
         self.args = args
         self.n_envs = args.n_parallel_envs
@@ -19,7 +19,8 @@ class Comm_MAPPO_Shared:
         self.comm_type = args.comm_type
 
         self.agents = Comm_Agent(
-            args, n_agents, obs_dim, shared_obs_dim, act_dim, device)
+            args, word_encoder, n_agents, obs_dim, shared_obs_dim, act_dim, 
+            device)
 
         self.eval = False
 
@@ -41,16 +42,12 @@ class Comm_MAPPO_Shared:
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
-        self.agents.eval()
-        self.agents.to(self.device)
-        self.agents.set_device(self.device)
+        self.agents.prep_rollout(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
             self.device = device
-        self.agents.train()
-        self.agents.to(self.device)
-        self.agents.set_device(self.device)
+        self.agents.prep_training(self.device)
 
     def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
@@ -188,7 +185,7 @@ class Comm_MAPPO_Shared:
 
 class Comm_MAPPO():
 
-    def __init__(self, args, n_agents, obs_dim, 
+    def __init__(self, args, word_encoder, n_agents, obs_dim, 
                  shared_obs_dim, act_dim, device):
         self.args = args
         self.n_agents = n_agents
@@ -204,11 +201,13 @@ class Comm_MAPPO():
         if self.share_params:
             self.agents = [
                 Comm_Agent(
-                    args, n_agents, obs_dim, shared_obs_dim, act_dim, device)]
+                    args, word_encoder, n_agents, obs_dim, shared_obs_dim, 
+                    act_dim, device)]
         else:
             self.agents = [
                 Comm_Agent(
-                    args, n_agents, obs_dim, shared_obs_dim, act_dim, device)
+                    args, word_encoder, n_agents, obs_dim, shared_obs_dim, 
+                    act_dim, device)
                 for a_i in range(self.n_agents)]
 
         self.eval = False
@@ -244,17 +243,13 @@ class Comm_MAPPO():
         if device is not None:
             self.device = device
         for a in self.agents:
-            a.eval()
-            a.to(self.device)
-            a.set_device(self.device)
+            a.prep_rollout(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
             self.device = device
         for a in self.agents:
-            a.train()
-            a.to(self.device)
-            a.set_device(self.device)
+            a.prep_training(self.device)
 
     def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 

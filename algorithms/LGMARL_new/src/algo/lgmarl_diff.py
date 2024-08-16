@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from .language.lang_learner import LanguageLearner
+from .language.lm import OneHotEncoder
 from .policy_diff.comm_mappo import Comm_MAPPO, Comm_MAPPO_Shared
 from .policy_diff.buffer import ReplayBuffer
 from .policy_diff.trainer import Trainer
@@ -43,7 +43,7 @@ class LanguageGroundedMARL:
         else:
             ModelClass = Comm_MAPPO
         self.model = ModelClass(
-            args, n_agents, obs_shape, joint_obs_shape, 
+            args, self.word_encoder, n_agents, obs_shape, joint_obs_shape, 
             act_dim, self.device)
 
         self.buffer = ReplayBuffer(
@@ -226,7 +226,7 @@ class LanguageGroundedMARL:
         """
         # Encode sentences and build broadcast
         enc_perf_mess, enc_perf_br \
-            = self.lang_learner.word_encoder.encode_rollout_step(perf_messages)
+            = self.word_encoder.encode_rollout_step(perf_messages)
 
         joint_obs = obs.reshape(self.n_envs, 1, -1).repeat(
             self.n_agents, 1)
@@ -241,7 +241,6 @@ class LanguageGroundedMARL:
         self.prep_rollout("cpu")
         save_dict = {
             "acc": self.model.get_save_dict(),
-            "lang_learner": self.lang_learner.get_save_dict(),
             "act_vnorm": self.trainer.env_value_normalizer.state_dict(),
             "comm_vnorm": self.trainer.comm_value_normalizer.state_dict()}
         torch.save(save_dict, path)
@@ -249,7 +248,5 @@ class LanguageGroundedMARL:
     def load(self, path):
         save_dict = torch.load(path, map_location=torch.device('cpu'))
         self.model.load_params(save_dict["acc"])
-        if self.comm_type in ["perfect_comm", "language"]:
-            self.lang_learner.load_params(save_dict["lang_learner"])
         self.trainer.env_value_normalizer.load_state_dict(save_dict["act_vnorm"])
         self.trainer.comm_value_normalizer.load_state_dict(save_dict["comm_vnorm"])

@@ -16,22 +16,14 @@ def init_(m):
 class Comm_Agent(nn.Module):
 
     def __init__(
-            self, args, n_agents, obs_dim, joint_obs_dim, act_dim, device): #, lang_learner):
+            self, args, word_encoder, n_agents, obs_dim, joint_obs_dim, 
+            act_dim, device):
         super(Comm_Agent, self).__init__()
         self.lr = args.lr
         self.comm_type = args.comm_type
         self.warming_up = False
         self.context_dim = args.context_dim
         self.device = device
-
-        # Language learner
-        self.lang_learner = LanguageLearner(
-            args,
-            obs_dim, 
-            args.context_dim,
-            parser, 
-            n_agents,
-            device)
 
         # Common encoders
         # self.joint_obs_in = MLPNetwork(
@@ -45,7 +37,7 @@ class Comm_Agent(nn.Module):
             joint_obs_dim, args.hidden_dim, args.policy_recurrent_N)
         
         # Comm MAPPO 
-        if self.comm_type == "emergent_continuous":
+        if self.comm_type in ["emergent_continuous", "language"]:
             self.comm_pol = nn.Sequential(
                 MLPNetwork(
                     args.hidden_dim, 
@@ -61,14 +53,25 @@ class Comm_Agent(nn.Module):
                     out_activation_fn="relu"),
                 init_(nn.Linear(args.hidden_dim, 1)))
 
-            self.message_encoder = nn.Linear(
-                n_agents * args.context_dim, args.context_dim)
-
             self.comm_encoder = RNNLayer(
                 args.context_dim, args.hidden_dim, args.policy_recurrent_N) 
             
             act_pol_input = args.hidden_dim * 2
             act_val_input = args.hidden_dim * 2
+
+            if self.comm_type == "emergent_continuous":
+                self.message_encoder = nn.Linear(
+                    n_agents * args.context_dim, args.context_dim)
+
+            elif self.comm_type == "language":
+                # Language learner
+                self.lang_learner = LanguageLearner(
+                    args,
+                    word_encoder,
+                    obs_dim, 
+                    args.context_dim,
+                    n_agents,
+                    device)
 
         elif self.comm_type == "no_comm":
             act_pol_input = args.hidden_dim
@@ -101,8 +104,21 @@ class Comm_Agent(nn.Module):
             eps=args.opti_eps,
             weight_decay=args.weight_decay)
 
-    def set_device(self, device):
+    def prep_rollout(self, device):
         self.device = device
+        self.agents.eval()
+        self.agents.to(self.device)
+        # if self.comm_type == "language":
+        #     self.lang_learner.eval()
+        #     self.lang_learner.to(self.device)
+
+    def prep_training(self, device):
+        self.device = device
+        self.agents.train()
+        self.agents.to(self.device)
+        # if self.comm_type == "language":
+        #     self.lang_learner.train()
+        #     self.lang_learner.to(self.device)
 
     def forward_comm(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
