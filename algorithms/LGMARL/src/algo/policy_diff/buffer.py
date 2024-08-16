@@ -350,99 +350,99 @@ class ReplayBuffer:
             #     for step_sentences in self.perf_messages[:-1]
             #     for i in ids]
 
-            if self.share_params:
-                obs_batch = obs_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                joint_obs_batch = joint_obs_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                env_actions_batch = env_actions_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                comm_actions_batch = comm_actions_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                env_action_log_probs_batch = env_action_log_probs_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                act_value_preds_batch = act_value_preds_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                act_returns_batch = act_returns_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                comm_value_preds_batch = comm_value_preds_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                comm_returns_batch = comm_returns_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                masks_batch = masks_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                gen_comm_batch = gen_comm_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                act_advt_batch = act_advt_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                comm_advt_batch = comm_advt_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
+            # if self.share_params:
+            #     obs_batch = obs_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     joint_obs_batch = joint_obs_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     env_actions_batch = env_actions_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     comm_actions_batch = comm_actions_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     env_action_log_probs_batch = env_action_log_probs_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     act_value_preds_batch = act_value_preds_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     act_returns_batch = act_returns_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     comm_value_preds_batch = comm_value_preds_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     comm_returns_batch = comm_returns_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     masks_batch = masks_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     gen_comm_batch = gen_comm_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     act_advt_batch = act_advt_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     comm_advt_batch = comm_advt_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
 
-                obs_enc_rnn_states_batch = obs_enc_rnn_states_batch.reshape(
-                    mini_batch_size * self.n_agents, self.recurrent_N, -1)
-                joint_obs_enc_rnn_states_batch = joint_obs_enc_rnn_states_batch.reshape(
-                    mini_batch_size * self.n_agents, self.recurrent_N, -1)
-                comm_enc_rnn_states_batch = comm_enc_rnn_states_batch.reshape(
-                    mini_batch_size * self.n_agents, self.recurrent_N, -1)
+            #     obs_enc_rnn_states_batch = obs_enc_rnn_states_batch.reshape(
+            #         mini_batch_size * self.n_agents, self.recurrent_N, -1)
+            #     joint_obs_enc_rnn_states_batch = joint_obs_enc_rnn_states_batch.reshape(
+            #         mini_batch_size * self.n_agents, self.recurrent_N, -1)
+            #     comm_enc_rnn_states_batch = comm_enc_rnn_states_batch.reshape(
+            #         mini_batch_size * self.n_agents, self.recurrent_N, -1)
 
-                perf_messages_batch = perf_messages_batch.reshape(
-                    self.rollout_length * mini_batch_size * self.n_agents, -1)
-                # Flatten all perf_broadcasts
-                perf_broadcasts_batch = [
-                    env_sentences[a_i]
-                    for env_sentences in perf_broadcasts_batch
-                    for a_i in range(self.n_agents)]
-                # perf_messages_batch = [
-                #     env_sentences[a_i]
-                #     for env_sentences in perf_messages_batch
-                #     for a_i in range(self.n_agents)]
+            #     perf_messages_batch = perf_messages_batch.reshape(
+            #         self.rollout_length * mini_batch_size * self.n_agents, -1)
+            #     # Flatten all perf_broadcasts
+            #     perf_broadcasts_batch = [
+            #         env_sentences[a_i]
+            #         for env_sentences in perf_broadcasts_batch
+            #         for a_i in range(self.n_agents)]
+            #     # perf_messages_batch = [
+            #     #     env_sentences[a_i]
+            #     #     for env_sentences in perf_messages_batch
+            #     #     for a_i in range(self.n_agents)]
 
-            else:
-                obs_batch = obs_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                joint_obs_batch = joint_obs_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                env_actions_batch = env_actions_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                comm_actions_batch = comm_actions_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                env_action_log_probs_batch = env_action_log_probs_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                act_value_preds_batch = act_value_preds_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                act_returns_batch = act_returns_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                comm_value_preds_batch = comm_value_preds_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                comm_returns_batch = comm_returns_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                masks_batch = masks_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                gen_comm_batch = gen_comm_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                act_advt_batch = act_advt_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-                comm_advt_batch = comm_advt_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-
-                perf_messages_batch = perf_messages_batch.reshape(
-                    self.rollout_length * mini_batch_size, self.n_agents, -1)
-
-            # Get probabilities of sampling each message for language training
-            # if self.lang_imp_sample:
-            #     mess_sampling_probs = self._get_mess_sampl_probs(
-            #         perf_messages_batch)
             # else:
-            # mess_sampling_probs = np.zeros_like(perf_messages_batch)
+            obs_batch = obs_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            joint_obs_batch = joint_obs_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            env_actions_batch = env_actions_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            comm_actions_batch = comm_actions_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            env_action_log_probs_batch = env_action_log_probs_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            comm_action_log_probs_batch = comm_action_log_probs_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            act_value_preds_batch = act_value_preds_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            act_returns_batch = act_returns_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            comm_value_preds_batch = comm_value_preds_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            comm_returns_batch = comm_returns_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            masks_batch = masks_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            gen_comm_batch = gen_comm_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            act_advt_batch = act_advt_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+            comm_advt_batch = comm_advt_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
 
-            yield obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, \
-                joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, \
-                env_actions_batch, comm_actions_batch, \
-                env_action_log_probs_batch, comm_action_log_probs_batch, \
-                act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
-                comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-                gen_comm_batch, perf_messages_batch, perf_broadcasts_batch
+            perf_messages_batch = perf_messages_batch.reshape(
+                self.rollout_length * mini_batch_size, self.n_agents, -1)
+
+        # Get probabilities of sampling each message for language training
+        # if self.lang_imp_sample:
+        #     mess_sampling_probs = self._get_mess_sampl_probs(
+        #         perf_messages_batch)
+        # else:
+        # mess_sampling_probs = np.zeros_like(perf_messages_batch)
+
+        yield obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, \
+            joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, \
+            env_actions_batch, comm_actions_batch, \
+            env_action_log_probs_batch, comm_action_log_probs_batch, \
+            act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
+            comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
+            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch

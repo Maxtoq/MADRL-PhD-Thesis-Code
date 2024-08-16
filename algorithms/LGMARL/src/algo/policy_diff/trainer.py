@@ -11,7 +11,7 @@ class Trainer:
     def __init__(self, args, model, agents, lang_learner, buffer, 
                  device=torch.device("cpu")):
         self.model = model
-        self.agents = agents
+        self.agents = agents if type(agents) == list else [agents]
         self.lang_learner = lang_learner
         self.buffer = buffer
         self.device = device
@@ -443,8 +443,6 @@ class Trainer:
             self.lang_learner.optim.step()
 
         return log_losses
-
-        
 
     def train_diff(self, warmup=False, train_comm_head=True, train_lang=True):
         """

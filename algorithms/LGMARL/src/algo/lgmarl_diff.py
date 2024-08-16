@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from .language.lang_learner import LanguageLearner
-from .policy_diff.comm_mappo import Comm_MAPPO
+from .policy_diff.comm_mappo import Comm_MAPPO, Comm_MAPPO_Shared
 from .policy_diff.buffer import ReplayBuffer
 from .policy_diff.trainer import Trainer
 from .policy_diff.utils import get_shape_from_obs_space, torch2numpy, update_linear_schedule
@@ -43,7 +43,11 @@ class LanguageGroundedMARL:
             n_agents,
             device)
 
-        self.model = Comm_MAPPO(
+        if args.share_params:
+            ModelClass = Comm_MAPPO_Shared
+        else:
+            ModelClass = Comm_MAPPO
+        self.model = ModelClass(
             args, self.lang_learner, n_agents, obs_shape, joint_obs_shape, 
             act_dim, self.device)
 
