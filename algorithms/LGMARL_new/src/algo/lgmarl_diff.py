@@ -101,7 +101,7 @@ class LanguageGroundedMARL:
     def prep_training(self, device=None):
         if device is not None:
             self.device = device
-        self.lang_learner.prep_training(self.device)
+        # self.lang_learner.prep_training(self.device)
         self.model.prep_training(self.device)
         self.trainer.device = self.device
         # if self.trainer.env_value_normalizer is not None:
@@ -111,7 +111,7 @@ class LanguageGroundedMARL:
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
-        self.lang_learner.prep_rollout(self.device)
+        # self.lang_learner.prep_rollout(self.device)
         self.model.prep_rollout(self.device)
         self.trainer.device = self.device
         # if self.trainer.env_value_normalizer is not None:

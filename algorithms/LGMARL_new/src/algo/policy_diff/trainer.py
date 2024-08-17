@@ -8,11 +8,11 @@ from .valuenorm import ValueNorm
 
 class Trainer:
 
-    def __init__(self, args, model, agents, lang_learner, buffer, 
+    def __init__(self, args, model, agents, buffer, 
                  device=torch.device("cpu")):
         self.model = model
         self.agents = agents if type(agents) == list else [agents]
-        self.lang_learner = lang_learner
+        # self.lang_learner = lang_learner
         self.buffer = buffer
         self.device = device
         self.share_params = args.share_params
