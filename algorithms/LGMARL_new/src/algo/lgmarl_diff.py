@@ -58,8 +58,7 @@ class LanguageGroundedMARL:
 
         self.trainer = Trainer(
             args, 
-            self.model,
-            self.model.agents, 
+            self.model, 
             self.buffer, 
             self.device)
 
@@ -81,12 +80,13 @@ class LanguageGroundedMARL:
 
         self.actions, self.action_log_probs, self.values, self.comm_actions, \
             self.comm_action_log_probs, self.comm_values, self.obs_rnn_states, \
-            self.joint_obs_rnn_states, self.comm_rnn_states \
+            self.joint_obs_rnn_states, self.comm_rnn_states, messages \
             = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
-                comm_enc_rnn_states, masks, deterministic)
+                comm_enc_rnn_states, masks, perfect_messages,
+                perfect_broadcasts, deterministic)
 
-        return self.actions, None, None, {"len": 0} # TODO: broadcasts, messages_by_env, comm_rewards
+        return self.actions, messages, None, {"len": 0} # TODO: broadcasts, messages_by_env, comm_rewards
 
     def init_episode(self, obs=None, perf_messages=None):
         # If obs is given -> very first step of all training
@@ -101,7 +101,7 @@ class LanguageGroundedMARL:
     def prep_training(self, device=None):
         if device is not None:
             self.device = device
-        self.lang_learner.prep_training(self.device)
+        # self.lang_learner.prep_training(self.device)
         self.model.prep_training(self.device)
         self.trainer.device = self.device
         # if self.trainer.env_value_normalizer is not None:
@@ -111,7 +111,7 @@ class LanguageGroundedMARL:
     def prep_rollout(self, device=None):
         if device is not None:
             self.device = device
-        self.lang_learner.prep_rollout(self.device)
+        # self.lang_learner.prep_rollout(self.device)
         self.model.prep_rollout(self.device)
         self.trainer.device = self.device
         # if self.trainer.env_value_normalizer is not None:
@@ -181,11 +181,11 @@ class LanguageGroundedMARL:
 
         warmup = step < self.n_warmup_steps
 
-        if self.comm_type in ["no_comm", "perfect_comm"]:
+        if self.comm_type in ["no_comm", "perfect"]:
             comm_head_learns_rl = False
         else:
             comm_head_learns_rl = True
-        if self.comm_type not in ["perfect_comm", "language"]:
+        if self.comm_type not in ["perfect", "language"]:
             train_lang = False
 
         # Compute last value

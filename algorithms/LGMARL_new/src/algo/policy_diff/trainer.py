@@ -8,11 +8,9 @@ from .valuenorm import ValueNorm
 
 class Trainer:
 
-    def __init__(self, args, model, agents, lang_learner, buffer, 
-                 device=torch.device("cpu")):
+    def __init__(self, args, model, buffer, device=torch.device("cpu")):
         self.model = model
-        self.agents = agents if type(agents) == list else [agents]
-        self.lang_learner = lang_learner
+        self.agents = model.agents if type(model.agents) == list else [model.agents]
         self.buffer = buffer
         self.device = device
         self.share_params = args.share_params
@@ -357,14 +355,14 @@ class Trainer:
         # Forward all agents
         actions, action_log_probs, env_values, comm_actions, \
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
-            new_joint_obs_rnn_states, new_comm_rnn_states, \
-            env_action_log_probs, env_dist_entropy, \
-            comm_action_log_probs, comm_dist_entropy \
+            new_joint_obs_rnn_states, new_comm_rnn_states, messages, \
+            enc_perf_br, env_action_log_probs, env_dist_entropy, \
+            comm_action_log_probs, comm_dist_entropy, lang_obs_enc \
             = self.model.comm_n_act(
                 obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, 
                 joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, 
-                masks_batch, deterministic=True, 
-                eval_actions=env_actions_batch, 
+                masks_batch, perf_messages_batch, perf_broadcasts_batch, 
+                deterministic=True, eval_actions=env_actions_batch, 
                 eval_comm_actions=comm_actions_batch)
 
         # Actor loss
@@ -410,22 +408,70 @@ class Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(env_value_loss)
 
+        # Language losses
+        if train_lang:
+            # Sample a mini-batch
+            batch_size = min(len(perf_broadcasts_batch), self.lang_batch_size)
+            ids = np.random.choice(
+                len(perf_broadcasts_batch), 
+                size=batch_size, 
+                replace=False,
+                p=mess_sampling_probs if self.lang_imp_sample else None)
+
+            # CLIP loss 
+            sample_broadcasts = [perf_broadcasts_batch[i] for i in ids]
+            sample_obs_contexts = lang_obs_enc[ids]
+            clip_loss = 0.0
+            mean_sim = 0.0
+            capt_loss = 0.0
+            for a_i in range(len(self.agents)):
+                # Encode sentences
+                lang_contexts = self.agents[a_i].lang_learner.encode_sentences(
+                    sample_broadcasts)
+                # CLIP loss
+                clip, sim = self._compute_clip_loss(
+                    sample_obs_contexts[:, a_i], lang_contexts)
+
+                clip_loss += clip
+                mean_sim += sim
+
+                # Captioning loss
+                # Decode
+                dec_inputs = comm_actions[ids, a_i]
+                targets = torch.from_numpy(perf_messages_batch[ids, a_i]).long()
+                # Remove excess padded tokens
+                n_excess = min((targets == 0).sum(-1))
+                if n_excess > 0:
+                    targets = targets[:, :-min((targets == 0).sum(-1))]
+                # encoded_targets = self.lang_learner.word_encoder.encode_batch(
+                #     sample_perf_messages, pad=True).to(self.device)
+                decoder_outputs, _ = self.agents[a_i].lang_learner.decoder(
+                    dec_inputs, targets)
+                # Captioning loss
+                capt_loss += self._compute_capt_loss(decoder_outputs, targets)
+            log_losses["clip_loss"] = clip_loss.item() / len(self.agents)
+            log_losses["mean_sim"] = mean_sim / len(self.agents)
+            log_losses["capt_loss"] = capt_loss.item() / len(self.agents)
+        else:
+            clip_loss = torch.zeros_like(act_value_loss)
+            capt_loss = torch.zeros_like(act_value_loss)
+
         if self.dyna_weight_loss:
             self._update_loss_weights(log_losses)
 
         loss = self.actor_loss_w * actor_loss \
                 + self.comm_loss_w * comm_loss \
                 + self.act_value_loss_w * env_value_loss \
-                + self.comm_value_loss_w * comm_value_loss
-                # + self.clip_loss_w * clip_loss \
-                # + self.capt_loss_w * capt_loss
+                + self.comm_value_loss_w * comm_value_loss \
+                + self.clip_loss_w * clip_loss \
+                + self.capt_loss_w * capt_loss
 
         # Compute gradients
         for a in self.agents:
             a.optim.zero_grad()
         # self.agents[agent_i].critic_optim.zero_grad()
-        if train_lang:
-            self.lang_learner.optim.zero_grad()
+        # if train_lang:
+        #     self.lang_learner.optim.zero_grad()
         loss.backward()
 
         # Clip gradients
@@ -439,8 +485,8 @@ class Trainer:
         for a in self.agents:
             a.optim.step()
         # self.agents[agent_i].critic_optim.step()
-        if train_lang:
-            self.lang_learner.optim.step()
+        # if train_lang:
+        #     self.lang_learner.optim.step()
 
         return log_losses
 

@@ -80,7 +80,7 @@ class OneHotEncoder:
             for t in sentence]
         return ids
 
-    def encode_rollout_step(self, messages, pad=True, get_onehots=False):
+    def encode_rollout_step(self, messages, pad=True): #, get_onehots=False):
         """
         Encodes all messages of a rollout step: each rollout environment has a
         list of n_agents messages.
@@ -102,10 +102,10 @@ class OneHotEncoder:
             env_encoded = []
             env_broadcast = []
             for agent_message in env_messages:
-                if get_onehots:
-                    encoded = self.get_onehots(agent_message)
-                else:
-                    encoded = self.get_ids(agent_message)
+                # if get_onehots:
+                #     encoded = self.get_onehots(agent_message)
+                # else:
+                encoded = self.get_ids(agent_message)
                 
                 env_broadcast.extend(encoded)
 
@@ -121,7 +121,7 @@ class OneHotEncoder:
 
             env_broadcast.append(self.EOS_ID)
             n_agents = len(env_messages)
-            all_broadcasts.append([env_broadcast] * n_agents)
+            all_broadcasts.append(env_broadcast)
 
         if pad:
             all_encoded = np.array(all_encoded)
@@ -264,12 +264,15 @@ class GRUEncoder(nn.Module):
         return {'gru': self.gru.state_dict(),
                 'out': self.out.state_dict()}
 
+
+
+
 class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, embed_dim, word_encoder, max_len, 
-                 n_layers=1, embed_layer= None, device="cpu"):
+    def __init__(self, context_dim, embed_dim, word_encoder, 
+                 n_layers=1, embed_layer=None, device="cpu"):
         """
         Inputs:
             :param context_dim (int): Dimension of the context vectors
@@ -280,7 +283,7 @@ class GRUDecoder(nn.Module):
         """
         super(GRUDecoder, self).__init__()
         self.device = device
-        self.max_len = max_len
+        self.max_len = word_encoder.max_message_len
         # Dimension of hidden states
         self.hidden_dim = context_dim
         # Word encoder

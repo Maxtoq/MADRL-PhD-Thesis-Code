@@ -37,7 +37,7 @@ class Comm_Agent(nn.Module):
             joint_obs_dim, args.hidden_dim, args.policy_recurrent_N)
         
         # Comm MAPPO 
-        if self.comm_type in ["emergent_continuous", "language"]:
+        if self.comm_type in ["emergent_continuous", "language", "perfect"]:
             self.comm_pol = nn.Sequential(
                 MLPNetwork(
                     args.hidden_dim, 
@@ -63,7 +63,7 @@ class Comm_Agent(nn.Module):
                 self.message_encoder = nn.Linear(
                     n_agents * args.context_dim, args.context_dim)
 
-            elif self.comm_type == "language":
+            elif self.comm_type in ["language", "perfect"]:
                 # Language learner
                 self.lang_learner = LanguageLearner(
                     args,
@@ -104,25 +104,29 @@ class Comm_Agent(nn.Module):
             eps=args.opti_eps,
             weight_decay=args.weight_decay)
 
-    def prep_rollout(self, device):
-        self.device = device
-        self.agents.eval()
-        self.agents.to(self.device)
-        # if self.comm_type == "language":
-        #     self.lang_learner.eval()
-        #     self.lang_learner.to(self.device)
+    # def prep_rollout(self, device):
+    #     self.device = device
+    #     self.agents.eval()
+    #     self.agents.to(self.device)
+    #     # if self.comm_type == "language":
+    #     #     self.lang_learner.eval()
+    #     #     self.lang_learner.to(self.device)
 
-    def prep_training(self, device):
-        self.device = device
-        self.agents.train()
-        self.agents.to(self.device)
+    # def prep_training(self, device):
+    #     self.device = device
+    #     self.agents.train()
+    #     self.agents.to(self.device)
         # if self.comm_type == "language":
         #     self.lang_learner.train()
         #     self.lang_learner.to(self.device)
 
+    def set_device(self, device):
+        self.device = device
+
     def forward_comm(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
-            masks, deterministic=False, eval_comm_actions=None):
+            masks, perfect_messages, deterministic=False, 
+            eval_comm_actions=None):
         """
         Forward pass on the communication actor-critic.
         :param obs (torch.Tensor): observations.
@@ -133,6 +137,8 @@ class Comm_Agent(nn.Module):
             joint obs encoder.
         :param masks: (torch.Tensor) mask tensor denoting if hidden states 
             should be reinitialized to zeros.
+        :param perfect_messages: (torch.Tensor) perfect messages to use when 
+            learning to use language
         :param deterministic: (boolean) whether generate deterministic outputs.
         :param eval_comm_actions: (torch.Tensor) comm actions to evaluate, if 
             given.
@@ -163,6 +169,7 @@ class Comm_Agent(nn.Module):
             messages = None
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
+            lang_obs_enc = None
 
         elif self.comm_type == "emergent_continuous":
             # Get comm_action
@@ -186,13 +193,27 @@ class Comm_Agent(nn.Module):
 
             messages = comm_actions.clone()
 
+            lang_obs_enc = None
+
+        elif self.comm_type == "perfect":
+            comm_actions = self.comm_pol(enc_obs).mode()
+            comm_action_log_probs = torch.zeros(obs.shape[0], 1)
+            comm_values = torch.zeros(obs.shape[0], 1)
+            messages = perfect_messages
+            eval_comm_action_log_probs = None
+            eval_comm_dist_entropy = None
+
+            if eval_comm_actions is not None:
+                lang_obs_enc = self.lang_learner.obs_encoder(enc_joint_obs)
+            else:
+                lang_obs_enc = None
         else:
             raise NotImplementedError("Bad comm_type:", self.comm_type)
 
         return messages, enc_obs, enc_joint_obs, comm_actions, \
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
             new_joint_obs_rnn_states, eval_comm_action_log_probs, \
-            eval_comm_dist_entropy
+            eval_comm_dist_entropy, lang_obs_enc
         
     def forward_act(
             self, messages, enc_obs, enc_joint_obs, comm_rnn_states, masks, 
@@ -216,14 +237,24 @@ class Comm_Agent(nn.Module):
         """
         # Encode messages
         if self.comm_type == "no_comm":
+            enc_perf_br = None
             pol_input = enc_obs
             val_input = enc_joint_obs
             new_comm_rnn_states = torch.zeros_like(comm_rnn_states)
         elif self.comm_type == "emergent_continuous":
+            enc_perf_br = None
             enc_mess = self.message_encoder(messages)
 
             comm_enc, new_comm_rnn_states = self.comm_encoder(
                 enc_mess, comm_rnn_states, masks)
+
+            pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
+            val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
+        elif self.comm_type  == "perfect":
+            enc_perf_br = self.lang_learner.encode_sentences(messages)
+
+            comm_enc, new_comm_rnn_states = self.comm_encoder(
+                enc_perf_br, comm_rnn_states, masks)
 
             pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
             val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
@@ -247,7 +278,7 @@ class Comm_Agent(nn.Module):
             eval_dist_entropy = None
         
         return actions, action_log_probs, values, new_comm_rnn_states, \
-            eval_action_log_probs, eval_dist_entropy
+            eval_action_log_probs, eval_dist_entropy, enc_perf_br
 
     def get_values(self, joint_obs, joint_obs_rnn_states, masks):
         """
@@ -259,7 +290,7 @@ class Comm_Agent(nn.Module):
         enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
             joint_obs, joint_obs_rnn_states, masks)
 
-        if self.comm_type == "emergent_continuous":
+        if self.comm_type in ["emergent_continuous", "perfect"]:
             comm_values = self.comm_val(enc_joint_obs)
             act_val_input = torch.concatenate(
                 (enc_joint_obs, torch.zeros_like(enc_joint_obs).to(self.device)),
@@ -268,6 +299,10 @@ class Comm_Agent(nn.Module):
         elif self.comm_type == "no_comm":
             act_val_input = enc_joint_obs
 
+        # elif self.comm_type == "perfect":
+        #     comm_values = self.comm_val(enc_joint_obs)
+        #     act_val_input = 0
+
         values = self.act_val(act_val_input)
 
         if self.comm_type == "no_comm":
@@ -275,82 +310,82 @@ class Comm_Agent(nn.Module):
 
         return values, comm_values
         
-    def evaluate_actions(
-            self, obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
-            comm_enc_rnn_states, actions, comm_actions, masks):
-        """
-        Get action logprobs / entropy and value function predictions for actor
-        update.
-        :param obs: (torch.Tensor) local agent inputs to the actor.
-        :param joint_obs: (torch.Tensor) centralized input to the critic.
-        :param obs_enc_rnn_states: (torch.Tensor) 
-        :param joint_obs_enc_rnn_states: (torch.Tensor) 
-        :param comm_enc_rnn_states: (torch.Tensor) 
-        :param actions: (torch.Tensor) environment actions whose log 
-            probabilites and entropy to compute.
-        :param comm_actions: (torch.Tensor) communication actions whose log 
-            probabilites and entropy to compute.
-        :param masks: (torch.Tensor) denotes points at which RNN states should
-            be reset.
+    # def evaluate_actions(
+    #         self, obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
+    #         comm_enc_rnn_states, actions, comm_actions, masks):
+    #     """
+    #     Get action logprobs / entropy and value function predictions for actor
+    #     update.
+    #     :param obs: (torch.Tensor) local agent inputs to the actor.
+    #     :param joint_obs: (torch.Tensor) centralized input to the critic.
+    #     :param obs_enc_rnn_states: (torch.Tensor) 
+    #     :param joint_obs_enc_rnn_states: (torch.Tensor) 
+    #     :param comm_enc_rnn_states: (torch.Tensor) 
+    #     :param actions: (torch.Tensor) environment actions whose log 
+    #         probabilites and entropy to compute.
+    #     :param comm_actions: (torch.Tensor) communication actions whose log 
+    #         probabilites and entropy to compute.
+    #     :param masks: (torch.Tensor) denotes points at which RNN states should
+    #         be reset.
 
-        :return act_values: (torch.Tensor) action value predictions.
-        :return comm_values: (torch.Tensor) communication value predictions.
-        :return env_action_log_probs: (torch.Tensor) log probabilities of the
-            environment actions.
-        :return env_dist_entropy: (torch.Tensor) environment action 
-            distribution entropy for the given inputs.
-        :return comm_action_log_probs: (torch.Tensor) log probabilities of the
-            communication actions.
-        :return comm_dist_entropy: (torch.Tensor) communication action 
-            distribution entropy for the given inputs.
+    #     :return act_values: (torch.Tensor) action value predictions.
+    #     :return comm_values: (torch.Tensor) communication value predictions.
+    #     :return env_action_log_probs: (torch.Tensor) log probabilities of the
+    #         environment actions.
+    #     :return env_dist_entropy: (torch.Tensor) environment action 
+    #         distribution entropy for the given inputs.
+    #     :return comm_action_log_probs: (torch.Tensor) log probabilities of the
+    #         communication actions.
+    #     :return comm_dist_entropy: (torch.Tensor) communication action 
+    #         distribution entropy for the given inputs.
 
-        """
-        # env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
-        #     comm_dist_entropy, comm_actions = self.act_comm.evaluate_actions(
-        #         obs, rnn_states_actor, env_actions, comm_actions, masks)
+    #     """
+    #     # env_action_log_probs, env_dist_entropy, comm_action_log_probs, \
+    #     #     comm_dist_entropy, comm_actions = self.act_comm.evaluate_actions(
+    #     #         obs, rnn_states_actor, env_actions, comm_actions, masks)
 
-        # act_values, comm_values, _, obs_encs = self.critic(
-        #     shared_obs, rnn_states_critic, masks, get_obs_encs=True)
+    #     # act_values, comm_values, _, obs_encs = self.critic(
+    #     #     shared_obs, rnn_states_critic, masks, get_obs_encs=True)
 
-        # Encode obs and joint obs
-        enc_obs, new_obs_rnn_states = self.obs_encoder(
-            obs, obs_enc_rnn_states, masks)
-        enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
-            joint_obs, joint_obs_enc_rnn_states, masks)
+    #     # Encode obs and joint obs
+    #     enc_obs, new_obs_rnn_states = self.obs_encoder(
+    #         obs, obs_enc_rnn_states, masks)
+    #     enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
+    #         joint_obs, joint_obs_enc_rnn_states, masks)
 
-        if self.comm_type == "no_comm":
-            comm_actions = torch.zeros(obs.shape[0], self.context_dim)
-            comm_action_log_probs = torch.zeros(obs.shape[0], 1)
-            comm_dist_entropy = torch.zeros(obs.shape[0], 1)
-            comm_values = torch.zeros(obs.shape[0], 1)
+    #     if self.comm_type == "no_comm":
+    #         comm_actions = torch.zeros(obs.shape[0], self.context_dim)
+    #         comm_action_log_probs = torch.zeros(obs.shape[0], 1)
+    #         comm_dist_entropy = torch.zeros(obs.shape[0], 1)
+    #         comm_values = torch.zeros(obs.shape[0], 1)
 
-            pol_input = enc_obs
-            val_input = enc_joint_obs
-            new_comm_enc_rnn_states = torch.zeros_like(comm_enc_rnn_states)
+    #         pol_input = enc_obs
+    #         val_input = enc_joint_obs
+    #         new_comm_enc_rnn_states = torch.zeros_like(comm_enc_rnn_states)
 
-        elif self.comm_type == "emergent_continuous":
-            # redo communication step to have gradients flow between agent 
-            comm_action_logits = self.comm_pol(enc_obs)
-            new_comm_actions = comm_action_logits
-            comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
+    #     elif self.comm_type == "emergent_continuous":
+    #         # redo communication step to have gradients flow between agent 
+    #         comm_action_logits = self.comm_pol(enc_obs)
+    #         new_comm_actions = comm_action_logits
+    #         comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
 
-            # Get comm_value
-            comm_values = self.comm_val(enc_joint_obs)
+    #         # Get comm_value
+    #         comm_values = self.comm_val(enc_joint_obs)
 
-        # TODO handle comm
-        # - emergent continuous (diff): 
-        # - language: take messages sent during rollout to compute actions
+    #     # TODO handle comm
+    #     # - emergent continuous (diff): 
+    #     # - language: take messages sent during rollout to compute actions
 
-        # Compute actions
-        action_logits = self.act_pol(pol_input)
-        action_log_probs = action_logits.log_probs(actions)
-        dist_entropy = action_logits.entropy().mean()
+    #     # Compute actions
+    #     action_logits = self.act_pol(pol_input)
+    #     action_log_probs = action_logits.log_probs(actions)
+    #     dist_entropy = action_logits.entropy().mean()
 
-        # Get values
-        values = self.act_val(val_input)
+    #     # Get values
+    #     values = self.act_val(val_input)
 
-        return values, comm_values, action_log_probs, dist_entropy, \
-                comm_action_log_probs, comm_dist_entropy, comm_actions
+    #     return values, comm_values, action_log_probs, dist_entropy, \
+    #             comm_action_log_probs, comm_dist_entropy, comm_actions
 
     def warmup_lr(self, warmup):
         if warmup != self.warming_up:

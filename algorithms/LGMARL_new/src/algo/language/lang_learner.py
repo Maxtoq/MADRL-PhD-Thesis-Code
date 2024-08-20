@@ -3,7 +3,7 @@ import numpy as np
 from torch import nn
 
 from .lm import GRUEncoder, GRUDecoder
-from .obs import ObservationEncoder
+from src.algo.nn_modules.mlp import MLPNetwork
     
 
 class LanguageLearner(nn.Module):
@@ -17,7 +17,6 @@ class LanguageLearner(nn.Module):
                  device="cpu"):
         super(LanguageLearner, self).__init__()
         self.train_device = device
-        self.parser = parser
 
         self.device = self.train_device
 
@@ -29,11 +28,14 @@ class LanguageLearner(nn.Module):
             args.lang_embed_dim, 
             self.word_encoder,
             device=device)
+
+        self.obs_encoder = MLPNetwork(
+            args.hidden_dim, args.context_dim, args.hidden_dim)
+
         self.decoder = GRUDecoder(
             context_dim, 
             args.lang_embed_dim, 
             self.word_encoder, 
-            parser.max_message_len + 1,
             embed_layer=self.lang_encoder.embed_layer,
             device=device)
 

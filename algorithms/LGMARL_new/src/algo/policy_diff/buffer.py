@@ -344,6 +344,7 @@ class ReplayBuffer:
                 step_sentences[i] 
                 for step_sentences in self.perf_broadcasts[:-1]
                 for i in ids]
+            
             # Same for 
             # perf_messages_batch = [
             #     step_sentences[i] 
