@@ -104,18 +104,16 @@ class Comm_Agent(nn.Module):
             eps=args.opti_eps,
             weight_decay=args.weight_decay)
 
-    def prep_rollout(self, device):
+    def set_device(self, device):
         self.device = device
-        self.eval()
-        self.to(self.device)
         # if self.comm_type == "language":
         #     self.lang_learner.eval()
         #     self.lang_learner.to(self.device)
 
-    def prep_training(self, device):
-        self.device = device
-        self.train()
-        self.to(self.device)
+    # def prep_training(self, device):
+    #     self.device = device
+    #     self.train()
+    #     self.to(self.device)
         # if self.comm_type == "language":
         #     self.lang_learner.train()
         #     self.lang_learner.to(self.device)
