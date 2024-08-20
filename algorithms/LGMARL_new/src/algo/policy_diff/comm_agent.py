@@ -26,15 +26,15 @@ class Comm_Agent(nn.Module):
         self.device = device
 
         # Common encoders
-        # self.joint_obs_in = MLPNetwork(
-        #     joint_obs_dim, args.hidden_dim, args.hidden_dim)
+        self.obs_in = MLPNetwork(
+            obs_dim, args.hidden_dim, args.hidden_dim)
         self.obs_encoder = RNNLayer(
-            obs_dim, args.hidden_dim, args.policy_recurrent_N)
+            args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
 
-        # self.loc_obs_in = MLPNetwork(
-        #     obs_dim, args.hidden_dim, args.hidden_dim)
+        self.joint_obs_in = MLPNetwork(
+            joint_obs_dim, args.hidden_dim, args.hidden_dim)
         self.joint_obs_encoder = RNNLayer(
-            joint_obs_dim, args.hidden_dim, args.policy_recurrent_N)
+            args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
         
         # Comm MAPPO 
         if self.comm_type in ["emergent_continuous", "language", "perfect"]:
@@ -104,24 +104,21 @@ class Comm_Agent(nn.Module):
             eps=args.opti_eps,
             weight_decay=args.weight_decay)
 
-    # def prep_rollout(self, device):
-    #     self.device = device
-    #     self.agents.eval()
-    #     self.agents.to(self.device)
-    #     # if self.comm_type == "language":
-    #     #     self.lang_learner.eval()
-    #     #     self.lang_learner.to(self.device)
+    def prep_rollout(self, device):
+        self.device = device
+        self.eval()
+        self.to(self.device)
+        # if self.comm_type == "language":
+        #     self.lang_learner.eval()
+        #     self.lang_learner.to(self.device)
 
-    # def prep_training(self, device):
-    #     self.device = device
-    #     self.agents.train()
-    #     self.agents.to(self.device)
+    def prep_training(self, device):
+        self.device = device
+        self.train()
+        self.to(self.device)
         # if self.comm_type == "language":
         #     self.lang_learner.train()
         #     self.lang_learner.to(self.device)
-
-    def set_device(self, device):
-        self.device = device
 
     def forward_comm(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
@@ -156,10 +153,12 @@ class Comm_Agent(nn.Module):
             the joint obs encoder.
         """
         # Encode obs and joint obs
+        enc_obs = self.obs_in(obs)
         enc_obs, new_obs_rnn_states = self.obs_encoder(
-            obs, obs_rnn_states, masks)
+            enc_obs, obs_rnn_states, masks)
+        enc_joint_obs = self.joint_obs_in(joint_obs)
         enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
-            joint_obs, joint_obs_rnn_states, masks)
+            enc_joint_obs, joint_obs_rnn_states, masks)
 
         # Get comm actions and values
         if self.comm_type == "no_comm":
@@ -287,8 +286,9 @@ class Comm_Agent(nn.Module):
         :return act_values: (torch.Tensor) action value predictions.
         :return comm_values: (torch.Tensor) communication value predictions.
         """
+        enc_joint_obs = self.joint_obs_in(joint_obs)
         enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
-            joint_obs, joint_obs_rnn_states, masks)
+            enc_joint_obs, joint_obs_rnn_states, masks)
 
         if self.comm_type in ["emergent_continuous", "perfect"]:
             comm_values = self.comm_val(enc_joint_obs)

@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=2
-experiment_name="9o5_Diff_em2c"
+n_run=5
+experiment_name="9o5_Diff_noc_mlpenc"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -12,18 +12,18 @@ n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
 env_name="magym_PredPrey_new"
 episode_length=100
-comm_type="emergent_continuous" # default language
+comm_type="no_comm" # default language
 comm_ec_strategy="cat" # default sum
 comm_eps_smooth=2.0 # default 1.0
 comm_token_penalty=0.001
-context_dim=2 # default 16
+context_dim=4 # default 16
 lang_lr=0.005 # default 0.007
 lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 magym_env_size=9
 magym_obs_range=5 # default 5
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
@@ -31,7 +31,7 @@ for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
     seed=$RANDOM
-    comm="python algorithms/LGMARL/train_lgmarl_diff.py --seed ${seed}
+    comm="python algorithms/LGMARL_new/train_lgmarl_diff.py --seed ${seed}
     --experiment_name ${experiment_name}
     --n_parallel_envs ${n_parallel_envs}
     --n_steps ${n_steps}
