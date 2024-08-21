@@ -43,8 +43,10 @@ class LanguageLearner(nn.Module):
         self.captioning_loss = nn.NLLLoss()
 
         self.optim = torch.optim.Adam( 
-            list(self.lang_encoder.parameters()) +
-            list(self.decoder.parameters()),
+            self.parameters(),
+            # list(self.lang_encoder.parameters()) +
+            # list(self.obs_encoder.parameters()) +
+            # list(self.decoder.parameters()),
             lr=args.lang_lr)
 
     def prep_rollout(self, device=None):

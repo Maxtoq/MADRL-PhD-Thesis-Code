@@ -11,7 +11,7 @@ episode_length=100
 comm_ec_strategy="cat" # default sum
 comm_eps_smooth=2.0 # default 1.0
 comm_token_penalty=0.001
-lang_lr=0.007 # default 0.007
+lang_lr=0.005 # default 0.007
 lang_batch_size=256 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
@@ -22,7 +22,7 @@ lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
 comm_type="perfect" # default language
 context_dim=16 # default 16
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 magym_env_size=9
 magym_obs_range=5 # default 5
