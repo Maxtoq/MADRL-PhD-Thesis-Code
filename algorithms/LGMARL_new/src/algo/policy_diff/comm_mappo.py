@@ -321,6 +321,7 @@ class Comm_MAPPO():
 
         # Aggregate messages
         if self.comm_type == "no_comm":
+            out_messages = None
             in_messages = None
         elif self.comm_type == "emergent_continuous":
             # Concatenate messages to get broadcast
