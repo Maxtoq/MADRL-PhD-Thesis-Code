@@ -193,7 +193,7 @@ class LanguageGroundedMARL:
 
         # Train 
         losses = self.trainer.train_diff(
-            warmup, comm_head_learns_rl, train_lang)
+            warmup, comm_head_learns_rl, False)#train_lang)
 
         return losses
 

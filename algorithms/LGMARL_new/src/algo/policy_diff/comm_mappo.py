@@ -3,6 +3,7 @@ import numpy as np
 
 from torch import nn
 
+from src.algo.language.lang_learner import LanguageLearner
 from .comm_agent import Comm_Agent
 from .utils import torch2numpy, update_lr
 
@@ -201,14 +202,16 @@ class Comm_MAPPO():
         if self.share_params:
             self.agents = [
                 Comm_Agent(
-                    args, word_encoder, n_agents, obs_dim, shared_obs_dim, 
-                    act_dim, device)]
+                    args, n_agents, obs_dim, shared_obs_dim, act_dim, device)]
         else:
             self.agents = [
                 Comm_Agent(
-                    args, word_encoder, n_agents, obs_dim, shared_obs_dim, 
-                    act_dim, device)
+                    args, n_agents, obs_dim, shared_obs_dim, act_dim, device)
                 for a_i in range(self.n_agents)]
+
+        if self.comm_type in ["perfect", "language"]:
+            self.lang_learner = LanguageLearner(
+                args, word_encoder, obs_dim, args.context_dim, n_agents, device)
 
         self.eval = False
 
@@ -246,6 +249,8 @@ class Comm_MAPPO():
             a.eval()
             a.to(self.device)
             a.set_device(self.device)
+        self.lang_learner.eval()
+        self.lang_learner.to(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -254,6 +259,8 @@ class Comm_MAPPO():
             a.train()
             a.to(self.device)
             a.set_device(self.device)
+        self.lang_learner.train()
+        self.lang_learner.to(self.device)
 
     def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
@@ -294,7 +301,7 @@ class Comm_MAPPO():
             messages, enc_obs, enc_joint_obs, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
                 new_joint_obs_rnn_states, eval_comm_action_log_probs, \
-                eval_comm_dist_entropy, lang_obs_enc \
+                eval_comm_dist_entropy \
                 = self.agents[a_i].forward_comm(
                     obs[:, a_i], 
                     joint_obs[:, a_i], 
@@ -317,7 +324,6 @@ class Comm_MAPPO():
                 agents_eval_comm_action_log_probs.append(
                     eval_comm_action_log_probs)
                 agents_eval_comm_dist_entropy.append(eval_comm_dist_entropy)
-                agents_lang_obs_enc.append(lang_obs_enc)
 
         # Aggregate messages
         if self.comm_type == "no_comm":
@@ -329,7 +335,7 @@ class Comm_MAPPO():
             in_messages = torch.concatenate(agents_messages, 1)
         elif self.comm_type == "perfect":
             out_messages = torch.stack(agents_messages, dim=1)
-            in_messages = perfect_broadcasts
+            in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
 
         # Generate actions
         agents_actions = []
@@ -341,7 +347,7 @@ class Comm_MAPPO():
         agents_enc_perf_br = []
         for a_i in range(self.n_agents):
             actions, action_log_probs, values, new_comm_rnn_states, \
-                eval_action_log_probs, eval_dist_entropy, enc_perf_br \
+                eval_action_log_probs, eval_dist_entropy \
                 = self.agents[a_i].forward_act(
                     in_messages, 
                     agents_enc_obs[a_i],
@@ -355,7 +361,6 @@ class Comm_MAPPO():
             agents_action_log_probs.append(action_log_probs)
             agents_values.append(values)
             agents_new_comm_rnn_states.append(new_comm_rnn_states)
-            agents_enc_perf_br.append(enc_perf_br)
             if _eval:
                 agents_eval_action_log_probs.append(eval_action_log_probs)
                 agents_eval_dist_entropy.append(eval_dist_entropy)
@@ -405,13 +410,14 @@ class Comm_MAPPO():
                 eval_comm_dist_entropy = None
 
             if self.comm_type in ["perfect", "language"]:
-                enc_perf_br = torch.stack(agents_enc_perf_br, dim=1)
-                lang_obs_enc = torch.stack(agents_lang_obs_enc, dim=1)
+                # enc_perf_br = torch.stack(agents_enc_perf_br, dim=1)
+                lang_obs_enc = self.lang_learner.obs_encoder(
+                    torch.stack(agents_enc_joint_obs, dim=1).to(self.device))
 
             return actions, action_log_probs, values, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
                 new_joint_obs_rnn_states, new_comm_rnn_states, out_messages, \
-                enc_perf_br, eval_action_log_probs, eval_dist_entropy, \
+                eval_action_log_probs, eval_dist_entropy, \
                 eval_comm_action_log_probs, eval_comm_dist_entropy, lang_obs_enc
 
     def get_save_dict(self):

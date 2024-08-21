@@ -16,13 +16,13 @@ lang_batch_size=256 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=1
-experiment_name="TEST" #"9o5_Diff_perfect_def"
+n_run=3
+experiment_name="9o5_Diff_perfect"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
 comm_type="perfect" # default language
 context_dim=16 # default 16
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 
 magym_env_size=9
 magym_obs_range=5 # default 5

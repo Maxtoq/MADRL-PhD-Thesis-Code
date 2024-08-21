@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 
-from ..language.lang_learner import LanguageLearner
 from .utils import update_linear_schedule, update_lr
 from src.algo.nn_modules.mlp import MLPNetwork
 from src.algo.nn_modules.rnn import RNNLayer
@@ -16,8 +15,7 @@ def init_(m):
 class Comm_Agent(nn.Module):
 
     def __init__(
-            self, args, word_encoder, n_agents, obs_dim, joint_obs_dim, 
-            act_dim, device):
+            self, args, n_agents, obs_dim, joint_obs_dim, act_dim, device):
         super(Comm_Agent, self).__init__()
         self.lr = args.lr
         self.comm_type = args.comm_type
@@ -63,16 +61,6 @@ class Comm_Agent(nn.Module):
                 self.message_encoder = nn.Linear(
                     n_agents * args.context_dim, args.context_dim)
 
-            elif self.comm_type in ["language", "perfect"]:
-                # Language learner
-                self.lang_learner = LanguageLearner(
-                    args,
-                    word_encoder,
-                    obs_dim, 
-                    args.context_dim,
-                    n_agents,
-                    device)
-
         elif self.comm_type == "no_comm":
             act_pol_input = args.hidden_dim
             act_val_input = args.hidden_dim
@@ -98,25 +86,12 @@ class Comm_Agent(nn.Module):
 
         self.optim = torch.optim.Adam(
             self.parameters(),
-            # list(self.lang_encoder.parameters()) +
-            # list(self.decoder.parameters())
             lr=self.lr,
             eps=args.opti_eps,
             weight_decay=args.weight_decay)
 
     def set_device(self, device):
         self.device = device
-        # if self.comm_type == "language":
-        #     self.lang_learner.eval()
-        #     self.lang_learner.to(self.device)
-
-    # def prep_training(self, device):
-    #     self.device = device
-    #     self.train()
-    #     self.to(self.device)
-        # if self.comm_type == "language":
-        #     self.lang_learner.train()
-        #     self.lang_learner.to(self.device)
 
     def forward_comm(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
@@ -199,18 +174,13 @@ class Comm_Agent(nn.Module):
             messages = perfect_messages
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
-
-            if eval_comm_actions is not None:
-                lang_obs_enc = self.lang_learner.obs_encoder(enc_joint_obs)
-            else:
-                lang_obs_enc = None
         else:
             raise NotImplementedError("Bad comm_type:", self.comm_type)
 
         return messages, enc_obs, enc_joint_obs, comm_actions, \
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
             new_joint_obs_rnn_states, eval_comm_action_log_probs, \
-            eval_comm_dist_entropy, lang_obs_enc
+            eval_comm_dist_entropy
         
     def forward_act(
             self, messages, enc_obs, enc_joint_obs, comm_rnn_states, masks, 
@@ -234,12 +204,10 @@ class Comm_Agent(nn.Module):
         """
         # Encode messages
         if self.comm_type == "no_comm":
-            enc_perf_br = None
             pol_input = enc_obs
             val_input = enc_joint_obs
             new_comm_rnn_states = torch.zeros_like(comm_rnn_states)
         elif self.comm_type == "emergent_continuous":
-            enc_perf_br = None
             enc_mess = self.message_encoder(messages)
 
             comm_enc, new_comm_rnn_states = self.comm_encoder(
@@ -248,10 +216,8 @@ class Comm_Agent(nn.Module):
             pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
             val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
         elif self.comm_type  == "perfect":
-            enc_perf_br = self.lang_learner.encode_sentences(messages)
-
             comm_enc, new_comm_rnn_states = self.comm_encoder(
-                enc_perf_br, comm_rnn_states, masks)
+                messages, comm_rnn_states, masks)
 
             pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
             val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
@@ -275,7 +241,7 @@ class Comm_Agent(nn.Module):
             eval_dist_entropy = None
         
         return actions, action_log_probs, values, new_comm_rnn_states, \
-            eval_action_log_probs, eval_dist_entropy, enc_perf_br
+            eval_action_log_probs, eval_dist_entropy
 
     def get_values(self, joint_obs, joint_obs_rnn_states, masks):
         """
