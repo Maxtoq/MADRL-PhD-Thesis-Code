@@ -438,7 +438,8 @@ class Trainer:
                 # Captioning loss
                 # Decode
                 dec_inputs = comm_actions[ids, a_i]
-                targets = torch.from_numpy(perf_messages_batch[ids, a_i]).long()
+                targets = torch.from_numpy(
+                    perf_messages_batch[ids, a_i]).long().to(self.device)
                 # Remove excess padded tokens
                 n_excess = min((targets == 0).sum(-1))
                 if n_excess > 0:
@@ -453,8 +454,8 @@ class Trainer:
             log_losses["mean_sim"] = mean_sim / len(self.agents)
             log_losses["capt_loss"] = capt_loss.item() / len(self.agents)
         else:
-            clip_loss = torch.zeros_like(act_value_loss)
-            capt_loss = torch.zeros_like(act_value_loss)
+            clip_loss = torch.zeros_like(env_value_loss)
+            capt_loss = torch.zeros_like(env_value_loss)
 
         if self.dyna_weight_loss:
             self._update_loss_weights(log_losses)
