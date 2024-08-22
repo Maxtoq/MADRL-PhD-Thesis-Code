@@ -35,38 +35,38 @@ class Comm_Agent(nn.Module):
             args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
         
         # Comm MAPPO 
-        if self.comm_type in ["emergent_continuous", "language", "perfect"]:
-            self.comm_pol = nn.Sequential(
-                MLPNetwork(
-                    args.hidden_dim, 
-                    args.hidden_dim, 
-                    args.hidden_dim, 
-                    out_activation_fn="relu"),
-                DiagGaussian(args.hidden_dim, args.context_dim))
-            self.comm_val = nn.Sequential(
-                MLPNetwork(
-                    args.hidden_dim, 
-                    args.hidden_dim, 
-                    args.hidden_dim, 
-                    out_activation_fn="relu"),
-                init_(nn.Linear(args.hidden_dim, 1)))
+        self.comm_pol = nn.Sequential(
+            MLPNetwork(
+                args.hidden_dim, 
+                args.hidden_dim, 
+                args.hidden_dim, 
+                out_activation_fn="relu"),
+            DiagGaussian(args.hidden_dim, args.context_dim))
+        self.comm_val = nn.Sequential(
+            MLPNetwork(
+                args.hidden_dim, 
+                args.hidden_dim, 
+                args.hidden_dim, 
+                out_activation_fn="relu"),
+            init_(nn.Linear(args.hidden_dim, 1)))
 
-            self.comm_encoder = RNNLayer(
-                args.context_dim, args.hidden_dim, args.policy_recurrent_N) 
-            
+        self.comm_encoder = RNNLayer(
+            args.context_dim, args.hidden_dim, args.policy_recurrent_N)
+
+            # if self.comm_type == "emergent_continuous":
+        self.message_encoder = nn.Linear(
+            n_agents * args.context_dim, args.context_dim)
+
+        
+        if self.comm_type in ["emergent_continuous", "language", "perfect"]:
             act_pol_input = args.hidden_dim * 2
             act_val_input = args.hidden_dim * 2
-
-            if self.comm_type == "emergent_continuous":
-                self.message_encoder = nn.Linear(
-                    n_agents * args.context_dim, args.context_dim)
-
         elif self.comm_type == "no_comm":
             act_pol_input = args.hidden_dim
             act_val_input = args.hidden_dim
-            self.comm_encoder = None
-            self.comm_pol = None
-            self.comm_val = None
+            # self.comm_encoder = None
+            # self.comm_pol = None
+            # self.comm_val = None
 
         # Act MAPPO 
         self.act_pol = nn.Sequential(
@@ -84,8 +84,23 @@ class Comm_Agent(nn.Module):
                 out_activation_fn="relu"),
             init_(nn.Linear(args.hidden_dim, 1)))
 
-        self.optim = torch.optim.Adam(
-            self.parameters(),
+        self.actor_optim = torch.optim.Adam(
+            list(self.obs_in.parameters()) +
+            list(self.obs_encoder.parameters()) +
+            list(self.comm_pol.parameters()) +
+            list(self.message_encoder.parameters()) +
+            list(self.comm_encoder.parameters()) + 
+            list(self.act_pol.parameters()),
+            lr=self.lr,
+            eps=args.opti_eps,
+            weight_decay=args.weight_decay)
+
+        self.critic_optim = torch.optim.Adam(
+            list(self.joint_obs_in.parameters()) +
+            list(self.joint_obs_encoder.parameters()) +
+            list(self.comm_val.parameters()) +
+            list(self.comm_encoder.parameters()) + 
+            list(self.act_val.parameters()),
             lr=self.lr,
             eps=args.opti_eps,
             weight_decay=args.weight_decay)

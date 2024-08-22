@@ -472,7 +472,8 @@ class Trainer:
 
         # Compute gradients
         for a in self.agents:
-            a.optim.zero_grad()
+            a.actor_optim.zero_grad()
+            a.critic_optim.zero_grad()
         # self.agents[agent_i].critic_optim.zero_grad()
         if train_lang:
             self.model.lang_learner.optim.zero_grad()
@@ -487,7 +488,8 @@ class Trainer:
 
         # Update
         for a in self.agents:
-            a.optim.step()
+            a.actor_optim.step()
+            a.critic_optim.step()
         # self.agents[agent_i].critic_optim.step()
         if train_lang:
             self.model.lang_learner.optim.step()

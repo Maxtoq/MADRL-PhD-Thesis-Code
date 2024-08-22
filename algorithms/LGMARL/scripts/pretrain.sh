@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=1
-experiment_name="15o5_ACC_perf"
+n_run=2
+experiment_name="9o5_ACC_perf_TEST1"
 n_parallel_envs=250
 n_steps=10000000
 hidden_dim=64 # default 64
@@ -10,7 +10,7 @@ lr=0.0005 # default 0.0005
 rollout_length=100 # default 100
 n_mini_batch=1 # default 2
 entropy_coef=0.01 #default 0.01
-env_name="magym_PredPrey"
+env_name="magym_PredPrey_new"
 episode_length=100
 comm_type="perfect_comm" # default language
 comm_ec_strategy="cat" # default sum
@@ -21,9 +21,9 @@ lang_lr=0.005 # default 0.007
 lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
-magym_env_size=15
+magym_env_size=9
 magym_obs_range=5 # default 5
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 source venv3.8/bin/activate
 

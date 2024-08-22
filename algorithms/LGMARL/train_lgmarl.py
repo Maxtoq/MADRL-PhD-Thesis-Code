@@ -25,7 +25,6 @@ def run():
     # Load pretrained checkpoint if needed
     if cfg.model_dir is not None:
         # Get pretrained stuff
-        assert cfg.model_dir is not None, "Must provide model_dir"
         steps_done = load_args(cfg)
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
