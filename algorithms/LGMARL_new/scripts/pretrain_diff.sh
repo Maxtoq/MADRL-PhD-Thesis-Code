@@ -1,6 +1,6 @@
 #!/bin/sh
 n_parallel_envs=250
-n_steps=5000000
+n_steps=10000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
@@ -16,13 +16,13 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=1
-experiment_name="9o5_Diff_perf"
+n_run=3
+experiment_name="9o5_Diff_noc"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="perfect" # default language
+comm_type="no_comm" # default language
 context_dim=16 # default 16
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 magym_env_size=9
 magym_obs_range=5 # default 5

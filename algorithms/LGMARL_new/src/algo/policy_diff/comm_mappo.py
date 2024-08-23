@@ -249,8 +249,9 @@ class Comm_MAPPO():
             a.eval()
             a.to(self.device)
             a.set_device(self.device)
-        self.lang_learner.eval()
-        self.lang_learner.to(self.device)
+        if self.comm_type in ["perfect", "language"]:
+            self.lang_learner.eval()
+            self.lang_learner.to(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -259,8 +260,9 @@ class Comm_MAPPO():
             a.train()
             a.to(self.device)
             a.set_device(self.device)
-        self.lang_learner.train()
-        self.lang_learner.to(self.device)
+        if self.comm_type in ["perfect", "language"]:
+            self.lang_learner.train()
+            self.lang_learner.to(self.device)
 
     def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
@@ -413,6 +415,8 @@ class Comm_MAPPO():
                 # enc_perf_br = torch.stack(agents_enc_perf_br, dim=1)
                 lang_obs_enc = self.lang_learner.obs_encoder(
                     torch.stack(agents_enc_joint_obs, dim=1).to(self.device))
+            else:
+                lang_obs_enc = None
 
             return actions, action_log_probs, values, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
@@ -423,9 +427,11 @@ class Comm_MAPPO():
     def get_save_dict(self):
         self.prep_rollout("cpu")
         save_dict = {
-            "agents": [a.state_dict() for a in self.agents]}
+            "agents": [a.state_dict() for a in self.agents],
+            "lang_learner": self.lang_learner.parameters()}
         return save_dict
 
     def load_params(self, params):
         for a, ap in zip(self.agents, params["agents"]):
             a.load_state_dict(ap)
+        self.lang_learner.load_state_dict(params["lang_learner"])

@@ -95,12 +95,12 @@ class LanguageLearner(nn.Module):
         _, sentences = self.decoder(context_batch)
         return sentences
 
-    def get_save_dict(self):
-        save_dict = {
-            "lang_encoder": self.lang_encoder.state_dict(),
-            "decoder": self.decoder.state_dict()}
-        return save_dict
+    # def get_save_dict(self):
+    #     save_dict = {
+    #         "lang_encoder": self.lang_encoder.state_dict(),
+    #         "decoder": self.decoder.state_dict()}
+    #     return save_dict
 
-    def load_params(self, save_dict):
-        self.lang_encoder.load_state_dict(save_dict["lang_encoder"])
-        self.decoder.load_state_dict(save_dict["decoder"])
+    # def load_params(self, save_dict):
+    #     self.lang_encoder.load_state_dict(save_dict["lang_encoder"])
+    #     self.decoder.load_state_dict(save_dict["decoder"])

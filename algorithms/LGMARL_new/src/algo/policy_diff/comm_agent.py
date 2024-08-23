@@ -371,5 +371,4 @@ class Comm_Agent(nn.Module):
             lr = self.lr * 0.01 if warmup else self.lr
             update_lr(self.actor_optim, lr)
             update_lr(self.critic_optim, lr)
-            exit()
             self.warming_up = warmup
