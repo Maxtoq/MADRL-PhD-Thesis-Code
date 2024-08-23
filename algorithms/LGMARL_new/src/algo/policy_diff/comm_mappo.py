@@ -413,11 +413,13 @@ class Comm_MAPPO():
     def get_save_dict(self):
         self.prep_rollout("cpu")
         save_dict = {
-            "agents": [a.state_dict() for a in self.agents],
-            "lang_learner": self.lang_learner.parameters()}
+            "agents": [a.state_dict() for a in self.agents]}
+        if self.comm_type in ["perfect", "language"]:
+            save_dict["lang_learner"] = self.lang_learner.parameters()
         return save_dict
 
     def load_params(self, params):
         for a, ap in zip(self.agents, params["agents"]):
             a.load_state_dict(ap)
-        self.lang_learner.load_state_dict(params["lang_learner"])
+        if self.comm_type in ["perfect", "language"]:
+            self.lang_learner.load_state_dict(params["lang_learner"])
