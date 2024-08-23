@@ -217,18 +217,6 @@ class Comm_MAPPO():
 
     @torch.no_grad()
     def compute_last_value(self, joint_obs, joint_obs_rnn_states, masks):
-        # if self.share_params:
-        #     next_act_values, next_comm_values = self.agents[0].get_values(
-        #         shared_obs.reshape(self.n_envs * self.n_agents, -1),
-        #         critic_rnn_states.reshape(
-        #             self.n_envs * self.n_agents, self.recurrent_N, -1),
-        #         masks.reshape(self.n_envs * self.n_agents, -1))
-
-        #     next_act_values = torch2numpy(
-        #         next_act_values.reshape(self.n_envs, self.n_agents, -1))
-        #     next_comm_values = torch2numpy(
-        #         next_comm_values.reshape(self.n_envs, self.n_agents, -1))
-        # else:
         next_act_values = []
         next_comm_values = []
         for a_i in range(self.n_agents):
@@ -284,8 +272,6 @@ class Comm_MAPPO():
             _eval = True
         else:
             _eval = False
-
-        # TODO: handle perfect messages
 
         # Generate comm
         agents_messages = []

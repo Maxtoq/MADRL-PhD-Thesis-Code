@@ -207,6 +207,14 @@ class LanguageGroundedMARL:
         #     self.buffer.comm_enc_rnn_states[-1]).to(self.device)
         masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
 
+        self.actions, self.action_log_probs, self.values, self.comm_actions, \
+            self.comm_action_log_probs, self.comm_values, self.obs_rnn_states, \
+            self.joint_obs_rnn_states, self.comm_rnn_states, messages \
+            = self.model.comm_n_act(
+                obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
+                comm_enc_rnn_states, masks, perfect_messages,
+                perfect_broadcasts, deterministic)
+
         next_act_values, next_comm_values = self.model.compute_last_value(
             joint_obs, joint_obs_rnn_states, masks)
 
