@@ -481,7 +481,7 @@ class Trainer:
 
         # Clip gradients
         for a in self.agents:
-            actcomm_grad_norm = nn.utils.clip_grad_norm_(
+            grad_norm = nn.utils.clip_grad_norm_(
                 a.parameters(), self.max_grad_norm)
         # critic_grad_norm = nn.utils.clip_grad_norm_(
         #     self.agents[agent_i].critic.parameters(), self.max_grad_norm)

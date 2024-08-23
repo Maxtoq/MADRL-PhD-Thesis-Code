@@ -54,8 +54,8 @@ class Comm_Agent(nn.Module):
             args.context_dim, args.hidden_dim, args.policy_recurrent_N)
 
             # if self.comm_type == "emergent_continuous":
-        self.message_encoder = nn.Linear(
-            n_agents * args.context_dim, args.context_dim)
+        self.message_encoder = init_(nn.Linear(
+            n_agents * args.context_dim, args.context_dim))
 
         
         if self.comm_type in ["emergent_continuous", "language", "perfect"]:
@@ -190,7 +190,7 @@ class Comm_Agent(nn.Module):
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
         else:
-            raise NotImplementedError("Bad comm_type:", self.comm_type)
+            raise NotImplementedError("Bad comm_type:" + self.comm_type)
 
         return messages, enc_obs, enc_joint_obs, comm_actions, \
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
@@ -369,5 +369,7 @@ class Comm_Agent(nn.Module):
     def warmup_lr(self, warmup):
         if warmup != self.warming_up:
             lr = self.lr * 0.01 if warmup else self.lr
-            update_lr(self.optim, lr)
+            update_lr(self.actor_optim, lr)
+            update_lr(self.critic_optim, lr)
+            exit()
             self.warming_up = warmup

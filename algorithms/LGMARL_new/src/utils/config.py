@@ -50,7 +50,7 @@ def get_config():
     parser.add_argument("--weight_decay", type=float, default=0)
 
     # ppo parameters
-    parser.add_argument("--n_warmup_steps", type=int, default=10000)
+    parser.add_argument("--n_warmup_steps", type=int, default=50000)
     parser.add_argument("--ppo_epoch", type=int, default=15,
                         help='number of ppo epochs (default: 15)')
     parser.add_argument("--clip_param", type=float, default=0.2,
