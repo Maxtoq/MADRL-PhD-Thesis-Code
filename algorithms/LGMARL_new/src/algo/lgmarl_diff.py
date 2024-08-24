@@ -199,27 +199,26 @@ class LanguageGroundedMARL:
 
     @torch.no_grad()
     def _compute_returns(self):
-        joint_obs = torch.from_numpy(
-                self.buffer.joint_obs[-1]).to(self.device)
-        joint_obs_rnn_states = torch.from_numpy(
-            self.buffer.joint_obs_enc_rnn_states[-1]).to(self.device)
-        # comm_rnn_states = torch.from_numpy(
-        #     self.buffer.comm_enc_rnn_states[-1]).to(self.device)
-        masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
+        # joint_obs = torch.from_numpy(
+        #         self.buffer.joint_obs[-1]).to(self.device)
+        # joint_obs_enc_rnn_states = torch.from_numpy(
+        #     self.buffer.joint_obs_enc_rnn_states[-1]).to(self.device)
+        # masks = torch.from_numpy(self.buffer.masks[-1]).to(self.device)
 
-        # self.actions, self.action_log_probs, self.values, self.comm_actions, \
-        #     self.comm_action_log_probs, self.comm_values, self.obs_rnn_states, \
-        #     self.joint_obs_rnn_states, self.comm_rnn_states, messages \
-        #     = self.model.comm_n_act(
-        #         obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
-        #         comm_enc_rnn_states, masks, perfect_messages,
-        #         perfect_broadcasts, deterministic)
+        # next_env_values, next_comm_values = self.model.compute_last_value(
+        #     joint_obs, joint_obs_enc_rnn_states, masks)
 
-        next_act_values, next_comm_values = self.model.compute_last_value(
-            joint_obs, joint_obs_rnn_states, masks)
+        obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, \
+            comm_enc_rnn_states, masks, perfect_messages, perfect_broadcasts \
+            = self.buffer.get_act_params()
+        _, _, next_env_values, _, _, next_comm_values, _, _, _, _ \
+            = self.model.comm_n_act(
+                obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
+                comm_enc_rnn_states, masks, perfect_messages,
+                perfect_broadcasts, deterministic=True)
 
         self.buffer.compute_returns(
-            next_act_values, 
+            next_env_values, 
             next_comm_values, 
             self.trainer.env_value_normalizer,
             self.trainer.comm_value_normalizer)
