@@ -151,8 +151,8 @@ class LanguageGroundedMARL:
         comm_rewards = np.zeros_like(act_rewards)
 
         # gen_comm all true for emergent-continuous
-        if self.comm_type == "emergent_continuous":
-            self.gen_comm = np.ones_like(self.comm_values)
+        # if self.comm_type == "emergent_continuous":
+        #     self.gen_comm = np.ones_like(self.comm_values)
         
         # Insert action data in buffer
         self.buffer.insert_act(
@@ -181,7 +181,7 @@ class LanguageGroundedMARL:
 
         warmup = step < self.n_warmup_steps
 
-        if self.comm_type in ["no_comm", "perfect"]:
+        if self.comm_type in ["no_comm", "perfect", "emergent_continuous"]:
             comm_head_learns_rl = False
         else:
             comm_head_learns_rl = True
