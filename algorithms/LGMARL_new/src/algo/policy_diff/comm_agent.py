@@ -34,14 +34,20 @@ class Comm_Agent(nn.Module):
         self.joint_obs_encoder = RNNLayer(
             args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
         
-        # Comm MAPPO 
-        self.comm_pol = nn.Sequential(
-            MLPNetwork(
+        # Comm 
+        # self.comm_pol = nn.Sequential(
+        #     MLPNetwork(
+        #         args.hidden_dim, 
+        #         args.hidden_dim, 
+        #         args.hidden_dim, 
+        #         out_activation_fn="relu"),
+        #     DiagGaussian(args.hidden_dim, args.context_dim))
+        self.comm_pol = MLPNetwork(
                 args.hidden_dim, 
+                args.context_dim, 
                 args.hidden_dim, 
-                args.hidden_dim, 
-                out_activation_fn="relu"),
-            DiagGaussian(args.hidden_dim, args.context_dim))
+                out_activation_fn="tanh")
+
         self.comm_val = nn.Sequential(
             MLPNetwork(
                 args.hidden_dim, 
@@ -50,12 +56,16 @@ class Comm_Agent(nn.Module):
                 out_activation_fn="relu"),
             init_(nn.Linear(args.hidden_dim, 1)))
 
+        if self.comm_type == "emergent_continuous":
+            in_comm_enc = n_agents * args.context_dim
+        else:
+            in_comm_enc = args.context_dim
         self.comm_encoder = RNNLayer(
-            args.context_dim, args.hidden_dim, args.policy_recurrent_N)
+            in_comm_enc, args.hidden_dim, args.policy_recurrent_N)
 
             # if self.comm_type == "emergent_continuous":
-        self.message_encoder = init_(nn.Linear(
-            n_agents * args.context_dim, args.context_dim))
+        # self.message_encoder = init_(nn.Linear(
+        #     n_agents * args.context_dim, args.context_dim))
 
         
         if self.comm_type in ["emergent_continuous", "language", "perfect"]:
@@ -90,7 +100,7 @@ class Comm_Agent(nn.Module):
             list(self.obs_in.parameters()) +
             list(self.obs_encoder.parameters()) +
             list(self.comm_pol.parameters()) +
-            list(self.message_encoder.parameters()) +
+            # list(self.message_encoder.parameters()) +
             list(self.comm_encoder.parameters()) + 
             list(self.act_pol.parameters()),
             lr=self.lr,
@@ -162,30 +172,35 @@ class Comm_Agent(nn.Module):
 
         elif self.comm_type == "emergent_continuous":
             # Get comm_action
-            comm_action_logits = self.comm_pol(enc_obs)
-            if deterministic:
-                comm_actions = comm_action_logits.mode()
-            else:
-                comm_actions = comm_action_logits.sample() 
-            comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
+            # comm_action_logits = self.comm_pol(enc_obs)
+            # if deterministic:
+            #     comm_actions = comm_action_logits.mode()
+            # else:
+            #     comm_actions = comm_action_logits.sample() 
+            # comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
 
-            if eval_comm_actions is not None:
-                eval_comm_action_log_probs = comm_action_logits.log_probs(
-                    eval_comm_actions)
-                eval_comm_dist_entropy = comm_action_logits.entropy().mean()
-            else:
-                eval_comm_action_log_probs = None
-                eval_comm_dist_entropy = None
+            # if eval_comm_actions is not None:
+            #     eval_comm_action_log_probs = comm_action_logits.log_probs(
+            #         eval_comm_actions)
+            #     eval_comm_dist_entropy = comm_action_logits.entropy().mean()
+            # else:
+
+            comm_actions = self.comm_pol(enc_obs)
 
             # Get comm_value
-            comm_values = self.comm_val(enc_joint_obs)
+            # comm_values = self.comm_val(enc_joint_obs)
+            eval_comm_action_log_probs = None
+            eval_comm_dist_entropy = None
+            comm_action_log_probs = torch.zeros(obs.shape[0], 1)
+            comm_values = torch.zeros(obs.shape[0], 1)
 
             messages = comm_actions.clone()
 
             lang_obs_enc = None
 
         elif self.comm_type == "perfect":
-            comm_actions = self.comm_pol(enc_obs).mode()
+            # comm_actions = self.comm_pol(enc_obs).mode()
+            comm_actions = self.comm_pol(enc_obs)
             comm_action_log_probs = torch.zeros(obs.shape[0], 1)
             comm_values = torch.zeros(obs.shape[0], 1)
             messages = perfect_messages
@@ -226,10 +241,10 @@ class Comm_Agent(nn.Module):
             val_input = enc_joint_obs
             new_comm_rnn_states = torch.zeros_like(comm_rnn_states)
         elif self.comm_type == "emergent_continuous":
-            enc_mess = self.message_encoder(messages)
+            # enc_mess = self.message_encoder(messages)
 
             comm_enc, new_comm_rnn_states = self.comm_encoder(
-                enc_mess, comm_rnn_states, masks)
+                messages, comm_rnn_states, masks)
 
             pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
             val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
@@ -261,36 +276,43 @@ class Comm_Agent(nn.Module):
         return actions, action_log_probs, values, new_comm_rnn_states, \
             eval_action_log_probs, eval_dist_entropy
 
-    def get_values(self, joint_obs, joint_obs_rnn_states, masks):
-        """
-        Get value function predictions.
+    def warmup_lr(self, warmup):
+        if warmup != self.warming_up:
+            lr = self.lr * 0.01 if warmup else self.lr
+            update_lr(self.actor_optim, lr)
+            update_lr(self.critic_optim, lr)
+            self.warming_up = warmup
 
-        :return act_values: (torch.Tensor) action value predictions.
-        :return comm_values: (torch.Tensor) communication value predictions.
-        """
-        enc_joint_obs = self.joint_obs_in(joint_obs)
-        enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
-            enc_joint_obs, joint_obs_rnn_states, masks)
+    # def get_values(self, joint_obs, joint_obs_rnn_states, masks):
+    #     """
+    #     Get value function predictions.
 
-        if self.comm_type in ["emergent_continuous", "perfect"]:
-            comm_values = self.comm_val(enc_joint_obs)
-            act_val_input = torch.concatenate(
-                (enc_joint_obs, torch.zeros_like(enc_joint_obs).to(self.device)),
-                dim=-1)
+    #     :return act_values: (torch.Tensor) action value predictions.
+    #     :return comm_values: (torch.Tensor) communication value predictions.
+    #     """
+    #     enc_joint_obs = self.joint_obs_in(joint_obs)
+    #     enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
+    #         enc_joint_obs, joint_obs_rnn_states, masks)
 
-        elif self.comm_type == "no_comm":
-            act_val_input = enc_joint_obs
+    #     if self.comm_type in ["emergent_continuous", "perfect"]:
+    #         comm_values = self.comm_val(enc_joint_obs)
+    #         act_val_input = torch.concatenate(
+    #             (enc_joint_obs, torch.zeros_like(enc_joint_obs).to(self.device)),
+    #             dim=-1)
 
-        # elif self.comm_type == "perfect":
-        #     comm_values = self.comm_val(enc_joint_obs)
-        #     act_val_input = 0
+    #     elif self.comm_type == "no_comm":
+    #         act_val_input = enc_joint_obs
 
-        values = self.act_val(act_val_input)
+    #     # elif self.comm_type == "perfect":
+    #     #     comm_values = self.comm_val(enc_joint_obs)
+    #     #     act_val_input = 0
 
-        if self.comm_type == "no_comm":
-            comm_values = torch.zeros_like(values)
+    #     values = self.act_val(act_val_input)
 
-        return values, comm_values
+    #     if self.comm_type == "no_comm":
+    #         comm_values = torch.zeros_like(values)
+
+    #     return values, comm_values
         
     # def evaluate_actions(
     #         self, obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
@@ -368,10 +390,3 @@ class Comm_Agent(nn.Module):
 
     #     return values, comm_values, action_log_probs, dist_entropy, \
     #             comm_action_log_probs, comm_dist_entropy, comm_actions
-
-    def warmup_lr(self, warmup):
-        if warmup != self.warming_up:
-            lr = self.lr * 0.01 if warmup else self.lr
-            update_lr(self.actor_optim, lr)
-            update_lr(self.critic_optim, lr)
-            self.warming_up = warmup

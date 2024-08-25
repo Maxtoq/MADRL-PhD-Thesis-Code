@@ -215,20 +215,20 @@ class Comm_MAPPO():
 
         self.eval = False
 
-    @torch.no_grad()
-    def compute_last_value(self, joint_obs, joint_obs_rnn_states, masks):
-        next_act_values = []
-        next_comm_values = []
-        for a_i in range(self.n_agents):
-            next_act_value, next_comm_value = self.agents[a_i].get_values(
-                joint_obs[:, a_i], joint_obs_rnn_states[:, a_i], masks[:, a_i])
-            next_act_values.append(next_act_value)
-            next_comm_values.append(next_comm_value)
+    # @torch.no_grad()
+    # def compute_last_value(self, joint_obs, joint_obs_rnn_states, masks):
+    #     next_act_values = []
+    #     next_comm_values = []
+    #     for a_i in range(self.n_agents):
+    #         next_act_value, next_comm_value = self.agents[a_i].get_values(
+    #             joint_obs[:, a_i], joint_obs_rnn_states[:, a_i], masks[:, a_i])
+    #         next_act_values.append(next_act_value)
+    #         next_comm_values.append(next_comm_value)
             
-        next_act_values = torch2numpy(torch.stack(next_act_values, dim=1))
-        next_comm_values = torch2numpy(torch.stack(next_comm_values, dim=1))
+    #     next_act_values = torch2numpy(torch.stack(next_act_values, dim=1))
+    #     next_comm_values = torch2numpy(torch.stack(next_comm_values, dim=1))
 
-        return next_act_values, next_comm_values
+    #     return next_act_values, next_comm_values
 
     def prep_rollout(self, device=None):
         if device is not None:
@@ -388,7 +388,7 @@ class Comm_MAPPO():
             eval_action_log_probs = torch.stack(
                 agents_eval_action_log_probs, dim=1)
             eval_dist_entropy = torch.stack(agents_eval_dist_entropy).unsqueeze(-1)
-            if self.comm_type not in ["no_comm", "perfect"]:
+            if self.comm_type not in ["no_comm", "perfect", "emergent_continuous"]:
                 eval_comm_action_log_probs = torch.stack(
                     agents_eval_comm_action_log_probs, dim=1)
                 eval_comm_dist_entropy = torch.stack(
