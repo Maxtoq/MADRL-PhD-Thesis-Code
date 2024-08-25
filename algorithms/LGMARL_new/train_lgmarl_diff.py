@@ -135,8 +135,8 @@ def run():
             
     envs.close()
     # Save model and training data
-    model.save(run_dir / "model_ep.pt")
     logger.save_n_close()
+    model.save(run_dir / "model_ep.pt")
 
 if __name__ == '__main__':
     run()

@@ -415,7 +415,7 @@ class Comm_MAPPO():
         save_dict = {
             "agents": [a.state_dict() for a in self.agents]}
         if self.comm_type in ["perfect", "language"]:
-            save_dict["lang_learner"] = self.lang_learner.parameters()
+            save_dict["lang_learner"] = self.lang_learner.state_dict()
         return save_dict
 
     def load_params(self, params):

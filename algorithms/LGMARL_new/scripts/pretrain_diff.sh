@@ -17,12 +17,12 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
 n_run=1
-experiment_name="9o5_Diff_perf_lastadvcomm"
+experiment_name="9o5_Diff_perf_nh2"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
 comm_type="perfect" # default language
 context_dim=16 # default 16
-cuda_device="cuda:3"
+cuda_device="cuda:2"
 
 magym_env_size=9
 magym_obs_range=5 # default 5

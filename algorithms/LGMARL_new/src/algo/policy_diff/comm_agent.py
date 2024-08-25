@@ -74,6 +74,7 @@ class Comm_Agent(nn.Module):
                 act_pol_input, 
                 args.hidden_dim, 
                 args.hidden_dim, 
+                n_hidden_layers=1,
                 out_activation_fn="relu"),
             Categorical(args.hidden_dim, act_dim))
         self.act_val = nn.Sequential(
@@ -81,6 +82,7 @@ class Comm_Agent(nn.Module):
                 act_val_input, 
                 args.hidden_dim, 
                 args.hidden_dim, 
+                n_hidden_layers=1,
                 out_activation_fn="relu"),
             init_(nn.Linear(args.hidden_dim, 1)))
 
@@ -202,7 +204,8 @@ class Comm_Agent(nn.Module):
             deterministic=False, eval_actions=None):
         """
         Forward pass on the action actor-critic.
-        :param messages (torch.Tensor or list): incoming messages.
+        :param messages (torch.Tensor): incoming messages (already encoded if 
+            using language).
         :param enc_obs: (torch.Tensor) encoded observations.
         :param enc_joint_obs: (torch.Tensor) encoded joint observations.
         :param comm_rnn_states: (torch.Tensor) hidden states of the 
