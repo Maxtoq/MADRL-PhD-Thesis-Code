@@ -59,7 +59,6 @@ MarkupSafe==2.1.2
 matplotlib==3.7.0
 matplotlib-inline==0.1.6
 mistune==2.0.5
-multiagent @ git+https://github.com/Maxtoq/multiagent-particle-envs.git@1cbc07d718698423942d4c14e540655f371c4106
 nbclassic==0.5.2
 nbclient==0.7.2
 nbconvert==7.2.9
