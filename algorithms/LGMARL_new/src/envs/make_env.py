@@ -16,7 +16,8 @@ def _get_env(cfg):
             n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_actual_obsrange)
+            actual_obsrange=cfg.FT_magym_actual_obsrange,
+            see_agents=cfg.magym_see_agents)
     elif cfg.env_name == "magym_Lumber":
         from .ma_gym.lumberjack import Lumberjacks
         env = Lumberjacks(

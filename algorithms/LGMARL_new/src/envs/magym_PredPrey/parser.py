@@ -107,7 +107,7 @@ class Parser():
 
         d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
                 / (self.env_size - 1)
-        rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map)]).T
+        rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map == 1)]).T
         abs_prey_pos = pos + rel_prey_pos
 
         for abs_pos, rel_pos in zip(abs_prey_pos, rel_prey_pos):

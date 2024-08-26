@@ -39,7 +39,7 @@ class Env(gym.Env):
 
     def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
                  full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
-                 agent_view_mask=(5, 5), global_state=False, actual_obsrange=None):
+                 agent_view_mask=(5, 5), global_state=False, actual_obsrange=None, see_agents=False):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
                                           ' but found {}'.format(agent_view_mask)
@@ -57,9 +57,11 @@ class Env(gym.Env):
         self._step_cost = step_cost
         self._prey_capture_reward = prey_capture_reward
         self._agent_view_mask = agent_view_mask
+
         self._actual_obsrange = actual_obsrange
         if self._actual_obsrange is not None and self._actual_obsrange >= self._agent_view_mask[0]:
             print("WARNING: actual_obsrange >= obs_range.")
+        self._see_agents = see_agents
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
@@ -149,13 +151,16 @@ class Env(gym.Env):
             obs_range = self._agent_view_mask[0] // 2
             for row in range(max(0, pos[0] - obs_range), min(pos[0] + obs_range + 1, self._grid_shape[0])):
                 for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
-                    if PRE_IDS['prey'] in self._full_obs[row][col]:
+                    if self._full_obs[row][col] != PRE_IDS["empty"]:
                         # If limited obs_range, then check if distance is low enough
                         if self._actual_obsrange is not None:
                             dist = np.sqrt((row - pos[0]) ** 2 + (col - pos[1]) ** 2)
                             if dist > self._actual_obsrange / 2:
                                 continue
-                        _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 1  # set position for the prey loc.
+                        if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
+                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 2
+                        elif PRE_IDS['prey'] in self._full_obs[row][col]:
+                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 1  # set position for the prey loc.
 
             _agent_i_obs += _prey_pos.flatten().tolist()  # adding prey pos in observable area
             # _agent_i_obs += [self._step_count / self._max_steps]  # adding time
@@ -285,8 +290,7 @@ class Env(gym.Env):
             _count += 1
 
         agent_id = []
-        for x, y in neighbours_xy:
-            agent_id.append(int(self._full_obs[x][y].split(PRE_IDS['agent'])[1]) - 1)
+        for x, y in neighbours_xy:agent_id.append(int(self._full_obs[x][y].split(PRE_IDS['agent'])[1]) - 1)
         return _count, agent_id
 
     def step(self, agents_action):

@@ -129,6 +129,8 @@ def get_config():
     parser.add_argument("--magym_n_preys", type=int, default=2)
     parser.add_argument("--magym_obs_range", type=int, default=5)
     parser.add_argument("--magym_no_purple", default=False, action="store_true")
+    parser.add_argument("--magym_see_agents", default=False, action="store_true")
+
 
     # Fine-tuning parameters
     parser.add_argument("--FT_env_name", type=str, default=None)
