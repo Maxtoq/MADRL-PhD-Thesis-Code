@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from .language.lm import OneHotEncoder
+# from .language.lm import OneHotEncoder
 from .policy_diff.comm_mappo import Comm_MAPPO, Comm_MAPPO_Shared
 from .policy_diff.buffer import ReplayBuffer
 from .policy_diff.trainer import Trainer
@@ -35,15 +35,15 @@ class LanguageGroundedMARL:
         act_dim = act_space[0].n
 
         # Language encoder
-        self.word_encoder = OneHotEncoder(
-            parser.vocab, parser.max_message_len)
+        # self.word_encoder = OneHotEncoder(
+        #     parser.vocab, parser.max_message_len)
 
         if args.share_params:
             ModelClass = Comm_MAPPO_Shared
         else:
             ModelClass = Comm_MAPPO
         self.model = ModelClass(
-            args, self.word_encoder, n_agents, obs_shape, joint_obs_shape, 
+            args, parser, n_agents, obs_shape, joint_obs_shape, 
             act_dim, self.device)
 
         self.buffer = ReplayBuffer(
@@ -53,7 +53,7 @@ class LanguageGroundedMARL:
             joint_obs_shape,
             1, 
             args.context_dim, 
-            self.word_encoder.max_message_len,
+            parser.max_message_len + 1,
             log_dir)
 
         self.trainer = Trainer(
@@ -233,7 +233,7 @@ class LanguageGroundedMARL:
         """
         # Encode sentences and build broadcast
         enc_perf_mess, enc_perf_br \
-            = self.word_encoder.encode_rollout_step(perf_messages)
+            = self.model.lang_learner.word_encoder.encode_rollout_step(perf_messages) # TODO make better
 
         joint_obs = obs.reshape(self.n_envs, 1, -1).repeat(
             self.n_agents, 1)

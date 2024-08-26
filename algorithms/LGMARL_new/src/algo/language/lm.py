@@ -271,7 +271,7 @@ class GRUDecoder(nn.Module):
     """
     Class for a language decoder using a Gated Recurrent Unit network
     """
-    def __init__(self, context_dim, embed_dim, word_encoder, 
+    def __init__(self, context_dim, embed_dim, token_dim, max_len, 
                  n_layers=1, embed_layer=None, device="cpu"):
         """
         Inputs:
@@ -283,18 +283,16 @@ class GRUDecoder(nn.Module):
         """
         super(GRUDecoder, self).__init__()
         self.device = device
-        self.max_len = word_encoder.max_message_len
+        self.max_len = max_len
         # Dimension of hidden states
         self.hidden_dim = context_dim
-        # Word encoder
-        self.word_encoder = word_encoder
         # Number of recurrent layers
         self.n_layers = n_layers
         # Embedding layer
         if embed_layer is not None:
             self.embed_layer = embed_layer
         else:
-            self.embed_layer = nn.Embedding(self.word_encoder.enc_dim, embed_dim)
+            self.embed_layer = nn.Embedding(token_dim, embed_dim)
         # Model
         self.gru = nn.GRU(
             embed_dim, 
@@ -303,7 +301,7 @@ class GRUDecoder(nn.Module):
         init_rnn_params(self.gru)
         # Output layer
         self.out = nn.Sequential(
-            nn.Linear(self.hidden_dim, self.word_encoder.enc_dim),
+            nn.Linear(self.hidden_dim, token_dim),
             nn.LogSoftmax(dim=2)
         )
 

@@ -15,7 +15,8 @@ def init_(m):
 class Comm_Agent(nn.Module):
 
     def __init__(
-            self, args, n_agents, obs_dim, joint_obs_dim, act_dim, device):
+            self, args, parser, n_agents, obs_dim, joint_obs_dim, act_dim, 
+            device):
         super(Comm_Agent, self).__init__()
         self.lr = args.lr
         self.comm_type = args.comm_type
@@ -25,14 +26,22 @@ class Comm_Agent(nn.Module):
 
         # Common encoders
         self.obs_in = MLPNetwork(
-            obs_dim, args.hidden_dim, args.hidden_dim)
+            obs_dim, 
+            args.hidden_dim, 
+            args.hidden_dim)
         self.obs_encoder = RNNLayer(
-            args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
+            args.hidden_dim, 
+            args.hidden_dim, 
+            args.policy_recurrent_N)
 
         self.joint_obs_in = MLPNetwork(
-            joint_obs_dim, args.hidden_dim, args.hidden_dim)
+            joint_obs_dim, 
+            args.hidden_dim, 
+            args.hidden_dim)
         self.joint_obs_encoder = RNNLayer(
-            args.hidden_dim, args.hidden_dim, args.policy_recurrent_N)
+            args.hidden_dim, 
+            args.hidden_dim, 
+            args.policy_recurrent_N)
         
         # Comm 
         # self.comm_pol = nn.Sequential(
@@ -43,10 +52,10 @@ class Comm_Agent(nn.Module):
         #         out_activation_fn="relu"),
         #     DiagGaussian(args.hidden_dim, args.context_dim))
         self.comm_pol = MLPNetwork(
-                args.hidden_dim, 
-                args.context_dim, 
-                args.hidden_dim, 
-                out_activation_fn="tanh")
+            args.hidden_dim, 
+            args.context_dim, 
+            args.hidden_dim, 
+            out_activation_fn="tanh")
 
         self.comm_val = nn.Sequential(
             MLPNetwork(
