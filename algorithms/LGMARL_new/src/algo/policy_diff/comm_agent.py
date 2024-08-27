@@ -52,6 +52,7 @@ class Comm_Agent(nn.Module):
         #         out_activation_fn="relu"),
         #     DiagGaussian(args.hidden_dim, args.context_dim))
         self.comm_pol = MLPNetwork(
+            # args.hidden_dim + obs_dim,
             args.hidden_dim, 
             args.context_dim, 
             args.hidden_dim, 
@@ -209,6 +210,8 @@ class Comm_Agent(nn.Module):
 
         elif self.comm_type == "perfect":
             # comm_actions = self.comm_pol(enc_obs).mode()
+            # comm_actions = self.comm_pol(
+            #     torch.concatenate((enc_obs, obs), dim=-1))
             comm_actions = self.comm_pol(enc_obs)
             comm_action_log_probs = torch.zeros(obs.shape[0], 1)
             comm_values = torch.zeros(obs.shape[0], 1)
