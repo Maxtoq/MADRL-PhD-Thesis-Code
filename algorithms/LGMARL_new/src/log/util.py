@@ -1,6 +1,6 @@
 import json
 import time
-import git
+# import git
 import os
 import re
 from pathlib import Path
@@ -48,8 +48,8 @@ def load_scenario_cfg(cfg, run_dir):
 def write_params(run_directory, cfg, env=None):
     with open(os.path.join(run_directory, 'args.txt'), 'w') as f:
         f.write(str(time.time()) + '\n')
-        commit_hash = git.Repo(
-            search_parent_directories=True).head.object.hexsha
+        commit_hash = "e"# git.Repo(
+            # search_parent_directories=True).head.object.hexsha
         f.write(
             "Running train_qmix.py at git commit " + str(commit_hash) + '\n')
         f.write("Parameters:\n")

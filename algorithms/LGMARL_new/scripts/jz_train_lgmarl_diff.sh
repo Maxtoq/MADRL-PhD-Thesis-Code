@@ -1,17 +1,19 @@
 #!/bin/bash
-#SBATCH --partition=gpu_p2
+#SBATCH --partition=gpu_p5
 #SBATCH --job-name=ec
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
-#SBATCH --time=24:00:00
+#SBATCH --time=20:00:00
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH --error=outputs/ERROR%x-%j.out
+#SBATCH -C a100
+#SBATCH -A bqo@a100
 
 source venv/bin/activate
 
 n_parallel_envs=250
 n_steps=10000000
-hidden_dim=64 # default 64
+hidden_dim=64 # default 4
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 rollout_length=100 # default 100
@@ -26,7 +28,7 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=15
+n_run=6
 experiment_name="9o5SA_Diff_noc"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
