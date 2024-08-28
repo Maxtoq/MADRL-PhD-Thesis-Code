@@ -23,7 +23,8 @@ do
     --lr ${lr}
     --FT_magym_env_size ${FT_magym_env_size}
     --cuda_device ${cuda_device}
-    --adapt_run"
+    --adapt_run
+    --FT_magym_not_see_agents"
     # --FT_freeze_lang"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm

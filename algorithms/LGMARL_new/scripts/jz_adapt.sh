@@ -1,24 +1,25 @@
 #!/bin/bash
-#SBATCH --partition=hard
-#SBATCH --job-name=adapt
+#SBATCH --partition=gpu_p2
+#SBATCH --job-name=ec
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
-#SBATCH --time=5000
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
+#SBATCH --gres=gpu:1 
+#SBATCH --time=24:00:00
 #SBATCH --output=outputs/%x-%j.out
+#SBATCH --error=outputs/ERROR%x-%j.out
 
 source venv/bin/activate
 
 n_run=1
-experiment_name="Adapt_9o5SA-noSA_Diff_ec"
-n_steps=2000000
+experiment_name="Adapt_9o5SA-noSA_Diff_perf"
+n_steps=5000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey_new"
 FT_magym_env_size=9
 FT_magym_actual_obsrange=5
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_perf/run15/"
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_noc/run15/"
 cuda_device="cuda:0"
+
+source venv3.8/bin/activate
 
 for n in $(seq 1 $n_run)
 do
