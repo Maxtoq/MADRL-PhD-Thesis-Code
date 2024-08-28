@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 # from .language.lm import OneHotEncoder
-from .policy_diff.comm_mappo import Comm_MAPPO, Comm_MAPPO_Shared
+from .policy_diff.comm_mappo import CommMAPPO, CommMAPPO_Shared
 from .policy_diff.buffer import ReplayBuffer
 from .policy_diff.trainer import Trainer
 from .policy_diff.utils import get_shape_from_obs_space, torch2numpy, update_linear_schedule
@@ -39,9 +39,9 @@ class LanguageGroundedMARL:
         #     parser.vocab, parser.max_message_len)
 
         if args.share_params:
-            ModelClass = Comm_MAPPO_Shared
+            ModelClass = CommMAPPO_Shared
         else:
-            ModelClass = Comm_MAPPO
+            ModelClass = CommMAPPO
         self.model = ModelClass(
             args, parser, n_agents, obs_shape, joint_obs_shape, 
             act_dim, self.device)

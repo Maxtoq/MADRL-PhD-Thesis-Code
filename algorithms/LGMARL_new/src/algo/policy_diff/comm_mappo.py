@@ -4,10 +4,10 @@ import numpy as np
 from torch import nn
 
 from src.algo.language.lang_learner import LanguageLearner
-from .comm_agent import Comm_Agent
+from .comm_agent import CommAgent
 from .utils import torch2numpy, update_lr
 
-class Comm_MAPPO_Shared:
+class CommMAPPO_Shared:
 
     def __init__(self, args, word_encoder, n_agents, obs_dim, 
                  shared_obs_dim, act_dim, device):
@@ -185,11 +185,12 @@ class Comm_MAPPO_Shared:
 
 
 
-class Comm_MAPPO():
+class CommMAPPO():
 
     def __init__(self, args, parser, n_agents, obs_dim, 
                  shared_obs_dim, act_dim, device):
         self.args = args
+        self.n_envs = args.n_parallel_envs
         self.n_agents = n_agents
         self.device = device
         # self.context_dim = args.context_dim
@@ -202,19 +203,19 @@ class Comm_MAPPO():
 
         if self.share_params:
             self.agents = [
-                Comm_Agent(
+                CommAgent(
                     args, parser, n_agents, obs_dim, shared_obs_dim, act_dim, 
                     device)]
         else:
             self.agents = [
-                Comm_Agent(
+                CommAgent(
                     args, parser, n_agents, obs_dim, shared_obs_dim, act_dim, 
                     device)
                 for a_i in range(self.n_agents)]
 
         # if self.comm_type in ["perfect", "language"]:
         self.lang_learner = LanguageLearner(
-            args, parser, obs_dim, args.context_dim, n_agents, device)
+            args, parser, self.comm_type == "emergent_discrete_lang", device)
 
         self.eval = False
 
@@ -285,6 +286,30 @@ class Comm_MAPPO():
             all_comm_action_log_probs, all_comm_values, all_new_obs_rnn_states, \
             all_new_joint_obs_rnn_states, all_eval_comm_action_log_probs, \
             all_eval_comm_dist_entropy
+
+    def _make_broadcasts(self, messages):
+        broadcasts = []
+        for e_i in range(messages.shape[0]):
+            env_br = []
+            for a_i in range(self.n_agents):
+                # Replace message by perfect message if not gen_comm
+                # if self.gen_comm[e_i, a_i, 0]:
+                agent_m = messages[e_i, a_i]
+                # else:
+                    # agent_m = perfect_messages[e_i, a_i]
+
+                # De-pad message and add to broadcast
+                end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
+                env_br.extend(agent_m[:end_i])
+
+            # if add_message is not None:
+            #     add_m = self.lang_learner.word_encoder.get_ids(add_message)
+            #     env_br.extend(add_m)
+
+            env_br.append(1)
+            broadcasts.append(env_br)
+        
+        return broadcasts
 
     def _act_step(
             self, in_messages, enc_obs, enc_joint_obs, comm_rnn_states, masks, 
@@ -397,6 +422,14 @@ class Comm_MAPPO():
         elif self.comm_type == "perfect":
             out_messages = torch.stack(messages, dim=1)
             in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
+        elif self.comm_type == "emergent_discrete_lang":
+            batch_size = obs.shape[0]
+            dec_in = torch.stack(comm_actions, dim=1).reshape(
+                batch_size * self.n_agents, -1).to(self.device)
+            out_messages = self.lang_learner.generate_sentences(dec_in)
+            broadcasts = self._make_broadcasts(
+                out_messages.reshape(batch_size, self.n_agents, -1))
+            in_messages = self.lang_learner.encode_sentences(broadcasts)
 
         # Generate actions
         # agents_actions = []
@@ -431,6 +464,7 @@ class Comm_MAPPO():
                 in_messages, enc_obs, enc_joint_obs, comm_rnn_states, masks, 
                 deterministic, eval_actions)
 
+        # Return data in tensors
         if not _eval:
             actions = torch2numpy(torch.stack(actions, dim=1))
             action_log_probs = torch2numpy(
@@ -466,7 +500,7 @@ class Comm_MAPPO():
             eval_action_log_probs = torch.stack(
                 eval_action_log_probs, dim=1)
             eval_dist_entropy = torch.stack(eval_dist_entropy).unsqueeze(-1)
-            if self.comm_type not in ["no_comm", "perfect", "emergent_continuous"]:
+            if self.comm_type == ["language"]:
                 eval_comm_action_log_probs = torch.stack(
                     eval_comm_action_log_probs, dim=1)
                 eval_comm_dist_entropy = torch.stack(

@@ -8,3 +8,6 @@ def init(module, weight_init=nn.init.orthogonal_,
     if hasattr(module, 'bias'):
         bias_init(module.bias.data)
     return module
+
+def init_(m):
+    return init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0))

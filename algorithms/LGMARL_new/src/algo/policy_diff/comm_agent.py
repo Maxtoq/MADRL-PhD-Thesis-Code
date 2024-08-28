@@ -5,19 +5,16 @@ from .utils import update_linear_schedule, update_lr
 from src.algo.nn_modules.mlp import MLPNetwork
 from src.algo.nn_modules.rnn import RNNLayer
 from src.algo.nn_modules.distributions import DiagGaussian, Categorical
-from src.algo.nn_modules.utils import init
+from src.algo.nn_modules.utils import init_
+from .comm_pol import CommPolicy
 
 
-def init_(m):
-    return init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0))
-
-
-class Comm_Agent(nn.Module):
+class CommAgent(nn.Module):
 
     def __init__(
             self, args, parser, n_agents, obs_dim, joint_obs_dim, act_dim, 
             device):
-        super(Comm_Agent, self).__init__()
+        super(CommAgent, self).__init__()
         self.lr = args.lr
         self.comm_type = args.comm_type
         self.warming_up = False
@@ -51,39 +48,40 @@ class Comm_Agent(nn.Module):
         #         args.hidden_dim, 
         #         out_activation_fn="relu"),
         #     DiagGaussian(args.hidden_dim, args.context_dim))
-        self.comm_pol = MLPNetwork(
-            # args.hidden_dim + obs_dim,
-            args.hidden_dim, 
-            args.context_dim, 
-            args.hidden_dim, 
-            out_activation_fn="tanh")
+        # self.comm_pol = MLPNetwork(
+        #     # args.hidden_dim + obs_dim,
+        #     args.hidden_dim, 
+        #     args.context_dim, 
+        #     args.hidden_dim, 
+        #     out_activation_fn="tanh")
 
-        self.comm_val = nn.Sequential(
-            MLPNetwork(
-                args.hidden_dim, 
-                args.hidden_dim, 
-                args.hidden_dim, 
-                out_activation_fn="relu"),
-            init_(nn.Linear(args.hidden_dim, 1)))
+        # self.comm_val = nn.Sequential(
+        #     MLPNetwork(
+        #         args.hidden_dim, 
+        #         args.hidden_dim, 
+        #         args.hidden_dim, 
+        #         out_activation_fn="relu"),
+        #     init_(nn.Linear(args.hidden_dim, 1)))
 
-        if self.comm_type == "emergent_continuous":
-            in_comm_enc = n_agents * args.context_dim
-        else:
-            in_comm_enc = args.context_dim
-        self.comm_encoder = RNNLayer(
-            in_comm_enc, args.hidden_dim, args.policy_recurrent_N)
+        # if self.comm_type == "emergent_continuous":
+        #     in_comm_enc = n_agents * args.context_dim
+        # else:
+        #     in_comm_enc = args.context_dim
+        # self.comm_encoder = RNNLayer(
+        #     in_comm_enc, args.hidden_dim, args.policy_recurrent_N)
 
             # if self.comm_type == "emergent_continuous":
         # self.message_encoder = init_(nn.Linear(
         #     n_agents * args.context_dim, args.context_dim))
 
+        self.comm_pol = CommPolicy(args, n_agents)
         
-        if self.comm_type in ["emergent_continuous", "language", "perfect"]:
-            act_pol_input = args.hidden_dim * 2
-            act_val_input = args.hidden_dim * 2
-        elif self.comm_type == "no_comm":
+        if self.comm_type == "no_comm":
             act_pol_input = args.hidden_dim
             act_val_input = args.hidden_dim
+        else:
+            act_pol_input = args.hidden_dim * 2
+            act_val_input = args.hidden_dim * 2
             # self.comm_encoder = None
             # self.comm_pol = None
             # self.comm_val = None
@@ -109,10 +107,16 @@ class Comm_Agent(nn.Module):
         self.actor_optim = torch.optim.Adam(
             list(self.obs_in.parameters()) +
             list(self.obs_encoder.parameters()) +
-            list(self.comm_pol.parameters()) +
+            # list(self.comm_pol.parameters()) +
             # list(self.message_encoder.parameters()) +
-            list(self.comm_encoder.parameters()) + 
+            # list(self.comm_encoder.parameters()) + 
             list(self.act_pol.parameters()),
+            lr=self.lr,
+            eps=args.opti_eps,
+            weight_decay=args.weight_decay)
+
+        self.comm_optim = torch.optim.Adam(
+            self.comm_pol.parameters(),
             lr=self.lr,
             eps=args.opti_eps,
             weight_decay=args.weight_decay)
@@ -120,8 +124,8 @@ class Comm_Agent(nn.Module):
         self.critic_optim = torch.optim.Adam(
             list(self.joint_obs_in.parameters()) +
             list(self.joint_obs_encoder.parameters()) +
-            list(self.comm_val.parameters()) +
-            list(self.comm_encoder.parameters()) + 
+            # list(self.comm_val.parameters()) +
+            # list(self.comm_encoder.parameters()) + 
             list(self.act_val.parameters()),
             lr=self.lr,
             eps=args.opti_eps,
@@ -171,55 +175,59 @@ class Comm_Agent(nn.Module):
             enc_joint_obs, joint_obs_rnn_states, masks)
 
         # Get comm actions and values
-        if self.comm_type == "no_comm":
-            comm_actions = torch.zeros(obs.shape[0], self.context_dim)
-            comm_action_log_probs = torch.zeros(obs.shape[0], 1)
-            comm_values = torch.zeros(obs.shape[0], 1)
-            messages = None
-            eval_comm_action_log_probs = None
-            eval_comm_dist_entropy = None
-            lang_obs_enc = None
+        # if self.comm_type == "no_comm":
+        #     comm_actions = torch.zeros(obs.shape[0], self.context_dim)
+        #     comm_action_log_probs = torch.zeros(obs.shape[0], 1)
+        #     comm_values = torch.zeros(obs.shape[0], 1)
+        #     messages = None
+        #     eval_comm_action_log_probs = None
+        #     eval_comm_dist_entropy = None
+        #     lang_obs_enc = None
 
-        elif self.comm_type == "emergent_continuous":
-            # Get comm_action
-            # comm_action_logits = self.comm_pol(enc_obs)
-            # if deterministic:
-            #     comm_actions = comm_action_logits.mode()
-            # else:
-            #     comm_actions = comm_action_logits.sample() 
-            # comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
+        # elif self.comm_type == "emergent_continuous":
+        #     # Get comm_action
+        #     # comm_action_logits = self.comm_pol(enc_obs)
+        #     # if deterministic:
+        #     #     comm_actions = comm_action_logits.mode()
+        #     # else:
+        #     #     comm_actions = comm_action_logits.sample() 
+        #     # comm_action_log_probs = comm_action_logits.log_probs(comm_actions)
 
-            # if eval_comm_actions is not None:
-            #     eval_comm_action_log_probs = comm_action_logits.log_probs(
-            #         eval_comm_actions)
-            #     eval_comm_dist_entropy = comm_action_logits.entropy().mean()
-            # else:
+        #     # if eval_comm_actions is not None:
+        #     #     eval_comm_action_log_probs = comm_action_logits.log_probs(
+        #     #         eval_comm_actions)
+        #     #     eval_comm_dist_entropy = comm_action_logits.entropy().mean()
+        #     # else:
 
-            comm_actions = self.comm_pol(enc_obs)
+        #     comm_actions = self.comm_pol(enc_obs)
 
-            # Get comm_value
-            # comm_values = self.comm_val(enc_joint_obs)
-            eval_comm_action_log_probs = None
-            eval_comm_dist_entropy = None
-            comm_action_log_probs = torch.zeros(obs.shape[0], 1)
-            comm_values = torch.zeros(obs.shape[0], 1)
+        #     # Get comm_value
+        #     # comm_values = self.comm_val(enc_joint_obs)
+        #     eval_comm_action_log_probs = None
+        #     eval_comm_dist_entropy = None
+        #     comm_action_log_probs = torch.zeros(obs.shape[0], 1)
+        #     comm_values = torch.zeros(obs.shape[0], 1)
 
-            messages = comm_actions.clone()
+        #     messages = comm_actions.clone()
 
-            lang_obs_enc = None
+        #     lang_obs_enc = None
 
-        elif self.comm_type == "perfect":
-            # comm_actions = self.comm_pol(enc_obs).mode()
-            # comm_actions = self.comm_pol(
-            #     torch.concatenate((enc_obs, obs), dim=-1))
-            comm_actions = self.comm_pol(enc_obs)
-            comm_action_log_probs = torch.zeros(obs.shape[0], 1)
-            comm_values = torch.zeros(obs.shape[0], 1)
-            messages = perfect_messages
-            eval_comm_action_log_probs = None
-            eval_comm_dist_entropy = None
-        else:
-            raise NotImplementedError("Bad comm_type:" + self.comm_type)
+        # elif self.comm_type == "perfect":
+        #     # comm_actions = self.comm_pol(enc_obs).mode()
+        #     # comm_actions = self.comm_pol(
+        #     #     torch.concatenate((enc_obs, obs), dim=-1))
+        #     comm_actions = self.comm_pol(enc_obs)
+        #     comm_action_log_probs = torch.zeros(obs.shape[0], 1)
+        #     comm_values = torch.zeros(obs.shape[0], 1)
+        #     messages = perfect_messages
+        #     eval_comm_action_log_probs = None
+        #     eval_comm_dist_entropy = None
+        # else:
+        #     raise NotImplementedError("Bad comm_type:" + self.comm_type)
+
+        messages, comm_actions, comm_action_log_probs, comm_values, \
+            eval_comm_action_log_probs, eval_comm_dist_entropy \
+            = self.comm_pol.gen_comm(enc_obs, perfect_messages)
 
         return messages, enc_obs, enc_joint_obs, comm_actions, \
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
@@ -248,24 +256,26 @@ class Comm_Agent(nn.Module):
             the communication encoder.
         """
         # Encode messages
-        if self.comm_type == "no_comm":
-            pol_input = enc_obs
-            val_input = enc_joint_obs
-            new_comm_rnn_states = torch.zeros_like(comm_rnn_states)
-        elif self.comm_type == "emergent_continuous":
-            # enc_mess = self.message_encoder(messages)
+        # if self.comm_type == "no_comm":
+        #     pol_input = enc_obs
+        #     val_input = enc_joint_obs
+        #     new_comm_rnn_states = torch.zeros_like(comm_rnn_states)
+        # elif self.comm_type == "emergent_continuous":
+        #     # enc_mess = self.message_encoder(messages)
 
-            comm_enc, new_comm_rnn_states = self.comm_encoder(
-                messages, comm_rnn_states, masks)
+        #     comm_enc, new_comm_rnn_states = self.comm_encoder(
+        #         messages, comm_rnn_states, masks)
 
-            pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
-            val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
-        elif self.comm_type  == "perfect":
-            comm_enc, new_comm_rnn_states = self.comm_encoder(
-                messages, comm_rnn_states, masks)
+        #     pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
+        #     val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
+        # elif self.comm_type  == "perfect":
+        #     comm_enc, new_comm_rnn_states = self.comm_encoder(
+        #         messages, comm_rnn_states, masks)
 
-            pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
-            val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
+        #     pol_input = torch.concatenate((comm_enc, enc_obs), dim=-1)
+        #     val_input = torch.concatenate((comm_enc, enc_joint_obs), dim=-1)
+        pol_input, val_input, new_comm_rnn_states = self.comm_pol.enc_comm(
+            enc_obs, enc_joint_obs, messages, comm_rnn_states, masks)
 
         # Compute actions
         action_logits = self.act_pol(pol_input)

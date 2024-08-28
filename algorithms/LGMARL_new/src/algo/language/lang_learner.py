@@ -13,8 +13,7 @@ class LanguageLearner(nn.Module):
     Observation Encoder and the Decoder. 
     """
 
-    def __init__(self, args, parser, obs_dim, context_dim, n_agents, 
-                 device="cpu"):
+    def __init__(self, args, parser, diff=False, device="cpu"):
         super(LanguageLearner, self).__init__()
         self.train_device = device
 
@@ -24,7 +23,7 @@ class LanguageLearner(nn.Module):
             parser.vocab, parser.max_message_len)
 
         self.lang_encoder = GRUEncoder(
-            context_dim, 
+            args.context_dim, 
             args.lang_hidden_dim, 
             args.lang_embed_dim, 
             self.word_encoder,
@@ -34,11 +33,12 @@ class LanguageLearner(nn.Module):
             args.hidden_dim, args.context_dim, args.hidden_dim)
 
         self.decoder = GRUDecoder(
-            context_dim, 
+            args.context_dim, 
             args.lang_embed_dim, 
             self.word_encoder.enc_dim,
             self.word_encoder.max_message_len, 
             embed_layer=self.lang_encoder.embed_layer,
+            use_gumbel=diff,
             device=device)
 
         self.clip_loss = nn.CrossEntropyLoss()
@@ -93,7 +93,7 @@ class LanguageLearner(nn.Module):
         
         :return gen_sent_batch (list(list(str))): Batch of generated sentences.
         """
-        context_batch = torch.from_numpy(context_batch).to(self.device)
+        # context_batch = torch.from_numpy(context_batch).to(self.device)
         _, sentences = self.decoder(context_batch)
         return sentences
 
