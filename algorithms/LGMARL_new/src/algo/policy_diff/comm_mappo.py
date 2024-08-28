@@ -226,9 +226,8 @@ class CommMAPPO():
             a.eval()
             a.to(self.device)
             a.set_device(self.device)
-        if self.comm_type in ["perfect", "language"]:
-            self.lang_learner.eval()
-            self.lang_learner.to(self.device)
+        if self.comm_type in ["perfect", "language", "emergent_discrete_lang"]:
+            self.lang_learner.prep_rollout(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -237,9 +236,8 @@ class CommMAPPO():
             a.train()
             a.to(self.device)
             a.set_device(self.device)
-        if self.comm_type in ["perfect", "language"]:
-            self.lang_learner.train()
-            self.lang_learner.to(self.device)
+        if self.comm_type in ["perfect", "language", "emergent_discrete_lang"]:
+            self.lang_learner.prep_training(self.device)
 
     def _comm_step(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 

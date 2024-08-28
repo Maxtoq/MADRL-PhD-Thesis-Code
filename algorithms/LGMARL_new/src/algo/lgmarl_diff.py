@@ -181,10 +181,10 @@ class LanguageGroundedMARL:
 
         warmup = step < self.n_warmup_steps
 
-        if self.comm_type in ["no_comm", "perfect", "emergent_continuous"]:
-            comm_head_learns_rl = False
-        else:
+        if self.comm_type in ["language"]:
             comm_head_learns_rl = True
+        else:
+            comm_head_learns_rl = False
         if self.comm_type not in ["perfect", "language"]:
             train_lang = False
 

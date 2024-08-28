@@ -15,9 +15,7 @@ class LanguageLearner(nn.Module):
 
     def __init__(self, args, parser, diff=False, device="cpu"):
         super(LanguageLearner, self).__init__()
-        self.train_device = device
-
-        self.device = self.train_device
+        self.device = device
 
         self.word_encoder = OneHotEncoder(
             parser.vocab, parser.max_message_len)
@@ -51,24 +49,18 @@ class LanguageLearner(nn.Module):
             # list(self.decoder.parameters()),
             lr=args.lang_lr)
 
-    def prep_rollout(self, device=None):
-        self.device = self.train_device if device is None else device
-        self.lang_encoder.eval()
-        self.lang_encoder.to(self.device)
+    def prep_rollout(self, device):
+        self.device = device
+        self.eval()
+        self.to(self.device)
         self.lang_encoder.device = self.device
-        self.decoder.eval()
-        self.decoder.to(self.device)
         self.decoder.device = self.device
 
-    def prep_training(self, device=None):
-        if device is not None:
-            self.train_device = device
-        self.device = self.train_device
-        self.lang_encoder.train()
-        self.lang_encoder.to(self.device)
+    def prep_training(self, device):
+        self.device = device
+        self.train()
+        self.to(self.device)
         self.lang_encoder.device = self.device
-        self.decoder.train()
-        self.decoder.to(self.device)
         self.decoder.device = self.device
     
     def store(self, obs, sent):

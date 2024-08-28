@@ -362,6 +362,7 @@ class GRUDecoder(nn.Module):
 
         hidden = context_batch.unsqueeze(0)
         # Init last token to the SOS token, embedded
+        # self.embed_layer.to(self.device)
         last_tokens = self.embed_layer(
             torch.zeros((1, batch_size), dtype=torch.int).to(self.device))
             
