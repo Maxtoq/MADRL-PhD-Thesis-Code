@@ -62,6 +62,8 @@ def load_args(cfg, eval=False):
                 cfg.env_name = cfg.FT_env_name
             if cfg.FT_magym_env_size is not None:
                 cfg.magym_env_size = cfg.FT_magym_env_size
+            if cfg.FT_magym_not_see_agents is not None:
+                cfg.magym_see_agent = not cfg.FT_magym_not_see_agents
 
         # For continuation of existing run, just load all previous parameters 
         # and change number of steps
