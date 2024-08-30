@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --partition=gpu_p5
+#SBATCH --partition=gpu_p2
 #SBATCH --job-name=ec
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH --error=outputs/ERROR%x-%j.out
-#SBATCH -C a100
-#SBATCH -A bqo@a100
+#SBATCH -C v100
+#SBATCH -A bqo@v100
 
 source venv/bin/activate
 
