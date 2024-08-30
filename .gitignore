@@ -882,8 +882,8 @@ models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/*
 !models/magym_Foraging/ACC_10x10_pt_perfect_comm/run3/args.txt
 
 
-!models/magym_Foraging
-models/magym_Foraging/*
+!models/magym_PredPrey_new
+models/magym_PredPrey_new/*
 
 !models/magym_PredPrey_new/9o5SA_Diff_noc
 models/magym_PredPrey_new/9o5SA_Diff_noc/*
