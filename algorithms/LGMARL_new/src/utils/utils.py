@@ -51,19 +51,19 @@ def load_args(cfg, eval=False):
             # if "no_render" in args:
             #     args.pop("no_render")
 
+            # Set finetuning parameters
+            if cfg.FT_env_name is not None:
+                args["env_name"] = cfg.FT_env_name
+            if cfg.FT_magym_env_size is not None:
+                args["magym_env_size"] = cfg.FT_magym_env_size
+            if cfg.FT_magym_not_see_agents is not None:
+                args["magym_see_agents"] = not cfg.FT_magym_not_see_agents
+
             for a in args:
                 if not hasattr(cfg, a):
                     print(f"WARNING: Argument {a} not found in config.")
                 else:
                     setattr(cfg, a, args[a])
-
-            # Set finetuning parameters
-            if cfg.FT_env_name is not None:
-                cfg.env_name = cfg.FT_env_name
-            if cfg.FT_magym_env_size is not None:
-                cfg.magym_env_size = cfg.FT_magym_env_size
-            if cfg.FT_magym_not_see_agents is not None:
-                cfg.magym_see_agents = not cfg.FT_magym_not_see_agents
 
         # For continuation of existing run, just load all previous parameters 
         # and change number of steps
