@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=electronic
+#SBATCH --partition=hard
 #SBATCH --job-name=ec
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
@@ -27,8 +27,8 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=1
-experiment_name="9o5SA_Diff_ec2"
+n_run=10
+experiment_name="9o5_Diff_ec2"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
 comm_type="emergent_continuous" # default language
@@ -68,8 +68,8 @@ do
     --magym_env_size ${magym_env_size}
     --magym_obs_range ${magym_obs_range}
     --magym_n_agents ${magym_n_agents}
-    --dyna_weight_loss
-    --magym_see_agents"
+    --dyna_weight_loss"
+    # --magym_see_agents"
     # --share_params"
     # --lang_imp_sample"
     # --log_comm"
