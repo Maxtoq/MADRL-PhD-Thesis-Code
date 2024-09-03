@@ -1,10 +1,18 @@
-#!/bin/sh
-runs=( 1 2 3 4 5 )
-model_dir="models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_edl/"
-n_steps=5000000
-cuda_device="cuda:3"
+#!/bin/bash
+#SBATCH --partition=gpu_p2
+#SBATCH --job-name=ad
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:1 
+#SBATCH --time=20:00:00
+#SBATCH --output=outputs/%x-%j.out
+#SBATCH -A bqo@v100
 
-source venv3.8/bin/activate
+runs=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 )
+model_dir="models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc/"
+n_steps=5000000
+cuda_device="cuda:0"
+
+source venv/bin/activate
 
 n_runs=${#runs[@]}
 for ((i=0; i < $n_runs; i++))
