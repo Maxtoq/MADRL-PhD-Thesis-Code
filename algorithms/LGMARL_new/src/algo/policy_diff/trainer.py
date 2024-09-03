@@ -476,8 +476,8 @@ class Trainer:
             a.comm_optim.zero_grad()
             a.critic_optim.zero_grad()
         # self.agents[agent_i].critic_optim.zero_grad()
-        if train_lang:
-            self.model.lang_learner.optim.zero_grad()
+        # if train_lang:
+        self.model.lang_learner.optim.zero_grad()
         loss.backward()
 
         # Clip gradients
@@ -493,8 +493,8 @@ class Trainer:
             a.comm_optim.step()
             a.critic_optim.step()
         # self.agents[agent_i].critic_optim.step()
-        if train_lang:
-            self.model.lang_learner.optim.step()
+        # if train_lang:
+        self.model.lang_learner.optim.step()
 
         return log_losses
 
