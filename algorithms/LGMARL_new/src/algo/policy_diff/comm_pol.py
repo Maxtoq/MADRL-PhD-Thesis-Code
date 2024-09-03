@@ -47,15 +47,6 @@ class CommPolicy(nn.Module):
             eval_comm_dist_entropy = None
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
             comm_values = torch.zeros(enc_obs.shape[0], 1)
-        
-        elif self.comm_type == "perfect":
-            comm_actions = self.comm_in(enc_obs)
-            messages = perfect_messages
-
-            eval_comm_action_log_probs = None
-            eval_comm_dist_entropy = None
-            comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
-            comm_values = torch.zeros(enc_obs.shape[0], 1)
 
         elif self.comm_type == "emergent_discrete_lang":
             comm_actions = self.comm_in(enc_obs)
@@ -65,6 +56,15 @@ class CommPolicy(nn.Module):
             comm_values = torch.zeros(enc_obs.shape[0], 1)
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
+        
+        elif self.comm_type == ["perfect", "language_sup"]:
+            comm_actions = self.comm_in(enc_obs)
+            messages = perfect_messages
+
+            eval_comm_action_log_probs = None
+            eval_comm_dist_entropy = None
+            comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
+            comm_values = torch.zeros(enc_obs.shape[0], 1)
 
         return messages, comm_actions, comm_action_log_probs, comm_values, \
             eval_comm_action_log_probs, eval_comm_dist_entropy
@@ -76,8 +76,10 @@ class CommPolicy(nn.Module):
             val_input = enc_joint_obs
             new_comm_rnn_states = torch.zeros_like(comm_rnn_states)
         
-        elif self.comm_type in [
-                "emergent_continuous", "perfect", "emergent_discrete_lang"]:
+        else:
+        # elif self.comm_type in [
+        #         "emergent_continuous", "emergent_discrete_lang", "perfect", 
+        #         "language_sup"]:
             comm_enc, new_comm_rnn_states = self.comm_encoder(
                 messages, comm_rnn_states, masks)
 

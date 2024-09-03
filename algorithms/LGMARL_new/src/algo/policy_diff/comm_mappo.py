@@ -498,7 +498,7 @@ class CommMAPPO():
             eval_action_log_probs = torch.stack(
                 eval_action_log_probs, dim=1)
             eval_dist_entropy = torch.stack(eval_dist_entropy).unsqueeze(-1)
-            if self.comm_type == ["language"]:
+            if self.comm_type == "language_rl":
                 eval_comm_action_log_probs = torch.stack(
                     eval_comm_action_log_probs, dim=1)
                 eval_comm_dist_entropy = torch.stack(
@@ -507,7 +507,7 @@ class CommMAPPO():
                 eval_comm_action_log_probs = None
                 eval_comm_dist_entropy = None
 
-            if self.comm_type in ["perfect", "language"]:
+            if self.comm_type in ["perfect", "language_sup"]:
                 # enc_perf_br = torch.stack(enc_perf_br, dim=1)
                 lang_obs_enc = self.lang_learner.obs_encoder(
                     torch.stack(enc_joint_obs, dim=1).to(self.device))
@@ -523,13 +523,14 @@ class CommMAPPO():
     def get_save_dict(self):
         self.prep_rollout("cpu")
         save_dict = {
-            "agents": [a.state_dict() for a in self.agents]}
-        if self.comm_type in ["perfect", "language"]:
-            save_dict["lang_learner"] = self.lang_learner.state_dict()
+            "agents": [a.state_dict() for a in self.agents],
+            "lang_learner": self.lang_learner.state_dict()}
+        # if self.comm_type in ["perfect", "language"]:
+        #     save_dict["lang_learner"] = self.lang_learner.state_dict()
         return save_dict
 
     def load_params(self, params):
         for a, ap in zip(self.agents, params["agents"]):
             a.load_state_dict(ap)
-        if self.comm_type in ["perfect", "language"]:
+        if self.comm_type in ["perfect", "language_sup", "emergent_discrete_lang"]:
             self.lang_learner.load_state_dict(params["lang_learner"])
