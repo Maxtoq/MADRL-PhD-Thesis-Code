@@ -84,7 +84,7 @@ class LanguageGroundedMARL:
             = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, perfect_messages,
-                perfect_broadcasts, deterministic)
+                perfect_broadcasts, deterministic, comm_eps=self.comm_eps.value)
 
         return self.actions, messages, None, {"len": 0} # TODO: broadcasts, messages_by_env, comm_rewards
 
@@ -215,7 +215,8 @@ class LanguageGroundedMARL:
             = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, perfect_messages,
-                perfect_broadcasts, deterministic=True)
+                perfect_broadcasts, deterministic=True, 
+                comm_eps=self.comm_eps.value)
 
         self.buffer.compute_returns(
             next_env_values, 
@@ -241,7 +242,7 @@ class LanguageGroundedMARL:
         self.buffer.insert_obs(obs, joint_obs, enc_perf_mess, enc_perf_br)
 
     def _update_comm_eps(self, step):
-        if self.comm_type == "language":
+        if "language" in self.comm_type:
             self.comm_eps.get_explo_rate(step)    
 
     def save(self, path):

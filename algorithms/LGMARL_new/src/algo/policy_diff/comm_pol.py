@@ -57,7 +57,7 @@ class CommPolicy(nn.Module):
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
         
-        elif self.comm_type == ["perfect", "language_sup"]:
+        elif self.comm_type in ["perfect", "language_sup"]:
             comm_actions = self.comm_in(enc_obs)
             messages = perfect_messages
 

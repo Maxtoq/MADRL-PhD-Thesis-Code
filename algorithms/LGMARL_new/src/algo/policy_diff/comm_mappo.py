@@ -7,6 +7,7 @@ from src.algo.language.lang_learner import LanguageLearner
 from .comm_agent import CommAgent
 from .utils import torch2numpy, update_lr
 
+
 class CommMAPPO_Shared:
 
     def __init__(self, args, word_encoder, n_agents, obs_dim, 
@@ -226,7 +227,8 @@ class CommMAPPO():
             a.eval()
             a.to(self.device)
             a.set_device(self.device)
-        if self.comm_type in ["perfect", "language", "emergent_discrete_lang"]:
+        if self.comm_type in ["perfect", "language_sup", "language_rl", 
+                "emergent_discrete_lang"]:
             self.lang_learner.prep_rollout(self.device)
 
     def prep_training(self, device=None):
@@ -236,7 +238,8 @@ class CommMAPPO():
             a.train()
             a.to(self.device)
             a.set_device(self.device)
-        if self.comm_type in ["perfect", "language", "emergent_discrete_lang"]:
+        if self.comm_type in ["perfect", "language_sup", "language_rl", 
+                "emergent_discrete_lang"]:
             self.lang_learner.prep_training(self.device)
 
     def _comm_step(
@@ -342,10 +345,24 @@ class CommMAPPO():
             all_new_comm_rnn_states, all_eval_action_log_probs, \
             all_eval_dist_entropy
 
+    def _make_lang_messages(self, messages, perfect_messages, comm_eps):
+        print(messages, messages.shape)
+        print(perfect_messages, perfect_messages.shape)
+        comm_eps = 0.4
+
+        # Decide which comm strategy for each message
+        self.gen_comm = np.random.random(
+            (messages.shape[0], self.n_agents, 1)) > comm_eps
+        print(self.gen_comm, self.gen_comm.shape)
+        print(comm_eps)
+        
+        exit()
+        
     def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
             comm_rnn_states, masks, perfect_messages, perfect_broadcasts, 
-            deterministic=False, eval_actions=None, eval_comm_actions=None):
+            deterministic=False, eval_actions=None, eval_comm_actions=None,
+            comm_eps=None):
         obs = torch.from_numpy(obs).to(self.device)
         joint_obs = torch.from_numpy(joint_obs).to(self.device)
         obs_rnn_states = torch.from_numpy(obs_rnn_states).to(self.device)
@@ -364,44 +381,6 @@ class CommMAPPO():
             _eval = False
 
         # Generate comm
-        # agents_messages = []
-        # agents_enc_obs = []
-        # agents_enc_joint_obs = []
-        # agents_comm_actions = []
-        # agents_comm_action_log_probs = []
-        # agents_comm_values = []
-        # agents_new_obs_rnn_states = []
-        # agents_new_joint_obs_rnn_states = []
-        # agents_eval_comm_action_log_probs = []
-        # agents_eval_comm_dist_entropy = []
-        # agents_lang_obs_enc = []
-        # for a_i in range(self.n_agents):
-        #     messages, enc_obs, enc_joint_obs, comm_actions, \
-        #         comm_action_log_probs, comm_values, new_obs_rnn_states, \
-        #         new_joint_obs_rnn_states, eval_comm_action_log_probs, \
-        #         eval_comm_dist_entropy \
-        #         = self.agents[a_i].forward_comm(
-        #             obs[:, a_i], 
-        #             joint_obs[:, a_i], 
-        #             obs_rnn_states[:, a_i], 
-        #             joint_obs_rnn_states[:, a_i], 
-        #             masks[:, a_i], 
-        #             perfect_messages[:, a_i],
-        #             deterministic,
-        #             eval_comm_actions[:, a_i] if _eval else None)
-
-        #     agents_messages.append(messages)
-        #     agents_enc_obs.append(enc_obs)
-        #     agents_enc_joint_obs.append(enc_joint_obs)
-        #     agents_comm_actions.append(comm_actions)
-        #     agents_comm_action_log_probs.append(comm_action_log_probs)
-        #     agents_comm_values.append(comm_values)
-        #     agents_new_obs_rnn_states.append(new_obs_rnn_states)
-        #     agents_new_joint_obs_rnn_states.append(new_joint_obs_rnn_states)
-        #     if _eval:
-        #         agents_eval_comm_action_log_probs.append(
-        #             eval_comm_action_log_probs)
-        #         agents_eval_comm_dist_entropy.append(eval_comm_dist_entropy)
         messages, enc_obs, enc_joint_obs, comm_actions, comm_action_log_probs, \
             comm_values, new_obs_rnn_states, new_joint_obs_rnn_states, \
             eval_comm_action_log_probs, eval_comm_dist_entropy \
@@ -413,13 +392,12 @@ class CommMAPPO():
         if self.comm_type == "no_comm":
             out_messages = None
             in_messages = None
+
         elif self.comm_type == "emergent_continuous":
             # Concatenate messages to get broadcast
             out_messages = torch.stack(messages, dim=1)
             in_messages = torch.concatenate(messages, 1)
-        elif self.comm_type == "perfect":
-            out_messages = torch.stack(messages, dim=1)
-            in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
+
         elif self.comm_type == "emergent_discrete_lang":
             batch_size = obs.shape[0]
             dec_in = torch.stack(comm_actions, dim=1).reshape(
@@ -429,33 +407,15 @@ class CommMAPPO():
                 out_messages.reshape(batch_size, self.n_agents, -1))
             in_messages = self.lang_learner.encode_sentences(broadcasts)
 
-        # Generate actions
-        # agents_actions = []
-        # agents_action_log_probs = []
-        # agents_values = []
-        # agents_new_comm_rnn_states = []
-        # agents_eval_action_log_probs = []
-        # agents_eval_dist_entropy = []
-        # agents_enc_perf_br = []
-        # for a_i in range(self.n_agents):
-        #     actions, action_log_probs, values, new_comm_rnn_states, \
-        #         eval_action_log_probs, eval_dist_entropy \
-        #         = self.agents[a_i].forward_act(
-        #             in_messages, 
-        #             agents_enc_obs[a_i],
-        #             agents_enc_joint_obs[a_i],
-        #             comm_rnn_states[:, a_i],
-        #             masks[:, a_i],
-        #             deterministic,
-        #             eval_actions[:, a_i] if _eval else None)
+        elif self.comm_type == "perfect":
+            out_messages = torch.stack(messages, dim=1)
+            in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
 
-        #     agents_actions.append(actions)
-        #     agents_action_log_probs.append(action_log_probs)
-        #     agents_values.append(values)
-        #     agents_new_comm_rnn_states.append(new_comm_rnn_states)
-        #     if _eval:
-        #         agents_eval_action_log_probs.append(eval_action_log_probs)
-        #         agents_eval_dist_entropy.append(eval_dist_entropy)
+        elif self.comm_type == "language_sup":
+            out_messages = self._make_lang_messages(
+                torch.stack(messages, dim=1), perfect_messages, comm_eps)
+
+        # Generate actions
         actions, action_log_probs, values, new_comm_rnn_states, \
             eval_action_log_probs, eval_dist_entropy \
             = self._act_step(
@@ -532,5 +492,6 @@ class CommMAPPO():
     def load_params(self, params):
         for a, ap in zip(self.agents, params["agents"]):
             a.load_state_dict(ap)
-        if self.comm_type in ["perfect", "language_sup", "emergent_discrete_lang"]:
+        if self.comm_type in ["perfect", "language_sup", "language_rl", 
+                "emergent_discrete_lang"]:
             self.lang_learner.load_state_dict(params["lang_learner"])
