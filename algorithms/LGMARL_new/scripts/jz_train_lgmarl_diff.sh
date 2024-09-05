@@ -28,12 +28,12 @@ lang_embed_dim=4 # default 4
 lang_hidden_dim=64
 
 n_run=1
-experiment_name="9o5_Diff_perf_c64"
+experiment_name="9o5_Diff_langsup"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="perfect" # default language
-context_dim=64 # default 16
-lang_lr=0.0005 # default 0.007
+comm_type="language_sup" # default language
+context_dim=16 # default 16
+lang_lr=0.007 # default 0.007
 cuda_device="cuda:0"
 
 magym_env_size=9
