@@ -363,7 +363,8 @@ class Trainer:
                 joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, 
                 masks_batch, perf_messages_batch, perf_broadcasts_batch, 
                 deterministic=True, eval_actions=env_actions_batch, 
-                eval_comm_actions=comm_actions_batch)
+                eval_comm_actions=comm_actions_batch, 
+                eval_gen_comm=gen_comm_batch)
 
         # Actor loss
         actor_loss = self._compute_policy_loss(

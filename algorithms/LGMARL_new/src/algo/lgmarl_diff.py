@@ -80,8 +80,8 @@ class LanguageGroundedMARL:
 
         self.actions, self.action_log_probs, self.values, self.comm_actions, \
             self.comm_action_log_probs, self.comm_values, self.obs_rnn_states, \
-            self.joint_obs_rnn_states, self.comm_rnn_states, messages \
-            = self.model.comm_n_act(
+            self.joint_obs_rnn_states, self.comm_rnn_states, messages, \
+            self.gen_comm = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, perfect_messages,
                 perfect_broadcasts, deterministic, comm_eps=self.comm_eps.value)
@@ -211,7 +211,7 @@ class LanguageGroundedMARL:
         obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, \
             comm_enc_rnn_states, masks, perfect_messages, perfect_broadcasts \
             = self.buffer.get_act_params()
-        _, _, next_env_values, _, _, next_comm_values, _, _, _, _ \
+        _, _, next_env_values, _, _, next_comm_values, _, _, _, _, _ \
             = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, perfect_messages,
@@ -234,7 +234,8 @@ class LanguageGroundedMARL:
         """
         # Encode sentences and build broadcast
         enc_perf_mess, enc_perf_br \
-            = self.model.lang_learner.word_encoder.encode_rollout_step(perf_messages) # TODO make better
+            = self.model.lang_learner.word_encoder.encode_rollout_step(
+                perf_messages) # TODO make better
 
         joint_obs = obs.reshape(self.n_envs, 1, -1).repeat(
             self.n_agents, 1)

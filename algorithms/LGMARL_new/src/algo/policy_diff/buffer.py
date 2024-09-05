@@ -440,10 +440,10 @@ class ReplayBuffer:
         # else:
         # mess_sampling_probs = np.zeros_like(perf_messages_batch)
 
-        yield obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, \
-            joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, \
-            env_actions_batch, comm_actions_batch, \
-            env_action_log_probs_batch, comm_action_log_probs_batch, \
-            act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
-            comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch
+            yield obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, \
+                joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, \
+                env_actions_batch, comm_actions_batch, \
+                env_action_log_probs_batch, comm_action_log_probs_batch, \
+                act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
+                comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
+                gen_comm_batch, perf_messages_batch, perf_broadcasts_batch

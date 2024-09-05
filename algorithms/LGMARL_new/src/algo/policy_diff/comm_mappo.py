@@ -288,16 +288,17 @@ class CommMAPPO():
             all_new_joint_obs_rnn_states, all_eval_comm_action_log_probs, \
             all_eval_comm_dist_entropy
 
-    def _make_broadcasts(self, messages):
+    def _make_broadcasts(self, messages, perfect_messages, gen_comm):
         broadcasts = []
         for e_i in range(messages.shape[0]):
             env_br = []
             for a_i in range(self.n_agents):
-                # Replace message by perfect message if not gen_comm
-                # if self.gen_comm[e_i, a_i, 0]:
-                agent_m = messages[e_i, a_i]
-                # else:
-                    # agent_m = perfect_messages[e_i, a_i]
+                # Replace message by perfect message if not gen_comm, or if 
+                # gen_comm is not provided (means we do emergent comm)
+                if gen_comm is None or gen_comm[e_i, a_i, 0]:
+                    agent_m = messages[e_i, a_i]
+                else:
+                    agent_m = perfect_messages[e_i, a_i]
 
                 # De-pad message and add to broadcast
                 end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
@@ -311,6 +312,74 @@ class CommMAPPO():
             broadcasts.append(env_br)
         
         return broadcasts
+
+    # def _make_lang_messages(self, messages, perfect_messages, comm_eps):
+    #     print(messages, messages.shape)
+    #     print(perfect_messages, perfect_messages.shape)
+    #     comm_eps = 0.4
+
+    #     # Decide which comm strategy for each message
+    #     gen_comm = np.random.random(
+    #         (messages.shape[0], self.n_agents, 1)) > comm_eps
+    #     print(gen_comm, gen_comm.shape)
+    #     print(comm_eps)
+        
+    #     broadcasts = self._make_broadcasts(messages, gen_comm)
+
+    #     exit()
+
+    def _aggreg_messages(
+            self, messages, comm_actions, perfect_messages, perfect_broadcasts, 
+            comm_eps, eval_gen_comm):
+        batch_size = len(perfect_messages)
+
+        out_messages = None
+        in_messages = None
+        gen_comm = None
+        if self.comm_type == "emergent_continuous":
+            # Concatenate messages to get broadcast
+            out_messages = torch.stack(messages, dim=1)
+            in_messages = torch.concatenate(messages, 1)
+
+        elif self.comm_type == "emergent_discrete_lang":
+            dec_in = torch.stack(comm_actions, dim=1).reshape(
+                batch_size * self.n_agents, -1).to(self.device)
+
+            out_messages = self.lang_learner.generate_sentences(dec_in)
+
+            broadcasts = self._make_broadcasts(
+                out_messages.reshape(batch_size, self.n_agents, -1),
+                perfect_messages, gen_comm)
+
+            in_messages = self.lang_learner.encode_sentences(broadcasts)
+
+        elif self.comm_type == "perfect":
+            out_messages = np.stack(messages, axis=1)
+            in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
+
+        elif self.comm_type == "language_sup":
+            dec_in = torch.stack(comm_actions, dim=1).reshape(
+                batch_size * self.n_agents, -1).to(self.device)
+
+            out_messages = self.lang_learner.generate_sentences(dec_in)
+
+            # Decide which comm strategy for each message
+            if eval_gen_comm is None:
+                gen_comm = np.random.random(
+                    (batch_size, self.n_agents, 1)) > comm_eps
+            else:
+                gen_comm = eval_gen_comm
+
+            broadcasts = self._make_broadcasts(
+                out_messages.reshape(batch_size, self.n_agents, -1), 
+                perfect_messages, gen_comm)
+
+            in_messages = self.lang_learner.encode_sentences(broadcasts)
+
+        else:
+            raise NotImplementedError("Comm type not implemented:", self.comm_type)
+
+        return out_messages, in_messages, gen_comm
 
     def _act_step(
             self, in_messages, enc_obs, enc_joint_obs, comm_rnn_states, masks, 
@@ -344,32 +413,19 @@ class CommMAPPO():
         return all_actions, all_action_log_probs, all_values, \
             all_new_comm_rnn_states, all_eval_action_log_probs, \
             all_eval_dist_entropy
-
-    def _make_lang_messages(self, messages, perfect_messages, comm_eps):
-        print(messages, messages.shape)
-        print(perfect_messages, perfect_messages.shape)
-        comm_eps = 0.4
-
-        # Decide which comm strategy for each message
-        self.gen_comm = np.random.random(
-            (messages.shape[0], self.n_agents, 1)) > comm_eps
-        print(self.gen_comm, self.gen_comm.shape)
-        print(comm_eps)
-        
-        exit()
         
     def comm_n_act(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
             comm_rnn_states, masks, perfect_messages, perfect_broadcasts, 
             deterministic=False, eval_actions=None, eval_comm_actions=None,
-            comm_eps=None):
+            comm_eps=None, eval_gen_comm=None):
         obs = torch.from_numpy(obs).to(self.device)
         joint_obs = torch.from_numpy(joint_obs).to(self.device)
         obs_rnn_states = torch.from_numpy(obs_rnn_states).to(self.device)
         joint_obs_rnn_states = torch.from_numpy(
             joint_obs_rnn_states).to(self.device)
         comm_rnn_states = torch.from_numpy(comm_rnn_states).to(self.device)
-        perfect_messages = torch.from_numpy(perfect_messages).to(self.device)
+        # perfect_messages = torch.from_numpy(perfect_messages).to(self.device)
         # perfect_broadcasts = torch.from_numpy(perfect_broadcasts).to(self.device)
         masks = torch.from_numpy(masks).to(self.device)
         if eval_actions is not None:
@@ -389,31 +445,9 @@ class CommMAPPO():
                 perfect_messages, deterministic, eval_comm_actions)
 
         # Aggregate messages
-        if self.comm_type == "no_comm":
-            out_messages = None
-            in_messages = None
-
-        elif self.comm_type == "emergent_continuous":
-            # Concatenate messages to get broadcast
-            out_messages = torch.stack(messages, dim=1)
-            in_messages = torch.concatenate(messages, 1)
-
-        elif self.comm_type == "emergent_discrete_lang":
-            batch_size = obs.shape[0]
-            dec_in = torch.stack(comm_actions, dim=1).reshape(
-                batch_size * self.n_agents, -1).to(self.device)
-            out_messages = self.lang_learner.generate_sentences(dec_in)
-            broadcasts = self._make_broadcasts(
-                out_messages.reshape(batch_size, self.n_agents, -1))
-            in_messages = self.lang_learner.encode_sentences(broadcasts)
-
-        elif self.comm_type == "perfect":
-            out_messages = torch.stack(messages, dim=1)
-            in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
-
-        elif self.comm_type == "language_sup":
-            out_messages = self._make_lang_messages(
-                torch.stack(messages, dim=1), perfect_messages, comm_eps)
+        out_messages, in_messages, gen_comm = self._aggreg_messages(
+            messages, comm_actions, perfect_messages, perfect_broadcasts, 
+            comm_eps, eval_gen_comm)
 
         # Generate actions
         actions, action_log_probs, values, new_comm_rnn_states, \
@@ -441,7 +475,8 @@ class CommMAPPO():
             
             return actions, action_log_probs, values, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
-                new_joint_obs_rnn_states, new_comm_rnn_states, out_messages
+                new_joint_obs_rnn_states, new_comm_rnn_states, out_messages, \
+                gen_comm
 
         else:
             actions = torch.stack(actions, dim=1)
@@ -473,6 +508,8 @@ class CommMAPPO():
                     torch.stack(enc_joint_obs, dim=1).to(self.device))
             else:
                 lang_obs_enc = None
+
+            # exit()
 
             return actions, action_log_probs, values, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
