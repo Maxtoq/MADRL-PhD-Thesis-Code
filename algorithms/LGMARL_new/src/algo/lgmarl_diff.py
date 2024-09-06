@@ -255,7 +255,11 @@ class LanguageGroundedMARL:
         torch.save(save_dict, path)
 
     def load(self, path):
-        save_dict = torch.load(path, map_location=torch.device('cpu'))
-        self.model.load_params(save_dict["acc"])
+        if type(path) is list:
+            save_dict = [torch.load(p, map_location=torch.device('cpu')) 
+                for p in path]
+        else:
+            save_dict = torch.load(path, map_location=torch.device('cpu'))
+        self.model.load_params(save_dict)
         self.trainer.env_value_normalizer.load_state_dict(save_dict["act_vnorm"])
         self.trainer.comm_value_normalizer.load_state_dict(save_dict["comm_vnorm"])

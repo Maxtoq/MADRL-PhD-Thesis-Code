@@ -5,9 +5,9 @@ import numpy as np
 from tqdm import trange
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, load_args, set_cuda_device
+from src.utils.utils import set_seeds, set_cuda_device, load_args
 from src.envs.make_env import make_env
-from src.algo.lgmarl import LanguageGroundedMARL
+from src.algo.lgmarl_diff import LanguageGroundedMARL
 
 def render(cfg, envs):
     if cfg.use_render:
@@ -36,11 +36,20 @@ def run():
     # Get pretrained stuff
     assert cfg.model_dir is not None, "Must provide model_dir"
     load_args(cfg, eval=True)
-    pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
-    assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
+    if ',' in cfg.model_dir:
+        paths = cfg.model_dir.split(',')
+        pretrained_model_path = []
+        for p in paths:
+            pretrained_model_path.append(os.path.join(p, "model_ep.pt"))
+        assert os.path.isfile(pretrained_model_path[-1]), "No model checkpoint found at" + str(pretrained_model_path[-1])
+    else:
+        pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
+        assert os.path.isfile(pretrained_model_path), "No model checkpoint found at" + str(pretrained_model_path)
     print("Starting eval with config:")
     print(cfg)
-    cfg.comm_type = "language"
+    # cfg.comm_type = "language"
+    if cfg.comm_type == "perfect":
+        cfg.comm_type = "language_sup"
 
     set_seeds(cfg.seed)
 
@@ -55,6 +64,7 @@ def run():
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
     act_space = envs.action_space
+    # TODO handle comm_eps accordingly
     model = LanguageGroundedMARL(
         cfg, 
         n_agents, 
@@ -63,7 +73,8 @@ def run():
         act_space,
         parser, 
         device,
-        comm_eps_start=0.0)
+        None,
+        comm_eps_start=1.0)
 
     # Load params
     model.load(pretrained_model_path)
@@ -80,11 +91,11 @@ def run():
     count_returns = np.zeros(cfg.n_parallel_envs)
     returns = []
     for ep_s_i in trange(0, cfg.n_steps, cfg.n_parallel_envs):
-        add_mess = interact(cfg)
+        # add_mess = interact(cfg)
         
         # Get action
-        actions, broadcasts, agent_messages, comm_rewards = model.comm_n_act(
-            add_mess)
+        actions, broadcasts, agent_messages, comm_rewards \
+            = model.act(deterministic=True)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)

@@ -1,4 +1,5 @@
 import torch
+import random
 import numpy as np
 
 from torch import nn
@@ -527,8 +528,32 @@ class CommMAPPO():
         return save_dict
 
     def load_params(self, params):
-        for a, ap in zip(self.agents, params["agents"]):
-            a.load_state_dict(ap)
+        if type(params) is list:
+            self.lang_learner = [
+                self.lang_learner for _ in range(self.n_agents)]
+
+            agent_ids = random.sample(range(self.n_agents), self.n_agents)
+
+            n_agents_by_p = self.n_agents // len(params)
+            assert len(params) * n_agents_by_p == self.n_agents
+
+            for p_i in range(len(params)):
+                for a_i in range(n_agents_by_p):
+                    i = p_i * n_agents_by_p + a_i
+                    print(p_i, i, agent_ids[i])
+                    print(params[p_i].keys(), params[p_i]["acc"].keys(), len(params[p_i]["acc"]["agents"]))
+                    self.agents[agent_ids[i]].load_state_dict(
+                            params[p_i]["acc"]["agents"][i])
+                    self.lang_learner[agent_ids[i]].load_state_dict(
+                        params[p_i]["acc"]["lang_learner"])
+        else:
+            for a, ap in zip(self.agents, params["acc"]["agents"]):
+                a.load_state_dict(ap)
+
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
                 "emergent_discrete_lang"]:
-            self.lang_learner.load_state_dict(params["lang_learner"])
+            self.lang_learner.load_state_dict(params["acc"]["lang_learner"])
+
+    # def load_zeroshot_team(self, param_list):
+    #     agent_ids = random.sample(range(4), 4)
+        

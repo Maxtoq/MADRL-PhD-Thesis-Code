@@ -24,10 +24,15 @@ def set_cuda_device(cfg):
     return device
 
 def load_args(cfg, eval=False):
-    args_path = os.path.join(cfg.model_dir, "args.txt")
+    if ',' in cfg.model_dir:
+        args_path = os.path.join(cfg.model_dir.split(',')[0], "args.txt")
+    else:
+        args_path = os.path.join(cfg.model_dir, "args.txt")
+
     if not os.path.isfile(args_path):
         print(f"ERROR: args file {args_path} does not exist.")
         exit()
+
     else:
         with open(args_path, "r") as f:
             [next(f) for i in range(3)]
