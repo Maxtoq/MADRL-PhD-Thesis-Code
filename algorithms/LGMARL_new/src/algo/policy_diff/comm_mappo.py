@@ -377,9 +377,6 @@ class CommMAPPO():
 
             in_messages = self.lang_learner.encode_sentences(broadcasts)
 
-        else:
-            raise NotImplementedError("Comm type not implemented:", self.comm_type)
-
         return out_messages, in_messages, gen_comm
 
     def _act_step(
