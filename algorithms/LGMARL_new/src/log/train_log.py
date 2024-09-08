@@ -122,7 +122,7 @@ class Logger():
         train_path = str(self.log_dir_path / 'training_data.csv')
         if os.path.isfile(train_path):
             previous_data = pd.read_csv(train_path)
-            train_df = pd.concat([previous_data, train_df])
+            train_df = pd.concat([previous_data, train_df], ignore_index=True)
 
         train_df.to_csv(train_path)
 
