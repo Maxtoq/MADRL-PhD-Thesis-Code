@@ -10,14 +10,14 @@
 
 source venv/bin/activate
 
-n_run=15
-experiment_name="Adapt_9o5SA-noSA_Diff_ec"
-n_steps=2000000
+n_run=7
+experiment_name="Adapt_9o5SA-noSA_Diff_edl"
+n_steps=5000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey_new"
 FT_magym_env_size=9
 FT_magym_actual_obsrange=5
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run16/"
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run10/"
 cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
