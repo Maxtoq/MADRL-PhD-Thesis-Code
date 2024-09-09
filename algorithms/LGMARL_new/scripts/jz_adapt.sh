@@ -1,21 +1,20 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=ad
+#SBATCH --job-name=ad15
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
 #SBATCH --output=outputs/%x-%j.out
-#SBATCH --error=outputs/ERROR%x-%j.out
 #SBATCH -A bqo@v100
 
 source venv/bin/activate
 
-n_run=15
-experiment_name="Adapt_9o5SA-noSA_Diff_noc"
-n_steps=2000000
-lr=0.0005 # default 0.0005
+n_run=3
+experiment_name="Adapt_9o5SA-15_Diff_noc"
+n_steps=5000000
+lr=0.0008 # default 0.0005
 FT_env_name="magym_PredPrey_new"
-FT_magym_env_size=9
+FT_magym_env_size=15
 FT_magym_actual_obsrange=5
 model_dir="models/magym_PredPrey_new/9o5SA_Diff_noc/run30/"
 cuda_device="cuda:0"
