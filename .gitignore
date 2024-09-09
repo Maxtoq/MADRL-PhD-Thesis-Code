@@ -933,6 +933,14 @@ models/magym_PredPrey_new/9o5_Diff_langsup/*
 models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc/*
 !models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc/train_data
 
+!models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_edl
+models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_edl/*
+!models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_edl/train_data
+
+!models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_ec
+models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_ec/*
+!models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_ec/train_data
+
 !models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_perf
 models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_perf/*
 !models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_perf/train_data
