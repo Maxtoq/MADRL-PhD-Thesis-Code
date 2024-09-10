@@ -7,7 +7,7 @@ from .env_wrappers import DummyVecEnv, SubprocVecEnv
 from .mpe.environment import MultiAgentEnv
 
 
-def _get_env(cfg):
+def _get_env(cfg, init_pos):
     if "magym_PredPrey" in cfg.env_name:
         from .magym_PredPrey.env import Env
         env = Env(
@@ -17,7 +17,8 @@ def _get_env(cfg):
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             actual_obsrange=cfg.FT_magym_actual_obsrange,
-            see_agents=cfg.magym_see_agents)
+            see_agents=cfg.magym_see_agents,
+            init_pos=init_pos)
     elif cfg.env_name == "magym_Lumber":
         from .ma_gym.lumberjack import Lumberjacks
         env = Lumberjacks(
@@ -71,21 +72,27 @@ def reset_envs(envs):
     share_obs = np.array(share_obs)
     return obs, share_obs
 
-def make_env(cfg, n_threads, seed=None):
+def make_env(cfg, n_threads, seed=None, init_positions=None):
     if seed is None:
         seed = cfg.seed
 
-    parser = _get_parser(cfg)
-
-    def get_env_fn(rank):
+    def get_env_fn(rank, init_pos):
         def init_env():
-            env = _get_env(cfg)
+            env = _get_env(cfg, init_pos)
             env.seed(seed + rank * 1000)
             return env
         return init_env
 
+    parser = _get_parser(cfg)
+
+    # assert init_positions is None or n_threads <= len(init_positions)
+
     if n_threads == 1:
-        return DummyVecEnv([get_env_fn(0)]), parser
+        return DummyVecEnv([get_env_fn(0, init_positions[0] 
+                            if init_positions is not None else None)]), \
+                parser
     else:
-        return SubprocVecEnv([
-            get_env_fn(i) for i in range(n_threads)]), parser
+        return SubprocVecEnv([get_env_fn(i, init_positions[i % len(init_positions)] 
+                                    if init_positions is not None else None) 
+                              for i in range(n_threads)]), \
+                parser

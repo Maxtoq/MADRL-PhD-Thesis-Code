@@ -39,7 +39,7 @@ class Env(gym.Env):
 
     def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
                  full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
-                 agent_view_mask=(5, 5), global_state=False, actual_obsrange=None, see_agents=False):
+                 agent_view_mask=(5, 5), global_state=False, actual_obsrange=None, see_agents=False, init_pos=None):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
                                           ' but found {}'.format(agent_view_mask)
@@ -62,6 +62,7 @@ class Env(gym.Env):
         if self._actual_obsrange is not None and self._actual_obsrange >= self._agent_view_mask[0]:
             print("WARNING: actual_obsrange >= obs_range.")
         self._see_agents = see_agents
+        self._init_pos = init_pos
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
@@ -118,22 +119,39 @@ class Env(gym.Env):
     def __init_full_obs(self):
         self._full_obs = self.__create_grid()
 
+        if self._init_pos is not None:
+            assert len(self._init_pos["agents"]) == self.n_agents
+            assert len(self._init_pos["preys"]) == self.n_preys
+
         for agent_i in range(self.n_agents):
             while True:
-                pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                       self.np_random.randint(0, self._grid_shape[1] - 1)]
+                if self._init_pos is not None:
+                    pos = self._init_pos["agents"][agent_i]
+                else:
+                    pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+                        self.np_random.randint(0, self._grid_shape[1] - 1)]
+
                 if self._is_cell_vacant(pos):
                     self.agent_pos[agent_i] = pos
                     break
+                else:
+                    if self._init_pos is not None:
+                        print("Overlapping positions in eval scenario:", self._init_pos)
             self.__update_agent_view(agent_i)
 
         for prey_i in range(self.n_preys):
             while True:
-                pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                       self.np_random.randint(0, self._grid_shape[1] - 1)]
+                if self._init_pos is not None:
+                    pos = self._init_pos["preys"][prey_i]
+                else:
+                    pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+                        self.np_random.randint(0, self._grid_shape[1] - 1)]
                 if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0):
                     self.prey_pos[prey_i] = pos
                     break
+                else:
+                    if self._init_pos is not None:
+                        print("Overlapping positions in eval scenario:", self._init_pos)
             self.__update_prey_view(prey_i)
 
         self.__draw_base_img()

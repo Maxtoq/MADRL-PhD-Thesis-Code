@@ -139,16 +139,16 @@ class OneHotEncoder:
         elif type(ids_batch) is np.ndarray:
             return self.token_encodings[ids]
 
-    def decode_batch(self, token_batch):
+    def decode_batch(self, enc_sent_batch):
         """
         Decode batch of encoded sentences
         Inputs:
-            :param token_batch (list): List of encoded sentences.
+            :param enc_sent_batch (list): List of encoded sentences.
         Outputs:
             :param decoded_batch (list): List of sentences.
         """
         decoded_batch = []
-        for enc_sentence in token_batch:
+        for enc_sentence in enc_sent_batch:
             sentence = []
             for token in enc_sentence:
                 if type(token) is list:
@@ -159,6 +159,7 @@ class OneHotEncoder:
                     sentence.append(self.index2token(token))
             decoded_batch.append(sentence)
         return decoded_batch
+
 
 class GRUEncoder(nn.Module):
     """

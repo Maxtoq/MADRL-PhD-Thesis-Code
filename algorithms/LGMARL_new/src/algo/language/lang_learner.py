@@ -77,16 +77,25 @@ class LanguageLearner(nn.Module):
         context_batch = self.lang_encoder(sentence_batch).squeeze(0)
         return context_batch
 
-    def generate_sentences(self, context_batch):
+    def generate_sentences(self, context_batch, pad_max=False):
         """ 
         Generate sentences from a batch of context vectors. 
         :param context_batch (np.ndarray): Batch of context vectors,
             dim=(batch_size, context_dim).
         
-        :return gen_sent_batch (list(list(str))): Batch of generated sentences.
+        :return sentences (np.ndarray): Batch of generated sentences.
         """
         # context_batch = torch.from_numpy(context_batch).to(self.device)
         _, sentences = self.decoder(context_batch)
+
+        if pad_max and sentences.shape[1] < self.word_encoder.max_message_len:
+            sentences = np.concatenate(
+                (sentences, np.zeros(
+                    (sentences.shape[0], 
+                     self.word_encoder.max_message_len - sentences.shape[1]),
+                    dtype=int)), 
+                axis=-1)
+
         return sentences
 
     # def get_save_dict(self):

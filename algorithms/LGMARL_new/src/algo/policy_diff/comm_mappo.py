@@ -1,3 +1,4 @@
+import copy
 import torch
 import random
 import numpy as np
@@ -230,7 +231,11 @@ class CommMAPPO():
             a.set_device(self.device)
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
                 "emergent_discrete_lang"]:
-            self.lang_learner.prep_rollout(self.device)
+            if type(self.lang_learner) == list:
+                for ll in self.lang_learner:
+                    ll.prep_rollout(self.device)
+            else:
+                self.lang_learner.prep_rollout(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -241,7 +246,11 @@ class CommMAPPO():
             a.set_device(self.device)
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
                 "emergent_discrete_lang"]:
-            self.lang_learner.prep_training(self.device)
+            if type(self.lang_learner) == list:
+                for ll in self.lang_learner:
+                    ll.prep_training(self.device)
+            else:
+                self.lang_learner.prep_training(self.device)
 
     def _comm_step(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
@@ -335,34 +344,67 @@ class CommMAPPO():
         batch_size = len(perfect_messages)
 
         out_messages = None
-        in_messages = None
+        in_messages = np.zeros((batch_size, self.n_agents, 1))
         gen_comm = None
         if self.comm_type == "emergent_continuous":
             # Concatenate messages to get broadcast
             out_messages = torch.stack(messages, dim=1)
-            in_messages = torch.concatenate(messages, 1)
+            in_messages = torch.concatenate(messages, 1).repeat(
+                1, self.n_agents).reshape(batch_size, self.n_agents, -1)
 
         elif self.comm_type == "emergent_discrete_lang":
-            dec_in = torch.stack(comm_actions, dim=1).reshape(
-                batch_size * self.n_agents, -1).to(self.device)
-
-            out_messages = self.lang_learner.generate_sentences(dec_in)
+            # Generate messages
+            if type(self.lang_learner) == list:
+                out_messages = []
+                for ll, ca in zip(self.lang_learner, comm_actions):
+                    out_messages.append(ll.generate_sentences(ca, pad_max=True))
+                out_messages = np.stack(out_messages, axis=1)
+            else:
+                dec_in = torch.stack(comm_actions, dim=1).reshape(
+                    batch_size * self.n_agents, -1).to(self.device)
+                out_messages = self.lang_learner.generate_sentences(dec_in)
+                out_messages = out_messages.reshape(
+                    batch_size, self.n_agents, -1)
 
             broadcasts = self._make_broadcasts(
-                out_messages.reshape(batch_size, self.n_agents, -1),
-                perfect_messages, gen_comm)
+                out_messages, perfect_messages, gen_comm)
 
-            in_messages = self.lang_learner.encode_sentences(broadcasts)
+            # Encode messages
+            if type(self.lang_learner) == list:
+                in_messages = []
+                for ll in self.lang_learner:
+                    in_messages.append(ll.encode_sentences(broadcasts))
+                in_messages = torch.stack(in_messages, dim=1)
+            else:
+                in_messages = self.lang_learner.encode_sentences(broadcasts)
+                in_messages = in_messages.repeat(1, self.n_agents).reshape(
+                    batch_size, self.n_agents, -1)
 
         elif self.comm_type == "perfect":
             out_messages = np.stack(messages, axis=1)
-            in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
+            if type(self.lang_learner) == list:
+                in_messages = []
+                for ll in self.lang_learner:
+                    in_messages.append(ll.encode_sentences(perfect_broadcasts))
+                in_messages = torch.stack(in_messages, dim=1)
+            else:
+                in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
+                in_messages = in_messages.repeat(1, self.n_agents).reshape(
+                    batch_size, self.n_agents, -1)
 
         elif self.comm_type == "language_sup":
-            dec_in = torch.stack(comm_actions, dim=1).reshape(
-                batch_size * self.n_agents, -1).to(self.device)
-
-            out_messages = self.lang_learner.generate_sentences(dec_in)
+            # Generate messages
+            if type(self.lang_learner) == list:
+                out_messages = []
+                for ll, ca in zip(self.lang_learner, comm_actions):
+                    out_messages.append(ll.generate_sentences(ca, pad_max=True))
+                out_messages = np.stack(out_messages, axis=1)
+            else:
+                dec_in = torch.stack(comm_actions, dim=1).reshape(
+                    batch_size * self.n_agents, -1).to(self.device)
+                out_messages = self.lang_learner.generate_sentences(dec_in)
+                out_messages = out_messages.reshape(
+                    batch_size, self.n_agents, -1)
 
             # Decide which comm strategy for each message
             if eval_gen_comm is None:
@@ -372,10 +414,18 @@ class CommMAPPO():
                 gen_comm = eval_gen_comm
 
             broadcasts = self._make_broadcasts(
-                out_messages.reshape(batch_size, self.n_agents, -1), 
-                perfect_messages, gen_comm)
+                out_messages, perfect_messages, gen_comm)
 
-            in_messages = self.lang_learner.encode_sentences(broadcasts)
+            # Encode messages
+            if type(self.lang_learner) == list:
+                in_messages = []
+                for ll in self.lang_learner:
+                    in_messages.append(ll.encode_sentences(broadcasts))
+                in_messages = torch.stack(in_messages, dim=1)
+            else:
+                in_messages = self.lang_learner.encode_sentences(broadcasts)
+                in_messages = in_messages.repeat(1, self.n_agents).reshape(
+                    batch_size, self.n_agents, -1)
 
         return out_messages, in_messages, gen_comm
 
@@ -392,7 +442,7 @@ class CommMAPPO():
             actions, action_log_probs, values, new_comm_rnn_states, \
                 eval_action_log_probs, eval_dist_entropy \
                 = self.agents[a_i].forward_act(
-                    in_messages, 
+                    in_messages[:, a_i], 
                     enc_obs[a_i],
                     enc_joint_obs[a_i],
                     comm_rnn_states[:, a_i],
@@ -502,6 +552,9 @@ class CommMAPPO():
 
             if self.comm_type in ["perfect", "language_sup"]:
                 # enc_perf_br = torch.stack(enc_perf_br, dim=1)
+                # TODO for training sep ll
+                if type(self.lang_learner) == list:
+                    raise NotImplementedError()
                 lang_obs_enc = self.lang_learner.obs_encoder(
                     torch.stack(enc_joint_obs, dim=1).to(self.device))
             else:
@@ -515,11 +568,21 @@ class CommMAPPO():
                 eval_action_log_probs, eval_dist_entropy, \
                 eval_comm_action_log_probs, eval_comm_dist_entropy, lang_obs_enc
 
+    def encode_perf_messages(self, perf_messages):
+        # if type(self.lang_learner) == list:
+        we = self.lang_learner.word_encoder \
+            if type(self.lang_learner) != list \
+            else self.lang_learner[0].word_encoder
+
+        return we.encode_rollout_step(perf_messages)
+
     def get_save_dict(self):
         self.prep_rollout("cpu")
         save_dict = {
             "agents": [a.state_dict() for a in self.agents],
-            "lang_learner": self.lang_learner.state_dict()}
+            "lang_learner": self.lang_learner.state_dict() 
+                if type(self.lang_learner) != list
+                else [ll.state_dict() for ll in self.lang_learner]}
         # if self.comm_type in ["perfect", "language"]:
         #     save_dict["lang_learner"] = self.lang_learner.state_dict()
         return save_dict
@@ -527,7 +590,7 @@ class CommMAPPO():
     def load_params(self, params):
         if type(params) is list:
             self.lang_learner = [
-                self.lang_learner for _ in range(self.n_agents)]
+                copy.deepcopy(self.lang_learner) for _ in range(self.n_agents)]
 
             agent_ids = random.sample(range(self.n_agents), self.n_agents)
 
@@ -537,19 +600,18 @@ class CommMAPPO():
             for p_i in range(len(params)):
                 for a_i in range(n_agents_by_p):
                     i = p_i * n_agents_by_p + a_i
-                    print(p_i, i, agent_ids[i])
-                    print(params[p_i].keys(), params[p_i]["acc"].keys(), len(params[p_i]["acc"]["agents"]))
+                    # print(i, agent_ids[i], p_i)
                     self.agents[agent_ids[i]].load_state_dict(
-                            params[p_i]["acc"]["agents"][i])
+                            params[p_i]["acc"]["agents"][agent_ids[i]])
                     self.lang_learner[agent_ids[i]].load_state_dict(
                         params[p_i]["acc"]["lang_learner"])
         else:
             for a, ap in zip(self.agents, params["acc"]["agents"]):
                 a.load_state_dict(ap)
 
-        if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                "emergent_discrete_lang"]:
-            self.lang_learner.load_state_dict(params["acc"]["lang_learner"])
+            if self.comm_type in ["perfect", "language_sup", "language_rl", 
+                    "emergent_discrete_lang"]:
+                self.lang_learner.load_state_dict(params["acc"]["lang_learner"])
 
     # def load_zeroshot_team(self, param_list):
     #     agent_ids = random.sample(range(4), 4)

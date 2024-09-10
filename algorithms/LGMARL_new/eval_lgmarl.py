@@ -1,5 +1,7 @@
 import os
+import json
 import time
+import random
 import numpy as np
 
 from tqdm import trange
@@ -28,11 +30,7 @@ def interact(cfg):
         add_mess = None
     return add_mess
 
-def run():
-    # Load config
-    parser = get_config()
-    cfg = parser.parse_args()
-
+def run_eval(cfg):
     # Get pretrained stuff
     assert cfg.model_dir is not None, "Must provide model_dir"
     load_args(cfg, eval=True)
@@ -42,22 +40,29 @@ def run():
         for p in paths:
             pretrained_model_path.append(os.path.join(p, "model_ep.pt"))
         assert os.path.isfile(pretrained_model_path[-1]), "No model checkpoint found at" + str(pretrained_model_path[-1])
+        print("Loading checkpoints from runs", paths)
     else:
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint found at" + str(pretrained_model_path)
-    print("Starting eval with config:")
-    print(cfg)
+    # print("Starting eval with config:")
+    # print(cfg)
     # cfg.comm_type = "language"
-    if cfg.comm_type == "perfect":
-        cfg.comm_type = "language_sup"
+    # if cfg.comm_type == "perfect":
+    #     cfg.comm_type = "language_sup"
 
     set_seeds(cfg.seed)
 
     # Set training device
     device = set_cuda_device(cfg)
+
+    # Get eval scenarios
+    if cfg.eval_scenario is not None:
+        with open(cfg.eval_scenario, 'r') as f:
+            init_positions = json.load(f)
     
     # Create train environment
-    envs, parser = make_env(cfg, cfg.n_parallel_envs)
+    envs, parser = make_env(
+        cfg, cfg.n_parallel_envs, init_positions=init_positions)
     
     # Create model
     n_agents = envs.n_agents
@@ -74,11 +79,10 @@ def run():
         parser, 
         device,
         None,
-        comm_eps_start=1.0)
+        comm_eps_start=0.0)
 
     # Load params
     model.load(pretrained_model_path)
-    model.set_eval()
 
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
@@ -89,27 +93,33 @@ def run():
     model.prep_rollout(device)
 
     count_returns = np.zeros(cfg.n_parallel_envs)
-    returns = []
-    for ep_s_i in trange(0, cfg.n_steps, cfg.n_parallel_envs):
+    # returns = []
+    returns = np.zeros(cfg.n_parallel_envs)
+    env_dones = np.zeros(cfg.n_parallel_envs)
+    for ep_s_i in trange(0, cfg.rollout_length):
         # add_mess = interact(cfg)
         
         # Get action
-        actions, broadcasts, agent_messages, comm_rewards \
+        actions, agent_messages, _, comm_rewards \
             = model.act(deterministic=True)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
 
-        decoded_messages = model.lang_learner.word_encoder.decode_batch(
-            agent_messages[0])
+
+        if cfg.n_parallel_envs == 1:
+            ll = model.model.lang_learner if type(model.model.lang_learner) != list \
+                else model.model.lang_learner[0]
+            decoded_messages = ll.word_encoder.decode_batch(
+                agent_messages.squeeze(0))
         
-        print(f"\nStep #{ep_s_i + 1}")
-        print("Observations", obs)
-        print("Perfect Messages", parsed_obs)
-        print("Agent Messages", decoded_messages)
-        print("Actions (t-1)", actions)
-        print("Rewards", rewards)
-        print("Communication Rewards", comm_rewards)
+            print(f"\nStep #{ep_s_i + 1}")
+            print("Observations", obs)
+            print("Perfect Messages", parsed_obs)
+            print("Agent Messages", decoded_messages)
+            print("Actions (t-1)", actions)
+            print("Rewards", rewards)
+            print("Communication Rewards", comm_rewards)
 
         obs = next_obs
         parsed_obs = parser.get_perfect_messages(obs)
@@ -118,18 +128,40 @@ def run():
         count_returns += rewards.mean(-1)
         render(cfg, envs)
 
-        env_dones = dones.all(axis=1)
-        if True in env_dones:
-            print("ENV DONE")
-            model.reset_context(env_dones)
-            returns += list(count_returns[env_dones == True])
-            count_returns *= (1 - env_dones)
+        dones = dones.all(axis=1)
+        new_dones = dones * (1 - env_dones) == True
+        if True in new_dones:
+            env_dones += new_dones
+
+            returns[new_dones] = count_returns[new_dones]
+            # count_returns *= (1 - env_dones)
+            if ep_s_i == cfg.rollout_length - 1:
+                break
+            # print(f"ENV DONE: {int(sum(env_dones))} / {cfg.n_parallel_envs}")
+            if env_dones.all():
+                break
             
     envs.close()
 
     print("Done", len(returns), "complete episodes.")
+    print("Returns", returns)
     print("Mean return:", sum(returns) / len(returns))
-    input()
+
+    return sum(returns) / len(returns)
 
 if __name__ == '__main__':
-    run()
+    # Load config
+    parser = get_config()
+    cfg = parser.parse_args()
+
+    random.seed(cfg.seed)
+
+    n_runs = 10
+    returns = np.zeros(n_runs)
+    for i in range(n_runs):
+        print(f"Run {i + 1}/{n_runs}")
+        cfg.seed = random.randint(0, 100000)
+        returns[i] = run_eval(cfg)
+
+    print(returns, returns.mean(), returns.std(), np.median(returns))
+    

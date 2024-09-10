@@ -145,6 +145,7 @@ def get_config():
     parser.add_argument("--eval_interval", type=int, default=10000, 
                         help="number of steps between evaluations.")
     parser.add_argument("--interact", default=False, action='store_true')
+    parser.add_argument("--eval_scenario", type=str, default=None)
 
     # render parameters
     parser.add_argument("--save_gifs", action='store_true', default=False, 

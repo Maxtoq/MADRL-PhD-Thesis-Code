@@ -104,9 +104,8 @@ class LanguageGroundedMARL:
         # self.lang_learner.prep_training(self.device)
         self.model.prep_training(self.device)
         self.trainer.device = self.device
-        # if self.trainer.env_value_normalizer is not None:
-        #     self.trainer.env_value_normalizer.to(self.device)
-        #     self.trainer.comm_value_normalizer.to(self.device)
+        self.trainer.env_value_normalizer.to(self.device)
+        self.trainer.comm_value_normalizer.to(self.device)
 
     def prep_rollout(self, device=None):
         if device is not None:
@@ -114,17 +113,16 @@ class LanguageGroundedMARL:
         # self.lang_learner.prep_rollout(self.device)
         self.model.prep_rollout(self.device)
         self.trainer.device = self.device
-        # if self.trainer.env_value_normalizer is not None:
-        #     self.trainer.env_value_normalizer.to(self.device)
-        #     self.trainer.comm_value_normalizer.to(self.device)
+        self.trainer.env_value_normalizer.to(self.device)
+        self.trainer.comm_value_normalizer.to(self.device)
 
-    def reset_context(self, env_dones):
-        """
-        Reset language contexts.
-        :param env_dones (np.ndarray): Done state for each parallel environment
-        """
-        self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
-            np.float32)[..., np.newaxis]
+    # def reset_context(self, env_dones):
+    #     """
+    #     Reset language contexts.
+    #     :param env_dones (np.ndarray): Done state for each parallel environment
+    #     """
+    #     self.lang_contexts = self.lang_contexts * (1 - env_dones).astype(
+    #         np.float32)[..., np.newaxis]
 
     def store_exp(self, next_obs, next_perf_messages, act_rewards, dones):
         # Reset rnn_states and masks for done environments
@@ -234,8 +232,9 @@ class LanguageGroundedMARL:
         """
         # Encode sentences and build broadcast
         enc_perf_mess, enc_perf_br \
-            = self.model.lang_learner.word_encoder.encode_rollout_step(
-                perf_messages) # TODO make better
+            = self.model.encode_perf_messages(perf_messages)
+            # self.model.lang_learner.word_encoder.encode_rollout_step(
+            #     perf_messages) # TODO make better
 
         joint_obs = obs.reshape(self.n_envs, 1, -1).repeat(
             self.n_agents, 1)
@@ -258,8 +257,14 @@ class LanguageGroundedMARL:
         if type(path) is list:
             save_dict = [torch.load(p, map_location=torch.device('cpu')) 
                 for p in path]
+            self.trainer.env_value_normalizer.load_state_dict(
+                save_dict[0]["act_vnorm"])
+            self.trainer.comm_value_normalizer.load_state_dict(
+                save_dict[0]["comm_vnorm"])
         else:
             save_dict = torch.load(path, map_location=torch.device('cpu'))
+            self.trainer.env_value_normalizer.load_state_dict(
+                save_dict["act_vnorm"])
+            self.trainer.comm_value_normalizer.load_state_dict(
+                save_dict["comm_vnorm"])
         self.model.load_params(save_dict)
-        self.trainer.env_value_normalizer.load_state_dict(save_dict["act_vnorm"])
-        self.trainer.comm_value_normalizer.load_state_dict(save_dict["comm_vnorm"])
