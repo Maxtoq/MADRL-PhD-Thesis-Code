@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=ad15perf
+#SBATCH --job-name=ad15ec2
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -10,13 +10,13 @@
 source venv/bin/activate
 
 n_run=3
-experiment_name="Adapt_9o5SA-15o5_Diff_perf"
+experiment_name="Adapt_9o5SA-15o5_Diff_ec2"
 n_steps=5000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey_new"
 FT_magym_env_size=15
 FT_magym_actual_obsrange=5
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_perf/run17/"
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run16/"
 cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
