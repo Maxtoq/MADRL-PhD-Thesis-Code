@@ -912,6 +912,22 @@ models/magym_PredPrey_new/9o5SA_Diff_perf/run17/*
 !models/magym_PredPrey_new/9o5SA_Diff_langsup
 models/magym_PredPrey_new/9o5SA_Diff_langsup/*
 !models/magym_PredPrey_new/9o5SA_Diff_langsup/train_data
+!models/magym_PredPrey_new/9o5_Diff_langsup/run15
+models/magym_PredPrey_new/9o5_Diff_langsup/run15/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run15/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run15/args.txt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run4
+models/magym_PredPrey_new/9o5_Diff_langsup/run4/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run4/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run4/args.txt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run5
+models/magym_PredPrey_new/9o5_Diff_langsup/run5/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run5/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run5/args.txt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run14
+models/magym_PredPrey_new/9o5_Diff_langsup/run14/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run14/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run14/args.txt
 
 !models/magym_PredPrey_new/9o5_Diff_nocom
 models/magym_PredPrey_new/9o5_Diff_nocom/*
@@ -964,6 +980,22 @@ models/magym_PredPrey_new/9o5_Diff_perf/*
 !models/magym_PredPrey_new/9o5_Diff_langsup
 models/magym_PredPrey_new/9o5_Diff_langsup/*
 !models/magym_PredPrey_new/9o5_Diff_langsup/train_data
+!models/magym_PredPrey_new/9o5_Diff_langsup/run5
+models/magym_PredPrey_new/9o5_Diff_langsup/run5/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run5/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run5/args.txt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run13
+models/magym_PredPrey_new/9o5_Diff_langsup/run13/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run13/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run13/args.txt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run3
+models/magym_PredPrey_new/9o5_Diff_langsup/run3/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run3/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run3/args.txt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run10
+models/magym_PredPrey_new/9o5_Diff_langsup/run10/*
+!models/magym_PredPrey_new/9o5_Diff_langsup/run10/model_ep.pt
+!models/magym_PredPrey_new/9o5_Diff_langsup/run10/args.txt
 
 !models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc
 models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc/*
