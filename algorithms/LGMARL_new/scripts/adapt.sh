@@ -1,13 +1,13 @@
 #!/bin/sh
-n_run=5
-experiment_name="Adapt_9o5SA-15o5_Diff_perf"
+n_run=3
+experiment_name="Adapt_9o5SA-15o5_Diff_langsup"
 n_steps=5000000
 lr=0.0008 # default 0.0005
 FT_env_name="magym_PredPrey_new"
-FT_magym_env_size=9
+FT_magym_env_size=15
 FT_magym_actual_obsrange=5
 model_dir="models/magym_PredPrey_new/9o5SA_Diff_langsup/run4/"
-cuda_device="cuda:3"
+cuda_device="cuda:0"
 
 source venv3.8/bin/activate
 
