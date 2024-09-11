@@ -52,6 +52,8 @@ def load_args(cfg, eval=False):
             args.pop("lr")
             if eval:
                 args.pop("n_parallel_envs")
+                # args.pop("eval_scenario")
+                # args.pop("n_eval_runs")
 
             # if "no_render" in args:
             #     args.pop("no_render")

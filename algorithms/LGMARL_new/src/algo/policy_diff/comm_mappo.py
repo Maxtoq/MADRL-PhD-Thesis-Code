@@ -603,8 +603,9 @@ class CommMAPPO():
                     # print(i, agent_ids[i], p_i)
                     self.agents[agent_ids[i]].load_state_dict(
                             params[p_i]["acc"]["agents"][agent_ids[i]])
-                    self.lang_learner[agent_ids[i]].load_state_dict(
-                        params[p_i]["acc"]["lang_learner"])
+                    if "lang_learner" in params[p_i]["acc"]:
+                        self.lang_learner[agent_ids[i]].load_state_dict(
+                            params[p_i]["acc"]["lang_learner"])
         else:
             for a, ap in zip(self.agents, params["acc"]["agents"]):
                 a.load_state_dict(ap)

@@ -156,10 +156,9 @@ if __name__ == '__main__':
 
     random.seed(cfg.seed)
 
-    n_runs = 10
-    returns = np.zeros(n_runs)
-    for i in range(n_runs):
-        print(f"Run {i + 1}/{n_runs}")
+    returns = np.zeros(cfg.n_eval_runs)
+    for i in range(cfg.n_eval_runs):
+        print(f"Run {i + 1}/{cfg.n_eval_runs}")
         cfg.seed = random.randint(0, 100000)
         returns[i] = run_eval(cfg)
 
