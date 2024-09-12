@@ -3,7 +3,7 @@ n_parallel_envs=24 # 24 is number of hard scenarios
 eval_scenario="algorithms/LGMARL_new/src/envs/magym_PredPrey/hard_eval.json"
 n_eval_runs=20
 
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_noc/run30,models/magym_PredPrey_new/9o5SA_Diff_noc/run29"
+model_dir="models/magym_PredPrey_new/9o5_Diff_edl/run12,models/magym_PredPrey_new/9o5_Diff_edl/run8"
 
 seed=$RANDOM
 comm="python algorithms/LGMARL_new/eval_lgmarl.py 

@@ -81,8 +81,10 @@ def run():
         model.load(pretrained_model_path)
 
     # Start training
+    n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
     print(f"Starting training for {cfg.n_steps - start_step} frames")
-    print(f"                  updates every {cfg.n_parallel_envs} episodes")
+    print(f"                  with {cfg.n_parallel_envs} parallel rollouts")
+    print(f"                  updates every {n_steps_per_update} frames")
     print(f"                  with seed {cfg.seed}")
     # Reset env
     last_save_step = 0
@@ -90,7 +92,6 @@ def run():
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
     model.init_episode(obs, parsed_obs)
-    n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
     for s_i in trange(start_step, cfg.n_steps, n_steps_per_update, ncols=0):
         model.prep_rollout(device)
 

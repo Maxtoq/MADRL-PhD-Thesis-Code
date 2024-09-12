@@ -165,11 +165,11 @@ class ReplayBuffer:
 
         self.step = 0
 
-        if args.log_comm:
-            print("LOGGING COMUNICATION IN", log_dir)
-            self.comm_logger = CommunicationLogger(log_dir)
-        else:
-            self.comm_logger = None
+        # if args.log_comm:
+        #     print("LOGGING COMUNICATION IN", log_dir)
+        #     self.comm_logger = CommunicationLogger(log_dir)
+        # else:
+        #     self.comm_logger = None
     
     def reset(self):
         self.obs = np.zeros((self.rollout_length + 1, self.n_parallel_envs, self.n_agents, self.obs_dim), dtype=np.float32)
@@ -194,13 +194,13 @@ class ReplayBuffer:
         self.step = 0
 
     def start_new_episode(self):
-        if self.comm_logger is not None:
-            self.comm_logger.log(
-                self.obs, 
-                self.comm_rewards, 
-                self.comm_returns, 
-                self.perf_messages, 
-                self.perf_broadcasts)
+        # if self.comm_logger is not None:
+        #     self.comm_logger.log(
+        #         self.obs, 
+        #         self.comm_rewards, 
+        #         self.comm_returns, 
+        #         self.perf_messages, 
+        #         self.perf_broadcasts)
         self.obs[0] = self.obs[-1].copy()
         self.joint_obs[0] = self.joint_obs[-1].copy()
         self.obs_enc_rnn_states[0] = self.obs_enc_rnn_states[-1].copy()

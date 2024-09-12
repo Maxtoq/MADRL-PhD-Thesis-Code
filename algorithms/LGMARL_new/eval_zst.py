@@ -39,7 +39,7 @@ def run_eval(cfg):
         pretrained_model_path = []
         for p in paths:
             pretrained_model_path.append(os.path.join(p, "model_ep.pt"))
-        assert os.path.isfile(pretrained_model_path[-1]), "No model checkpoint found at" + str(pretrained_model_path[-1])
+            assert os.path.isfile(pretrained_model_path[-1]), "No model checkpoint found at" + str(pretrained_model_path[-1])
         print("Loading checkpoints from runs", paths)
     else:
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
@@ -56,6 +56,7 @@ def run_eval(cfg):
     device = set_cuda_device(cfg)
 
     # Get eval scenarios
+    init_positions = None
     if cfg.eval_scenario is not None:
         with open(cfg.eval_scenario, 'r') as f:
             init_positions = json.load(f)
@@ -69,7 +70,6 @@ def run_eval(cfg):
     obs_space = envs.observation_space
     shared_obs_space = envs.shared_observation_space
     act_space = envs.action_space
-    # TODO handle comm_eps accordingly
     model = LanguageGroundedMARL(
         cfg, 
         n_agents, 
@@ -102,6 +102,7 @@ def run_eval(cfg):
         # Get action
         actions, agent_messages, _, comm_rewards \
             = model.act(deterministic=True)
+        print(agent_messages)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
