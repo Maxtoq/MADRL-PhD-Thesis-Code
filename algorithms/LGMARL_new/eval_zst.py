@@ -102,7 +102,6 @@ def run_eval(cfg):
         # Get action
         actions, agent_messages, _, comm_rewards \
             = model.act(deterministic=True)
-        print(agent_messages)
 
         # Perform action and get reward and next obs
         next_obs, rewards, dones, infos = envs.step(actions)
