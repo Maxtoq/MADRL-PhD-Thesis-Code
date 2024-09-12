@@ -908,6 +908,18 @@ models/magym_PredPrey_new/9o5SA_Diff_perf/*
 models/magym_PredPrey_new/9o5SA_Diff_perf/run17/*
 !models/magym_PredPrey_new/9o5SA_Diff_perf/run17/model_ep.pt
 !models/magym_PredPrey_new/9o5SA_Diff_perf/run17/args.txt
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run20
+models/magym_PredPrey_new/9o5SA_Diff_perf/run20/*
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run20/model_ep.pt
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run20/args.txt
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run19
+models/magym_PredPrey_new/9o5SA_Diff_perf/run19/*
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run19/model_ep.pt
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run19/args.txt
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run21
+models/magym_PredPrey_new/9o5SA_Diff_perf/run21/*
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run21/model_ep.pt
+!models/magym_PredPrey_new/9o5SA_Diff_perf/run21/args.txt
 
 !models/magym_PredPrey_new/9o5SA_Diff_langsup
 models/magym_PredPrey_new/9o5SA_Diff_langsup/*
