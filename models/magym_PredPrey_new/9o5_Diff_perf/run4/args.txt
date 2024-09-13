@@ -1,9 +1,9 @@
-1724600724.9944258
-Running train_qmix.py at git commit b7cb07e4102c7b60e484e619890baafcb45f2405
+1726170197.7993486
+Running train_qmix.py at git commit e
 Parameters:
 {
-    "experiment_name": "9o5_Diff_perf",
-    "seed": 15403,
+    "experiment_name": "9o5_perf",
+    "seed": 23770,
     "cuda_device": "cuda:0",
     "cuda_deterministic": true,
     "n_training_threads": 1,
@@ -38,8 +38,8 @@ Parameters:
     "model_dir": null,
     "context_dim": 16,
     "lang_embed_dim": 4,
-    "lang_hidden_dim": 32,
-    "lang_lr": 0.005,
+    "lang_hidden_dim": 64,
+    "lang_lr": 0.007,
     "lang_batch_size": 1024,
     "lang_temp": 1.0,
     "lang_imp_sample": false,
@@ -60,13 +60,17 @@ Parameters:
     "magym_n_preys": 2,
     "magym_obs_range": 5,
     "magym_no_purple": false,
+    "magym_see_agents": false,
     "FT_env_name": null,
     "FT_magym_env_size": null,
     "FT_magym_actual_obsrange": null,
     "FT_freeze_lang": false,
+    "FT_magym_not_see_agents": null,
     "do_eval": true,
     "eval_interval": 10000,
     "interact": false,
+    "eval_scenario": null,
+    "n_eval_runs": 10,
     "save_gifs": false,
     "use_render": false,
     "render_episodes": 5,
