@@ -9,7 +9,7 @@ from src.algo.nn_modules.distributions import DiagGaussian, Categorical
 
 class CommPolicy(nn.Module):
 
-    def __init__(self, args, n_agents):
+    def __init__(self, args, n_agents, obs_dim):
         super(CommPolicy, self).__init__()
         self.context_dim = args.context_dim
         self.comm_type = args.comm_type
@@ -23,6 +23,8 @@ class CommPolicy(nn.Module):
 
         if self.comm_type == "emergent_continuous":
             in_comm_enc = n_agents * args.context_dim
+        elif self.comm_type == "obs":
+            in_comm_enc = n_agents * obs_dim
         else:
             in_comm_enc = args.context_dim
         self.comm_encoder = RNNLayer(
@@ -30,7 +32,7 @@ class CommPolicy(nn.Module):
             args.hidden_dim, 
             args.policy_recurrent_N)
 
-    def gen_comm(self, enc_obs, perfect_messages):
+    def gen_comm(self, enc_obs, perfect_messages, obs):
         if self.comm_type == "no_comm":
             comm_actions = torch.zeros(enc_obs.shape[0], self.context_dim)
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
@@ -65,6 +67,15 @@ class CommPolicy(nn.Module):
             eval_comm_dist_entropy = None
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
             comm_values = torch.zeros(enc_obs.shape[0], 1)
+        
+        elif self.comm_type == "obs":
+            messages = obs
+
+            comm_actions = torch.zeros(enc_obs.shape[0], self.context_dim)
+            comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
+            comm_values = torch.zeros(enc_obs.shape[0], 1)
+            eval_comm_action_log_probs = None
+            eval_comm_dist_entropy = None
 
         return messages, comm_actions, comm_action_log_probs, comm_values, \
             eval_comm_action_log_probs, eval_comm_dist_entropy

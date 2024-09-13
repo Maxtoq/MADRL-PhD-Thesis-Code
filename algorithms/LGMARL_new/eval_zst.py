@@ -147,7 +147,7 @@ def run_eval(cfg):
     # print("Returns", returns)
     print("Mean return:", sum(returns) / len(returns))
 
-    return returns
+    return sum(returns) / len(returns)
 
 if __name__ == '__main__':
     # Load config
@@ -156,12 +156,11 @@ if __name__ == '__main__':
 
     random.seed(cfg.seed)
 
-    returns = np.array([])
+    returns = np.zeros(cfg.n_eval_runs)
     for i in range(cfg.n_eval_runs):
         print(f"Run {i + 1}/{cfg.n_eval_runs}")
         cfg.seed = random.randint(0, 100000)
-        r = run_eval(cfg)
-        returns = np.concatenate((returns, r))
+        returns[i] = run_eval(cfg)
 
     print(returns, returns.mean(), returns.std(), np.median(returns))
     

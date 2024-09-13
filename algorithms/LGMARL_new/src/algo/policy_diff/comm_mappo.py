@@ -346,7 +346,7 @@ class CommMAPPO():
         out_messages = None
         in_messages = np.zeros((batch_size, self.n_agents, 1))
         gen_comm = None
-        if self.comm_type == "emergent_continuous":
+        if self.comm_type in ["emergent_continuous", "obs"]:
             # Concatenate messages to get broadcast
             out_messages = torch.stack(messages, dim=1)
             in_messages = torch.concatenate(messages, 1).repeat(
@@ -603,7 +603,7 @@ class CommMAPPO():
                     # print(i, agent_ids[i], p_i)
                     self.agents[agent_ids[i]].load_state_dict(
                             params[p_i]["acc"]["agents"][agent_ids[i]])
-                    if "lang_learner" in params[p_i]["acc"]:
+                    if "lang_learner" in params[p_i]["acc"] and self.comm_type not in ["no_comm", "emergent_continuous"]:
                         self.lang_learner[agent_ids[i]].load_state_dict(
                             params[p_i]["acc"]["lang_learner"])
         else:
