@@ -15,14 +15,14 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=1
-experiment_name="9o5_Diff_langsup"
+n_run=8
+experiment_name="9o5_noc+lang"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="language_sup" # default language
+comm_type="no_comm+lang" # default language
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
-cuda_device="cuda:2"
+cuda_device="cuda:3"
 
 magym_env_size=9
 magym_obs_range=5 # default 5

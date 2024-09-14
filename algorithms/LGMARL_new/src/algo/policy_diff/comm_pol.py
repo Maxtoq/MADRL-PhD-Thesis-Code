@@ -33,7 +33,7 @@ class CommPolicy(nn.Module):
             args.policy_recurrent_N)
 
     def gen_comm(self, enc_obs, perfect_messages, obs):
-        if "no_comm" in self.comm_type:
+        if self.comm_type == "no_comm":
             comm_actions = torch.zeros(enc_obs.shape[0], self.context_dim)
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
             comm_values = torch.zeros(enc_obs.shape[0], 1)
@@ -74,6 +74,15 @@ class CommPolicy(nn.Module):
             comm_actions = torch.zeros(enc_obs.shape[0], self.context_dim)
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
             comm_values = torch.zeros(enc_obs.shape[0], 1)
+            eval_comm_action_log_probs = None
+            eval_comm_dist_entropy = None
+
+        elif self.comm_type == "no_comm+lang":
+            comm_actions = self.comm_in(enc_obs)
+
+            comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
+            comm_values = torch.zeros(enc_obs.shape[0], 1)
+            messages = None
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
 
