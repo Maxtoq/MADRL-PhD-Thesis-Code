@@ -40,7 +40,7 @@ def run_eval(cfg):
         for p in paths:
             pretrained_model_path.append(os.path.join(p, "model_ep.pt"))
             assert os.path.isfile(pretrained_model_path[-1]), "No model checkpoint found at" + str(pretrained_model_path[-1])
-        print("Loading checkpoints from runs", paths)
+        # print("Loading checkpoints from runs", paths)
     else:
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint found at" + str(pretrained_model_path)
@@ -96,7 +96,7 @@ def run_eval(cfg):
     # returns = []
     returns = np.zeros(cfg.n_parallel_envs)
     env_dones = np.zeros(cfg.n_parallel_envs)
-    for ep_s_i in trange(0, cfg.rollout_length):
+    for ep_s_i in range(0, cfg.rollout_length):
         # add_mess = interact(cfg)
         
         # Get action
@@ -145,7 +145,7 @@ def run_eval(cfg):
 
     # print("Done", len(returns), "complete episodes.")
     # print("Returns", returns)
-    print("Mean return:", sum(returns) / len(returns))
+    # print("Mean return:", sum(returns) / len(returns))
 
     return sum(returns) / len(returns)
 
@@ -157,8 +157,8 @@ if __name__ == '__main__':
     random.seed(cfg.seed)
 
     returns = np.zeros(cfg.n_eval_runs)
-    for i in range(cfg.n_eval_runs):
-        print(f"Run {i + 1}/{cfg.n_eval_runs}")
+    for i in trange(cfg.n_eval_runs):
+        # print(f"Run {i + 1}/{cfg.n_eval_runs}")
         cfg.seed = random.randint(0, 100000)
         returns[i] = run_eval(cfg)
 

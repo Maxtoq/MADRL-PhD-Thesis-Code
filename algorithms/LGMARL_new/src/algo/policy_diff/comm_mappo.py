@@ -230,7 +230,7 @@ class CommMAPPO():
             a.to(self.device)
             a.set_device(self.device)
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                "emergent_discrete_lang"]:
+                "emergent_discrete_lang", "no_comm+lang"]:
             if type(self.lang_learner) == list:
                 for ll in self.lang_learner:
                     ll.prep_rollout(self.device)
@@ -245,7 +245,7 @@ class CommMAPPO():
             a.to(self.device)
             a.set_device(self.device)
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                "emergent_discrete_lang"]:
+                "emergent_discrete_lang", "no_comm+lang"]:
             if type(self.lang_learner) == list:
                 for ll in self.lang_learner:
                     ll.prep_training(self.device)
@@ -550,7 +550,7 @@ class CommMAPPO():
                 eval_comm_action_log_probs = None
                 eval_comm_dist_entropy = None
 
-            if self.comm_type in ["perfect", "language_sup"]:
+            if self.comm_type in ["perfect", "language_sup", "no_comm+lang"]:
                 # enc_perf_br = torch.stack(enc_perf_br, dim=1)
                 # TODO for training sep ll
                 if type(self.lang_learner) == list:
@@ -611,7 +611,7 @@ class CommMAPPO():
                 a.load_state_dict(ap)
 
             if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                    "emergent_discrete_lang"]:
+                    "emergent_discrete_lang", "no_comm+lang"]:
                 self.lang_learner.load_state_dict(params["acc"]["lang_learner"])
 
     # def load_zeroshot_team(self, param_list):

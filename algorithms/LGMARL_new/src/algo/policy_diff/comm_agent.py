@@ -42,7 +42,7 @@ class CommAgent(nn.Module):
 
         self.comm_pol = CommPolicy(args, n_agents, obs_dim)
         
-        if self.comm_type == "no_comm":
+        if "no_comm" in self.comm_type:
             act_pol_input = args.hidden_dim
             act_val_input = args.hidden_dim
         else:
