@@ -159,7 +159,7 @@ if __name__ == '__main__':
     returns = np.zeros(cfg.n_eval_runs)
     for i in trange(cfg.n_eval_runs):
         # print(f"Run {i + 1}/{cfg.n_eval_runs}")
-        cfg.seed = random.randint(0, 100000)
+        cfg.seed = random.randint(0, 1000000)
         returns[i] = run_eval(cfg)
 
     print(returns, returns.mean(), returns.std(), np.median(returns))

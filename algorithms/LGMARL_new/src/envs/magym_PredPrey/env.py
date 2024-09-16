@@ -14,7 +14,7 @@ from src.envs.ma_gym.utils.observation_space import MultiAgentObservationSpace
 logger = logging.getLogger(__name__)
 
 
-class Env(gym.Env):
+class PredatorPreyEnv(gym.Env):
     """
     Predator-prey involves a grid world, in which multiple predators attempt to capture randomly moving prey.
     Agents have a 5 × 5 view and select one of five actions ∈ {Left, Right, Up, Down, Stop} at each time step.
