@@ -198,10 +198,12 @@ class PredatorPreyEnv(gym.Env):
         #     state = None
         return _obs
 
-    def reset(self):
+    def reset(self, init_pos=None):
         self._total_episode_reward = [0 for _ in range(self.n_agents)]
         self.agent_pos = {}
         self.prey_pos = {}
+
+        # TODO handle init_pos
 
         self.__init_full_obs()
         self._step_count = 0

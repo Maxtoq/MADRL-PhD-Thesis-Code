@@ -191,11 +191,12 @@ class CommMAPPO_Shared:
 class CommMAPPO():
 
     def __init__(self, args, parser, n_agents, obs_dim, 
-                 shared_obs_dim, act_dim, device):
+                 shared_obs_dim, act_dim, device, block_comm=False):
         self.args = args
         self.n_envs = args.n_parallel_envs
         self.n_agents = n_agents
         self.device = device
+        self.block_comm = block_comm
         # self.context_dim = args.context_dim
         # self.n_envs = args.n_parallel_envs
         # self.recurrent_N = args.policy_recurrent_N
@@ -298,27 +299,32 @@ class CommMAPPO():
             all_new_joint_obs_rnn_states, all_eval_comm_action_log_probs, \
             all_eval_comm_dist_entropy
 
-    def _make_broadcasts(self, messages, perfect_messages, gen_comm):
+    def _make_broadcasts(self, messages, perfect_messages, gen_comm, lang_input=None):
         broadcasts = []
         for e_i in range(messages.shape[0]):
             env_br = []
-            for a_i in range(self.n_agents):
-                # Replace message by perfect message if not gen_comm, or if 
-                # gen_comm is not provided (means we do emergent comm)
-                if gen_comm is None or gen_comm[e_i, a_i, 0]:
-                    agent_m = messages[e_i, a_i]
-                else:
-                    agent_m = perfect_messages[e_i, a_i]
 
-                # De-pad message and add to broadcast
-                end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
-                env_br.extend(agent_m[:end_i])
+            if not self.block_comm:
+                for a_i in range(self.n_agents):
+                    # Replace message by perfect message if not gen_comm, or if 
+                    # gen_comm is not provided (means we do emergent comm)
+                    if gen_comm is None or gen_comm[e_i, a_i, 0]:
+                        agent_m = messages[e_i, a_i]
+                    else:
+                        agent_m = perfect_messages[e_i, a_i]
+
+                    # De-pad message and add to broadcast
+                    end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
+                    env_br.extend(agent_m[:end_i])
 
             # if add_message is not None:
             #     add_m = self.lang_learner.word_encoder.get_ids(add_message)
             #     env_br.extend(add_m)
 
-            env_br.append(1)
+            if lang_input is not None:
+                env_br.extend(lang_input[e_i])
+            else:
+                env_br.append(1)
             broadcasts.append(env_br)
         
         return broadcasts
@@ -340,8 +346,11 @@ class CommMAPPO():
 
     def _aggreg_messages(
             self, messages, comm_actions, perfect_messages, perfect_broadcasts, 
-            comm_eps, eval_gen_comm):
+            comm_eps, eval_gen_comm, lang_input):
         batch_size = len(perfect_messages)
+
+        if lang_input is not None:
+            _, lang_input = self.encode_perf_messages(lang_input)
 
         out_messages = None
         in_messages = np.zeros((batch_size, self.n_agents, 1))
@@ -414,7 +423,7 @@ class CommMAPPO():
                 gen_comm = eval_gen_comm
 
             broadcasts = self._make_broadcasts(
-                out_messages, perfect_messages, gen_comm)
+                out_messages, perfect_messages, gen_comm, lang_input)
 
             # Encode messages
             if type(self.lang_learner) == list:
@@ -466,7 +475,7 @@ class CommMAPPO():
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
             comm_rnn_states, masks, perfect_messages, perfect_broadcasts, 
             deterministic=False, eval_actions=None, eval_comm_actions=None,
-            comm_eps=None, eval_gen_comm=None):
+            comm_eps=None, eval_gen_comm=None, lang_input=None):
         obs = torch.from_numpy(obs).to(self.device)
         joint_obs = torch.from_numpy(joint_obs).to(self.device)
         obs_rnn_states = torch.from_numpy(obs_rnn_states).to(self.device)
@@ -495,7 +504,7 @@ class CommMAPPO():
         # Aggregate messages
         out_messages, in_messages, gen_comm = self._aggreg_messages(
             messages, comm_actions, perfect_messages, perfect_broadcasts, 
-            comm_eps, eval_gen_comm)
+            comm_eps, eval_gen_comm, lang_input)
 
         # Generate actions
         actions, action_log_probs, values, new_comm_rnn_states, \

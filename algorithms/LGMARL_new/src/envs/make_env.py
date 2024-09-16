@@ -45,10 +45,17 @@ def _get_env(cfg, init_pos):
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             no_purple=cfg.magym_no_purple,
             actual_obsrange=cfg.FT_magym_actual_obsrange)
+    elif cfg.env_name == "magym_Empty":
+        from .magym_empty.env import EmptyEnv
+        env = EmptyEnv(
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
+            n_agents=cfg.magym_n_agents, 
+            max_steps=cfg.episode_length,
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
     return env
 
 def _get_parser(cfg):
-    if "magym_PredPrey" in cfg.env_name:
+    if "magym_PredPrey" in cfg.env_name or cfg.env_name == "magym_Empty":
         from .magym_PredPrey.parser import Parser
         return Parser(cfg.magym_env_size, cfg.magym_obs_range)
     elif cfg.env_name == "magym_Lumber":

@@ -12,7 +12,7 @@ from src.utils.decay import ParameterDecay
 class LanguageGroundedMARL:
 
     def __init__(self, args, n_agents, obs_space, shared_obs_space, act_space, 
-                 parser, device="cpu", log_dir=None, comm_eps_start=1.0):
+                 parser, device="cpu", log_dir=None, comm_eps_start=1.0, block_comm=False):
         self.n_agents = n_agents
         self.n_steps = args.n_steps
         self.n_envs = args.n_parallel_envs
@@ -44,7 +44,7 @@ class LanguageGroundedMARL:
             ModelClass = CommMAPPO
         self.model = ModelClass(
             args, parser, n_agents, obs_shape, joint_obs_shape, 
-            act_dim, self.device)
+            act_dim, self.device, block_comm)
 
         self.buffer = ReplayBuffer(
             args, 
@@ -73,7 +73,7 @@ class LanguageGroundedMARL:
         self.comm_rnn_states = None
         self.gen_comm = None
 
-    def act(self, deterministic=False):
+    def act(self, deterministic=False, lang_input=None):
         obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, \
             comm_enc_rnn_states, masks, perfect_messages, perfect_broadcasts \
             = self.buffer.get_act_params()
@@ -84,7 +84,8 @@ class LanguageGroundedMARL:
             self.gen_comm = self.model.comm_n_act(
                 obs, joint_obs, obs_enc_rnn_states, joint_obs_enc_rnn_states, 
                 comm_enc_rnn_states, masks, perfect_messages,
-                perfect_broadcasts, deterministic, comm_eps=self.comm_eps.value)
+                perfect_broadcasts, deterministic, comm_eps=self.comm_eps.value, 
+                lang_input=lang_input)
 
         return self.actions, messages, None, {"len": 0} # TODO: broadcasts, messages_by_env, comm_rewards
 

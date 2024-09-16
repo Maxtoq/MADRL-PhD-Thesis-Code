@@ -173,7 +173,7 @@ def worker(remote, parent_remote, env_fn_wrapper):
 
             remote.send((ob, reward, done, info))
         elif cmd == 'reset':
-            ob = env.reset()
+            ob = env.reset(data)
             remote.send((ob))
         elif cmd == 'render':
             if data == "rgb_array":
@@ -227,9 +227,10 @@ class SubprocVecEnv(ShareVecEnv):
         obs, rews, dones, infos = zip(*results)
         return np.stack(obs), np.stack(rews), np.stack(dones), infos
 
-    def reset(self):
-        for remote in self.remotes:
-            remote.send(('reset', None))
+    def reset(self, init_pos=None):
+        for r_i, remote in enumerate(self.remotes):
+            ip = None if init_pos is None else init_pos[r_i]
+            remote.send(('reset', ip))
         obs = [remote.recv() for remote in self.remotes]
         return np.stack(obs)
 
@@ -285,8 +286,8 @@ class DummyVecEnv(ShareVecEnv):
         self.actions = None
         return obs, rews, dones, infos
 
-    def reset(self):
-        obs = [env.reset() for env in self.envs]
+    def reset(self, init_pos=None):
+        obs = [env.reset(init_pos) for env in self.envs]
         return np.array(obs)
 
     def close(self):

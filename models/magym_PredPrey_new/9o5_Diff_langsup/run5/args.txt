@@ -38,7 +38,7 @@ Parameters:
     "model_dir": null,
     "context_dim": 16,
     "lang_embed_dim": 4,
-    "lang_hidden_dim": 32,
+    "lang_hidden_dim": 64,
     "lang_lr": 0.007,
     "lang_batch_size": 1024,
     "lang_temp": 1.0,
