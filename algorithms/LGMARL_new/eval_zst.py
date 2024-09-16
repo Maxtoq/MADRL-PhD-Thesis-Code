@@ -163,4 +163,5 @@ if __name__ == '__main__':
         returns[i] = run_eval(cfg)
 
     print(returns, returns.mean(), returns.std(), np.median(returns))
+    print(cfg.model_dir)
     
