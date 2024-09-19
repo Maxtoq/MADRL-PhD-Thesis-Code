@@ -57,6 +57,7 @@ def load_args(cfg, eval=False):
                 if "n_eval_runs" in args:
                     args.pop("n_eval_runs")
                 args.pop("rollout_length")
+                args.pop("episode_length")
                 # args.pop("n_eval_runs")
 
             # if "no_render" in args:
