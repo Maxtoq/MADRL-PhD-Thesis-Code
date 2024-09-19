@@ -1045,6 +1045,14 @@ models/magym_PredPrey_new/9o5_Diff_langsup/run10/*
 !models/magym_PredPrey_new/9o5_Diff_langsup/run10/model_ep.pt
 !models/magym_PredPrey_new/9o5_Diff_langsup/run10/args.txt
 
+!models/magym_PredPrey_new/9o5_noc+lang
+models/magym_PredPrey_new/9o5_noc+lang/*
+!models/magym_PredPrey_new/9o5_noc+lang/train_data
+
+!models/magym_PredPrey_new/9o5_obs
+models/magym_PredPrey_new/9o5_obs/*
+!models/magym_PredPrey_new/9o5_obs/train_data
+
 !models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc
 models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc/*
 !models/magym_PredPrey_new/Adapt_9o5SA-noSA_Diff_noc/train_data
