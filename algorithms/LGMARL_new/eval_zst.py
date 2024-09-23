@@ -144,7 +144,7 @@ def run_eval(cfg):
     envs.close()
 
     # print("Done", len(returns), "complete episodes.")
-    # print("Returns", returns)
+    # print("Returns", returns[:24])
     # print("Mean return:", sum(returns) / len(returns))
 
     return sum(returns) / len(returns)
@@ -157,18 +157,18 @@ if __name__ == '__main__':
     random.seed(cfg.seed)
 
     returns = np.zeros(cfg.n_eval_runs)
-    # returns = []
+    seeds = []
     for i in trange(cfg.n_eval_runs):
         # print(f"Run {i + 1}/{cfg.n_eval_runs}")
-        cfg.seed = random.randint(0, 1000000)
+        s = random.randint(0, 1000000)
+        while s in seeds:
+            print("SAME SEED")
+            random.seed(s)
+            s = random.randint(0, 1000000)
+        cfg.seed = s
+        # print(cfg.seed)
         # cfg.seed = [314932, ]
         returns[i] = run_eval(cfg)
-        # r = run_eval(cfg)
-        # if r in returns:
-        #     print("SAMEEEEEEEEEEEEEE", cfg.seed, r)
-        # else:
-        #     print(cfg.seed, r)
-        # returns.append(r)
 
     print(returns, returns.mean(), returns.std(), np.median(returns))
     print(cfg.model_dir)
