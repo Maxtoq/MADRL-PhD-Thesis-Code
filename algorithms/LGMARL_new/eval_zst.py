@@ -165,6 +165,7 @@ if __name__ == '__main__':
             print("SAME SEED")
             random.seed(s)
             s = random.randint(0, 1000000)
+        seeds.append(s)
         cfg.seed = s
         # print(cfg.seed)
         # cfg.seed = [314932, ]

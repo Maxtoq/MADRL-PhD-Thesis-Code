@@ -1,5 +1,5 @@
 #!/bin/sh
-n_run=5
+n_run=2
 experiment_name="Ad_9o5SA-15o5_perf"
 n_steps=10000000
 lr=0.0005 # default 0.0005
@@ -7,7 +7,7 @@ FT_env_name="magym_PredPrey_new"
 FT_magym_env_size=15
 FT_magym_actual_obsrange=5
 model_dir="models/magym_PredPrey_new/9o5SA_Diff_perf/run17/"
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
