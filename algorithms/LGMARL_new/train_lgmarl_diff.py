@@ -118,9 +118,12 @@ def run():
             model.store_exp(obs, parsed_obs, rewards, dones)
 
         # Training
+        train_lang = True
+        if cfg.FT_freeze_lang_after_n is not None and s_i >= cfg.FT_freeze_lang_after_n:
+            train_lang = False
         train_losses = model.train(
             s_i + n_steps_per_update,
-            train_lang=not cfg.FT_freeze_lang)
+            train_lang=train_lang)
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
