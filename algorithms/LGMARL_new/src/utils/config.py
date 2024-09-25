@@ -137,6 +137,7 @@ def get_config():
     parser.add_argument("--FT_magym_env_size", type=int, default=None)
     parser.add_argument("--FT_magym_actual_obsrange", type=int, default=None)
     parser.add_argument("--FT_freeze_lang_after_n", default=None, type=int)
+    parser.add_argument("--FT_comm_eps_start", default=1.0, type=float)
     parser.add_argument("--FT_magym_not_see_agents", default=None, action="store_true")
 
     # eval parameters
