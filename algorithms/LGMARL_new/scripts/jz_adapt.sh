@@ -9,7 +9,7 @@
 
 source venv/bin/activate
 
-n_run=2
+n_run=1
 experiment_name="Ad_9o5SA_15o5_langsup_frzl500k"
 n_steps=10000000
 lr=0.0005 # default 0.0005

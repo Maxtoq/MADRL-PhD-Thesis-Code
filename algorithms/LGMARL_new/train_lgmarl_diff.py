@@ -32,7 +32,6 @@ def run():
         print("Starting from pretrained model with config:")
         print(cfg)
         comm_eps_start = cfg.FT_comm_eps_start
-        exit()
     else:
         comm_eps_start = 1.0
 
