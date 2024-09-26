@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=15edl
+#SBATCH --job-name=SA15ec2
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -27,12 +27,12 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 lang_hidden_dim=64
 
-n_run=2
-experiment_name="15o5_edl"
+n_run=5
+experiment_name="15o5SA_ec2"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="emergent_discrete_lang" # default language
-context_dim=16 # default 16
+comm_type="emergent_continuous" # default language
+context_dim=2 # default 16
 lang_lr=0.007 # default 0.007
 cuda_device="cuda:0"
 
@@ -70,8 +70,8 @@ do
     --magym_env_size ${magym_env_size}
     --magym_obs_range ${magym_obs_range}
     --magym_n_agents ${magym_n_agents}
-    --dyna_weight_loss"
-    # --magym_see_agents"
+    --dyna_weight_loss
+    --magym_see_agents"
     # --share_params"
     # --lang_imp_sample"
     # --log_comm"
