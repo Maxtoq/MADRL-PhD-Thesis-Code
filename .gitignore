@@ -1134,7 +1134,7 @@ models/magym_PredPrey_new/Ad_9o5SA_15o5_noc/*
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_noc/train_data
 
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl500k
-models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl500k
+models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl500k/*
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl500k/train_data
 
 !models/magym_PredPrey_new/15o5_perf
