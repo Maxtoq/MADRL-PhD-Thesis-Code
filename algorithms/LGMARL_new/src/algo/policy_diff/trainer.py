@@ -409,6 +409,18 @@ class Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(env_value_loss)
 
+        if "language" in self.model.comm_type:
+            if messages.shape[-1] != perf_messages_batch.shape[-1]:
+                pad = np.zeros(
+                    (*messages.shape[:-1], 
+                     perf_messages_batch.shape[-1] - messages.shape[-1]))
+                messages = np.concatenate((messages, pad), axis=-1)
+            n_perf_messages = np.all(
+                messages == perf_messages_batch, axis=-1).sum()
+            ratio_gen_perf = n_perf_messages / (
+                messages.shape[0] * messages.shape[1])
+            log_losses["ratio_gen_perf"] = ratio_gen_perf
+
         # Language losses
         if train_lang:
             # Sample a mini-batch
@@ -477,8 +489,8 @@ class Trainer:
             a.comm_optim.zero_grad()
             a.critic_optim.zero_grad()
         # self.agents[agent_i].critic_optim.zero_grad()
-        # if train_lang:
-        self.model.lang_learner.optim.zero_grad()
+        if train_lang or self.model.comm_type == "emergent_discrete":
+            self.model.lang_learner.optim.zero_grad()
         loss.backward()
 
         # Clip gradients
@@ -494,8 +506,8 @@ class Trainer:
             a.comm_optim.step()
             a.critic_optim.step()
         # self.agents[agent_i].critic_optim.step()
-        # if train_lang:
-        self.model.lang_learner.optim.step()
+        if train_lang or self.model.comm_type == "emergent_discrete":
+            self.model.lang_learner.optim.step()
 
         return log_losses
 
@@ -514,16 +526,18 @@ class Trainer:
         act_advantages, comm_advantages = self._compute_advantages(
             train_comm_head)
         
-        losses = {
-            "env_value_loss": 0.0,
-            "actor_loss": 0.0}
-        if train_comm_head:
-            losses["comm_value_loss"] = 0.0
-            losses["comm_loss"] = 0.0
-        if train_lang:
-            losses["clip_loss"] = 0.0
-            losses["mean_sim"] = 0.0
-            losses["capt_loss"] = 0.0
+        losses = {}
+        #     "env_value_loss": 0.0,
+        #     "actor_loss": 0.0}
+        # if train_comm_head:
+        #     losses["comm_value_loss"] = 0.0
+        #     losses["comm_loss"] = 0.0
+        # if train_lang:
+        #     losses["clip_loss"] = 0.0
+        #     losses["mean_sim"] = 0.0
+        #     losses["capt_loss"] = 0.0
+        # if "language" in self.model.comm_type:
+        #     losses["ratio_gen_perf"] = 0.0
 
         # Train policy
         num_updates = self.ppo_epoch * self.n_mini_batch
@@ -554,8 +568,17 @@ class Trainer:
                 #         for key in loss:
                 #             losses[key] += loss[key] / (
                 #                 num_updates * len(self.agents))
-                losses = self._train_mappo_diff(
+                loss = self._train_mappo_diff(
                     sample, train_comm_head, train_lang)
+                for k in loss:
+                    if k in losses:
+                        if k != "ratio_gen_perf":
+                            losses[k] += loss[k] / num_updates
+                    else:
+                        if k != "ratio_gen_perf":
+                            losses[k] = loss[k] / num_updates
+                        else:
+                            losses[k] = loss[k]
 
         return losses
 

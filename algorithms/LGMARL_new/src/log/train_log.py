@@ -16,7 +16,7 @@ class Logger():
         self.log_dir_path = log_dir_path
         self.max_ep_length = args.episode_length
         self.log_tensorboard = args.log_tensorboard
-        self.n_parrallel_envs = args.n_parallel_envs
+        self.n_parallel_envs = args.n_parallel_envs
         self.do_eval = args.do_eval
 
         self.train_data = {
@@ -25,9 +25,14 @@ class Logger():
             "Success": [],
             "Episode length": []
         }
-        self.returns = np.zeros(self.n_parrallel_envs)
-        self.success = [False] * self.n_parrallel_envs
-        self.ep_lengths = np.zeros(self.n_parrallel_envs)
+        self.returns = np.zeros(self.n_parallel_envs)
+        self.success = [False] * self.n_parallel_envs
+        self.ep_lengths = np.zeros(self.n_parallel_envs)
+
+        self.ratio_gen_perf = {
+            "Step": [],
+            "Ratio_gen_perf": []
+        }
 
         self.eval_data = {
             "Step": [],
@@ -42,9 +47,9 @@ class Logger():
         self.n_step_done = n_steps_done
 
     def reset_all(self):
-        self.returns = np.zeros(self.n_parrallel_envs)
-        self.success = [False] * self.n_parrallel_envs
-        self.ep_lengths = np.zeros(self.n_parrallel_envs)
+        self.returns = np.zeros(self.n_parallel_envs)
+        self.success = [False] * self.n_parallel_envs
+        self.ep_lengths = np.zeros(self.n_parallel_envs)
 
     def _reset_env(self, env_i):
         self.returns[env_i] = 0.0
@@ -67,7 +72,7 @@ class Logger():
     def count_returns(self, step, rewards, dones):
         global_rewards = rewards.mean(axis=1)
         global_dones = dones.all(axis=1)
-        for e_i in range(self.n_parrallel_envs):
+        for e_i in range(self.n_parallel_envs):
             self.returns[e_i] += global_rewards[e_i]
             self.ep_lengths[e_i] += 1
             if global_dones[e_i]:
@@ -109,6 +114,10 @@ class Logger():
             self.log_tb.add_scalars(
                 'agent0/losses', losses, step)
 
+        if "ratio_gen_perf" in losses:
+            self.ratio_gen_perf["Step"].append(step)
+            self.ratio_gen_perf["Ratio_gen_perf"].append(losses["ratio_gen_perf"])
+
     def log_eval(self, step, mean_return, success_rate, mean_ep_len):
         self.eval_data["Step"].append(step)
         self.eval_data["Mean return"].append(mean_return)
@@ -123,9 +132,16 @@ class Logger():
         if os.path.isfile(train_path):
             previous_data = pd.read_csv(train_path)
             train_df = pd.concat([previous_data, train_df], ignore_index=True)
-
         train_df.to_csv(train_path)
 
+        if len(self.ratio_gen_perf["Step"]) > 0:
+            rgp_df = pd.DataFrame(self.ratio_gen_perf)
+            # Append to previous data
+            rgp_path = str(self.log_dir_path / 'comm_data.csv')
+            if os.path.isfile(rgp_path):
+                previous_data = pd.read_csv(rgp_path, index_col=0)
+                rgp_df = pd.concat([previous_data, rgp_df], ignore_index=True)
+            rgp_df.to_csv(rgp_path)
 
         if self.do_eval:
             eval_df = pd.DataFrame(self.eval_data)

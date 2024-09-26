@@ -100,6 +100,9 @@ def run():
             # Get action
             actions, broadcasts, agent_messages, comm_rewards \
                 = model.act()
+            # print(parsed_obs)
+            # print(broadcasts)
+            # exit()
 
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
@@ -110,8 +113,8 @@ def run():
 
             # Log rewards
             logger.count_returns(s_i, rewards, dones)
-            logger.log_comm(
-                s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
+            # logger.log_comm(
+            #     s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
 
             # Insert data into policy buffer
             parsed_obs = parser.get_perfect_messages(obs)
