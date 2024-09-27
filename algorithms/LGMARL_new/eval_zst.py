@@ -3,6 +3,7 @@ import json
 import time
 import random
 import numpy as np
+import pandas as pd
 
 from tqdm import trange
 
@@ -30,17 +31,29 @@ def interact(cfg):
         add_mess = None
     return add_mess
 
-def run_eval(cfg):
+def get_team_compo(paths, team_compo):
+    ids = list(range(len(paths)))
+    random.shuffle(ids)
+
+    team = [paths[ids[team_compo[i]]] for i in range(len(ids))]
+    return team
+
+def run_eval(cfg, team_compo):
+    set_seeds(cfg.seed)
+
     # Get pretrained stuff
     assert cfg.model_dir is not None, "Must provide model_dir"
     load_args(cfg, eval=True)
     if ',' in cfg.model_dir:
         paths = cfg.model_dir.split(',')
+
+        used_paths = get_team_compo(paths, team_compo)
+
         pretrained_model_path = []
-        for p in paths:
+        for p in used_paths:
             pretrained_model_path.append(os.path.join(p, "model_ep.pt"))
             assert os.path.isfile(pretrained_model_path[-1]), "No model checkpoint found at" + str(pretrained_model_path[-1])
-        # print("Loading checkpoints from runs", paths)
+        # print("Loading checkpoints from runs", used_paths)
     else:
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint found at" + str(pretrained_model_path)
@@ -50,7 +63,6 @@ def run_eval(cfg):
     # if cfg.comm_type == "perfect":
     #     cfg.comm_type = "language_sup"
 
-    set_seeds(cfg.seed)
 
     # Set training device
     device = set_cuda_device(cfg)
@@ -156,21 +168,37 @@ if __name__ == '__main__':
 
     random.seed(cfg.seed)
 
-    returns = np.zeros(cfg.n_eval_runs)
-    seeds = []
-    for i in trange(cfg.n_eval_runs):
-        # print(f"Run {i + 1}/{cfg.n_eval_runs}")
-        s = random.randint(0, 1000000)
-        while s in seeds:
-            print("SAME SEED")
-            random.seed(s)
+    team_compo = [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 2], [0, 1, 2, 3]]
+    results = {
+        "Team compo": [],
+        "Mean return": [],
+        "Std": []
+    }
+    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log.csv"
+    for tc in team_compo:
+        print("Evaluating team composition:", tc)
+        returns = np.zeros(cfg.n_eval_runs)
+        seeds = []
+        for i in trange(cfg.n_eval_runs):
+            # print(f"Run {i + 1}/{cfg.n_eval_runs}")
             s = random.randint(0, 1000000)
-        seeds.append(s)
-        cfg.seed = s
-        # print(cfg.seed)
-        # cfg.seed = [314932, ]
-        returns[i] = run_eval(cfg)
+            # Break seed looping
+            s_i = 0
+            while s in seeds:
+                print("SAME SEED")
+                random.seed(s + s_i * 1000)
+                s_i += 1
+                s = random.randint(0, 1000000)
+            seeds.append(s)
+            cfg.seed = s
 
-    print(returns, returns.mean(), returns.std(), np.median(returns))
-    print(cfg.model_dir)
+            returns[i] = run_eval(cfg, tc)
+
+        # TODO log results into file
+        results["Team compo"].append(tc)
+        results["Mean return"].append(returns.mean())
+        results["Std"].append(returns.std())
+        
+        df = pd.DataFrame(results)
+        df.to_csv(log_file_path, mode='w')
     

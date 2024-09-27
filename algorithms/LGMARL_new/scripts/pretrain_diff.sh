@@ -15,14 +15,14 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=2
-experiment_name="9o5_lang"
+n_run=1
+experiment_name="9o5_Diff_perf"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="language_sup" # default language
+comm_type="perfect" # default language
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
-cuda_device="cuda:1"
+cuda_device="cuda:3"
 
 magym_env_size=9
 magym_obs_range=5 # default 5
@@ -33,7 +33,7 @@ source venv3.8/bin/activate
 for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
-    seed=$RANDOM
+    seed=30711 #$RANDOM
     comm="python algorithms/LGMARL_new/train_lgmarl_diff.py --seed ${seed}
     --experiment_name ${experiment_name}
     --n_parallel_envs ${n_parallel_envs}

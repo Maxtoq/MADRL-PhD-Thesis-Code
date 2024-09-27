@@ -92,7 +92,7 @@ def get_config():
 
     # Language Learning parameters
     parser.add_argument("--lang_embed_dim", type=int, default=4)
-    parser.add_argument("--lang_hidden_dim", type=int, default=32)
+    parser.add_argument("--lang_hidden_dim", type=int, default=64)
     parser.add_argument("--lang_lr", type=float, default=0.007)
     parser.add_argument("--lang_batch_size", type=int, default=256,
                         help="Number of steps sampled in batch for CLIP training.")
