@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=adapt
+#SBATCH --job-name=ad24ec2
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=5000
@@ -10,14 +10,14 @@
 
 source venv/bin/activate
 
-n_run=7
-experiment_name="Adapt_9o5SA-noSA_Diff_edl"
-n_steps=5000000
+n_run=9
+experiment_name="Ad_9o5SA_24o5_ec2"
+n_steps=10000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey_new"
-FT_magym_env_size=9
+FT_magym_env_size=24
 FT_magym_actual_obsrange=5
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run10/"
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run21/"
 cuda_device="cuda:0"
 
 for n in $(seq 1 $n_run)
@@ -32,8 +32,8 @@ do
     --lr ${lr}
     --FT_magym_env_size ${FT_magym_env_size}
     --cuda_device ${cuda_device}
-    --adapt_run
-    --FT_magym_not_see_agents"
+    --adapt_run"
+    #--FT_magym_not_see_agents"
     # --FT_freeze_lang"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
     eval $comm

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=edl
+#SBATCH --job-name=SA15noc
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=5000
@@ -25,18 +25,18 @@ comm_token_penalty=0.001
 lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
-lang_hidden_dim=32
+lang_hidden_dim=64
 
-n_run=1
-experiment_name="9o5_Diff_edl"
+n_run=7
+experiment_name="15o5SA_Diff_noc"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="emergent_discrete_lang" # default language
+comm_type="no_comm" # default language
 context_dim=16 # default 16
 lang_lr=0.0005 # default 0.007
 cuda_device="cuda:0"
 
-magym_env_size=9
+magym_env_size=15
 magym_obs_range=5 # default 5
 magym_n_agents=4
 
@@ -70,8 +70,8 @@ do
     --magym_env_size ${magym_env_size}
     --magym_obs_range ${magym_obs_range}
     --magym_n_agents ${magym_n_agents}
-    --dyna_weight_loss"
-    # --magym_see_agents"
+    --dyna_weight_loss
+    --magym_see_agents"
     # --share_params"
     # --lang_imp_sample"
     # --log_comm"

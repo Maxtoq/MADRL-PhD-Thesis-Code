@@ -31,7 +31,7 @@ def run():
         assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
         print("Starting from pretrained model with config:")
         print(cfg)
-        comm_eps_start = 1.0
+        comm_eps_start = cfg.FT_comm_eps_start
     else:
         comm_eps_start = 1.0
 
@@ -100,6 +100,9 @@ def run():
             # Get action
             actions, broadcasts, agent_messages, comm_rewards \
                 = model.act()
+            # print(parsed_obs)
+            # print(broadcasts)
+            # exit()
 
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
@@ -110,17 +113,20 @@ def run():
 
             # Log rewards
             logger.count_returns(s_i, rewards, dones)
-            logger.log_comm(
-                s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
+            # logger.log_comm(
+            #     s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
 
             # Insert data into policy buffer
             parsed_obs = parser.get_perfect_messages(obs)
             model.store_exp(obs, parsed_obs, rewards, dones)
 
         # Training
+        train_lang = True
+        if cfg.FT_freeze_lang_after_n is not None and s_i >= cfg.FT_freeze_lang_after_n:
+            train_lang = False
         train_losses = model.train(
             s_i + n_steps_per_update,
-            train_lang=not cfg.FT_freeze_lang)
+            train_lang=train_lang)
 
         # Log train data
         logger.log_losses(train_losses, s_i + n_steps_per_update)
