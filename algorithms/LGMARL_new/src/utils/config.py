@@ -108,11 +108,13 @@ def get_config():
     # Communication parameters
     parser.add_argument("--comm_type", default="no_comm", 
                         choices=["language_sup", "emergent_continuous", "no_comm",
-                            "emergent_discrete_lang", "perfect", "obs", "no_comm+lang"])
+                            "emergent_discrete_lang", "perfect", "obs", "no_comm+lang", 
+                            "perfect+no_lang"])
     parser.add_argument("--comm_ec_strategy", default="cat", 
                         choices=["cat", "sum", "mean", "random", "nn"],
                         help="When doing emergent continuous communication, strategy for transforming incoming messages into the social context.")
     parser.add_argument("--comm_eps_smooth", type=float, default=1.0)
+    parser.add_argument("--comm_eps_nsteps", default=None, type=int)
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
     parser.add_argument("--comm_train_topk", type=int, default=1, 

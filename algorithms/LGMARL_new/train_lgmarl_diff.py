@@ -29,11 +29,15 @@ def run():
         steps_done = load_args(cfg)
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
+
+        comm_eps_start = cfg.FT_comm_eps_start
+        cfg.comm_eps_nsteps = cfg.FT_freeze_lang_after_n
+
         print("Starting from pretrained model with config:")
         print(cfg)
-        comm_eps_start = cfg.FT_comm_eps_start
     else:
         comm_eps_start = 1.0
+        comm_eps_nsteps = cfg.comm_eps_nsteps
 
     # Set training step (if continue previous run)
     if cfg.continue_run:
@@ -74,7 +78,8 @@ def run():
         parser, 
         device,
         log_dir,
-        comm_eps_start)
+        comm_eps_start,
+        cfg.comm_eps_nsteps)
 
     # Load params
     if cfg.model_dir is not None:
@@ -100,9 +105,6 @@ def run():
             # Get action
             actions, broadcasts, agent_messages, comm_rewards \
                 = model.act()
-            # print(parsed_obs)
-            # print(broadcasts)
-            # exit()
 
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)

@@ -423,6 +423,10 @@ class Trainer:
 
         # Language losses
         if train_lang:
+            if self.model.comm_type == "perfect+no_lang":
+                lang_obs_enc = lang_obs_enc.detach()
+                comm_actions = comm_actions.detach()
+
             # Sample a mini-batch
             batch_size = min(
                 len(perf_broadcasts_batch) * self.model.n_agents, 

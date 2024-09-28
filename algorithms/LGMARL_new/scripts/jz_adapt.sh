@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=10M
+#SBATCH --job-name=10k
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -10,14 +10,14 @@
 source venv/bin/activate
 
 n_run=1
-experiment_name="Ad_9o5SA_15o5_langsup"
+experiment_name="Ad_9o5SA_15o5_langsup_frzlCE10k"
 n_steps=10000000
 lr=0.0005 # default 0.0005
 FT_env_name="magym_PredPrey_new"
 FT_magym_env_size=15
 FT_magym_actual_obsrange=5
-FT_freeze_lang_after_n=10000000
-FT_comm_eps_start=0.0
+FT_freeze_lang_after_n=10000 # default None
+FT_comm_eps_start=1.0 # default 1.0
 model_dir="models/magym_PredPrey_new/9o5SA_Diff_langsup/run4/"
 cuda_device="cuda:0"
 

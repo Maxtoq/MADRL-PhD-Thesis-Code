@@ -231,7 +231,7 @@ class CommMAPPO():
             a.to(self.device)
             a.set_device(self.device)
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                "emergent_discrete_lang", "no_comm+lang"]:
+                "emergent_discrete_lang", "no_comm+lang", "perfect+no_lang"]:
             if type(self.lang_learner) == list:
                 for ll in self.lang_learner:
                     ll.prep_rollout(self.device)
@@ -246,7 +246,7 @@ class CommMAPPO():
             a.to(self.device)
             a.set_device(self.device)
         if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                "emergent_discrete_lang", "no_comm+lang"]:
+                "emergent_discrete_lang", "no_comm+lang", "perfect+no_lang"]:
             if type(self.lang_learner) == list:
                 for ll in self.lang_learner:
                     ll.prep_training(self.device)
@@ -389,7 +389,7 @@ class CommMAPPO():
                 in_messages = in_messages.repeat(1, self.n_agents).reshape(
                     batch_size, self.n_agents, -1)
 
-        elif self.comm_type == "perfect":
+        elif "perfect" in self.comm_type:
             out_messages = np.stack(messages, axis=1)
             if type(self.lang_learner) == list:
                 in_messages = []
@@ -400,6 +400,9 @@ class CommMAPPO():
                 in_messages = self.lang_learner.encode_sentences(perfect_broadcasts)
                 in_messages = in_messages.repeat(1, self.n_agents).reshape(
                     batch_size, self.n_agents, -1)
+
+                if self.comm_type == "perfect+no_lang":
+                    in_messages = in_messages.detach()
 
         elif self.comm_type == "language_sup":
             # Generate messages
@@ -559,7 +562,8 @@ class CommMAPPO():
                 eval_comm_action_log_probs = None
                 eval_comm_dist_entropy = None
 
-            if self.comm_type in ["perfect", "language_sup", "no_comm+lang"]:
+            if self.comm_type in [
+                    "perfect", "language_sup", "no_comm+lang", "perfect+no_lang"]:
                 # enc_perf_br = torch.stack(enc_perf_br, dim=1)
                 # TODO for training sep ll
                 if type(self.lang_learner) == list:
@@ -620,7 +624,7 @@ class CommMAPPO():
                 a.load_state_dict(ap)
 
             if self.comm_type in ["perfect", "language_sup", "language_rl", 
-                    "emergent_discrete_lang", "no_comm+lang"]:
+                    "emergent_discrete_lang", "no_comm+lang", "perfect+no_lang"]:
                 self.lang_learner.load_state_dict(params["acc"]["lang_learner"])
 
     # def load_zeroshot_team(self, param_list):
