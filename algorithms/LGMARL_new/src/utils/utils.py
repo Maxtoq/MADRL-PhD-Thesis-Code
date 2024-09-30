@@ -73,7 +73,8 @@ def load_args(cfg, eval=False):
 
             for a in args:
                 if not hasattr(cfg, a):
-                    print(f"WARNING: Argument {a} not found in config.")
+                    # print(f"WARNING: Argument {a} not found in config.")
+                    pass
                 else:
                     setattr(cfg, a, args[a])
 
