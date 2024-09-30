@@ -1158,6 +1158,26 @@ models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl1M/*
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl1M/train_data
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzl1M/comm_data
 
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE50k
+models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE50k/*
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE50k/train_data
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE50k/comm_data
+
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE100k
+models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE100k/*
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE100k/train_data
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE100k/comm_data
+
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE500k
+models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE500k/*
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE500k/train_data
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE500k/comm_data
+
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE1M
+models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE1M/*
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE1M/train_data
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE1M/comm_data
+
 !models/magym_PredPrey_new/15o5_perf
 models/magym_PredPrey_new/15o5_perf/*
 !models/magym_PredPrey_new/15o5_perf/train_data
