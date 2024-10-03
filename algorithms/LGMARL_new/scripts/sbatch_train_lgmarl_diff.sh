@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=SA15noc
+#SBATCH --job-name=SA9perf_nolang
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=5000
@@ -28,15 +28,15 @@ lang_embed_dim=4 # default 4
 lang_hidden_dim=64
 
 n_run=7
-experiment_name="15o5SA_Diff_noc"
+experiment_name="9o5SA_perf+nolang"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="no_comm" # default language
+comm_type="perfect+no_lang" # default language
 context_dim=16 # default 16
 lang_lr=0.0005 # default 0.007
 cuda_device="cuda:0"
 
-magym_env_size=15
+magym_env_size=9
 magym_obs_range=5 # default 5
 magym_n_agents=4
 
