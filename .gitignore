@@ -1193,6 +1193,11 @@ models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE2M/*
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE2M/train_data
 !models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE2M/comm_data
 
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE5M
+models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE5M/*
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE5M/train_data
+!models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup_frzlCE5M/comm_data
+
 !models/magym_PredPrey_new/15o5_perf
 models/magym_PredPrey_new/15o5_perf/*
 !models/magym_PredPrey_new/15o5_perf/train_data
