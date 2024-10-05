@@ -94,6 +94,7 @@ def run():
     # Reset env
     last_save_step = 0
     last_eval_step = 0
+    last_scale_step = 0
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
     model.init_episode(obs, parsed_obs)
@@ -142,10 +143,16 @@ def run():
             if cfg.save_increments:
                 model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
 
-        if cfg.magym_scaleenv_after_n is not None and s_i + n_steps_per_update >= cfg.magym_scaleenv_after_n:
+        if cfg.magym_scaleenv_after_n is not None and \
+                s_i + n_steps_per_update - last_scale_step >= cfg.magym_scaleenv_after_n:
+            last_scale_step = s_i + n_steps_per_update
+
             envs.close()
+
             cfg.magym_env_size += 3
             envs, parser = make_env(cfg, cfg.n_parallel_envs)
+            write_params(run_dir, cfg)
+
             obs = envs.reset()
             parsed_obs = parser.get_perfect_messages(obs)
             model.init_episode(obs, parsed_obs)

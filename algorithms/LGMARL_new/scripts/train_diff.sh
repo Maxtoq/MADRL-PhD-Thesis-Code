@@ -1,6 +1,6 @@
 #!/bin/sh
 n_parallel_envs=250
-n_steps=10000000
+n_steps=5000000
 hidden_dim=64 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
@@ -15,26 +15,26 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=5
-experiment_name="9o5SA_obs"
+n_run=1
+experiment_name="2a6-9o5SA_langsup"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="obs" # default language
+comm_type="language_sup" # default language
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
-cuda_device="cuda:3"
+cuda_device="cuda:1"
 
-magym_env_size=9
+magym_env_size=6
 magym_obs_range=5 # default 5
-magym_n_agents=4
-magym_scaleenv_after_n=10000000
+magym_n_agents=2
+magym_scaleenv_after_n=3000000
 
 source venv3.8/bin/activate
 
 for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
-    seed=$RANDOM
+    seed=1453 # $RANDOM
     comm="python algorithms/LGMARL_new/train_lgmarl_diff.py --seed ${seed}
     --experiment_name ${experiment_name}
     --n_parallel_envs ${n_parallel_envs}

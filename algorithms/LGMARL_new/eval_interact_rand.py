@@ -74,34 +74,13 @@ def run_eval(cfg):
         ["Prey", "South", "East"],
         []
     ]
-    interact_logs = {
-        "Message":[],
-        "A0a0": [],
-        "A0a1": [],
-        "A0a2": [],
-        "A0a3": [],
-        "A0a4": [],
-        "A1a0": [],
-        "A1a1": [],
-        "A1a2": [],
-        "A1a3": [],
-        "A1a4": [],
-        "A2a0": [],
-        "A2a1": [],
-        "A2a2": [],
-        "A2a3": [],
-        "A2a4": [],
-        "A3a0": [],
-        "A3a1": [],
-        "A3a2": [],
-        "A3a3": [],
-        "A3a4": []
-    }
-    # for sp in sent_pos_test_pairs.copy():
-    #     sent_pos_test_pairs.append(([], sp[1]))
-    # interact_log = pd.DataFrame({
-    #     "Message": [sp[0] for sp in sent_pos_test_pairs],
-    #     "Init_pos": [sp[1] for sp in sent_pos_test_pairs]})
+    interact_logs = { "Message":[] }
+    for a_i in range(cfg.magym_n_agents):
+        interact_logs[f"A{a_i}a0"] = []
+        interact_logs[f"A{a_i}a1"] = []
+        interact_logs[f"A{a_i}a2"] = []
+        interact_logs[f"A{a_i}a3"] = []
+        interact_logs[f"A{a_i}a4"] = []
     
     # Create train environment
     cfg.env_name = "magym_Empty"
@@ -170,10 +149,10 @@ def run_eval(cfg):
         
         agent_actions = np.concatenate(performed_actions).squeeze(-1).T
         interact_logs["Message"].append(tm)
-        for ag_i in range(4):
+        for ag_i in range(cfg.magym_n_agents):
             for a_i in range(5):
                 action_count = (agent_actions[ag_i] == a_i).sum()
-                interact_logs['A' + str(ag_i) + 'a' + str(a_i)].append(
+                interact_logs[f"A{ag_i}a{a_i}"].append(
                     action_count / agent_actions.shape[-1])
     envs.close()
 

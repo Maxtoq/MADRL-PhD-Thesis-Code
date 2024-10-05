@@ -248,8 +248,8 @@ class SubprocVecEnv(ShareVecEnv):
         for remote in self.remotes:
             remote.send(('close', None))
         for p in self.ps:
-            p.close()
             p.join()
+            p.close()
         self.closed = True
 
     def render(self, mode="rgb_array"):
