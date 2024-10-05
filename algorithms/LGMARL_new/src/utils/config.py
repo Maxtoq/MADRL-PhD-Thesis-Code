@@ -132,6 +132,7 @@ def get_config():
     parser.add_argument("--magym_obs_range", type=int, default=5)
     parser.add_argument("--magym_no_purple", default=False, action="store_true")
     parser.add_argument("--magym_see_agents", default=False, action="store_true")
+    parser.add_argument("--magym_scaleenv_after_n", default=None, type=int)
 
 
     # Fine-tuning parameters

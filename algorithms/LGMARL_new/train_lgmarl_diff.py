@@ -141,6 +141,14 @@ def run():
             last_save_step = s_i + n_steps_per_update
             if cfg.save_increments:
                 model.save(run_dir / "incremental" / f"model_ep{last_save_step}.pt")
+
+        if cfg.magym_scaleenv_after_n is not None and s_i + n_steps_per_update >= cfg.magym_scaleenv_after_n:
+            envs.close()
+            cfg.magym_env_size += 3
+            envs, parser = make_env(cfg, cfg.n_parallel_envs)
+            obs = envs.reset()
+            parsed_obs = parser.get_perfect_messages(obs)
+            model.init_episode(obs, parsed_obs)
             
     envs.close()
     # Save model and training data
