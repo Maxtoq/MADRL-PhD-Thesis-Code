@@ -409,6 +409,7 @@ class Trainer:
             comm_loss = torch.zeros_like(actor_loss)
             comm_value_loss = torch.zeros_like(env_value_loss)
 
+        # Compute ratio of generated sentence that are equal to the perfect sentence
         if "language" in self.model.comm_type:
             if messages.shape[-1] != perf_messages_batch.shape[-1]:
                 pad = np.zeros(

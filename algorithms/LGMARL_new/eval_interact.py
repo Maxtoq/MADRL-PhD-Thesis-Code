@@ -236,8 +236,8 @@ def run_eval(cfg):
             init_positions = json.load(f)
 
     sent_pos_test_pairs = get_sentence_pos_pairs()
-    for sp in sent_pos_test_pairs.copy():
-        sent_pos_test_pairs.append(([], sp[1]))
+    # for sp in sent_pos_test_pairs.copy():
+    #     sent_pos_test_pairs.append(([], sp[1]))
     interact_log = pd.DataFrame({
         "Message": [sp[0] for sp in sent_pos_test_pairs],
         "Init_pos": [sp[1] for sp in sent_pos_test_pairs]})
@@ -282,7 +282,7 @@ def run_eval(cfg):
         actions, agent_messages, _, comm_rewards \
             = model.act(
                 deterministic=True, 
-                lang_input=[[sp[0]] for sp in sent_pos_test_pairs])# if ep_s_i == 0 else None)
+                lang_input=[[sp[0]] for sp in sent_pos_test_pairs] if ep_s_i == 0 else None)
 
         for a_i in range(4):
             interact_log["T" + str(ep_s_i) + "A" + str(a_i)] = actions.squeeze()[:, 0]
@@ -300,7 +300,7 @@ def run_eval(cfg):
     envs.close()
 
     # print(interact_log)
-    interact_log.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center.csv")
+    interact_log.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center_onestep.csv")
 
 if __name__ == '__main__':
     # Load config

@@ -20,12 +20,14 @@ class EmptyEnv(gym.Env):
     but with no interaction between them), made for testing and evaluation purposes.
     """
 
-    def __init__(self, grid_shape=(5, 5), n_agents=2, max_steps=100, agent_view_mask=(5, 5)):
+    def __init__(self, grid_shape=(5, 5), n_agents=2, max_steps=100, agent_view_mask=(5, 5),
+                 see_agents=False):
         self._grid_shape = grid_shape
         self.n_agents = n_agents
         self._max_steps = max_steps
         self._agent_view_mask = agent_view_mask
         self._step_count = None
+        self._see_agents = see_agents
 
         self.action_space = MultiAgentActionSpace([spaces.Discrete(5) for _ in range(self.n_agents)])
         self.agent_pos = {_: None for _ in range(self.n_agents)}
@@ -60,6 +62,9 @@ class EmptyEnv(gym.Env):
     def __update_agent_view(self, agent_i):
         self._full_obs[self.agent_pos[agent_i][0]][self.agent_pos[agent_i][1]] = PRE_IDS['agent'] + str(agent_i + 1)
 
+    def _is_cell_vacant(self, pos):
+        return self.is_valid(pos) and (self._full_obs[pos[0]][pos[1]] == PRE_IDS['empty'])
+
     def __init_full_obs(self, init_pos=None):
         self._full_obs = self.__create_grid()
 
@@ -67,7 +72,14 @@ class EmptyEnv(gym.Env):
             if init_pos is not None:
                 pos = init_pos
             else:
-                pos = [self._grid_shape[0] // 2, self._grid_shape[1] // 2]
+                while True:
+                    # pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+                    #         self.np_random.randint(0, self._grid_shape[1] - 1)]
+                    pos = [self.np_random.randint(3, 6),
+                            self.np_random.randint(3, 6)]
+                    if self._is_cell_vacant(pos):
+                        # self.agent_pos[agent_i] = pos
+                        break
             self.agent_pos[agent_i] = pos
             self.__update_agent_view(agent_i)
 
@@ -80,6 +92,12 @@ class EmptyEnv(gym.Env):
             _agent_i_obs = [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
 
             _obs_map = np.zeros(self._agent_view_mask)
+            obs_range = self._agent_view_mask[0] // 2
+            for row in range(max(0, pos[0] - obs_range), min(pos[0] + obs_range + 1, self._grid_shape[0])):
+                for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
+                    if self._full_obs[row][col] != PRE_IDS["empty"]:
+                        if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
+                            _obs_map[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 2
 
             _agent_i_obs += _obs_map.flatten().tolist()
             _obs.append(_agent_i_obs)

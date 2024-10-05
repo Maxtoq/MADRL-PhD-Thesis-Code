@@ -51,7 +51,8 @@ def _get_env(cfg, init_pos):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
             n_agents=cfg.magym_n_agents, 
             max_steps=cfg.episode_length,
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range))
+            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+            see_agents=cfg.magym_see_agents)
     return env
 
 def _get_parser(cfg):

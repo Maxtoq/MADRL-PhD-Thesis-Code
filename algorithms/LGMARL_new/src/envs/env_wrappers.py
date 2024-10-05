@@ -248,6 +248,7 @@ class SubprocVecEnv(ShareVecEnv):
         for remote in self.remotes:
             remote.send(('close', None))
         for p in self.ps:
+            p.close()
             p.join()
         self.closed = True
 
