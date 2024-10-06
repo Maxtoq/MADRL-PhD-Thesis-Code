@@ -131,7 +131,7 @@ def run_eval(cfg):
                 actions, agent_messages, _, comm_rewards \
                     = model.act(
                         deterministic=True, 
-                        lang_input=input_message)# if ep_s_i == 0 else None)
+                        lang_input=input_message if ep_s_i == 0 else None)
 
                 performed_actions.append(actions)
 
@@ -152,13 +152,12 @@ def run_eval(cfg):
         for ag_i in range(cfg.magym_n_agents):
             for a_i in range(5):
                 action_count = (agent_actions[ag_i] == a_i).sum()
-                interact_logs[f"A{ag_i}a{a_i}"].append(
-                    action_count / agent_actions.shape[-1])
+                interact_logs[f"A{ag_i}a{a_i}"].append(action_count)#  / agent_actions.shape[-1])
     envs.close()
 
     # print(interact_log)
     df = pd.DataFrame(interact_logs)
-    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_random.csv")
+    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_random_onestep.csv")
 
 if __name__ == '__main__':
     # Load config
