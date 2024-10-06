@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=CE1M
+#SBATCH --job-name=ls
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
-#SBATCH --time=20:00:00
+#SBATCH --time=72:00:00
+#SBATCH --qos=qos_gpu-t4
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH -A bqo@v100
 
@@ -22,12 +23,11 @@ cuda_device="cuda:0"
 
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_noc/run29,models/magym_PredPrey_new/9o5SA_Diff_noc/run24,models/magym_PredPrey_new/9o5SA_Diff_noc/run30,models/magym_PredPrey_new/9o5SA_Diff_noc/run18"
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_perf/run17,models/magym_PredPrey_new/9o5SA_Diff_perf/run19,models/magym_PredPrey_new/9o5SA_Diff_perf/run14,models/magym_PredPrey_new/9o5SA_Diff_perf/run21" 
-# model_dir="models/magym_PredPrey_new/9o5SA_Diff_langsup/run4,models/magym_PredPrey_new/9o5SA_Diff_langsup/run15,models/magym_PredPrey_new/9o5SA_Diff_langsup/run5,models/magym_PredPrey_new/9o5SA_Diff_langsup/run14" 
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run9,models/magym_PredPrey_new/9o5SA_Diff_ec2/run12,models/magym_PredPrey_new/9o5SA_Diff_ec2/ru78,models/magym_PredPrey_new/9o5SA_Diff_ec2/run21" 
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_langsup/run4,models/magym_PredPrey_new/9o5SA_Diff_langsup/run15,models/magym_PredPrey_new/9o5SA_Diff_langsup/run5,models/magym_PredPrey_new/9o5SA_Diff_langsup/run14" 
+#model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run9,models/magym_PredPrey_new/9o5SA_Diff_ec2/run12,models/magym_PredPrey_new/9o5SA_Diff_ec2/ru78,models/magym_PredPrey_new/9o5SA_Diff_ec2/run21" 
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run14,models/magym_PredPrey_new/9o5SA_Diff_edl/run5,models/magym_PredPrey_new/9o5SA_Diff_edl/run8,models/magym_PredPrey_new/9o5SA_Diff_edl/run3"
 
-seed=$RANDOM # 27425
-echo $seed
+seed=$RANDOM
 comm="python algorithms/LGMARL_new/eval_zst.py 
     --seed ${seed}
     --cuda_device ${cuda_device}
