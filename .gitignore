@@ -957,6 +957,10 @@ models/magym_PredPrey_new/9o5SA_perf+nolang/*
 models/magym_PredPrey_new/9o5SA_nocom+lang/*
 !models/magym_PredPrey_new/9o5SA_nocom+lang/train_data
 
+!models/magym_PredPrey_new/9o5SA_obs
+models/magym_PredPrey_new/9o5SA_obs/*
+!models/magym_PredPrey_new/9o5SA_obs/train_data
+
 !models/magym_PredPrey_new/9o5_Diff_nocom
 models/magym_PredPrey_new/9o5_Diff_nocom/*
 !models/magym_PredPrey_new/9o5_Diff_nocom/train_data
