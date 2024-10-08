@@ -15,7 +15,7 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=3
+n_run=4
 experiment_name="9o5SA_obs"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
@@ -24,7 +24,7 @@ context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
 cuda_device="cuda:2"
 
-magym_env_size=6
+magym_env_size=9
 magym_obs_range=5 # default 5
 magym_n_agents=4
 magym_scaleenv_after_n=99999999

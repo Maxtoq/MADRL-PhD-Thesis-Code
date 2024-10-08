@@ -168,7 +168,8 @@ if __name__ == '__main__':
 
     random.seed(cfg.seed)
 
-    team_compo = [[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 2], [0, 1, 2, 3]]
+    team_compo = [#[0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 2], 
+        [0, 1, 2, 3]]
     results = {
         "Team compo": [],
         "Mean return": [],
