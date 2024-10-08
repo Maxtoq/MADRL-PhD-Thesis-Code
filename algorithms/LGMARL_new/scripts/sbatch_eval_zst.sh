@@ -24,7 +24,7 @@ cuda_device="cuda:0"
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_noc/run29,models/magym_PredPrey_new/9o5SA_Diff_noc/run24,models/magym_PredPrey_new/9o5SA_Diff_noc/run30,models/magym_PredPrey_new/9o5SA_Diff_noc/run18"
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_perf/run17,models/magym_PredPrey_new/9o5SA_Diff_perf/run19,models/magym_PredPrey_new/9o5SA_Diff_perf/run14,models/magym_PredPrey_new/9o5SA_Diff_perf/run21" 
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_langsup/run4,models/magym_PredPrey_new/9o5SA_Diff_langsup/run15,models/magym_PredPrey_new/9o5SA_Diff_langsup/run5,models/magym_PredPrey_new/9o5SA_Diff_langsup/run14" 
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run24,models/magym_PredPrey_new/9o5SA_Diff_ec2/run23,models/magym_PredPrey_new/9o5SA_Diff_ec2/run22,models/magym_PredPrey_new/9o5SA_Diff_ec2/run21" 
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run22,models/magym_PredPrey_new/9o5SA_Diff_ec2/run21,models/magym_PredPrey_new/9o5SA_Diff_ec2/run16,models/magym_PredPrey_new/9o5SA_Diff_ec2/run29" 
 # model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run14,models/magym_PredPrey_new/9o5SA_Diff_edl/run5,models/magym_PredPrey_new/9o5SA_Diff_edl/run8,models/magym_PredPrey_new/9o5SA_Diff_edl/run3"
 
 seed=$RANDOM 
