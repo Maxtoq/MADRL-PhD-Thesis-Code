@@ -401,8 +401,8 @@ class CommMAPPO():
                 in_messages = in_messages.repeat(1, self.n_agents).reshape(
                     batch_size, self.n_agents, -1)
 
-                if self.comm_type == "perfect+no_lang":
-                    in_messages = in_messages.detach()
+                # if self.comm_type == "perfect+no_lang":
+                #     in_messages = in_messages.detach()
 
         elif self.comm_type == "language_sup":
             # Generate messages
