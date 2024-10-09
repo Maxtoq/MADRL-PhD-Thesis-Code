@@ -15,7 +15,7 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=4
+n_run=2
 experiment_name="9o5SA_obs"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
@@ -34,7 +34,7 @@ source venv3.8/bin/activate
 for n in $(seq 1 $n_run)
 do
     printf "Run ${n}/${n_run}\n"
-    seed=1453 # $RANDOM
+    seed=$RANDOM
     comm="python algorithms/LGMARL_new/train_lgmarl_diff.py --seed ${seed}
     --experiment_name ${experiment_name}
     --n_parallel_envs ${n_parallel_envs}
