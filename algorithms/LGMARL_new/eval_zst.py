@@ -169,14 +169,14 @@ if __name__ == '__main__':
     random.seed(cfg.seed)
 
     team_compo = [
-        [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 2], 
-        [0, 1, 2, 3]]
+        # [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1]
+        [0, 0, 1, 2], [0, 1, 2, 3]]
     results = {
         "Team compo": [],
         "Mean return": [],
         "Std": []
     }
-    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log.csv"
+    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log1.csv"
     for tc in team_compo:
         print("Evaluating team composition:", tc)
         returns = np.zeros(cfg.n_eval_runs)

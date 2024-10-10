@@ -15,14 +15,14 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=2
-experiment_name="9o5SA_obs"
+n_run=3
+experiment_name="9o5SA_oracle+nolang"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="obs" # default language
+comm_type="perfect+no_lang" # default language
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
-cuda_device="cuda:2"
+cuda_device="cuda:1"
 
 magym_env_size=9
 magym_obs_range=5 # default 5
