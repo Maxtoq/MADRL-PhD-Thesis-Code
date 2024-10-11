@@ -70,13 +70,18 @@ class EmptyEnv(gym.Env):
 
         for agent_i in range(self.n_agents):
             if init_pos is not None:
-                pos = init_pos
+                pos = list(init_pos[agent_i])
             else:
                 while True:
                     # pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
                     #         self.np_random.randint(0, self._grid_shape[1] - 1)]
-                    pos = [self.np_random.randint(3, 6),
-                            self.np_random.randint(3, 6)]
+                    pos = [
+                        self.np_random.randint(
+                            self._grid_shape[0] // 3, 
+                            self._grid_shape[0] - (self._grid_shape[0] // 3)),
+                        self.np_random.randint(
+                            self._grid_shape[1] // 3, 
+                            self._grid_shape[1] - (self._grid_shape[0] // 3))]
                     if self._is_cell_vacant(pos):
                         # self.agent_pos[agent_i] = pos
                         break

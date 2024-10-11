@@ -81,10 +81,23 @@ def run_eval(cfg):
         interact_logs[f"A{a_i}a2"] = []
         interact_logs[f"A{a_i}a3"] = []
         interact_logs[f"A{a_i}a4"] = []
+
+    init_pos = []
+    min_center = cfg.magym_env_size // 3
+    for i in range(min_center, 2 * min_center):
+        for j in range(min_center, 2 * min_center):
+            i_pos = (i, j)
+            for x in range(min_center, 2 * min_center):
+                for y in range(min_center, 2 * min_center):
+                    if (x, y) != i_pos: 
+                        init_pos.append((i_pos, (x, y)))
     
     # Create train environment
     cfg.env_name = "magym_Empty"
-    cfg.n_parallel_envs = 100
+    if len(init_pos) > 250:
+        cfg.n_parallel_envs = 200
+    else:
+        cfg.n_parallel_envs = len(init_pos)
     envs, parser = make_env(
         cfg, cfg.n_parallel_envs)
     
@@ -121,8 +134,9 @@ def run_eval(cfg):
         print(tm)
         input_message = [[tm] for _ in range(cfg.n_parallel_envs)]
         performed_actions = []
-        for e_i in trange(1000):
-            obs = envs.reset()
+
+        for i in range(0, len(init_pos), cfg.n_parallel_envs):
+            obs = envs.reset(init_pos[i:i + cfg.n_parallel_envs])
             parsed_obs = parser.get_perfect_messages(obs)
 
             model.init_episode(obs, parsed_obs)
@@ -131,7 +145,7 @@ def run_eval(cfg):
                 actions, agent_messages, _, comm_rewards \
                     = model.act(
                         deterministic=True, 
-                        lang_input=input_message) # if ep_s_i == 0 else None)
+                        lang_input=input_message if ep_s_i == 0 else None)
 
                 performed_actions.append(actions)
 
@@ -141,10 +155,6 @@ def run_eval(cfg):
                 obs = next_obs
                 parsed_obs = parser.get_perfect_messages(obs)
                 model.store_exp(obs, parsed_obs, rewards, dones)
-
-                # render(cfg, envs)
-            # Reset buffer for new episode
-            # model.init_episode()
         
         
         agent_actions = np.concatenate(performed_actions).squeeze(-1).T
@@ -157,7 +167,7 @@ def run_eval(cfg):
 
     # print(interact_log)
     df = pd.DataFrame(interact_logs)
-    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_random.csv")
+    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center_onestep.csv")
 
 if __name__ == '__main__':
     # Load config
