@@ -136,6 +136,7 @@ def run_eval(cfg):
         performed_actions = []
 
         for i in range(0, len(init_pos), cfg.n_parallel_envs):
+            print(i, i + cfg.n_parallel_envs)
             obs = envs.reset(init_pos[i:i + cfg.n_parallel_envs])
             parsed_obs = parser.get_perfect_messages(obs)
 
@@ -145,7 +146,7 @@ def run_eval(cfg):
                 actions, agent_messages, _, comm_rewards \
                     = model.act(
                         deterministic=True, 
-                        lang_input=input_message if ep_s_i == 0 else None)
+                        lang_input=input_message) # if ep_s_i == 0 else None)
 
                 performed_actions.append(actions)
 
@@ -167,7 +168,7 @@ def run_eval(cfg):
 
     # print(interact_log)
     df = pd.DataFrame(interact_logs)
-    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center_onestep.csv")
+    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center.csv")
 
 if __name__ == '__main__':
     # Load config
