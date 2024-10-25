@@ -69,7 +69,7 @@ class ReplayBuffer:
         self.gamma = args.gamma
         self.gae_lambda = args.gae_lambda
         self.n_mini_batch = args.n_mini_batch
-        self.data_chunk_length = args.data_chunk_length
+        # self.data_chunk_length = args.data_chunk_length
         self.share_params = args.share_params
 
         # self.lang_imp_sample = args.lang_imp_sample

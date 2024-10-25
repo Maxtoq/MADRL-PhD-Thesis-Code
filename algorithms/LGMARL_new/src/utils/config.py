@@ -39,8 +39,8 @@ def get_config():
     # recurrent parameters
     parser.add_argument("--policy_recurrent_N", type=int, default=1, 
                         help="The number of recurrent layers.")
-    parser.add_argument("--data_chunk_length", type=int, default=10,
-                        help="Time length of chunks used to train a recurrent_policy")
+    # parser.add_argument("--data_chunk_length", type=int, default=10,
+    #                     help="Time length of chunks used to train a recurrent_policy")
 
     # optimizer parameters
     parser.add_argument("--lr", type=float, default=5e-4,
