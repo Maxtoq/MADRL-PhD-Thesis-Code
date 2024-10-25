@@ -9,7 +9,10 @@ from .mpe.environment import MultiAgentEnv
 
 def _get_env(cfg, init_pos):
     if "magym_PredPrey" in cfg.env_name:
-        from .magym_PredPrey.env import PredatorPreyEnv
+        if "Respawn" in cfg.env_name:
+            from .magym_PredPrey_Respawn.env import PredatorPreyEnv
+        else:
+            from .magym_PredPrey.env import PredatorPreyEnv
         env = PredatorPreyEnv(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
