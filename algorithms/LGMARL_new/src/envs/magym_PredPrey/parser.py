@@ -5,18 +5,18 @@ class Parser():
 
     # vocab = ["Prey", "Located", "Observed", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, env_size, obs_range):
+    def __init__(self, env_size, obs_range, n_preys):
         self.env_size = env_size
         self.obs_range = obs_range
 
         self.obs_dim = 2 + obs_range * obs_range
 
         self.vocab = ["Prey", "Center", "North", "South", "East", "West"]
-        self.max_message_len = 6
+        self.max_message_len = 3 * max(2, n_preys)
 
         if self.obs_range > 5:
             self.vocab.append("Close")
-            self.max_message_len += 2
+            self.max_message_len += max(2, n_preys)
 
     def parse_global_state(self, state):
         """
@@ -131,6 +131,8 @@ class Parser():
                 p.append("Center")
 
             m.extend(p)
+            if len(m) >= self.max_message_len:
+                break
         
         return m
 

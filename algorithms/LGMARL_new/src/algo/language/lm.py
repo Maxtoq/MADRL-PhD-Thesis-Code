@@ -115,7 +115,7 @@ class OneHotEncoder:
 
                 if pad:
                     encoded.extend([0] * (self.max_message_len - len(encoded)))
-                
+
                 env_encoded.append(encoded)
 
 
