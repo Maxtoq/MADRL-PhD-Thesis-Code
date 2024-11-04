@@ -64,8 +64,11 @@ def _get_env(cfg, init_pos):
 
 def _get_parser(cfg):
     if "magym_PredPrey" in cfg.env_name or cfg.env_name == "magym_Empty":
-        from .magym_PredPrey.parser import Parser
-        return Parser(cfg.magym_env_size, cfg.magym_obs_range)
+        if "Respawn" in cfg.env_name:
+            from .magym_PredPrey_Respawn.parser import Parser
+        else:
+            from .magym_PredPrey.parser import Parser
+        return Parser(cfg.magym_env_size, cfg.magym_obs_range, cfg.magym_n_preys)
     elif cfg.env_name == "magym_Lumber":
         from .parsers.lumberjack import Lumberjack_Parser
         return Lumberjack_Parser(cfg.magym_env_size)

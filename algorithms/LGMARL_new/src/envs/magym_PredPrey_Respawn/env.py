@@ -333,6 +333,7 @@ class PredatorPreyEnv(gym.Env):
 
                     # Respawn prey
                     if predator_neighbour_count > 1:
+                        self._full_obs[self.prey_pos[prey_i][0]][self.prey_pos[prey_i][1]] = PRE_IDS['empty']
                         self.__spawn_prey(prey_i)
                     # self._prey_alive[prey_i] = (predator_neighbour_count == 1)
 
