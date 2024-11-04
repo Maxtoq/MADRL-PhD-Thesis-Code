@@ -48,6 +48,10 @@ def _get_env(cfg, init_pos):
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             no_purple=cfg.magym_no_purple,
             actual_obsrange=cfg.FT_magym_actual_obsrange)
+    elif cfg.env_name == "magym_Combat":
+        env = Env(
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+            max_steps=cfg.episode_length)
     elif cfg.env_name == "magym_Empty":
         from .magym_empty.env import EmptyEnv
         env = EmptyEnv(

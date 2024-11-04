@@ -193,9 +193,7 @@ class Combat(gym.Env):
 
         # select agent team center
         # Note : Leaving space from edges so as to have a 5x5 grid around it
-        agent_team_center = self.np_random.randint(2, self._grid_shape[0] - 3), self.np_random.randint(2,
-                                                                                                       self._grid_shape[
-                                                                                                           1] - 3)
+        agent_team_center = self.np_random.randint(2, self._grid_shape[0] - 3), self.np_random.randint(2, self._grid_shape[1] - 3)
         # randomly select agent pos
         for agent_i in range(self.n_agents):
             while True:

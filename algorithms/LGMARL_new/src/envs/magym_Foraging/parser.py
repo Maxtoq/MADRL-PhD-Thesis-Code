@@ -2,18 +2,19 @@ import numpy as np
 
 
 GEM_COLORS = {
-    1: 'Yellow',
-    2: 'Green',
-    3: 'Purple'}
+    0.5: 'Yellow',
+    0.75: 'Green',
+    1.0: 'Purple'}
 
 
 class Parser():
 
     # vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
 
-    def __init__(self, env_size, obs_range, max_gems_in_message=2):
+    def __init__(self, env_size, obs_range, max_gems_in_message=2, tell_yellow=False):
         self.env_size = env_size
         self.obs_range = obs_range
+        self._tell_yellow = tell_yellow
 
         self.vocab = [
             "Gem", "Yellow", "Green", "Purple", "Center", "North", "South", 
@@ -31,6 +32,8 @@ class Parser():
         pos = agent_obs[:2]
         gem_map = np.array(
             agent_obs[2:]).reshape((self.obs_range, self.obs_range))
+        max_obs = 0.5 if self._tell_yellow else 0.75
+        gem_map = np.where(gem_map < max_obs, 0.0, gem_map)
 
         d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
                 / (self.env_size - 1)
