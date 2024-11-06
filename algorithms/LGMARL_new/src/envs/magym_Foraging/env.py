@@ -22,7 +22,8 @@ class Env(gym.Env):
 
     def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=10,
                  penalty=-0.0, step_cost=-1.0, max_steps=100,
-                 agent_view_mask=(5, 5), no_purple=False, actual_obsrange=None):
+                 agent_view_mask=(5, 5), no_purple=False, actual_obsrange=None, 
+                 respawn_gems=True):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
                                           ' but found {}'.format(agent_view_mask)
@@ -40,6 +41,7 @@ class Env(gym.Env):
         self._step_cost = step_cost
         self._agent_view_mask = agent_view_mask
         self._actual_obsrange = actual_obsrange
+        self._respawn_gems = respawn_gems
         if self._actual_obsrange is not None and self._actual_obsrange >= self._agent_view_mask[0]:
             print("WARNING: actual_obsrange >= obs_range.")
 
@@ -104,6 +106,15 @@ class Env(gym.Env):
         _grid = [[PRE_IDS['empty'] for _ in range(self._grid_shape[1])] for row in range(self._grid_shape[0])]
         return _grid
 
+    def __spawn_gem(self, gem_i):
+        while True:
+            pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+                    self.np_random.randint(0, self._grid_shape[1] - 1)]
+            if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0) and (pos not in self._gem_forbid_pos):
+                self.gem_pos[gem_i] = pos
+                break
+        self.__update_gem_view(gem_i)
+
     def __init_full_obs(self):
         self._full_obs = self.__create_grid()
 
@@ -118,13 +129,7 @@ class Env(gym.Env):
             self.__update_agent_view(agent_i)
 
         for gem_i in range(self.n_gems):
-            while True:
-                pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                       self.np_random.randint(0, self._grid_shape[1] - 1)]
-                if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0) and (pos not in self._gem_forbid_pos):
-                    self.gem_pos[gem_i] = pos
-                    break
-            self.__update_gem_view(gem_i)
+            self.__spawn_gem(gem_i)
 
         self.__draw_base_img()
 
@@ -263,6 +268,13 @@ class Env(gym.Env):
 
                     for agent_i in range(self.n_agents):
                         rewards[agent_i] += _reward
+            # Respawn
+            elif self._respawn_gems:
+                prob_respawn = 1 / GEM_REWARDS[self.gem_colors[gem_i]]
+                if np.random.random() < prob_respawn:
+                    self.__spawn_gem(gem_i)
+                    self._gem_alive[gem_i] = True
+
 
         if (self._step_count >= self._max_steps) or (True not in self._gem_alive):
             for i in range(self.n_agents):
@@ -334,7 +346,7 @@ GEM_COLORS = {
 GEM_REWARDS = {
     1: 1,
     2: 5,
-    3: 10
+    3: 20
 }
 
 CELL_SIZE = 35
