@@ -37,7 +37,6 @@ def _get_env(cfg, init_pos):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            no_purple=cfg.magym_no_purple,
             actual_obsrange=cfg.FT_magym_actual_obsrange)
     elif cfg.env_name == "magym_Foraging_fixedpos":
         from .magym_Foraging_fixedpos.env import Env
@@ -46,7 +45,6 @@ def _get_env(cfg, init_pos):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            no_purple=cfg.magym_no_purple,
             actual_obsrange=cfg.FT_magym_actual_obsrange)
     elif cfg.env_name == "magym_Combat":
         env = Env(
