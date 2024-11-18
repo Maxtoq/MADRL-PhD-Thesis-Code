@@ -20,7 +20,7 @@ class Env(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=20,
+    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=30,
                  penalty=-0.0, step_cost=-1.0, max_steps=100,
                  agent_view_mask=(5, 5), actual_obsrange=None, 
                  respawn_gems=False):
@@ -62,7 +62,7 @@ class Env(gym.Env):
 
         # Init gem set
         self.gem_pos = {_: None for _ in range(self.n_gems)}
-        self.gem_colors = [3, 3, 2, 2, 2, 2, 2, 2]
+        self.gem_colors = [3, 3, 3, 2, 2, 2, 2, 2, 2, 2]
         for g_i in range(len(self.gem_colors), self.n_gems):
             self.gem_colors.append(1)
         self._gem_alive = None

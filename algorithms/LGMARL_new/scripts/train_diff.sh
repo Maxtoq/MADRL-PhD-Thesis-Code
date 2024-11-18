@@ -16,16 +16,16 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 lang_hidden_dim=128
 
-n_run=2
-experiment_name="21o5_lang"
-lr=0.0007 # default 0.0005
+n_run=15
+experiment_name="18o5_ec8"
+lr=0.0009 # default 0.0005
 entropy_coef=0.01 #default 0.01
-comm_type="language_sup" # default language
-context_dim=16 # default 16
-lang_lr=0.007 # default 0.007
-cuda_device="cuda:1"
+comm_type="emergent_continuous" # default language
+context_dim=8 # default 16
+lang_lr=0.009 # default 0.007
+cuda_device="cuda:2"
 
-magym_env_size=21
+magym_env_size=18
 magym_obs_range=5 # default 5
 magym_n_agents=4
 magym_n_preys=2
