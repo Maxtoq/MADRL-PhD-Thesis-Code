@@ -325,7 +325,8 @@ class Trainer:
             old_env_action_log_probs_batch, old_comm_action_log_probs_batch, \
             env_value_preds_batch, comm_value_preds_batch, env_returns_batch, \
             comm_returns_batch, masks_batch, env_advt_batch, comm_advt_batch, \
-            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch = sample
+            gen_comm_batch, perf_messages_batch, perf_broadcasts_batch, \
+            lang_data = sample
 
         # obs_batch = torch.from_numpy(obs_batch).to(self.device)
         # joint_obs_batch = torch.from_numpy(joint_obs_batch).to(self.device)

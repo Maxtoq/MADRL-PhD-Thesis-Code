@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 from src.log.comm_logs import CommunicationLogger
+from src.algo.language.lang_buffer import LanguageBuffer
 
 
 def _flatten(T, N, x):
@@ -165,6 +166,16 @@ class ReplayBuffer:
 
         self.step = 0
 
+        self.lang_buffer = LanguageBuffer(
+            args.lang_buffer_size, 
+            self.n_agents,
+            self.obs_dim, 
+            self.joint_obs_dim, 
+            self.hidden_size,
+            self.recurrent_N,
+            self.max_message_len,
+            args.lang_batch_size)
+
         # if args.log_comm:
         #     print("LOGGING COMUNICATION IN", log_dir)
         #     self.comm_logger = CommunicationLogger(log_dir)
@@ -216,6 +227,11 @@ class ReplayBuffer:
         self.joint_obs[self.step] = joint_obs
         self.perf_messages[self.step] = perf_messages
         self.perf_broadcasts.append(perf_broadcasts)
+
+        self.lang_buffer.store(
+            obs, joint_obs, perf_messages, perf_broadcasts, 
+            self.obs_enc_rnn_states[self.step], 
+            self.joint_obs_enc_rnn_states[self.step])
         # if self.lang_imp_sample:
         #     self.message_sampler.add_messages(perf_messages)
 
@@ -432,6 +448,8 @@ class ReplayBuffer:
 
             perf_messages_batch = perf_messages_batch.reshape(
                 self.rollout_length * mini_batch_size, self.n_agents, -1)
+        
+            lang_data = self.lang_buffer.sample()
 
         # Get probabilities of sampling each message for language training
         # if self.lang_imp_sample:
@@ -446,4 +464,4 @@ class ReplayBuffer:
                 env_action_log_probs_batch, comm_action_log_probs_batch, \
                 act_value_preds_batch, comm_value_preds_batch, act_returns_batch, \
                 comm_returns_batch, masks_batch, act_advt_batch, comm_advt_batch, \
-                gen_comm_batch, perf_messages_batch, perf_broadcasts_batch
+                gen_comm_batch, perf_messages_batch, perf_broadcasts_batch, lang_data
