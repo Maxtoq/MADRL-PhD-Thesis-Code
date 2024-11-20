@@ -568,10 +568,10 @@ class CommMAPPO():
                 # TODO for training sep ll
                 if type(self.lang_learner) == list:
                     raise NotImplementedError()
-                lang_obs_enc = self.lang_learner.obs_encoder(
+                lang_joint_obs_enc = self.lang_learner.obs_encoder(
                     torch.stack(enc_joint_obs, dim=1).to(self.device))
             else:
-                lang_obs_enc = None
+                lang_joint_obs_enc = None
 
             # exit()
 
@@ -579,7 +579,8 @@ class CommMAPPO():
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
                 new_joint_obs_rnn_states, new_comm_rnn_states, out_messages, \
                 eval_action_log_probs, eval_dist_entropy, \
-                eval_comm_action_log_probs, eval_comm_dist_entropy, lang_obs_enc
+                eval_comm_action_log_probs, eval_comm_dist_entropy, \
+                lang_joint_obs_enc
 
     def encode_perf_messages(self, perf_messages):
         # if type(self.lang_learner) == list:

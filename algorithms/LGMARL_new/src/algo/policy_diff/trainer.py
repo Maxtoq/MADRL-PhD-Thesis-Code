@@ -34,7 +34,7 @@ class Trainer:
         self.capt_loss_w = args.lang_capt_loss_weight
         self.actor_loss_w = args.actor_loss_weight
         self.comm_loss_w = 1.0
-        self.act_value_loss_w =1.0
+        self.act_value_loss_w = 1.0
         self.comm_value_loss_w = 1.0
         self.clip_loss_w = 1.0
 
@@ -358,7 +358,7 @@ class Trainer:
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
             new_joint_obs_rnn_states, new_comm_rnn_states, messages, \
             env_action_log_probs, env_dist_entropy, \
-            comm_action_log_probs, comm_dist_entropy, lang_obs_enc \
+            comm_action_log_probs, comm_dist_entropy, lang_joint_obs_enc \
             = self.model.comm_n_act(
                 obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, 
                 joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, 
@@ -426,7 +426,7 @@ class Trainer:
         # Language losses
         if train_lang:
             if self.model.comm_type == "perfect+no_lang":
-                lang_obs_enc = lang_obs_enc.detach()
+                lang_joint_obs_enc = lang_joint_obs_enc.detach()
                 comm_actions = comm_actions.detach()
 
             # Sample a mini-batch
@@ -441,7 +441,7 @@ class Trainer:
 
             # CLIP loss 
             # Encode sentences
-            sample_obs_contexts = lang_obs_enc.reshape(
+            sample_obs_contexts = lang_joint_obs_enc.reshape(
                 len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
             sample_broadcasts = [
                 perf_broadcasts_batch[i // self.model.n_agents] for i in ids]
