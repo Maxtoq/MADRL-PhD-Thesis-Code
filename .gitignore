@@ -1365,3 +1365,27 @@ models/magym_PredPrey_new/2a6-9o5SA_langsup/run1/*
 !models/magym_PredPrey_new/2a6-9o5SA_langsup/run1/args.txt
 !models/magym_PredPrey_new/2a6-9o5SA_langsup/run1/model_ep.pt
 
+
+!models/magym_Foraging/18o5_no_comm
+models/magym_Foraging/18o5_no_comm/*
+!models/magym_Foraging/18o5_no_comm/train_data
+
+!models/magym_Foraging/18o5_lang
+models/magym_Foraging/18o5_lang/*
+!models/magym_Foraging/18o5_lang/train_data
+
+!models/magym_Foraging/18o5_edl
+models/magym_Foraging/18o5_edl/*
+!models/magym_Foraging/18o5_edl/train_data
+
+!models/magym_Foraging/18o5_ec2
+models/magym_Foraging/18o5_ec2/*
+!models/magym_Foraging/18o5_ec2/train_data
+
+!models/magym_Foraging/18o5_ec4
+models/magym_Foraging/18o5_ec4/*
+!models/magym_Foraging/18o5_ec4/train_data
+
+!models/magym_Foraging/18o5_ec16
+models/magym_Foraging/18o5_ec16/*
+!models/magym_Foraging/18o5_ec16/train_data
