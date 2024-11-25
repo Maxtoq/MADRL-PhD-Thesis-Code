@@ -562,16 +562,16 @@ class CommMAPPO():
                 eval_comm_action_log_probs = None
                 eval_comm_dist_entropy = None
 
-            if self.comm_type in [
-                    "perfect", "language_sup", "no_comm+lang", "perfect+no_lang"]:
-                # enc_perf_br = torch.stack(enc_perf_br, dim=1)
-                # TODO for training sep ll
-                if type(self.lang_learner) == list:
-                    raise NotImplementedError()
-                lang_joint_obs_enc = self.lang_learner.obs_encoder(
-                    torch.stack(enc_joint_obs, dim=1).to(self.device))
-            else:
-                lang_joint_obs_enc = None
+            # if self.comm_type in [
+            #         "perfect", "language_sup", "no_comm+lang", "perfect+no_lang"]:
+            #     # enc_perf_br = torch.stack(enc_perf_br, dim=1)
+            #     # TODO for training sep ll
+            #     if type(self.lang_learner) == list:
+            #         raise NotImplementedError()
+            #     lang_joint_obs_enc = self.lang_learner.obs_encoder(
+            #         torch.stack(enc_joint_obs, dim=1).to(self.device))
+            # else:
+            #     lang_joint_obs_enc = None
 
             # exit()
 
@@ -579,8 +579,8 @@ class CommMAPPO():
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
                 new_joint_obs_rnn_states, new_comm_rnn_states, out_messages, \
                 eval_action_log_probs, eval_dist_entropy, \
-                eval_comm_action_log_probs, eval_comm_dist_entropy, \
-                lang_joint_obs_enc
+                eval_comm_action_log_probs, eval_comm_dist_entropy
+                # lang_joint_obs_enc
 
     def encode_perf_messages(self, perf_messages):
         # if type(self.lang_learner) == list:
@@ -589,6 +589,32 @@ class CommMAPPO():
             else self.lang_learner[0].word_encoder
 
         return we.encode_rollout_step(perf_messages)
+
+    def encode_lang_inputs(self, 
+            obs, obs_rnn_states, joint_obs, joint_obs_rnn_states, perf_broadcasts):
+        """
+        Generate all elements needed for computing language losses
+        """
+        # Encode decoder input
+        obs_encs, joint_obs_encs = [], []
+        for a_i in range(self.n_agents):
+            o, j, _, _ = self.agents[a_i].encode_observations(
+                obs[:, a_i], 
+                joint_obs, 
+                obs_rnn_states[:, a_i], 
+                joint_obs_rnn_states[:, a_i])
+
+            obs_encs.append(o)
+            joint_obs_encs.append(j)
+        
+        obs_encs = torch.concatenate(obs_encs)
+
+        visual_encs = self.lang_learner.obs_encoder(
+            torch.concatenate(joint_obs_encs).to(self.device))
+        br_encs = self.lang_learner.encode_sentences(
+            perf_broadcasts).unsqueeze(1).repeat(1, self.n_agents, 1)
+        
+        return obs_encs, visual_encs, br_encs
 
     def get_save_dict(self):
         self.prep_rollout("cpu")

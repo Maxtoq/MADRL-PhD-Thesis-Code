@@ -358,7 +358,7 @@ class Trainer:
             comm_action_log_probs, comm_values, new_obs_rnn_states, \
             new_joint_obs_rnn_states, new_comm_rnn_states, messages, \
             env_action_log_probs, env_dist_entropy, \
-            comm_action_log_probs, comm_dist_entropy, lang_joint_obs_enc \
+            comm_action_log_probs, comm_dist_entropy \
             = self.model.comm_n_act(
                 obs_batch, joint_obs_batch, obs_enc_rnn_states_batch, 
                 joint_obs_enc_rnn_states_batch, comm_enc_rnn_states_batch, 
@@ -425,38 +425,50 @@ class Trainer:
 
         # Language losses
         if train_lang:
-            if self.model.comm_type == "perfect+no_lang":
-                lang_joint_obs_enc = lang_joint_obs_enc.detach()
-                comm_actions = comm_actions.detach()
+            # if self.model.comm_type == "perfect+no_lang":
+            #     lang_joint_obs_enc = lang_joint_obs_enc.detach()
+            #     comm_actions = comm_actions.detach()
 
             # Sample a mini-batch
-            batch_size = min(
-                len(perf_broadcasts_batch) * self.model.n_agents, 
-                self.lang_batch_size)
-            ids = np.random.choice(
-                len(perf_broadcasts_batch) * self.model.n_agents, 
-                size=batch_size, 
-                replace=False)
+            # batch_size = min(
+            #     len(perf_broadcasts_batch) * self.model.n_agents, 
+            #     self.lang_batch_size)
+            # ids = np.random.choice(
+            #     len(perf_broadcasts_batch) * self.model.n_agents, 
+            #     size=batch_size, 
+            #     replace=False)
                 # p=mess_sampling_probs if self.lang_imp_sample else None)
 
-            # CLIP loss 
-            # Encode sentences
-            sample_obs_contexts = lang_joint_obs_enc.reshape(
-                len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
-            sample_broadcasts = [
-                perf_broadcasts_batch[i // self.model.n_agents] for i in ids]
-            sample_lang_contexts = self.model.lang_learner.encode_sentences(
-                sample_broadcasts)
+            obs_b, obs_rnn_state_b, perf_message_b, joint_obs_b, \
+                joint_obs_rnn_state_b, perf_br_b = lang_data
+
+            obs_b = torch.from_numpy(obs_b).to(self.device)
+            obs_rnn_state_b = torch.from_numpy(obs_rnn_state_b).to(self.device)
+            perf_message_b = torch.from_numpy(perf_message_b).to(self.device)
+            joint_obs_b = torch.from_numpy(joint_obs_b).to(self.device)
+            joint_obs_rnn_state_b = torch.from_numpy(
+                joint_obs_rnn_state_b).to(self.device)
+
+            # Encode all inputs
+            obs_encs, visual_encs, br_encs = self.model.encode_lang_inputs(
+                obs_b, obs_rnn_state_b, joint_obs_b, joint_obs_rnn_state_b,
+                perf_br_b)
+            print(obs_encs.shape, visual_encs.shape, br_encs.shape)
+            print(perf_message_b.shape)
+            exit()
+            batch_size = obs_encs.size()
+
             # CLIP loss
             clip_loss, mean_sim = self._compute_clip_loss(
-                sample_obs_contexts, sample_lang_contexts)
+                visual_encs.reshape(), br_encs)
+            print(clip_loss)
 
             log_losses["clip_loss"] = clip_loss.item()
             log_losses["mean_sim"] = mean_sim
 
             # Captioning loss
             # Decode
-            dec_inputs = comm_actions.reshape(
+            dec_inputs = obs_encs.reshape(
                 len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
             targets = torch.from_numpy(
                 perf_messages_batch.reshape(

@@ -61,6 +61,8 @@ class CommPolicy(nn.Module):
         
         elif self.comm_type in ["perfect", "language_sup", "perfect+no_lang"]:
             comm_actions = self.comm_in(enc_obs)
+            # Here, messages are set to perfect for now. For "language" variants, 
+            # the message generation will occur later in comm_mappo
             messages = perfect_messages
 
             eval_comm_action_log_probs = None

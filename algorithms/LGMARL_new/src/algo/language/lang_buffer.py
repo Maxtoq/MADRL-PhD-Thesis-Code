@@ -13,17 +13,23 @@ class LanguageBuffer:
         self.batch_size = batch_size
 
         # Decoder data
-        self.obs = np.zeros((self.buffer_size, self.n_agents, obs_dim))
+        self.obs = np.zeros(
+            (self.buffer_size, self.n_agents, obs_dim),
+            dtype=np.float32)
         self.obs_enc_rnn_states = np.zeros(
-            (self.buffer_size, self.n_agents, self.recurrent_N, hidden_dim))
+            (self.buffer_size, self.n_agents, self.recurrent_N, hidden_dim),
+            dtype=np.float32)
         self.perf_messages = np.zeros(
-            (self.buffer_size, self.n_agents, max_message_len))
+            (self.buffer_size, self.n_agents, max_message_len),
+            dtype=np.float32)
 
         # Encoder data
         self.joint_obs = np.zeros(
-            (self.buffer_size, joint_obs_dim))
+            (self.buffer_size, joint_obs_dim),
+            dtype=np.float32)
         self.joint_obs_enc_rnn_states = np.zeros(
-            (self.buffer_size, self.n_agents, self.recurrent_N, hidden_dim))
+            (self.buffer_size, self.n_agents, self.recurrent_N, hidden_dim),
+            dtype=np.float32)
         self.perf_broadcasts = []
 
         self._current_id = 0
@@ -90,7 +96,7 @@ class LanguageBuffer:
         perf_message_b = self.perf_messages[ids]
         joint_obs_b = self.joint_obs[ids]
         joint_obs_rnn_state_b = self.joint_obs_enc_rnn_states[ids]
-        perf_br_b = [self.perf_messages[i] for i in ids]
+        perf_br_b = [self.perf_broadcasts[i] for i in ids]
 
         return obs_b, obs_rnn_state_b, perf_message_b, joint_obs_b, \
                 joint_obs_rnn_state_b, perf_br_b

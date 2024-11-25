@@ -92,6 +92,21 @@ class CommAgent(nn.Module):
     def set_device(self, device):
         self.device = device
 
+    def encode_observations(self, 
+            obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, masks=None):
+        if masks is None:
+            masks = torch.ones(obs.size(0), 1)
+        
+        enc_obs = self.obs_in(obs)
+        enc_obs, new_obs_rnn_states = self.obs_encoder(
+            enc_obs, obs_rnn_states, masks)
+        enc_joint_obs = self.joint_obs_in(joint_obs)
+        enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
+            enc_joint_obs, joint_obs_rnn_states, masks)
+
+        return enc_obs, enc_joint_obs, new_obs_rnn_states, \
+                new_joint_obs_rnn_states
+
     def forward_comm(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
             masks, perfect_messages, deterministic=False, 
@@ -125,12 +140,9 @@ class CommAgent(nn.Module):
             the joint obs encoder.
         """
         # Encode obs and joint obs
-        enc_obs = self.obs_in(obs)
-        enc_obs, new_obs_rnn_states = self.obs_encoder(
-            enc_obs, obs_rnn_states, masks)
-        enc_joint_obs = self.joint_obs_in(joint_obs)
-        enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
-            enc_joint_obs, joint_obs_rnn_states, masks)
+        enc_obs, enc_joint_obs, new_obs_rnn_states, new_joint_obs_rnn_states \
+            = self.encode_observations(
+                obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, masks)
 
         messages, comm_actions, comm_action_log_probs, comm_values, \
             eval_comm_action_log_probs, eval_comm_dist_entropy \
