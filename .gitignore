@@ -1390,6 +1390,9 @@ models/magym_Foraging/18o5_ec4/*
 models/magym_Foraging/18o5_ec16/*
 !models/magym_Foraging/18o5_ec16/train_data
 
+!models/magym_Foraging/18o5_perf
+models/magym_Foraging/18o5_perf/*
+!models/magym_Foraging/18o5_perf/train_data
 
 !models/magym_PredPrey_newReward
 models/magym_PredPrey_newReward/*

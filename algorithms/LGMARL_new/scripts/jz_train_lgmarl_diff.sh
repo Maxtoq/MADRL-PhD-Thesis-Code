@@ -28,7 +28,7 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 lang_hidden_dim=128
 
-n_run=7
+n_run=8
 experiment_name="18o5_perf"
 lr=0.0009 # default 0.0005
 entropy_coef=0.01 #default 0.01
