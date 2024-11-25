@@ -21,7 +21,7 @@ class LanguageBuffer:
             dtype=np.float32)
         self.perf_messages = np.zeros(
             (self.buffer_size, self.n_agents, max_message_len),
-            dtype=np.float32)
+            dtype=np.int8)
 
         # Encoder data
         self.joint_obs = np.zeros(

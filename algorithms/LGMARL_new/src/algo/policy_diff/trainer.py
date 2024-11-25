@@ -444,47 +444,38 @@ class Trainer:
 
             obs_b = torch.from_numpy(obs_b).to(self.device)
             obs_rnn_state_b = torch.from_numpy(obs_rnn_state_b).to(self.device)
-            perf_message_b = torch.from_numpy(perf_message_b).to(self.device)
+            perf_message_b = torch.from_numpy(perf_message_b).long().to(self.device)
             joint_obs_b = torch.from_numpy(joint_obs_b).to(self.device)
             joint_obs_rnn_state_b = torch.from_numpy(
                 joint_obs_rnn_state_b).to(self.device)
 
             # Encode all inputs
-            obs_encs, visual_encs, br_encs = self.model.encode_lang_inputs(
+            dec_inputs, visual_encs, lang_encs = self.model.encode_lang_inputs(
                 obs_b, obs_rnn_state_b, joint_obs_b, joint_obs_rnn_state_b,
                 perf_br_b)
-            print(obs_encs.shape, visual_encs.shape, br_encs.shape)
-            print(perf_message_b.shape)
-            exit()
-            batch_size = obs_encs.size()
+            batch_size = dec_inputs.size(0)
+            dec_targets = perf_message_b.reshape(batch_size, -1)
 
             # CLIP loss
             clip_loss, mean_sim = self._compute_clip_loss(
-                visual_encs.reshape(), br_encs)
-            print(clip_loss)
+                visual_encs, lang_encs)
 
             log_losses["clip_loss"] = clip_loss.item()
             log_losses["mean_sim"] = mean_sim
 
             # Captioning loss
             # Decode
-            dec_inputs = obs_encs.reshape(
-                len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
-            targets = torch.from_numpy(
-                perf_messages_batch.reshape(
-                len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
-                ).long().to(self.device)
             # Remove excess padded tokens
-            n_excess = min((targets == 0).sum(-1))
+            n_excess = min((dec_targets == 0).sum(-1))
             if n_excess > 0:
-                targets = targets[:, :-min((targets == 0).sum(-1))]
+                dec_targets = dec_targets[:, :-min((dec_targets == 0).sum(-1))]
             # encoded_targets = self.lang_learner.word_encoder.encode_batch(
             #     sample_perf_messages, pad=True).to(self.device)
             decoder_outputs, _ = self.model.lang_learner.decoder(
-                dec_inputs, targets)
+                dec_inputs, dec_targets)
             # Captioning loss
             capt_loss = self._compute_capt_loss(
-                decoder_outputs, targets)
+                decoder_outputs, dec_targets)
 
             log_losses["capt_loss"] = capt_loss.item()
         else:

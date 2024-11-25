@@ -100,6 +100,7 @@ class CommAgent(nn.Module):
         enc_obs = self.obs_in(obs)
         enc_obs, new_obs_rnn_states = self.obs_encoder(
             enc_obs, obs_rnn_states, masks)
+
         enc_joint_obs = self.joint_obs_in(joint_obs)
         enc_joint_obs, new_joint_obs_rnn_states = self.joint_obs_encoder(
             enc_joint_obs, joint_obs_rnn_states, masks)

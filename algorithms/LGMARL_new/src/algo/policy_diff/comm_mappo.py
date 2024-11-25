@@ -596,25 +596,27 @@ class CommMAPPO():
         Generate all elements needed for computing language losses
         """
         # Encode decoder input
-        obs_encs, joint_obs_encs = [], []
+        dec_inputs, joint_obs_encs = [], []
         for a_i in range(self.n_agents):
             o, j, _, _ = self.agents[a_i].encode_observations(
                 obs[:, a_i], 
                 joint_obs, 
                 obs_rnn_states[:, a_i], 
                 joint_obs_rnn_states[:, a_i])
+            
+            d = self.agents[a_i].comm_pol.comm_in(o)
 
-            obs_encs.append(o)
+            dec_inputs.append(d)
             joint_obs_encs.append(j)
         
-        obs_encs = torch.concatenate(obs_encs)
+        dec_inputs = torch.concatenate(dec_inputs)
 
         visual_encs = self.lang_learner.obs_encoder(
             torch.concatenate(joint_obs_encs).to(self.device))
-        br_encs = self.lang_learner.encode_sentences(
-            perf_broadcasts).unsqueeze(1).repeat(1, self.n_agents, 1)
+        lang_encs = self.lang_learner.encode_sentences(perf_broadcasts).repeat(
+            1, self.n_agents).reshape(dec_inputs.shape[0], -1)
         
-        return obs_encs, visual_encs, br_encs
+        return dec_inputs, visual_encs, lang_encs
 
     def get_save_dict(self):
         self.prep_rollout("cpu")
