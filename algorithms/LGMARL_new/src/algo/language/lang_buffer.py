@@ -6,11 +6,12 @@ class LanguageBuffer:
 
     def __init__(self, 
             buffer_size, n_agents, obs_dim, joint_obs_dim, hidden_dim, 
-            recurrent_N, max_message_len, batch_size):
+            recurrent_N, max_message_len, batch_size, n_rollout_steps):
         self.buffer_size = buffer_size
         self.n_agents = n_agents
         self.recurrent_N = recurrent_N
         self.batch_size = batch_size
+        self.n_rollout_steps = n_rollout_steps
 
         # Decoder data
         self.obs = np.zeros(
@@ -34,6 +35,19 @@ class LanguageBuffer:
 
         self._current_id = 0
 
+    def roll_n(self, n_index):
+        self.obs = np.roll(self.obs, -n_index, axis=0)
+        self.obs_enc_rnn_states = np.roll(
+            self.obs_enc_rnn_states, -n_index, axis=0)
+        self.perf_messages = np.roll(self.perf_messages, -n_index, axis=0)
+        self.joint_obs = np.roll(self.joint_obs, -n_index, axis=0)
+        self.joint_obs_enc_rnn_states = np.roll(
+            self.joint_obs_enc_rnn_states, -n_index, axis=0)
+        self.perf_broadcasts = self.perf_broadcasts[n_index:]
+
+        add_size = n_index + self.buffer_size - self._current_id
+        self._current_id = self.buffer_size - add_size
+
     def store(self, 
             obs, joint_obs, perf_messages, perf_broadcasts, 
             obs_enc_rnn_states, joint_obs_enc_rnn_states):
@@ -50,25 +64,9 @@ class LanguageBuffer:
         """        
         add_size = obs.shape[0]
 
-        # Decoder data
-        # obs = obs.reshape(add_size, -1)
-        # obs_enc_rnn_states = obs_enc_rnn_states.reshape(
-        #     add_size, self.recurrent_N, -1)
-        # perf_messages = perf_messages.reshape(add_size, -1)
-
         # Slide data if needed 
         if self._current_id + add_size > self.buffer_size:
-            move_n = self._current_id + add_size - self.buffer_size
-
-            self.obs[:-move_n] = self.obs[move_n:]
-            self.obs_enc_rnn_states[:-move_n] = self.obs_enc_rnn_states[move_n:]
-            self.perf_messages[:-move_n] = self.perf_messages[move_n:]
-            self.joint_obs[:-move_n] = self.joint_obs[move_n:]
-            self.joint_obs_enc_rnn_states[:-move_n] \
-                = self.joint_obs_enc_rnn_states[move_n:]
-            self.perf_broadcasts = self.perf_broadcasts[move_n:]
-
-            self._current_id = self.buffer_size - add_size
+            self.roll_n(self.n_rollout_steps) # fits when buffer_size is divisible by n_rollout_steps, overwise not perfect (some data may be lost too early) but ok
     
         # Store data
         self.obs[self._current_id: self._current_id + add_size] = obs

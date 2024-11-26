@@ -174,7 +174,8 @@ class ReplayBuffer:
             self.hidden_size,
             self.recurrent_N,
             self.max_message_len,
-            args.lang_batch_size)
+            args.lang_batch_size,
+            self.n_parallel_envs * self.rollout_length)
 
         # if args.log_comm:
         #     print("LOGGING COMUNICATION IN", log_dir)
