@@ -95,7 +95,7 @@ class CommAgent(nn.Module):
     def encode_observations(self, 
             obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, masks=None):
         if masks is None:
-            masks = torch.ones(obs.size(0), 1)
+            masks = torch.ones(obs.size(0), 1).to(self.device)
         
         enc_obs = self.obs_in(obs)
         enc_obs, new_obs_rnn_states = self.obs_encoder(
