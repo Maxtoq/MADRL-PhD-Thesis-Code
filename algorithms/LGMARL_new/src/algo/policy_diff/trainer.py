@@ -455,13 +455,20 @@ class Trainer:
                 perf_br_b)
             batch_size = dec_inputs.size(0)
             dec_targets = perf_message_b.reshape(batch_size, -1)
+            # print(perf_br_b)
+            # print(lang_encs, lang_encs.shape)
+            # exit()
 
             # CLIP loss
-            clip_loss, mean_sim = self._compute_clip_loss(
-                visual_encs, lang_encs)
+            clip_loss, mean_sim = 0, 0
+            for a_i in range(visual_encs.shape[1]):
+                c, s = self._compute_clip_loss(
+                    visual_encs[:, a_i], lang_encs[:, a_i])
+                clip_loss += c
+                mean_sim += s
 
-            log_losses["clip_loss"] = clip_loss.item()
-            log_losses["mean_sim"] = mean_sim
+            log_losses["clip_loss"] = clip_loss.item() / self.n_agents
+            log_losses["mean_sim"] = mean_sim / self.n_agents
 
             # Captioning loss
             # Decode

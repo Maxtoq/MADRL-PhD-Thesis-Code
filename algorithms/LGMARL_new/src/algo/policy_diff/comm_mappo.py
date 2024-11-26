@@ -611,10 +611,15 @@ class CommMAPPO():
         
         dec_inputs = torch.concatenate(dec_inputs)
 
+        # visual_encs = self.lang_learner.obs_encoder(
+        #     torch.concatenate(joint_obs_encs).to(self.device))
+        # lang_encs = self.lang_learner.encode_sentences(perf_broadcasts).repeat(
+        #     1, self.n_agents).reshape(dec_inputs.shape[0], -1)
+
         visual_encs = self.lang_learner.obs_encoder(
-            torch.concatenate(joint_obs_encs).to(self.device))
+            torch.stack(joint_obs_encs, dim=1).to(self.device))
         lang_encs = self.lang_learner.encode_sentences(perf_broadcasts).repeat(
-            1, self.n_agents).reshape(dec_inputs.shape[0], -1)
+            1, self.n_agents).reshape(visual_encs.shape[0], visual_encs.shape[1], -1)
         
         return dec_inputs, visual_encs, lang_encs
 

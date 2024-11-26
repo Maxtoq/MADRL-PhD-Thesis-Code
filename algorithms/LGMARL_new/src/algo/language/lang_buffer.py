@@ -11,7 +11,7 @@ class LanguageBuffer:
         self.n_agents = n_agents
         self.recurrent_N = recurrent_N
         self.batch_size = batch_size
-        self.n_rollout_steps = n_rollout_steps
+        self.n_rollout_steps = min(buffer_size, n_rollout_steps)
 
         # Decoder data
         self.obs = np.zeros(
