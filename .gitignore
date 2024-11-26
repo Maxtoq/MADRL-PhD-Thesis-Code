@@ -1400,3 +1400,11 @@ models/magym_PredPrey_newReward/*
 !models/magym_PredPrey_newReward/15o5SA_lang
 models/magym_PredPrey_newReward/15o5SA_lang/*
 !models/magym_PredPrey_newReward/15o5SA_lang/train_data
+
+
+!models/magym_PredPrey_largeVoc
+models/magym_PredPrey_largeVoc/*
+
+!models/magym_PredPrey_largeVoc/15o5SA_lang
+models/magym_PredPrey_largeVoc/15o5SA_lang/*
+!models/magym_PredPrey_largeVoc/15o5SA_lang/train_data

@@ -38,7 +38,8 @@ class PredatorPreyEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
-                 full_observable=False, penalty=-2.0, step_cost=-1.0, prey_capture_reward=30.0, max_steps=100,
+                 full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
+                #  full_observable=False, penalty=-2.0, step_cost=-1.0, prey_capture_reward=30.0, max_steps=100,
                  agent_view_mask=(5, 5), global_state=False, actual_obsrange=None, see_agents=False, init_pos=None):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
