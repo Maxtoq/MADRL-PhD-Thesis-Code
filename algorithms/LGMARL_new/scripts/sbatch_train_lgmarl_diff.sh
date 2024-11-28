@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=newR_lang
+#SBATCH --job-name=lang_largVoc
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=5000
@@ -17,7 +17,7 @@ policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 rollout_length=100 # default 100
 n_mini_batch=1 # default 2
-env_name="magym_PredPrey_largeVoc"
+env_name="magym_PredPrey_new"
 episode_length=100
 comm_ec_strategy="cat" # default sum
 comm_eps_smooth=2.0 # default 1.0
@@ -27,8 +27,8 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 lang_hidden_dim=128
 
-n_run=3
-experiment_name="15o5SA_lang"
+n_run=4
+experiment_name="9o5SA_lang_largVoc"
 lr=0.0005 # default 0.0005
 entropy_coef=0.01 #default 0.01
 comm_type="language_sup" # default language
@@ -36,7 +36,7 @@ context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
 cuda_device="cuda:0"
 
-magym_env_size=15
+magym_env_size=9
 magym_obs_range=5 # default 5
 magym_n_agents=4
 magym_n_preys=2
