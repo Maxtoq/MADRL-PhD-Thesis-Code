@@ -1,15 +1,16 @@
 #!/bin/sh
-n_run=1
-experiment_name="Ad_2a9o5SA_15o5_langsup"
-n_steps=5000000
-lr=0.0005 # default 0.0005
-FT_env_name="magym_PredPrey_new"
-FT_magym_env_size=15
+n_run=15
+experiment_name="Ad_PP9_F18o5_edl"
+n_steps=10000000
+lr=0.0009 # default 0.0005
+lang_lr=0.009
+FT_env_name="magym_Foraging"
+FT_magym_env_size=18
 FT_magym_actual_obsrange=5
-FT_freeze_lang_after_n=5000000 # default None
+FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
-model_dir="models/magym_PredPrey_new/2a6-9o5SA_langsup/run1/"
-cuda_device="cuda:1"
+model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run14/"
+cuda_device="cuda:2"
 
 source venv3.8/bin/activate
 
@@ -23,6 +24,7 @@ do
     --model_dir ${model_dir}
     --n_steps ${n_steps}
     --lr ${lr}
+    --lang_lr ${lang_lr}
     --FT_magym_env_size ${FT_magym_env_size}
     --FT_freeze_lang_after_n ${FT_freeze_lang_after_n}
     --FT_comm_eps_start ${FT_comm_eps_start}

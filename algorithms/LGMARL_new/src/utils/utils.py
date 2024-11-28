@@ -50,6 +50,7 @@ def load_args(cfg, eval=False):
                 args.pop("log_comm")
             args.pop("experiment_name")
             args.pop("lr")
+            args.pop("lang_lr")
             if eval:
                 args.pop("n_parallel_envs")
                 if "eval_scenario" in args:
