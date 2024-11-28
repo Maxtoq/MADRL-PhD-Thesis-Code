@@ -467,8 +467,8 @@ class Trainer:
                 clip_loss += c
                 mean_sim += s
 
-            log_losses["clip_loss"] = clip_loss.item() / self.n_agents
-            log_losses["mean_sim"] = mean_sim / self.n_agents
+            log_losses["clip_loss"] = clip_loss.item() / visual_encs.shape[1]
+            log_losses["mean_sim"] = mean_sim / visual_encs.shape[1]
 
             # Captioning loss
             # Decode

@@ -1,7 +1,7 @@
 #!/bin/sh
 n_parallel_envs=250
 n_steps=10000000
-hidden_dim=256 # default 64
+hidden_dim=128 # default 64
 policy_recurrent_N=1 # default 1
 ppo_epoch=15 # default 15
 rollout_length=100 # default 100
@@ -14,16 +14,16 @@ comm_token_penalty=0.001
 lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
-lang_hidden_dim=256
+lang_hidden_dim=128
 
-n_run=1
+n_run=2
 experiment_name="18o5_lang_wbuff"
-lr=0.0007 # default 0.0005
+lr=0.0009 # default 0.0005
 entropy_coef=0.01 #default 0.01
 comm_type="language_sup" # default language
 context_dim=16 # default 16
-lang_lr=0.007 # default 0.007
-cuda_device="cuda:3"
+lang_lr=0.009 # default 0.007
+cuda_device="cuda:2"
 
 magym_env_size=21
 magym_obs_range=5 # default 5
