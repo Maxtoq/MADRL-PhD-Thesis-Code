@@ -25,7 +25,8 @@ class CommAgent(nn.Module):
         self.obs_in = MLPNetwork(
             obs_dim, 
             args.hidden_dim, 
-            args.hidden_dim)
+            args.hidden_dim,
+            args.policy_layer_N)
         self.obs_encoder = RNNLayer(
             args.hidden_dim, 
             args.hidden_dim, 
@@ -34,7 +35,8 @@ class CommAgent(nn.Module):
         self.joint_obs_in = MLPNetwork(
             joint_obs_dim, 
             args.hidden_dim, 
-            args.hidden_dim)
+            args.hidden_dim, 
+            args.policy_layer_N)
         self.joint_obs_encoder = RNNLayer(
             args.hidden_dim, 
             args.hidden_dim, 
@@ -55,7 +57,7 @@ class CommAgent(nn.Module):
                 act_pol_input, 
                 args.hidden_dim, 
                 args.hidden_dim, 
-                n_hidden_layers=1,
+                n_hidden_layers=args.policy_layer_N,
                 out_activation_fn="relu"),
             Categorical(args.hidden_dim, act_dim))
         self.act_val = nn.Sequential(
@@ -63,7 +65,7 @@ class CommAgent(nn.Module):
                 act_val_input, 
                 args.hidden_dim, 
                 args.hidden_dim, 
-                n_hidden_layers=1,
+                n_hidden_layers=args.policy_layer_N,
                 out_activation_fn="relu"),
             init_(nn.Linear(args.hidden_dim, 1)))
 
