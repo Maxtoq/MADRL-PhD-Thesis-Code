@@ -183,6 +183,7 @@ class GRUEncoder(nn.Module):
         self.word_encoder = word_encoder
         self.context_dim = context_dim
         self.hidden_dim = hidden_dim
+        self.n_layers = n_layers
         self.do_embed = do_embed
         
         self.embed_layer = nn.Embedding(self.word_encoder.enc_dim, embed_dim)
@@ -251,8 +252,9 @@ class GRUEncoder(nn.Module):
             padded, lens, batch_first=True).to(self.device)
 
         # Initial hidden state
-        hidden = torch.zeros(1, len(enc_sent_batch), self.hidden_dim, 
-                        device=self.device)
+        hidden = torch.zeros(
+            self.n_layers, len(enc_sent_batch), self.hidden_dim, 
+            device=self.device)
         
         # Pass sentences into GRU model
         _, hidden_states = self.gru(packed, hidden)

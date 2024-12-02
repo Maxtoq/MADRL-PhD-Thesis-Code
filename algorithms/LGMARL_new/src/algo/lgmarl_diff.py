@@ -237,8 +237,12 @@ class LanguageGroundedMARL:
             observations, dim=(n_envs, n_agents, len(sentence)).
         """
         # Encode sentences and build broadcast
-        enc_perf_mess, enc_perf_br \
-            = self.model.encode_perf_messages(perf_messages)
+        if self.comm_type in [
+                "perfect", "language_sup", "language_rl", "no_comm+lang"]:
+            enc_perf_mess, enc_perf_br \
+                = self.model.encode_perf_messages(perf_messages)
+        else:
+            enc_perf_mess, enc_perf_br = None, None
             # self.model.lang_learner.word_encoder.encode_rollout_step(
             #     perf_messages) # TODO make better
 

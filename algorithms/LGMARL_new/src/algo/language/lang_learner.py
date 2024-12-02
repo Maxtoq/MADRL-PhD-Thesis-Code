@@ -13,12 +13,11 @@ class LanguageLearner(nn.Module):
     Observation Encoder and the Decoder. 
     """
 
-    def __init__(self, args, parser, diff=False, device="cpu"):
+    def __init__(self, args, vocab, max_message_len, diff=False, device="cpu"):
         super(LanguageLearner, self).__init__()
         self.device = device
 
-        self.word_encoder = OneHotEncoder(
-            parser.vocab, parser.max_message_len)
+        self.word_encoder = OneHotEncoder(vocab, max_message_len)
 
         self.lang_encoder = GRUEncoder(
             args.context_dim, 
@@ -28,7 +27,7 @@ class LanguageLearner(nn.Module):
             device=device)
 
         self.obs_encoder = MLPNetwork(
-            args.hidden_dim, args.context_dim, args.hidden_dim)
+            args.hidden_dim, args.context_dim, args.hidden_dim, args.policy_layer_N)
 
         self.decoder = GRUDecoder(
             args.context_dim, 

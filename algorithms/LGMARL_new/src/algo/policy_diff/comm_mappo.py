@@ -218,8 +218,16 @@ class CommMAPPO():
                 for a_i in range(self.n_agents)]
 
         # if self.comm_type in ["perfect", "language"]:
+        if self.comm_type == "emergent_discrete_lang":
+            vocab = [str(i) for i in range(6)]
+            max_message_len = 6
+            use_gumbel = True
+        else:
+            vocab = parser.vocab
+            max_message_len = parser.max_message_len
+            use_gumbel = False
         self.lang_learner = LanguageLearner(
-            args, parser, self.comm_type == "emergent_discrete_lang", device)
+            args, vocab, max_message_len, use_gumbel, device)
 
         self.eval = False
 

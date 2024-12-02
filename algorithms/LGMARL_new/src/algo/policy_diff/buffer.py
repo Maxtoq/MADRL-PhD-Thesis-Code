@@ -154,7 +154,7 @@ class ReplayBuffer:
             (self.rollout_length + 1, self.n_parallel_envs, self.n_agents, 1), 
             dtype=np.float32)
 
-        # Language data
+        # Language data (will stay empty if we don't use a pre-defined language)
         self.perf_messages = np.zeros(
             (self.rollout_length + 1, 
              self.n_parallel_envs, 
@@ -208,14 +208,17 @@ class ReplayBuffer:
         self.comm_enc_rnn_states[0] = self.comm_enc_rnn_states[-1].copy()
         self.masks[0] = self.masks[-1].copy()
         self.perf_messages[0] = self.perf_messages[-1].copy()
-        self.perf_broadcasts = [self.perf_broadcasts[-1]]
+        if len(self.perf_broadcasts) > 0:
+            self.perf_broadcasts = [self.perf_broadcasts[-1]]
         self.step = 0
 
     def insert_obs(self, obs, joint_obs, perf_messages, perf_broadcasts):
         self.obs[self.step] = obs
         self.joint_obs[self.step] = joint_obs
-        self.perf_messages[self.step] = perf_messages
-        self.perf_broadcasts.append(perf_broadcasts)
+
+        if perf_messages is not None:
+            self.perf_messages[self.step] = perf_messages
+            self.perf_broadcasts.append(perf_broadcasts)
         # if self.lang_imp_sample:
         #     self.message_sampler.add_messages(perf_messages)
 
@@ -225,7 +228,7 @@ class ReplayBuffer:
                self.joint_obs_enc_rnn_states[self.step], \
                self.comm_enc_rnn_states[self.step], \
                self.masks[self.step], self.perf_messages[self.step], \
-               self.perf_broadcasts[self.step]
+               self.perf_broadcasts[self.step] if len(self.perf_broadcasts) > 0 else None
 
     def insert_act(self, 
             obs_enc_rnn_states, joint_obs_enc_rnn_states, comm_enc_rnn_states, 
@@ -340,10 +343,12 @@ class ReplayBuffer:
             perf_messages_batch = self.perf_messages[:-1, ids]
             # Flatten the broadcasts first dimension (env_step) and get only 
             # broadcasts from envs[ids]
-            perf_broadcasts_batch = [
-                step_sentences[i] 
-                for step_sentences in self.perf_broadcasts[:-1]
-                for i in ids]
+            perf_broadcasts_batch = []
+            if len(self.perf_broadcasts) > 0:
+                perf_broadcasts_batch = [
+                    step_sentences[i] 
+                    for step_sentences in self.perf_broadcasts[:-1]
+                    for i in ids]
             
             # Same for 
             # perf_messages_batch = [

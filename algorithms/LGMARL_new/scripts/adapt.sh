@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=15
-experiment_name="Ad_PP9_F18o5_edl"
+n_run=1
+experiment_name="Ad_PP9_F18_langDeep"
 n_steps=10000000
 lr=0.0009 # default 0.0005
 lang_lr=0.009
@@ -9,7 +9,7 @@ FT_magym_env_size=18
 FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run14/"
+model_dir="models/magym_PredPrey_newReward/9_lang_deeper/run2/"
 cuda_device="cuda:2"
 
 source venv3.8/bin/activate
