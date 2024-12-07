@@ -1373,6 +1373,10 @@ models/magym_Foraging/18o5_no_comm/*
 !models/magym_Foraging/18o5_lang
 models/magym_Foraging/18o5_lang/*
 !models/magym_Foraging/18o5_lang/train_data
+!models/magym_Foraging/18o5_lang/run4
+models/magym_Foraging/18o5_lang/run4/*
+!models/magym_Foraging/18o5_lang/run4/args.txt
+!models/magym_Foraging/18o5_lang/run4/model_ep.pt
 
 !models/magym_Foraging/18o5_edl
 models/magym_Foraging/18o5_edl/*
