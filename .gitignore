@@ -1377,6 +1377,18 @@ models/magym_Foraging/18o5_lang/*
 models/magym_Foraging/18o5_lang/run4/*
 !models/magym_Foraging/18o5_lang/run4/args.txt
 !models/magym_Foraging/18o5_lang/run4/model_ep.pt
+!models/magym_Foraging/18o5_lang/run5
+models/magym_Foraging/18o5_lang/run5/*
+!models/magym_Foraging/18o5_lang/run5/args.txt
+!models/magym_Foraging/18o5_lang/run5/model_ep.pt
+!models/magym_Foraging/18o5_lang/run8
+models/magym_Foraging/18o5_lang/run8/*
+!models/magym_Foraging/18o5_lang/run8/args.txt
+!models/magym_Foraging/18o5_lang/run8/model_ep.pt
+!models/magym_Foraging/18o5_lang/run13
+models/magym_Foraging/18o5_lang/run13/*
+!models/magym_Foraging/18o5_lang/run13/args.txt
+!models/magym_Foraging/18o5_lang/run13/model_ep.pt
 
 !models/magym_Foraging/18o5_edl
 models/magym_Foraging/18o5_edl/*
