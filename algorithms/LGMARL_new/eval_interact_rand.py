@@ -8,38 +8,9 @@ import pandas as pd
 from tqdm import trange
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, set_cuda_device, load_args
+from src.utils.utils import set_seeds, set_cuda_device, load_args, render, save_frames
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
-
-def render(cfg, envs):
-    if cfg.use_render and cfg.n_parallel_envs < 50:
-        envs.render("human")
-    if cfg.render_wait_input:
-        input()
-    else:
-        time.sleep(0.1)
-
-def interact(cfg):
-    if cfg.interact:
-        add_mess = input("Input message:")
-        if len(add_mess):
-            add_mess = add_mess.split(" ")
-        else:
-            add_mess = []
-    else:
-        add_mess = None
-    return add_mess
-
-def log_comm(comm_tab, lang_learner, gen_mess, perf_mess):
-    dec_mess = lang_learner.word_encoder.decode_batch(
-        gen_mess.reshape(gen_mess.shape[0] * gen_mess.shape[1], -1))
-    for e_i in range(gen_mess.shape[0]):
-        for a_i in range(gen_mess.shape[1]):
-            # print(dec_mess[e_i * gen_mess.shape[1] + a_i], perf_mess[e_i][a_i])
-            comm_tab.append({
-                "Generated_Message": dec_mess[e_i * gen_mess.shape[1] + a_i], 
-                "Perfect_Message": perf_mess[e_i][a_i]})
 
 
 
@@ -91,6 +62,7 @@ def run_eval(cfg):
                 for y in range(min_center, 2 * min_center):
                     if (x, y) != i_pos: 
                         init_pos.append((i_pos, (x, y)))
+    # init_pos = [((4, 4), (3, 4)), ((4, 4), (3, 4))]
     
     # Create train environment
     cfg.env_name = "magym_Empty"
@@ -119,15 +91,10 @@ def run_eval(cfg):
         block_comm=True)
 
     # Load params
-    model.load(pretrained_model_path)
+    model.load(pretrained_model_path)    
 
-    obs = envs.reset()
-    parsed_obs = parser.get_perfect_messages(obs)
-
-    render(cfg, envs)
-
-    model.init_episode(obs, parsed_obs)
-    model.prep_rollout(device)
+    # model.init_episode(obs, parsed_obs)
+    # model.prep_rollout(device)
     # n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
     # for s_i in range(cfg.n_eval_runs):
     for tm in test_messages:
@@ -139,6 +106,9 @@ def run_eval(cfg):
             print(i, i + cfg.n_parallel_envs)
             obs = envs.reset(init_pos[i:i + cfg.n_parallel_envs])
             parsed_obs = parser.get_perfect_messages(obs)
+
+            frames = []
+            frames.append(render(cfg, envs)[1])
 
             model.init_episode(obs, parsed_obs)
             for ep_s_i in range(cfg.rollout_length):
@@ -156,6 +126,12 @@ def run_eval(cfg):
                 obs = next_obs
                 parsed_obs = parser.get_perfect_messages(obs)
                 model.store_exp(obs, parsed_obs, rewards, dones)
+
+                frames.append(render(cfg, envs)[1])
+
+            if cfg.save_render:
+                save_frames(frames, cfg.model_dir)
+                frames
         
         
         agent_actions = np.concatenate(performed_actions).squeeze(-1).T

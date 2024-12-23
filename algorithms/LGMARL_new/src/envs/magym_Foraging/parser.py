@@ -19,6 +19,9 @@ class Parser():
         self.vocab = [
             "Prey", "Center", "North", "South", "East", "West",
             "Gem", "Yellow", "Green", "Purple"]
+        # self.vocab = [
+        #     "Gem", "Yellow", "Green", "Purple", "Center", "North", "South", 
+        #     "East", "West"]
 
         self.max_gems_in_message = max_gems_in_message
         self.max_message_len = max_gems_in_message * 4

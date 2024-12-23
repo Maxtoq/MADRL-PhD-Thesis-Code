@@ -1,6 +1,5 @@
 import os
-import json
-import time
+import jsonschema
 import random
 import numpy as np
 import pandas as pd
@@ -8,38 +7,11 @@ import pandas as pd
 from tqdm import trange
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, set_cuda_device, load_args
+from src.utils.utils import set_seeds, set_cuda_device, load_args, render, save_frames, log_comm
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
 
-def render(cfg, envs):
-    if cfg.use_render:
-        envs.render("human")
-    if cfg.render_wait_input:
-        input()
-    else:
-        time.sleep(0.1)
 
-def interact(cfg):
-    if cfg.interact:
-        add_mess = input("Input message:")
-        if len(add_mess):
-            add_mess = add_mess.split(" ")
-        else:
-            add_mess = []
-    else:
-        add_mess = None
-    return add_mess
-
-def log_comm(comm_tab, lang_learner, gen_mess, perf_mess):
-    dec_mess = lang_learner.word_encoder.decode_batch(
-        gen_mess.reshape(gen_mess.shape[0] * gen_mess.shape[1], -1))
-    for e_i in range(gen_mess.shape[0]):
-        for a_i in range(gen_mess.shape[1]):
-            # print(dec_mess[e_i * gen_mess.shape[1] + a_i], perf_mess[e_i][a_i])
-            comm_tab.append({
-                "Generated_Message": dec_mess[e_i * gen_mess.shape[1] + a_i], 
-                "Perfect_Message": perf_mess[e_i][a_i]})
 
 def run_eval(cfg):
     # Get pretrained stuff
@@ -106,7 +78,9 @@ def run_eval(cfg):
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
 
-    render(cfg, envs)
+    img = render(cfg, envs)
+    if cfg.save_render:
+        frames = [img]
 
     model.init_episode(obs, parsed_obs)
     model.prep_rollout(device)
@@ -150,13 +124,18 @@ def run_eval(cfg):
             model.store_exp(obs, parsed_obs, rewards, dones)
 
             count_returns += rewards.mean(-1)
-            render(cfg, envs)
+            img = render(cfg, envs)
+            if cfg.save_render:
+                frames.append(img)
 
             env_dones = dones.all(axis=1)
             if True in env_dones:
                 returns += list(count_returns[env_dones == True])
                 count_returns *= (1 - env_dones)
         model.init_episode()
+
+        if cfg.save_render:
+            save_frames(frames, cfg.model_dir)
             
     envs.close()
 

@@ -152,7 +152,7 @@ def get_config():
     parser.add_argument("--n_eval_runs", type=int, default=10)
 
     # render parameters
-    parser.add_argument("--save_gifs", action='store_true', default=False, 
+    parser.add_argument("--save_render", action='store_true', default=False, 
                         help="by default, do not save render video. If set, save video.")
     parser.add_argument("--use_render", action='store_true', default=False)
     parser.add_argument("--render_episodes", type=int, default=5, 

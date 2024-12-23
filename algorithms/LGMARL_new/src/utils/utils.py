@@ -1,8 +1,12 @@
 import os
 import json
+import time
 import torch
 import random
 import numpy as np
+
+
+from PIL import Image
 
 
 def set_seeds(seed):
@@ -93,3 +97,47 @@ def load_args(cfg, eval=False):
                 else:
                     setattr(cfg, a, args[a])
             return steps_done
+
+def render(cfg, envs):
+    render = None
+    if cfg.save_render:
+        render = envs.render("rgb_array")
+    if cfg.use_render:
+        envs.render("human")
+
+    if cfg.render_wait_input:
+        input()
+    else:
+        time.sleep(0.1)
+
+    return render
+
+def save_frames(frames, dir):
+    n_files = len([f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))])
+    path = os.path.join(dir, f"eval_ep{n_files}.gif")
+    frames = [Image.fromarray(img.squeeze()) for img in frames]
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=200, loop=0)
+
+def interact(cfg):
+    if cfg.interact:
+        add_mess = input("Input message:")
+        if len(add_mess):
+            add_mess = add_mess.split(" ")
+        else:
+            add_mess = []
+    else:
+        add_mess = None
+    return add_mess
+
+def log_comm(comm_tab, lang_learner, gen_mess, perf_mess):
+    dec_mess = lang_learner.word_encoder.decode_batch(
+        gen_mess.reshape(gen_mess.shape[0] * gen_mess.shape[1], -1))
+    for e_i in range(gen_mess.shape[0]):
+        for a_i in range(gen_mess.shape[1]):
+            # print(dec_mess[e_i * gen_mess.shape[1] + a_i], perf_mess[e_i][a_i])
+            comm_tab.append({
+                "Generated_Message": dec_mess[e_i * gen_mess.shape[1] + a_i], 
+                "Perfect_Message": perf_mess[e_i][a_i]})
+
+def count_params(module):
+    return sum(p.numel() for p in module.parameters())

@@ -15,7 +15,7 @@ class CommPolicy(nn.Module):
         self.comm_type = args.comm_type
         self.n_agents = n_agents
 
-        self.comm_pol = MLPNetwork(
+        self.comm_in = MLPNetwork(
             args.hidden_dim, 
             args.context_dim, 
             args.hidden_dim, 
@@ -43,7 +43,7 @@ class CommPolicy(nn.Module):
             eval_comm_dist_entropy = None
 
         elif self.comm_type == "emergent_continuous":
-            comm_actions = self.comm_pol(enc_obs)
+            comm_actions = self.comm_in(enc_obs)
             messages = comm_actions.clone() 
 
             eval_comm_action_log_probs = None
@@ -52,7 +52,7 @@ class CommPolicy(nn.Module):
             comm_values = torch.zeros(enc_obs.shape[0], 1)
 
         elif self.comm_type == "emergent_discrete_lang":
-            comm_actions = self.comm_pol(enc_obs)
+            comm_actions = self.comm_in(enc_obs)
 
             messages = None
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
@@ -61,7 +61,7 @@ class CommPolicy(nn.Module):
             eval_comm_dist_entropy = None
         
         elif self.comm_type in ["perfect", "language_sup", "perfect+no_lang"]:
-            comm_actions = self.comm_pol(enc_obs)
+            comm_actions = self.comm_in(enc_obs)
             messages = perfect_messages
 
             eval_comm_action_log_probs = None
@@ -79,7 +79,7 @@ class CommPolicy(nn.Module):
             eval_comm_dist_entropy = None
 
         elif self.comm_type == "no_comm+lang":
-            comm_actions = self.comm_pol(enc_obs)
+            comm_actions = self.comm_in(enc_obs)
 
             comm_action_log_probs = torch.zeros(enc_obs.shape[0], 1)
             comm_values = torch.zeros(enc_obs.shape[0], 1)

@@ -8,38 +8,10 @@ import pandas as pd
 from tqdm import trange
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, set_cuda_device, load_args
+from src.utils.utils import set_seeds, set_cuda_device, load_args, render, save_frames
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
 
-def render(cfg, envs):
-    if cfg.use_render and cfg.n_parallel_envs < 50:
-        envs.render("human")
-    if cfg.render_wait_input:
-        input()
-    else:
-        time.sleep(0.1)
-
-def interact(cfg):
-    if cfg.interact:
-        add_mess = input("Input message:")
-        if len(add_mess):
-            add_mess = add_mess.split(" ")
-        else:
-            add_mess = []
-    else:
-        add_mess = None
-    return add_mess
-
-def log_comm(comm_tab, lang_learner, gen_mess, perf_mess):
-    dec_mess = lang_learner.word_encoder.decode_batch(
-        gen_mess.reshape(gen_mess.shape[0] * gen_mess.shape[1], -1))
-    for e_i in range(gen_mess.shape[0]):
-        for a_i in range(gen_mess.shape[1]):
-            # print(dec_mess[e_i * gen_mess.shape[1] + a_i], perf_mess[e_i][a_i])
-            comm_tab.append({
-                "Generated_Message": dec_mess[e_i * gen_mess.shape[1] + a_i], 
-                "Perfect_Message": perf_mess[e_i][a_i]})
 
 def get_sentence_pos_pairs():
     # return [
@@ -141,78 +113,78 @@ def get_sentence_pos_pairs():
     #     (["Prey", "South", "West"], [3, 7])
     #     ]
     return [
-        (["Prey", "West"], [4, 4]),
-        (["Prey", "West"], [4, 5]),
-        (["Prey", "West"], [4, 3]),
-        (["Prey", "West"], [3, 3]),
-        (["Prey", "West"], [3, 4]),
-        (["Prey", "West"], [3, 5]),
-        (["Prey", "West"], [5, 3]),
-        (["Prey", "West"], [5, 4]),
-        (["Prey", "West"], [5, 5]),
-        (["Prey", "East"], [4, 4]),
-        (["Prey", "East"], [4, 5]),
-        (["Prey", "East"], [4, 3]),
-        (["Prey", "East"], [3, 3]),
-        (["Prey", "East"], [3, 4]),
-        (["Prey", "East"], [3, 5]),
-        (["Prey", "East"], [5, 3]),
-        (["Prey", "East"], [5, 4]),
-        (["Prey", "East"], [5, 5]),
-        (["Prey", "South"], [4, 4]),
-        (["Prey", "South"], [4, 5]),
-        (["Prey", "South"], [4, 3]),
-        (["Prey", "South"], [3, 3]),
-        (["Prey", "South"], [3, 4]),
-        (["Prey", "South"], [3, 5]),
-        (["Prey", "South"], [5, 3]),
-        (["Prey", "South"], [5, 4]),
-        (["Prey", "South"], [5, 5]),
+    #     (["Prey", "West"], [4, 4]),
+    #     (["Prey", "West"], [4, 5]),
+    #     (["Prey", "West"], [4, 3]),
+    #     (["Prey", "West"], [3, 3]),
+    #     (["Prey", "West"], [3, 4]),
+    #     (["Prey", "West"], [3, 5]),
+    #     (["Prey", "West"], [5, 3]),
+    #     (["Prey", "West"], [5, 4]),
+    #     (["Prey", "West"], [5, 5]),
+    #     (["Prey", "East"], [4, 4]),
+    #     (["Prey", "East"], [4, 5]),
+    #     (["Prey", "East"], [4, 3]),
+    #     (["Prey", "East"], [3, 3]),
+    #     (["Prey", "East"], [3, 4]),
+    #     (["Prey", "East"], [3, 5]),
+    #     (["Prey", "East"], [5, 3]),
+    #     (["Prey", "East"], [5, 4]),
+    #     (["Prey", "East"], [5, 5]),
+    #     (["Prey", "South"], [4, 4]),
+    #     (["Prey", "South"], [4, 5]),
+    #     (["Prey", "South"], [4, 3]),
+    #     (["Prey", "South"], [3, 3]),
+    #     (["Prey", "South"], [3, 4]),
+    #     (["Prey", "South"], [3, 5]),
+    #     (["Prey", "South"], [5, 3]),
+    #     (["Prey", "South"], [5, 4]),
+    #     (["Prey", "South"], [5, 5]),
         (["Prey", "North"], [4, 4]),
-        (["Prey", "North"], [4, 5]),
-        (["Prey", "North"], [4, 3]),
-        (["Prey", "North"], [3, 3]),
-        (["Prey", "North"], [3, 4]),
-        (["Prey", "North"], [3, 5]),
-        (["Prey", "North"], [5, 3]),
-        (["Prey", "North"], [5, 4]),
-        (["Prey", "North"], [5, 5]),
-        (["Prey", "North", "East"], [4, 4]),
-        (["Prey", "North", "East"], [4, 5]),
-        (["Prey", "North", "East"], [4, 3]),
-        (["Prey", "North", "East"], [3, 3]),
-        (["Prey", "North", "East"], [3, 4]),
-        (["Prey", "North", "East"], [3, 5]),
-        (["Prey", "North", "East"], [5, 3]),
-        (["Prey", "North", "East"], [5, 4]),
-        (["Prey", "North", "East"], [5, 5]),
-        (["Prey", "South", "East"], [4, 4]),
-        (["Prey", "South", "East"], [4, 5]),
-        (["Prey", "South", "East"], [4, 3]),
-        (["Prey", "South", "East"], [3, 3]),
-        (["Prey", "South", "East"], [3, 4]),
-        (["Prey", "South", "East"], [3, 5]),
-        (["Prey", "South", "East"], [5, 3]),
-        (["Prey", "South", "East"], [5, 4]),
-        (["Prey", "South", "East"], [5, 5]),
-        (["Prey", "North", "West"], [4, 4]),
-        (["Prey", "North", "West"], [4, 5]),
-        (["Prey", "North", "West"], [4, 3]),
-        (["Prey", "North", "West"], [3, 3]),
-        (["Prey", "North", "West"], [3, 4]),
-        (["Prey", "North", "West"], [3, 5]),
-        (["Prey", "North", "West"], [5, 3]),
-        (["Prey", "North", "West"], [5, 4]),
-        (["Prey", "North", "West"], [5, 5]),
-        (["Prey", "South", "West"], [4, 4]),
-        (["Prey", "South", "West"], [4, 5]),
-        (["Prey", "South", "West"], [4, 3]),
-        (["Prey", "South", "West"], [3, 3]),
-        (["Prey", "South", "West"], [3, 4]),
-        (["Prey", "South", "West"], [3, 5]),
-        (["Prey", "South", "West"], [5, 3]),
-        (["Prey", "South", "West"], [5, 4]),
-        (["Prey", "South", "West"], [5, 5]),
+    #     (["Prey", "North"], [4, 5]),
+    #     (["Prey", "North"], [4, 3]),
+    #     (["Prey", "North"], [3, 3]),
+    #     (["Prey", "North"], [3, 4]),
+    #     (["Prey", "North"], [3, 5]),
+    # #     (["Prey", "North"], [5, 3]),
+    #     (["Prey", "North"], [5, 4]),
+        # (["Prey", "North"], [5, 5]),
+        # (["Prey", "North", "East"], [4, 4]),
+        # (["Prey", "North", "East"], [4, 5]),
+        # (["Prey", "North", "East"], [4, 3]),
+        # (["Prey", "North", "East"], [3, 3]),
+        # (["Prey", "North", "East"], [3, 4]),
+        # (["Prey", "North", "East"], [3, 5]),
+        # (["Prey", "North", "East"], [5, 3]),
+        # (["Prey", "North", "East"], [5, 4]),
+        # (["Prey", "North", "East"], [5, 5]),
+        # (["Prey", "South", "East"], [4, 4]),
+        # (["Prey", "South", "East"], [4, 5]),
+        # (["Prey", "South", "East"], [4, 3]),
+        # (["Prey", "South", "East"], [3, 3]),
+        # (["Prey", "South", "East"], [3, 4]),
+        # (["Prey", "South", "East"], [3, 5]),
+        # (["Prey", "South", "East"], [5, 3]),
+        # (["Prey", "South", "East"], [5, 4]),
+        # (["Prey", "South", "East"], [5, 5]),
+        # (["Prey", "North", "West"], [4, 4]),
+        # (["Prey", "North", "West"], [4, 5]),
+        # (["Prey", "North", "West"], [4, 3]),
+        # (["Prey", "North", "West"], [3, 3]),
+        # (["Prey", "North", "West"], [3, 4]),
+        # (["Prey", "North", "West"], [3, 5]),
+        # (["Prey", "North", "West"], [5, 3]),
+        # (["Prey", "North", "West"], [5, 4]),
+        # (["Prey", "North", "West"], [5, 5]),
+        # (["Prey", "South", "West"], [4, 4]),
+        # (["Prey", "South", "West"], [4, 5]),
+        # (["Prey", "South", "West"], [4, 3]),
+        # (["Prey", "South", "West"], [3, 3]),
+        # (["Prey", "South", "West"], [3, 4]),
+        # (["Prey", "South", "West"], [3, 5]),
+        # (["Prey", "South", "West"], [5, 3]),
+        # (["Prey", "South", "West"], [5, 4]),
+        # (["Prey", "South", "West"], [5, 5]),
         ]
 
 def run_eval(cfg):
@@ -271,7 +243,8 @@ def run_eval(cfg):
     obs = envs.reset(interact_log["Init_pos"].tolist())
     parsed_obs = parser.get_perfect_messages(obs)
 
-    render(cfg, envs)
+    frames = []
+    frames.append(render(cfg, envs))
 
     model.init_episode(obs, parsed_obs)
     model.prep_rollout(device)
@@ -282,7 +255,7 @@ def run_eval(cfg):
         actions, agent_messages, _, comm_rewards \
             = model.act(
                 deterministic=True, 
-                lang_input=[[sp[0]] for sp in sent_pos_test_pairs] if ep_s_i == 0 else None)
+                lang_input=[[sp[0]] for sp in sent_pos_test_pairs])# if ep_s_i == 0 else None)
 
         for a_i in range(4):
             interact_log["T" + str(ep_s_i) + "A" + str(a_i)] = actions.squeeze()[:, 0]
@@ -294,13 +267,16 @@ def run_eval(cfg):
         parsed_obs = parser.get_perfect_messages(obs)
         model.store_exp(obs, parsed_obs, rewards, dones)
 
-        render(cfg, envs)
+        frames.append(render(cfg, envs))
         # model.init_episode()
             
     envs.close()
 
+    if cfg.save_render:
+        save_frames(frames, cfg.model_dir)
+
     # print(interact_log)
-    interact_log.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center_onestep.csv")
+    interact_log.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center.csv")
 
 if __name__ == '__main__':
     # Load config

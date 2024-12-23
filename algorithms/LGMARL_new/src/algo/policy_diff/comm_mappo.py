@@ -187,7 +187,6 @@ class CommMAPPO_Shared:
 #         self.agents.load_state_dict(params["agents"])
 
 
-
 class CommMAPPO():
 
     def __init__(self, args, parser, n_agents, obs_dim, 

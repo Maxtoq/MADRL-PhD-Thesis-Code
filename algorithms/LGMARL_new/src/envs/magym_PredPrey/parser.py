@@ -13,6 +13,7 @@ class Parser():
 
         self.vocab = ["Prey", "Center", "North", "South", "East", "West",
                         "Gem", "Yellow", "Green", "Purple"]
+        # self.vocab = ["Prey", "Center", "North", "South", "East", "West"]
         self.max_message_len = 3 * max(2, n_preys)
 
         if self.obs_range > 5:

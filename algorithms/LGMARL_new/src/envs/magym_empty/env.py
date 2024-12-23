@@ -97,12 +97,12 @@ class EmptyEnv(gym.Env):
             _agent_i_obs = [pos[0] / (self._grid_shape[0] - 1), pos[1] / (self._grid_shape[1] - 1)]  # coordinates
 
             _obs_map = np.zeros(self._agent_view_mask)
-            obs_range = self._agent_view_mask[0] // 2
-            for row in range(max(0, pos[0] - obs_range), min(pos[0] + obs_range + 1, self._grid_shape[0])):
-                for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
-                    if self._full_obs[row][col] != PRE_IDS["empty"]:
-                        if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
-                            _obs_map[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 2
+            # obs_range = self._agent_view_mask[0] // 2
+            # for row in range(max(0, pos[0] - obs_range), min(pos[0] + obs_range + 1, self._grid_shape[0])):
+            #     for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
+            #         if self._full_obs[row][col] != PRE_IDS["empty"]:
+            #             if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
+            #                 _obs_map[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 2
 
             _agent_i_obs += _obs_map.flatten().tolist()
             _obs.append(_agent_i_obs)
@@ -213,15 +213,15 @@ class EmptyEnv(gym.Env):
             "Call reset before using render method."
         # print(self._full_obs)
         img = copy.copy(self._base_img)
-        for agent_i in range(self.n_agents):
-            for neighbour in self.__get_neighbour_coordinates(self.agent_pos[agent_i]):
-                fill_cell(img, neighbour, cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
-            fill_cell(img, self.agent_pos[agent_i], cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
+        # for agent_i in range(1):#self.n_agents):
+            # for neighbour in self.__get_neighbour_coordinates(self.agent_pos[agent_i]):
+            #     fill_cell(img, neighbour, cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
+        fill_cell(img, self.agent_pos[1], cell_size=CELL_SIZE, fill=AGENT_NEIGHBORHOOD_COLOR, margin=0.1)
 
-        for agent_i in range(self.n_agents):
-            draw_circle(img, self.agent_pos[agent_i], cell_size=CELL_SIZE, fill=AGENT_COLOR)
-            write_cell_text(img, text=str(agent_i + 1), pos=self.agent_pos[agent_i], cell_size=CELL_SIZE,
-                            fill='white', margin=0.4)
+        # for agent_i in range(1):#self.n_agents):
+        draw_circle(img, self.agent_pos[1], cell_size=CELL_SIZE, fill=AGENT_COLOR)
+        write_cell_text(img, text=str(1), pos=self.agent_pos[1], cell_size=CELL_SIZE,
+                        fill='white', margin=0.4)
 
         img = np.asarray(img)
         if mode == 'rgb_array':
