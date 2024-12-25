@@ -181,6 +181,7 @@ class PredatorPreyEnv(gym.Env):
                         elif PRE_IDS['prey'] in self._full_obs[row][col]:
                             _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 1  # set position for the prey loc.
 
+            _prey_pos /= 2
             _agent_i_obs += _prey_pos.flatten().tolist()  # adding prey pos in observable area
             # _agent_i_obs += [self._step_count / self._max_steps]  # adding time
             _obs.append(_agent_i_obs)

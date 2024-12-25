@@ -22,7 +22,13 @@ cuda_device="cuda:3"
 # model_dir="models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run8,models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run2" 
 # model_dir="models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run5,models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run9,models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run7" 
 # model_dir="models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run8,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run2" 
-model_dir="models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run9,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run3,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run6"
+# model_dir="models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run9,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run3,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run6"
+
+# model_dir="models/Foraging/18o5_lang/run4,models/magym_PredPrey_new/Ad_9o5SA_15o5_noc/run1,models/magym_PredPrey_new/Ad_9o5SA_15o5_noc/run2,models/magym_PredPrey_new/Ad_9o5SA_15o5_noc/run7"
+# EEmodel_dir="models/Foraging/18o5_edl/run8,models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_perf/run2" 
+# EEmodel_dir="models/Foraging/18o5_ec2/run5,models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run9,models/magym_PredPrey_new/Ad_9o5SA_15o5_langsup/run7" 
+# EEmodel_dir="models/Foraging/18o5_no_comm/run8,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run2" 
+# EEmodel_dir="models/Foraging/18o5_perf/run9,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run3,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run6"
 
 
 seed=$RANDOM # 27425
