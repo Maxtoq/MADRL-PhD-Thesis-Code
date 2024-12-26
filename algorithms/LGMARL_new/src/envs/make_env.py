@@ -8,7 +8,18 @@ from .mpe.environment import MultiAgentEnv
 
 
 def _get_env(cfg, init_pos):
-    if "magym_PredPrey" in cfg.env_name:
+    if cfg.env_name == "magym_PredPrey_RGB":
+        from .magym_PredPrey_RGB.env import PredatorPreyEnv
+        env = PredatorPreyEnv(
+            n_agents=cfg.magym_n_agents, 
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
+            n_preys=cfg.magym_n_preys, 
+            max_steps=cfg.episode_length,
+            obs_range=cfg.magym_obs_range,
+            reduced_obsrange=cfg.FT_magym_reduced_obsrange,
+            see_agents=cfg.magym_see_agents,
+            init_pos=init_pos)
+    elif "magym_PredPrey" in cfg.env_name:
         if "Respawn" in cfg.env_name:
             from .magym_PredPrey_Respawn.env import PredatorPreyEnv
         else:
@@ -19,7 +30,7 @@ def _get_env(cfg, init_pos):
             n_preys=cfg.magym_n_preys, 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_actual_obsrange,
+            actual_obsrange=cfg.FT_magym_reduced_obsrange,
             see_agents=cfg.magym_see_agents,
             init_pos=init_pos)
     elif cfg.env_name == "magym_Lumber":
@@ -29,7 +40,7 @@ def _get_env(cfg, init_pos):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_actual_obsrange)
+            actual_obsrange=cfg.FT_magym_reduced_obsrange)
     elif cfg.env_name == "magym_Foraging":
         from .magym_Foraging.env import Env
         env = Env(
@@ -37,7 +48,7 @@ def _get_env(cfg, init_pos):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_actual_obsrange)
+            actual_obsrange=cfg.FT_magym_reduced_obsrange)
     elif cfg.env_name == "magym_Foraging_fixedpos":
         from .magym_Foraging_fixedpos.env import Env
         env = Env(
@@ -45,7 +56,7 @@ def _get_env(cfg, init_pos):
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_actual_obsrange)
+            actual_obsrange=cfg.FT_magym_reduced_obsrange)
     elif cfg.env_name == "magym_Combat":
         env = Env(
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
@@ -58,10 +69,15 @@ def _get_env(cfg, init_pos):
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             see_agents=cfg.magym_see_agents)
+    else:
+        raise NotImplementedError("ARG ERROR: bad env_name")
     return env
 
 def _get_parser(cfg):
-    if "magym_PredPrey" in cfg.env_name or cfg.env_name == "magym_Empty":
+    if cfg.env_name == "magym_PredPrey_RGB":
+        from .magym_PredPrey_RGB.parser import Parser
+        return Parser(cfg.magym_env_size, cfg.magym_obs_range, cfg.magym_n_preys)
+    elif "magym_PredPrey" in cfg.env_name or cfg.env_name == "magym_Empty":
         if "Respawn" in cfg.env_name:
             from .magym_PredPrey_Respawn.parser import Parser
         else:

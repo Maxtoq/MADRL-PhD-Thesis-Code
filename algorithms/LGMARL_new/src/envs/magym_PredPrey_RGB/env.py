@@ -40,13 +40,10 @@ class PredatorPreyEnv(gym.Env):
     def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
                 #  full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
                  full_observable=False, penalty=-2.0, step_cost=-1.0, prey_capture_reward=30.0, max_steps=100,
-                 agent_view_mask=(5, 5), global_state=False, actual_obsrange=None, see_agents=False, init_pos=None):
+                 global_state=False, obs_range=5, reduced_obsrange=None, see_agents=False, init_pos=None):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
-        assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
-                                          ' but found {}'.format(agent_view_mask)
         assert grid_shape[0] > 0 and grid_shape[1] > 0, 'grid shape should be > 0'
-        assert 0 < agent_view_mask[0] <= grid_shape[0], 'agent view mask has to be within (0,{}]'.format(grid_shape[0])
-        assert 0 < agent_view_mask[1] <= grid_shape[1], 'agent view mask has to be within (0,{}]'.format(grid_shape[1])
+        assert 0 < obs_range <= grid_shape[0], 'obs range has to be within (0,{}]'.format(grid_shape[0])
 
         self._grid_shape = grid_shape
         self.n_agents = n_agents
@@ -57,11 +54,11 @@ class PredatorPreyEnv(gym.Env):
         self._penalty = penalty
         self._step_cost = step_cost
         self._prey_capture_reward = prey_capture_reward
-        self._agent_view_mask = agent_view_mask
+        self._agent_view_mask = (obs_range, obs_range, 3) # 3 canals for Red, Blue, and Green
 
-        self._actual_obsrange = actual_obsrange
-        if self._actual_obsrange is not None and self._actual_obsrange >= self._agent_view_mask[0]:
-            print("WARNING: actual_obsrange >= obs_range.")
+        self._reduced_obsrange = reduced_obsrange
+        if self._reduced_obsrange is not None and self._reduced_obsrange >= self._agent_view_mask[0]:
+            print("WARNING: reduced_obsrange >= obs_range.")
         self._see_agents = see_agents
         self._init_pos = init_pos
 
@@ -99,6 +96,8 @@ class PredatorPreyEnv(gym.Env):
 
         self._total_episode_reward = None
         self.seed()
+
+        self.__draw_base_img()
 
     def get_action_meanings(self, agent_i=None):
         if agent_i is not None:
@@ -155,8 +154,6 @@ class PredatorPreyEnv(gym.Env):
                         print("Overlapping positions in eval scenario:", self._init_pos)
             self.__update_prey_view(prey_i)
 
-        self.__draw_base_img()
-
     def get_agent_obs(self):
         # from pprint import pprint
         # pprint(self._full_obs)
@@ -172,16 +169,16 @@ class PredatorPreyEnv(gym.Env):
                 for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
                     if self._full_obs[row][col] != PRE_IDS["empty"]:
                         # If limited obs_range, then check if distance is low enough
-                        if self._actual_obsrange is not None:
+                        if self._reduced_obsrange is not None:
                             dist = np.sqrt((row - pos[0]) ** 2 + (col - pos[1]) ** 2)
-                            if dist > self._actual_obsrange / 2:
+                            if dist > self._reduced_obsrange / 2:
                                 continue
                         if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
-                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 2
+                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 1] = 1 # Agent is blue, so observe (0, 1, 0)
                         elif PRE_IDS['prey'] in self._full_obs[row][col]:
-                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 1  # set position for the prey loc.
+                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 0] = 1  # Prey is red, so observe (1, 0, 0)
 
-            _prey_pos /= 2
+            # _prey_pos /= 2
             _agent_i_obs += _prey_pos.flatten().tolist()  # adding prey pos in observable area
             # _agent_i_obs += [self._step_count / self._max_steps]  # adding time
             _obs.append(_agent_i_obs)

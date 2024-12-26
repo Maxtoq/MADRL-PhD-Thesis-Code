@@ -103,30 +103,41 @@ class Parser():
 
     def _gen_perfect_message(self, agent_obs):
         m = []
+
+        # Get observed map
         pos = agent_obs[:2]
-        prey_map = np.array(
-            agent_obs[2:]).reshape((self.obs_range, self.obs_range))
+        obs_map = np.array(
+            agent_obs[2:]).reshape((self.obs_range, self.obs_range, 3))
 
+        # Observed entities positions
+        ent_pos = np.transpose(np.nonzero(obs_map.sum(-1) > 0))
+
+        # Entities
+        ent = obs_map[ent_pos[:, 0], ent_pos[:, 1], :]
+        # Relative positions
         d = (np.arange(self.obs_range) - (self.obs_range // 2)) \
-                / (self.env_size - 1)
-        rel_prey_pos = np.stack([d[ax] for ax in np.nonzero(prey_map == 0.5)]).T
-        abs_prey_pos = pos + rel_prey_pos
+            / (self.env_size - 1)
+        rel_pos = d[ent_pos]
+        # Absolute positions
+        abs_pos = pos + rel_pos
 
-        for abs_pos, rel_pos in zip(abs_prey_pos, rel_prey_pos):
-            # p = ["Prey", "Located"]
+        for e, a, r in zip(ent, abs_pos, rel_pos):
+            if not np.array_equal(e, [1, 0, 0]):
+                continue
+
             p = ["Prey"]
 
             if self.obs_range > 5:
-                if max(np.abs(rel_pos * (self.env_size - 1))) < 3:
+                if max(np.abs(r * (self.env_size - 1))) < 3:
                     p.append("Close")
 
-            if abs_pos[0] <= 0.25:
+            if a[0] <= 0.25:
                 p.append("North")
-            elif abs_pos[0] >= 0.75:
+            elif a[0] >= 0.75:
                 p.append("South")
-            if abs_pos[1] <= 0.25:
+            if a[1] <= 0.25:
                 p.append("West")
-            elif abs_pos[1] >= 0.75:
+            elif a[1] >= 0.75:
                 p.append("East")
 
             if len(p) == 1:
