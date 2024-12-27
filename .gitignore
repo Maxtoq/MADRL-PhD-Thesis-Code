@@ -1426,6 +1426,10 @@ models/magym_PredPrey_newReward/9_lang_deeper/*
 models/magym_PredPrey_newReward/9_noc_deeper/*
 !models/magym_PredPrey_newReward/9_noc_deeper/train_data
 
+!models/magym_PredPrey_newReward/9_ec2
+models/magym_PredPrey_newReward/9_ec2/*
+!models/magym_PredPrey_newReward/9_ec2/train_data
+
 
 !models/magym_PredPrey_largeVoc
 models/magym_PredPrey_largeVoc/*
