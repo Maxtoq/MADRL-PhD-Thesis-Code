@@ -79,7 +79,7 @@ class PredatorPreyEnv(gym.Env):
         self.global_state_dim = 2 * self.n_preys
 
         # agent pos (2), prey (25), step (1)
-        mask_size = np.prod(self._agent_view_mask) * 3
+        mask_size = np.prod(self._agent_view_mask)
         self._obs_high = np.ones(2 + mask_size, dtype=np.float32)
         self._obs_low = np.zeros(2 + mask_size, dtype=np.float32)
         if self.full_observable:
