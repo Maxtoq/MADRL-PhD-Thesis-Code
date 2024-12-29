@@ -14,11 +14,12 @@ class Parser():
         self.vocab = ["Prey", "Center", "North", "South", "East", "West",
                         "Gem", "Yellow", "Green", "Purple"]
         # self.vocab = ["Prey", "Center", "North", "South", "East", "West"]
-        self.max_message_len = 3 * min(2, n_preys)
+        self.max_n_prey = min(2, n_preys) # Max number of preys that will be communicated about in one message
+        self.max_message_len = 3 * self.max_n_prey
 
         if self.obs_range > 5:
             self.vocab.append("Close")
-            self.max_message_len += min(2, n_preys)
+            self.max_message_len += self.max_n_prey
 
     def parse_global_state(self, state):
         """
@@ -121,31 +122,29 @@ class Parser():
         # Absolute positions
         abs_pos = pos + rel_pos
 
-        for e, a, r in zip(ent, abs_pos, rel_pos):
-            if not np.array_equal(e, [1, 0, 0]):
+        for p_i in range(min(ent.shape[0], self.max_n_prey)):
+            if not np.array_equal(ent[p_i], [1, 0, 0]):
                 continue
 
             p = ["Prey"]
 
             if self.obs_range > 5:
-                if max(np.abs(r * (self.env_size - 1))) < 3:
+                if max(np.abs(rel_pos[p_i] * (self.env_size - 1))) < 3:
                     p.append("Close")
 
-            if a[0] <= 0.25:
+            if abs_pos[p_i][0] <= 0.25:
                 p.append("North")
-            elif a[0] >= 0.75:
+            elif abs_pos[p_i][0] >= 0.75:
                 p.append("South")
-            if a[1] <= 0.25:
+            if abs_pos[p_i][1] <= 0.25:
                 p.append("West")
-            elif a[1] >= 0.75:
+            elif abs_pos[p_i][1] >= 0.75:
                 p.append("East")
 
             if len(p) == 1:
                 p.append("Center")
 
             m.extend(p)
-            if len(m) >= self.max_message_len:
-                break
         
         return m
 
