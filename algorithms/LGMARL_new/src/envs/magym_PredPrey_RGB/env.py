@@ -39,7 +39,7 @@ class PredatorPreyEnv(gym.Env):
 
     def __init__(self, grid_shape=(5, 5), n_agents=2, n_preys=1, prey_move_probs=(0.175, 0.175, 0.175, 0.175, 0.3),
                 #  full_observable=False, penalty=-0.5, step_cost=-0.01, prey_capture_reward=5, max_steps=100,
-                 full_observable=False, penalty=-2.0, step_cost=-1.0, prey_capture_reward=30.0, max_steps=100,
+                 full_observable=False, penalty=0.0, step_cost=-1.0, prey_capture_reward=30.0, max_steps=100,
                  global_state=False, obs_range=5, reduced_obsrange=None, see_agents=False, init_pos=None):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert grid_shape[0] > 0 and grid_shape[1] > 0, 'grid shape should be > 0'
@@ -174,7 +174,7 @@ class PredatorPreyEnv(gym.Env):
                             if dist > self._reduced_obsrange / 2:
                                 continue
                         if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
-                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 1] = 1 # Agent is blue, so observe (0, 1, 0)
+                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 2] = 1 # Agent is blue, so observe (0, 1, 0)
                         elif PRE_IDS['prey'] in self._full_obs[row][col]:
                             _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 0] = 1  # Prey is red, so observe (1, 0, 0)
 
