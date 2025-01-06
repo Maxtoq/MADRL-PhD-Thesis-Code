@@ -174,7 +174,7 @@ class PredatorPreyEnv(gym.Env):
                             if dist > self._reduced_obsrange / 2:
                                 continue
                         if self._see_agents and PRE_IDS['agent'] in self._full_obs[row][col] and self._full_obs[row][col][-1] != str(agent_i + 1):
-                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 2] = 1 # Agent is blue, so observe (0, 1, 0)
+                            _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 2] = 1 # Agent is blue, so observe (0, 0, 1)
                         elif PRE_IDS['prey'] in self._full_obs[row][col]:
                             _prey_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 0] = 1  # Prey is red, so observe (1, 0, 0)
 

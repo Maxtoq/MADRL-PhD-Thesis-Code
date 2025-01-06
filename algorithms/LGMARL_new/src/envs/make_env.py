@@ -19,6 +19,7 @@ def _get_env(cfg, init_pos):
             reduced_obsrange=cfg.FT_magym_reduced_obsrange,
             see_agents=cfg.magym_see_agents,
             init_pos=init_pos)
+
     elif "magym_PredPrey" in cfg.env_name:
         if "Respawn" in cfg.env_name:
             from .magym_PredPrey_Respawn.env import PredatorPreyEnv
@@ -33,6 +34,7 @@ def _get_env(cfg, init_pos):
             actual_obsrange=cfg.FT_magym_reduced_obsrange,
             see_agents=cfg.magym_see_agents,
             init_pos=init_pos)
+
     elif cfg.env_name == "magym_Lumber":
         from .ma_gym.lumberjack import Lumberjacks
         env = Lumberjacks(
@@ -41,26 +43,26 @@ def _get_env(cfg, init_pos):
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             actual_obsrange=cfg.FT_magym_reduced_obsrange)
-    elif cfg.env_name == "magym_Foraging":
-        from .magym_Foraging.env import Env
+
+    elif "magym_Foraging" in cfg.env_name:
+        if cfg.env_name == "magym_Foraging_fixedpos":
+            from .magym_Foraging_fixedpos.env import Env
+        elif cfg.env_name == "magym_Foraging_RGB":
+            from .magym_Foraging_RGB.env import Env
+        else:
+            from .magym_Foraging.env import Env
         env = Env(
             n_agents=cfg.magym_n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_reduced_obsrange)
-    elif cfg.env_name == "magym_Foraging_fixedpos":
-        from .magym_Foraging_fixedpos.env import Env
-        env = Env(
-            n_agents=cfg.magym_n_agents, 
-            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
-            max_steps=cfg.episode_length,
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_reduced_obsrange)
+            obs_range=cfg.magym_obs_range,
+            reduced_obsrange=cfg.FT_magym_reduced_obsrange)
+
     elif cfg.env_name == "magym_Combat":
         env = Env(
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length)
+
     elif cfg.env_name == "magym_Empty":
         from .magym_empty.env import EmptyEnv
         env = EmptyEnv(
@@ -74,24 +76,28 @@ def _get_env(cfg, init_pos):
     return env
 
 def _get_parser(cfg):
-    if cfg.env_name == "magym_PredPrey_RGB":
-        from .magym_PredPrey_RGB.parser import Parser
-        return Parser(cfg.magym_env_size, cfg.magym_obs_range, cfg.magym_n_preys)
-    elif "magym_PredPrey" in cfg.env_name or cfg.env_name == "magym_Empty":
+    if "magym_PredPrey" in cfg.env_name or cfg.env_name == "magym_Empty":
         if "Respawn" in cfg.env_name:
             from .magym_PredPrey_Respawn.parser import Parser
+        elif cfg.env_name == "magym_PredPrey_RGB":
+            from .magym_PredPrey_RGB.parser import Parser
         else:
             from .magym_PredPrey.parser import Parser
         return Parser(cfg.magym_env_size, cfg.magym_obs_range, cfg.magym_n_preys)
+
     elif cfg.env_name == "magym_Lumber":
         from .parsers.lumberjack import Lumberjack_Parser
         return Lumberjack_Parser(cfg.magym_env_size)
-    elif cfg.env_name == "magym_Foraging":
-        from .magym_Foraging.parser import Parser
+
+    elif "magym_Foraging" in cfg.env_name:
+        if cfg.env_name == "magym_Foraging_fixedpos":
+            from .magym_Foraging_fixedpos.parser import Parser
+        elif cfg.env_name == "magym_Foraging_RGB":
+            from .magym_Foraging_RGB.parser import Parser
+        else:
+            from .magym_Foraging.parser import Parser
         return Parser(cfg.magym_env_size, cfg.magym_obs_range)
-    elif cfg.env_name == "magym_Foraging_fixedpos":
-        from .magym_Foraging_fixedpos.parser import Parser
-        return Parser(cfg.magym_env_size, cfg.magym_obs_range)
+
     else:
         print("WARNING: No Parser for", cfg.env_name)
         return None

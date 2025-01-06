@@ -22,13 +22,10 @@ class Env(gym.Env):
 
     def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=6,
                  penalty=-0.0, step_cost=-1.0, max_steps=100,
-                 agent_view_mask=(5, 5), no_purple=False, actual_obsrange=None):
+                 obs_range=5, no_purple=False, reduced_obsrange=None):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
-        assert len(agent_view_mask) == 2, 'expected a tuple of size 2 for agent view mask,' \
-                                          ' but found {}'.format(agent_view_mask)
         assert grid_shape[0] > 0 and grid_shape[1] > 0, 'grid shape should be > 0'
-        assert 0 < agent_view_mask[0] <= grid_shape[0], 'agent view mask has to be within (0,{}]'.format(grid_shape[0])
-        assert 0 < agent_view_mask[1] <= grid_shape[1], 'agent view mask has to be within (0,{}]'.format(grid_shape[1])
+        assert 0 < obs_range <= grid_shape[0], 'observation range has to be within (0,{}]'.format(grid_shape[0])
         assert n_agents >= 3, "n_agents must be > 2."
         assert n_gems <= 8, "n_gems must be less than 9."
 
@@ -39,10 +36,10 @@ class Env(gym.Env):
         self._step_count = 0
         self._penalty = penalty
         self._step_cost = step_cost
-        self._agent_view_mask = agent_view_mask
-        self._actual_obsrange = actual_obsrange
-        if self._actual_obsrange is not None and self._actual_obsrange >= self._agent_view_mask[0]:
-            print("WARNING: actual_obsrange >= obs_range.")
+        self._agent_view_mask = (obs_range, obs_range)
+        self._reduced_obsrange = reduced_obsrange
+        if self._reduced_obsrange is not None and self._reduced_obsrange >= self._agent_view_mask[0]:
+            print("WARNING: reduced_obsrange >= obs_range.")
 
         env_size = grid_shape[0]
         self._agent_init_pos = [
@@ -136,9 +133,9 @@ class Env(gym.Env):
                 for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
                     if PRE_IDS['gem'] in self._full_obs[row][col]:
                         # If limited obs_range, then check if distance is low enough
-                        if self._actual_obsrange is not None:
+                        if self._reduced_obsrange is not None:
                             dist = np.sqrt((row - pos[0]) ** 2 + (col - pos[1]) ** 2)
-                            if dist > self._actual_obsrange / 2:
+                            if dist > self._reduced_obsrange / 2:
                                 continue
                         _gem_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = int(self._full_obs[row][col][-1]) # get relative position for the gem loc.
 

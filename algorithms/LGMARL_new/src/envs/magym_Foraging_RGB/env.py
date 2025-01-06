@@ -20,13 +20,15 @@ class Env(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, grid_shape=(10, 10), n_agents=4, n_gems=30,
-                 penalty=-0.0, step_cost=-1.0, max_steps=100, obs_range=5, 
-                 reduced_obsrange=None, respawn_gems=False):
+    def __init__(self, grid_shape=(15, 15), n_agents=4, n_gems=30, penalty=-0.0, 
+                 step_cost=-1.0, max_steps=100, obs_range=5, reduced_obsrange=None, 
+                 respawn_gems=False):
         assert len(grid_shape) == 2, 'expected a tuple of size 2 for grid_shape, but found {}'.format(grid_shape)
         assert grid_shape[0] > 0 and grid_shape[1] > 0, 'grid shape should be > 0'
-        assert 0 < obs_range <= grid_shape[0], 'observation range has to be within (0,{}]'.format(grid_shape[0])
+        assert 0 < obs_range <= grid_shape[0], 'obs_range has to be within (0,{}]'.format(grid_shape[0])
         assert n_agents >= 3, "n_agents must be > 2."
+        if reduced_obsrange is not None:
+            assert reduced_obsrange < obs_range, "reduced_obsrange should not be larger than obs_range"
 
         self._grid_shape = grid_shape
         self.n_agents = n_agents
@@ -35,11 +37,9 @@ class Env(gym.Env):
         self._step_count = 0
         self._penalty = penalty
         self._step_cost = step_cost
-        self._agent_view_mask = (obs_range, obs_range)
+        self._agent_view_mask = (obs_range, obs_range, 3) # 3 canals for Red, Blue, and Green
         self._reduced_obsrange = reduced_obsrange
         self._respawn_gems = respawn_gems
-        if self._reduced_obsrange is not None and self._reduced_obsrange >= self._agent_view_mask[0]:
-            print("WARNING: reduced_obsrange >= obs_range.")
 
         env_size = grid_shape[0]
         self._agent_init_pos = [
@@ -99,16 +99,18 @@ class Env(gym.Env):
         self._base_img = draw_grid(self._grid_shape[0], self._grid_shape[1], cell_size=CELL_SIZE, fill='white')
 
     def __create_grid(self):
-        _grid = [[PRE_IDS['empty'] for _ in range(self._grid_shape[1])] for row in range(self._grid_shape[0])]
+        _grid = [[ENT_IDS['empty'] for _ in range(self._grid_shape[1])] for row in range(self._grid_shape[0])]
         return _grid
 
     def __spawn_gem(self, gem_i):
         while True:
-            pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                    self.np_random.randint(0, self._grid_shape[1] - 1)]
+            pos = [self.np_random.randint(0, self._grid_shape[0]),
+                    self.np_random.randint(0, self._grid_shape[1])]
+            # print(self._is_cell_vacant(pos), (self._neighbour_agents(pos)[0] == 0), (pos not in self._gem_forbid_pos))
             if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0) and (pos not in self._gem_forbid_pos):
                 self.gem_pos[gem_i] = pos
                 break
+
         self.__update_gem_view(gem_i)
 
     def __init_full_obs(self):
@@ -126,7 +128,6 @@ class Env(gym.Env):
 
         for gem_i in range(self.n_gems):
             self.__spawn_gem(gem_i)
-
         self.__draw_base_img()
 
     def get_agent_obs(self):
@@ -140,17 +141,17 @@ class Env(gym.Env):
             obs_range = self._agent_view_mask[0] // 2
             for row in range(max(0, pos[0] - obs_range), min(pos[0] + obs_range + 1, self._grid_shape[0])):
                 for col in range(max(0, pos[1] - obs_range), min(pos[1] + obs_range + 1, self._grid_shape[1])):
-                    if self._full_obs[row][col] != PRE_IDS["empty"]:
+                    if self._full_obs[row][col] != ENT_IDS["empty"]:
                         # If limited obs_range, then check if distance is low enough
                         if self._reduced_obsrange is not None:
                             dist = np.sqrt((row - pos[0]) ** 2 + (col - pos[1]) ** 2)
                             if dist > self._reduced_obsrange / 2:
                                 continue
-                        if PRE_IDS['agent'] in self._full_obs[row][col]: # and self._full_obs[row][col][-1] != str(agent_i + 1):
-                            _gem_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = 4
-                        elif PRE_IDS['gem'] in self._full_obs[row][col]:
-                            _gem_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = int(self._full_obs[row][col][-1]) # get relative position for the gem loc.
-            _gem_pos /= 4
+                        if ENT_IDS['agent'] in self._full_obs[row][col]: # and self._full_obs[row][col][-1] != str(agent_i + 1):
+                            _gem_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range), 2] = 1 # Agent is blue, so observe (0, 0, 1)
+                        elif ENT_IDS['gem'] in self._full_obs[row][col]:
+                            _gem_pos[row - (pos[0] - obs_range), col - (pos[1] - obs_range)] = GEM_COLORS[int(self._full_obs[row][col][-1])]
+            
             _agent_i_obs += _gem_pos.flatten().tolist()  # adding gem pos in observable area
             _obs.append(_agent_i_obs)
         return _obs
@@ -161,7 +162,6 @@ class Env(gym.Env):
         self.gem_pos = {}
 
         # TODO handle init_pos
-
         self.__init_full_obs()
         self._step_count = 0
         self._agent_dones = [False for _ in range(self.n_agents)]
@@ -171,13 +171,13 @@ class Env(gym.Env):
 
     def __wall_exists(self, pos):
         row, col = pos
-        return PRE_IDS['wall'] in self._base_grid[row, col]
+        return ENT_IDS['wall'] in self._base_grid[row, col]
 
     def is_valid(self, pos):
         return (0 <= pos[0] < self._grid_shape[0]) and (0 <= pos[1] < self._grid_shape[1])
 
     def _is_cell_vacant(self, pos):
-        return self.is_valid(pos) and (self._full_obs[pos[0]][pos[1]] == PRE_IDS['empty'])
+        return self.is_valid(pos) and (self._full_obs[pos[0]][pos[1]] == ENT_IDS['empty'])
 
     def __update_agent_pos(self, agent_i, move):
 
@@ -198,7 +198,7 @@ class Env(gym.Env):
 
         if next_pos is not None and self._is_cell_vacant(next_pos):
             self.agent_pos[agent_i] = next_pos
-            self._full_obs[curr_pos[0]][curr_pos[1]] = PRE_IDS['empty']
+            self._full_obs[curr_pos[0]][curr_pos[1]] = ENT_IDS['empty']
             self.__update_agent_view(agent_i)
 
     def __next_pos(self, curr_pos, move):
@@ -215,31 +215,31 @@ class Env(gym.Env):
         return next_pos
 
     def __update_agent_view(self, agent_i):
-        self._full_obs[self.agent_pos[agent_i][0]][self.agent_pos[agent_i][1]] = PRE_IDS['agent'] + str(agent_i + 1)
+        self._full_obs[self.agent_pos[agent_i][0]][self.agent_pos[agent_i][1]] = ENT_IDS['agent'] + str(agent_i + 1)
 
     def __update_gem_view(self, gem_i):
-        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['gem'] + str(self.gem_colors[gem_i])#str(gem_i + 1)
+        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = ENT_IDS['gem'] + str(self.gem_colors[gem_i])#str(gem_i + 1)
 
     def _neighbour_agents(self, pos):
         # check if agent is in neighbour
         _count = 0
         neighbours_xy = []
-        if self.is_valid([pos[0] + 1, pos[1]]) and PRE_IDS['agent'] in self._full_obs[pos[0] + 1][pos[1]]:
+        if self.is_valid([pos[0] + 1, pos[1]]) and ENT_IDS['agent'] in self._full_obs[pos[0] + 1][pos[1]]:
             _count += 1
             neighbours_xy.append([pos[0] + 1, pos[1]])
-        if self.is_valid([pos[0] - 1, pos[1]]) and PRE_IDS['agent'] in self._full_obs[pos[0] - 1][pos[1]]:
+        if self.is_valid([pos[0] - 1, pos[1]]) and ENT_IDS['agent'] in self._full_obs[pos[0] - 1][pos[1]]:
             _count += 1
             neighbours_xy.append([pos[0] - 1, pos[1]])
-        if self.is_valid([pos[0], pos[1] + 1]) and PRE_IDS['agent'] in self._full_obs[pos[0]][pos[1] + 1]:
+        if self.is_valid([pos[0], pos[1] + 1]) and ENT_IDS['agent'] in self._full_obs[pos[0]][pos[1] + 1]:
             _count += 1
             neighbours_xy.append([pos[0], pos[1] + 1])
-        if self.is_valid([pos[0], pos[1] - 1]) and PRE_IDS['agent'] in self._full_obs[pos[0]][pos[1] - 1]:
+        if self.is_valid([pos[0], pos[1] - 1]) and ENT_IDS['agent'] in self._full_obs[pos[0]][pos[1] - 1]:
             neighbours_xy.append([pos[0], pos[1] - 1])
             _count += 1
 
         agent_id = []
         for x, y in neighbours_xy:
-            agent_id.append(int(self._full_obs[x][y].split(PRE_IDS['agent'])[1]) - 1)
+            agent_id.append(int(self._full_obs[x][y].split(ENT_IDS['agent'])[1]) - 1)
         return _count, agent_id
 
     def step(self, agents_action):
@@ -258,7 +258,7 @@ class Env(gym.Env):
                     if predator_neighbour_count >= self.gem_colors[gem_i]:
                         _reward = GEM_REWARDS[self.gem_colors[gem_i]]
                         self._gem_alive[gem_i] = False
-                        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = PRE_IDS['empty']
+                        self._full_obs[self.gem_pos[gem_i][0]][self.gem_pos[gem_i][1]] = ENT_IDS['empty']
                     else:
                         _reward = self._penalty
 
@@ -307,7 +307,7 @@ class Env(gym.Env):
 
         for gem_i in range(self.n_gems):
             if self._gem_alive[gem_i]:
-                draw_circle(img, self.gem_pos[gem_i], cell_size=CELL_SIZE, fill=GEM_COLORS[self.gem_colors[gem_i]])
+                draw_circle(img, self.gem_pos[gem_i], cell_size=CELL_SIZE, fill=GEM_RENDER_COLORS[self.gem_colors[gem_i]])
                 write_cell_text(img, text=str(gem_i + 1), pos=self.gem_pos[gem_i], cell_size=CELL_SIZE,
                                 fill='white', margin=0.4)
 
@@ -334,7 +334,7 @@ class Env(gym.Env):
 AGENT_COLOR = ImageColor.getcolor('blue', mode='RGB')
 AGENT_NEIGHBORHOOD_COLOR = (186, 238, 247)
 
-GEM_COLORS = {
+GEM_RENDER_COLORS = {
     1: 'yellow',
     2: 'green',
     3: 'purple'
@@ -343,6 +343,12 @@ GEM_REWARDS = {
     1: 1,
     2: 5,
     3: 20
+}
+
+GEM_COLORS = {
+    1: [1, 1, 0], # yellow
+    2: [0, 1, 1], # green
+    3: [1, 0, 1]  # purple
 }
 
 CELL_SIZE = 35
@@ -357,7 +363,7 @@ ACTION_MEANING = {
     4: "NOOP",
 }
 
-PRE_IDS = {
+ENT_IDS = {
     'agent': 'A',
     'gem': 'G',
     'wall': 'W',
