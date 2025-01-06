@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=rgb_noc
+#SBATCH --job-name=rgb_lang
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -24,14 +24,14 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=8
-experiment_name="18np3a_noc"
+n_run=7
+experiment_name="18np3a_lang"
 lr=0.0005 # default 0.0005
 hidden_dim=128 # default 64
 policy_layer_N=2 # default 1
 policy_recurrent_N=2 # default 1
 entropy_coef=0.01 #default 0.01
-comm_type="no_comm" # default language
+comm_type="language_sup" # default language
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
