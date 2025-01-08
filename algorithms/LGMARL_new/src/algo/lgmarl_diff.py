@@ -21,7 +21,6 @@ class LanguageGroundedMARL:
         self.token_penalty = args.comm_token_penalty
         self.env_reward_coef = args.comm_env_reward_coef
         self.comm_type = args.comm_type
-        self.comm_ec_strategy = args.comm_ec_strategy
         self.recurrent_N = args.policy_recurrent_N
         self.hidden_dim = args.hidden_dim
         self.device = device
