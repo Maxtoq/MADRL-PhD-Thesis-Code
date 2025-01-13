@@ -22,7 +22,7 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=3
+n_run=1
 experiment_name="18s50np_ec2"
 episode_length=50
 lr=0.0005 # default 0.0005

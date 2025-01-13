@@ -3,7 +3,7 @@
 #SBATCH --job-name=pp_f
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
-#SBATCH --time=100:00:00
+#SBATCH --time=50:00:00
 #SBATCH --qos=qos_gpu-t4
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH -A bqo@v100
