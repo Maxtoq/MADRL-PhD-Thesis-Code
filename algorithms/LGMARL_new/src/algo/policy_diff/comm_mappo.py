@@ -218,8 +218,8 @@ class CommMAPPO():
 
         # if self.comm_type in ["perfect", "language"]:
         if self.comm_type == "emergent_discrete_lang":
-            vocab = [str(i) for i in range(6)]
-            max_message_len = 6
+            vocab = [str(i) for i in range(args.comm_emdisc_max_len)]
+            max_message_len = args.comm_emdisc_max_len
             use_gumbel = True
         else:
             vocab = parser.vocab

@@ -33,7 +33,7 @@ class LanguageLearner(nn.Module):
             args.context_dim, 
             args.lang_embed_dim, 
             self.word_encoder.enc_dim,
-            self.word_encoder.max_message_len, 
+            max_message_len, 
             embed_layer=self.lang_encoder.embed_layer,
             use_gumbel=diff,
             device=device)

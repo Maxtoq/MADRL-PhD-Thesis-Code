@@ -70,8 +70,7 @@ numpy==1.24.1
 numpy-stl==3.0.0
 oauthlib==3.2.2
 packaging==23.0
-pandas==1.1.5
-pandocfilters==1.5.0
+pandas
 parso==0.8.3
 pexpect==4.8.0
 pickleshare==0.7.5
