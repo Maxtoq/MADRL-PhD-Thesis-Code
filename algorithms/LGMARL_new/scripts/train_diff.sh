@@ -10,7 +10,7 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=14
+n_run=1
 experiment_name="18s50np_noc"
 episode_length=50
 lr=0.0005 # default 0.0005
@@ -22,7 +22,7 @@ comm_type="no_comm" # default language
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
-cuda_device="cuda:0"
+cuda_device="cuda:1"
 
 env_name="magym_PredPrey_RGB"
 magym_env_size=18
