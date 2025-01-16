@@ -1,16 +1,16 @@
 #!/bin/sh
-n_run=1
-experiment_name="Ad_PP9_F18_langDeep"
+n_run=4
+experiment_name="Ad_18s50np_lang"
 n_steps=10000000
-lr=0.0009 # default 0.0005
-lang_lr=0.009
+lr=0.0005 # default 0.0005
+lang_lr=0.007
 FT_env_name="magym_Foraging_RGB"
 FT_magym_env_size=18
 FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
-model_dir="models/magym_PredPrey_newReward/9_lang_deeper/run2/"
-cuda_device="cuda:2"
+model_dir="models/magym_PredPrey_RGB/18s50np_lang/run2/"
+cuda_device="cuda:1"
 
 source venv3.8/bin/activate
 
