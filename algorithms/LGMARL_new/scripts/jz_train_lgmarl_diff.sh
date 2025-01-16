@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=18_edl3
+#SBATCH --job-name=18_edl1
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=100:00:00
@@ -23,7 +23,7 @@ lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
 n_run=5
-experiment_name="18s50np_edl3"
+experiment_name="18s50np_edl1"
 episode_length=50
 lr=0.0005 # default 0.0005
 hidden_dim=128 # default 64
@@ -31,7 +31,7 @@ policy_layer_N=2 # default 1
 policy_recurrent_N=2 # default 1
 entropy_coef=0.01 #default 0.01
 comm_type="emergent_discrete_lang" # default language
-comm_emdisc_max_len=3
+comm_emdisc_max_len=1
 context_dim=16 # default 16
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
