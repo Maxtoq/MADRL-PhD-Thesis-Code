@@ -29,6 +29,9 @@ class Trainer:
         self.lang_imp_sample = args.lang_imp_sample
         self.temp = args.lang_temp
 
+        # Communication learning params
+        self.comm_autoencode = args.comm_autoencode
+
         # Init loss weights
         self.dyna_weight_loss = args.dyna_weight_loss
         self.capt_loss_w = args.lang_capt_loss_weight
@@ -37,9 +40,11 @@ class Trainer:
         self.act_value_loss_w =1.0
         self.comm_value_loss_w = 1.0
         self.clip_loss_w = 1.0
+        self.ae_loss_w = 1.0
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss(reduction="mean", ignore_index=0)
+        self.autoencoder_loss = nn.MSELoss()
 
         self.env_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
         self.comm_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
@@ -66,6 +71,10 @@ class Trainer:
             self.capt_loss_w = 1 / (
                 abs(losses["capt_loss"]) 
                 if losses["capt_loss"] != 0 else self.capt_loss_w)
+        if "ae_loss" in losses:
+            self.ae_loss_w = 1 / (
+                abs(losses["ae_loss"]) 
+                if losses["ae_loss"] != 0 else self.ae_loss_w)
 
     def _compute_advantages(self, train_comm_head):
          # Compute and normalize action advantages
@@ -327,7 +336,6 @@ class Trainer:
             comm_returns_batch, masks_batch, env_advt_batch, comm_advt_batch, \
             gen_comm_batch, perf_messages_batch, perf_broadcasts_batch = sample
 
-        # obs_batch = torch.from_numpy(obs_batch).to(self.device)
         # joint_obs_batch = torch.from_numpy(joint_obs_batch).to(self.device)
         # obs_enc_rnn_states_batch = torch.from_numpy(
         #     obs_enc_rnn_states_batch).to(self.device)
@@ -478,6 +486,15 @@ class Trainer:
             clip_loss = torch.zeros_like(env_value_loss)
             capt_loss = torch.zeros_like(env_value_loss)
 
+        if self.comm_autoencode:
+            # Generate predictions
+            obs_preds = self.model.obs_decoder(comm_actions)
+            obs_batch = torch.from_numpy(obs_batch).to(self.device)
+            ae_loss = self.autoencoder_loss(obs_preds, obs_batch)
+            log_losses["ae_loss"] = ae_loss.item()
+        else:
+            ae_loss = torch.zeros_like(env_value_loss)        
+
         if self.dyna_weight_loss:
             self._update_loss_weights(log_losses)
 
@@ -486,7 +503,8 @@ class Trainer:
                 + self.act_value_loss_w * env_value_loss \
                 + self.comm_value_loss_w * comm_value_loss \
                 + self.clip_loss_w * clip_loss \
-                + self.capt_loss_w * capt_loss
+                + self.capt_loss_w * capt_loss \
+                + self.ae_loss_w * ae_loss
 
         # Compute gradients
         for a in self.agents:
@@ -496,6 +514,9 @@ class Trainer:
         # self.agents[agent_i].critic_optim.zero_grad()
         if train_lang or self.model.comm_type == "emergent_discrete":
             self.model.lang_learner.optim.zero_grad()
+        if self.comm_autoencode:
+            self.model.obs_decoder.optim.zero_grad()
+
         loss.backward()
 
         # Clip gradients
@@ -513,6 +534,8 @@ class Trainer:
         # self.agents[agent_i].critic_optim.step()
         if train_lang or self.model.comm_type == "emergent_discrete":
             self.model.lang_learner.optim.step()
+        if self.comm_autoencode:
+            self.model.obs_decoder.optim.step()
 
         return log_losses
 

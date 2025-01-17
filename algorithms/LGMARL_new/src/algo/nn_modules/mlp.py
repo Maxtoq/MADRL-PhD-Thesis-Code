@@ -50,13 +50,11 @@ class MLPNetwork(nn.Module):
             exit()
 
         # Choice for activation function
-        if activation_fn not in ['tanh', 'relu']:
-            print("ERROR in MLPNetwork: bad activation_fn with", activation_fn)
-            print("     must be in ['tanh', 'relu']")
-            exit()
+        if activation_fn not in ["tanh", "relu"]:
+            raise NotImplementedError("ERROR in MLPNetwork: bad activation_fn with", activation_fn, "must be in ['tanh', 'relu']")
         activ_fn = {
-            'tanh': nn.Tanh(),
-            'relu': nn.ReLU()
+            "tanh": nn.Tanh(),
+            "relu": nn.ReLU()
         }[activation_fn]
 
         # Method for initialising weights
@@ -79,12 +77,13 @@ class MLPNetwork(nn.Module):
             nn.LayerNorm(out_dim))
 
         # Choice for activation function at the last layer
-        if out_activation_fn not in [None, 'tanh', 'relu']:
-            raise NotImplementedError("Bad out_activation_fn with", out_activation_fn, ", must be in [None, 'tanh', 'relu'].")
+        if out_activation_fn not in [None, "tanh", "relu", "sigmoid"]:
+            raise NotImplementedError("ERROR in MLPNetwork: bad out_activation_fn with", out_activation_fn, ", must be in [None, 'tanh', 'relu', 'sigmoid'].")
         self.out_activ_fn = {
             None: lambda x: x,
-            'tanh': nn.Tanh(),
-            'relu': nn.ReLU()
+            "tanh": nn.Tanh(),
+            "relu": nn.ReLU(),
+            "sigmoid": nn.Sigmoid()
         }[out_activation_fn]
 
     def forward(self, X):

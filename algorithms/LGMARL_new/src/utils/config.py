@@ -113,6 +113,7 @@ def get_config():
     parser.add_argument("--comm_eps_smooth", type=float, default=1.0)
     parser.add_argument("--comm_eps_nsteps", default=None, type=int)
     parser.add_argument("--comm_emdisc_max_len", type=int, default=6)
+    parser.add_argument("--comm_autoencode", default=False, action="store_true")
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
     parser.add_argument("--comm_train_topk", type=int, default=1, 

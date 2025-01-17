@@ -6,6 +6,7 @@ import numpy as np
 from torch import nn
 
 from src.algo.language.lang_learner import LanguageLearner
+from src.algo.policy_diff.autoencoder import Decoder
 from .comm_agent import CommAgent
 from .utils import torch2numpy, update_lr
 
@@ -203,6 +204,7 @@ class CommMAPPO():
         # self.lr = args.lr
         self.share_params = args.share_params
         self.comm_type = args.comm_type
+        self.comm_autoencode = args.comm_autoencode
 
         if self.share_params:
             self.agents = [
@@ -227,6 +229,9 @@ class CommMAPPO():
             use_gumbel = False
         self.lang_learner = LanguageLearner(
             args, vocab, max_message_len, use_gumbel, device)
+        
+        if self.comm_autoencode:
+            self.obs_decoder = Decoder(args, args.context_dim, obs_dim, device)
 
         self.eval = False
 
@@ -244,6 +249,8 @@ class CommMAPPO():
                     ll.prep_rollout(self.device)
             else:
                 self.lang_learner.prep_rollout(self.device)
+        if self.comm_autoencode:
+            self.obs_decoder.prep_rollout(self.device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -259,6 +266,8 @@ class CommMAPPO():
                     ll.prep_training(self.device)
             else:
                 self.lang_learner.prep_training(self.device)
+        if self.comm_autoencode:
+            self.obs_decoder.prep_training(self.device)
 
     def _comm_step(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 

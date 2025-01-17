@@ -110,7 +110,7 @@ def reset_envs(envs):
     share_obs = np.array(share_obs)
     return obs, share_obs
 
-def make_env(cfg, n_threads, seed=None, init_positions=None):
+def make_env(cfg, seed=None, init_positions=None):
     if seed is None:
         seed = cfg.seed
 
@@ -125,12 +125,34 @@ def make_env(cfg, n_threads, seed=None, init_positions=None):
 
     # assert init_positions is None or n_threads <= len(init_positions)
 
-    if n_threads == 1:
+    if cfg.n_parallel_envs == 1:
         return DummyVecEnv([get_env_fn(0, init_positions[0] 
                             if init_positions is not None else None)]), \
                 parser
     else:
         return SubprocVecEnv([get_env_fn(i, init_positions[i % len(init_positions)] 
                                     if init_positions is not None else None) 
-                              for i in range(n_threads)]), \
+                              for i in range(cfg.n_parallel_envs)]), \
                 parser
+    
+# def mod_envs(cfg, envs, init_positions=None):
+#     def get_env_fn(rank, init_pos):
+#         def init_env():
+#             env = _get_env(cfg, init_pos)
+#             env.seed(cfg.seed + rank * 1000)
+#             return env
+#         return init_env
+    
+#     parser = _get_parser(cfg)
+
+#     if cfg.n_parallel_envs == 1:
+#         envs.update_envs(
+#             [get_env_fn(0, init_positions[0] 
+#                 if init_positions is not None else None)])
+#         return parser
+#     else:
+#         envs.update_envs(
+#             [get_env_fn(i, init_positions[i % len(init_positions)] 
+#                 if init_positions is not None else None) 
+#              for i in range(cfg.n_parallel_envs)])
+#         return parser

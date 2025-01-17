@@ -193,6 +193,8 @@ class MultiAgentEnv(gym.Env):
 
     # render environment
     def render(self, mode='human'):
+        import rendering
+
         if mode == 'human':
             alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             message = ''
@@ -212,14 +214,12 @@ class MultiAgentEnv(gym.Env):
             if self.viewers[i] is None:
                 # import rendering only if we need it (and don't import for headless machines)
                 #from gym.envs.classic_control import rendering
-                from multiagent import rendering
                 self.viewers[i] = rendering.Viewer(700,700)
 
         # create rendering geometry
         if self.render_geoms is None:
             # import rendering only if we need it (and don't import for headless machines)
             #from gym.envs.classic_control import rendering
-            from multiagent import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
             for entity in self.world.entities:
@@ -241,7 +241,6 @@ class MultiAgentEnv(gym.Env):
 
         results = []
         for i in range(len(self.viewers)):
-            from multiagent import rendering
             # update bounds to center around agent
             cam_range = 1
             if self.shared_viewer:
