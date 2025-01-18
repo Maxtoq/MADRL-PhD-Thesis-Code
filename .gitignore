@@ -1485,3 +1485,5 @@ models/magym_PredPrey_RGB/18s50np_edl1/*
 !models/magym_PredPrey_RGB/18s50np_edl3
 models/magym_PredPrey_RGB/18s50np_edl3/*
 !models/magym_PredPrey_RGB/18s50np_edl3/train_data
+
+results/data/lamarl_data

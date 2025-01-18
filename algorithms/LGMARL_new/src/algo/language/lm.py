@@ -138,6 +138,16 @@ class OneHotEncoder:
             return onehots
         elif type(ids_batch) is np.ndarray:
             return self.token_encodings[ids]
+        
+    def encode_batch(self, sent_batch):
+        enc_batch = []
+        for s in sent_batch:
+            es = []
+            if s != ['']:
+                es = self.get_ids(s)
+            es.append(self.EOS_ID)
+            enc_batch.append(es)
+        return enc_batch
 
     def decode_batch(self, enc_sent_batch):
         """
@@ -201,16 +211,16 @@ class GRUEncoder(nn.Module):
         self.out = init_(nn.Linear(self.hidden_dim, context_dim))
         self.norm = nn.LayerNorm(context_dim)
         
-    def embed_sentences(self, sent_batch):
-        # Get one-hot encodings
-        enc_sent_batch = self.word_encoder.encode_batch(sent_batch)
+    # def embed_sentences(self, sent_batch):
+    #     # Get one-hot encodings
+    #     enc_sent_batch = self.word_encoder.encode_batch(sent_batch)
         
-        # Embed
-        if self.do_embed:
-            enc_ids_batch = [s.argmax(-1) for s in enc_sent_batch]
-            return [self.embed_layer(s) for s in enc_ids_batch]
-        else:
-            return enc_sent_batch
+    #     # Embed
+    #     if self.do_embed:
+    #         enc_ids_batch = [s.argmax(-1) for s in enc_sent_batch]
+    #         return [self.embed_layer(s) for s in enc_ids_batch]
+    #     else:
+    #         return enc_sent_batch
 
     def forward(self, enc_sent_batch):
         """
@@ -391,6 +401,7 @@ class GRUDecoder(nn.Module):
                 if self.use_gumbel:
                     tau = self.tau_gen(hidden.squeeze())
                     tau = 1 / ((1 + tau.exp()).log() + self.tau_zero)
+                    print(tau.mean())
                     one_hot = nn.functional.gumbel_softmax(
                         outputs.squeeze(), tau=tau, hard=True)
                     last_tokens = torch.matmul(
