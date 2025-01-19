@@ -1487,3 +1487,27 @@ models/magym_PredPrey_RGB/18s50np_edl3/*
 !models/magym_PredPrey_RGB/18s50np_edl3/train_data
 
 results/data/lamarl_data
+
+
+!models/magym_Foraging_RGB
+models/magym_Foraging_RGB/*
+
+!models/magym_Foraging_RGB/18s50_noc
+models/magym_Foraging_RGB/18s50_noc/*
+!models/magym_Foraging_RGB/18s50_noc/train_data
+
+!models/magym_Foraging_RGB/18s50_lang
+models/magym_Foraging_RGB/18s50_lang/*
+!models/magym_Foraging_RGB/18s50_lang/train_data
+
+!models/magym_Foraging_RGB/18s50_oracle
+models/magym_Foraging_RGB/18s50_oracle/*
+!models/magym_Foraging_RGB/18s50_oracle/train_data
+
+!models/magym_Foraging_RGB/18s50_ec2
+models/magym_Foraging_RGB/18s50_ec2/*
+!models/magym_Foraging_RGB/18s50_ec2/train_data
+
+!models/magym_Foraging_RGB/18s50_ec2_ae
+models/magym_Foraging_RGB/18s50_ec2_ae/*
+!models/magym_Foraging_RGB/18s50_ec2_ae/train_data
