@@ -41,10 +41,11 @@ class Trainer:
         self.comm_value_loss_w = 1.0
         self.clip_loss_w = 1.0
         self.ae_loss_w = 1.0
+        self.lg_loss_w = 1.0
 
         self.clip_loss = nn.CrossEntropyLoss()
         self.captioning_loss = nn.NLLLoss(reduction="mean", ignore_index=0)
-        self.autoencoder_loss = nn.MSELoss()
+        self.mse_loss = nn.MSELoss()
 
         self.env_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
         self.comm_value_normalizer = ValueNorm(1, norm_axes=2).to(device)
@@ -75,6 +76,10 @@ class Trainer:
             self.ae_loss_w = 1 / (
                 abs(losses["ae_loss"]) 
                 if losses["ae_loss"] != 0 else self.ae_loss_w)
+        if "lg_loss" in losses:
+            self.lg_loss_w = 1 / (
+                abs(losses["lg_loss"]) 
+                if losses["lg_loss"] != 0 else self.lg_loss_w)
 
     def _compute_advantages(self, train_comm_head):
          # Compute and normalize action advantages
@@ -161,7 +166,6 @@ class Trainer:
         return clip_loss, mean_sim.item()
 
     def _compute_capt_loss(self, preds, targets):
-        dec_loss = 0
         preds = preds.reshape(-1, preds.shape[-1])
         targets = targets.reshape(-1)
         capt_loss = self.captioning_loss(preds, targets)
@@ -490,10 +494,18 @@ class Trainer:
             # Generate predictions
             obs_preds = self.model.obs_decoder(comm_actions)
             obs_batch = torch.from_numpy(obs_batch).to(self.device)
-            ae_loss = self.autoencoder_loss(obs_preds, obs_batch)
+            ae_loss = self.mse_loss(obs_preds, obs_batch)
             log_losses["ae_loss"] = ae_loss.item()
         else:
-            ae_loss = torch.zeros_like(env_value_loss)        
+            ae_loss = torch.zeros_like(env_value_loss)
+
+        if self.model.lang_ground is not None:
+            obs_embeds = self.model.lang_ground.obs_encoder(
+                torch.from_numpy(obs_batch).to(self.device))
+            lg_loss = self.mse_loss(obs_embeds, comm_actions)
+            log_losses["lg_loss"] = lg_loss.item()
+        else:
+            lg_loss = torch.zeros_like(env_value_loss)
 
         if self.dyna_weight_loss:
             self._update_loss_weights(log_losses)
@@ -504,7 +516,8 @@ class Trainer:
                 + self.comm_value_loss_w * comm_value_loss \
                 + self.clip_loss_w * clip_loss \
                 + self.capt_loss_w * capt_loss \
-                + self.ae_loss_w * ae_loss
+                + self.ae_loss_w * ae_loss \
+                + self.lg_loss_w * lg_loss
 
         # Compute gradients
         for a in self.agents:

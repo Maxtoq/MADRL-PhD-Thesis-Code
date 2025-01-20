@@ -3,12 +3,11 @@ import torch
 import random
 import numpy as np
 
-from torch import nn
-
 from src.algo.language.lang_learner import LanguageLearner
 from src.algo.policy_diff.autoencoder import Decoder
 from .comm_agent import CommAgent
 from .utils import torch2numpy, update_lr
+from .langground import LanguageGrounder
 
 
 class CommMAPPO_Shared:
@@ -233,6 +232,13 @@ class CommMAPPO():
         if self.comm_autoencode:
             self.obs_decoder = Decoder(args, args.context_dim, obs_dim, device)
 
+        self.lang_ground = None
+        if args.comm_langground_pt is not None:
+            self.lang_ground = LanguageGrounder(
+                obs_dim, args.context_dim, args.lang_hidden_dim, args.lang_embed_dim, 
+                args.policy_layer_N, args.lang_lr, vocab, max_message_len, device)
+            self.lang_ground.load_params(torch.load(args.comm_langground_pt))
+
         self.eval = False
 
     def prep_rollout(self, device=None):
@@ -251,6 +257,8 @@ class CommMAPPO():
                 self.lang_learner.prep_rollout(self.device)
         if self.comm_autoencode:
             self.obs_decoder.prep_rollout(self.device)
+        if self.lang_ground is not None:
+            self.lang_ground.prep_rollout(device)
 
     def prep_training(self, device=None):
         if device is not None:
@@ -268,6 +276,8 @@ class CommMAPPO():
                 self.lang_learner.prep_training(self.device)
         if self.comm_autoencode:
             self.obs_decoder.prep_training(self.device)
+        if self.lang_ground is not None:
+            self.lang_ground.prep_training(device)
 
     def _comm_step(
             self, obs, joint_obs, obs_rnn_states, joint_obs_rnn_states, 
