@@ -22,7 +22,7 @@ class CommPolicy(nn.Module):
             args.policy_layer_N,
             out_activation_fn="tanh")
 
-        if self.comm_type == "emergent_continuous":
+        if "emergent_continuous" in self.comm_type:
             in_comm_enc = n_agents * args.context_dim
         elif self.comm_type == "obs":
             in_comm_enc = n_agents * obs_dim
@@ -42,7 +42,7 @@ class CommPolicy(nn.Module):
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None
 
-        elif self.comm_type == "emergent_continuous":
+        elif "emergent_continuous" in self.comm_type:
             comm_actions = self.comm_in(enc_obs)
             messages = comm_actions.clone() 
 

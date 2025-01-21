@@ -10,22 +10,24 @@ lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
 
-n_run=1
-experiment_name="15s50np_ec2_ae"
+n_run=3
+experiment_name="12s50np_ec4_lg"
 episode_length=50
 lr=0.0005 # default 0.0005
 hidden_dim=128 # default 64
 policy_layer_N=2 # default 1
 policy_recurrent_N=2 # default 1
 entropy_coef=0.01 #default 0.01
-comm_type="emergent_continuous" # default language
-context_dim=2 # default 16
+comm_type="emergent_continuous_LG" # default language
+context_dim=4 # default 16
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
-cuda_device="cuda:0"
+cuda_device="cuda:1"
+
+comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
 
 env_name="magym_PredPrey_RGB"
-magym_env_size=15
+magym_env_size=12
 magym_obs_range=5 # default 5
 magym_n_agents=4
 magym_n_preys=2
@@ -55,6 +57,7 @@ do
     --comm_type ${comm_type}
     --comm_eps_smooth ${comm_eps_smooth}
     --comm_token_penalty ${comm_token_penalty}
+    --comm_langground_pt ${comm_langground_pt}
     --context_dim ${context_dim}
     --lang_lr ${lang_lr}
     --lang_batch_size ${lang_batch_size}
@@ -66,8 +69,7 @@ do
     --magym_scaleenv_after_n ${magym_scaleenv_after_n}
     --magym_n_preys ${magym_n_preys}
     --dyna_weight_loss
-    --magym_see_agents
-    --comm_autoencode"
+    --magym_see_agents"
     # --save_increments"
     # --share_params"
     # --lang_imp_sample"

@@ -29,9 +29,6 @@ class Trainer:
         self.lang_imp_sample = args.lang_imp_sample
         self.temp = args.lang_temp
 
-        # Communication learning params
-        self.comm_autoencode = args.comm_autoencode
-
         # Init loss weights
         self.dyna_weight_loss = args.dyna_weight_loss
         self.capt_loss_w = args.lang_capt_loss_weight
@@ -490,7 +487,7 @@ class Trainer:
             clip_loss = torch.zeros_like(env_value_loss)
             capt_loss = torch.zeros_like(env_value_loss)
 
-        if self.comm_autoencode:
+        if self.model.comm_autoencode:
             # Generate predictions
             obs_preds = self.model.obs_decoder(comm_actions)
             obs_batch = torch.from_numpy(obs_batch).to(self.device)
@@ -499,7 +496,7 @@ class Trainer:
         else:
             ae_loss = torch.zeros_like(env_value_loss)
 
-        if self.model.lang_ground is not None:
+        if self.model.comm_langground:
             obs_embeds = self.model.lang_ground.obs_encoder(
                 torch.from_numpy(obs_batch).to(self.device))
             lg_loss = self.mse_loss(obs_embeds, comm_actions)
@@ -527,7 +524,7 @@ class Trainer:
         # self.agents[agent_i].critic_optim.zero_grad()
         if train_lang or self.model.comm_type == "emergent_discrete":
             self.model.lang_learner.optim.zero_grad()
-        if self.comm_autoencode:
+        if self.model.comm_autoencode:
             self.model.obs_decoder.optim.zero_grad()
 
         loss.backward()
@@ -547,7 +544,7 @@ class Trainer:
         # self.agents[agent_i].critic_optim.step()
         if train_lang or self.model.comm_type == "emergent_discrete":
             self.model.lang_learner.optim.step()
-        if self.comm_autoencode:
+        if self.model.comm_autoencode:
             self.model.obs_decoder.optim.step()
 
         return log_losses

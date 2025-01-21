@@ -203,7 +203,8 @@ class CommMAPPO():
         # self.lr = args.lr
         self.share_params = args.share_params
         self.comm_type = args.comm_type
-        self.comm_autoencode = args.comm_autoencode
+        self.comm_autoencode = "AE" in self.comm_type
+        self.comm_langground = "LG" in self.comm_type
 
         if self.share_params:
             self.agents = [
@@ -232,8 +233,8 @@ class CommMAPPO():
         if self.comm_autoencode:
             self.obs_decoder = Decoder(args, args.context_dim, obs_dim, device)
 
-        self.lang_ground = None
-        if args.comm_langground_pt is not None:
+        if self.comm_langground:
+            assert args.comm_langground_pt is not None, "Need pre-trained language encoder path for LangGround."
             self.lang_ground = LanguageGrounder(
                 obs_dim, args.context_dim, args.lang_hidden_dim, args.lang_embed_dim, 
                 args.policy_layer_N, args.lang_lr, vocab, max_message_len, device)
@@ -257,7 +258,7 @@ class CommMAPPO():
                 self.lang_learner.prep_rollout(self.device)
         if self.comm_autoencode:
             self.obs_decoder.prep_rollout(self.device)
-        if self.lang_ground is not None:
+        if self.comm_langground:
             self.lang_ground.prep_rollout(device)
 
     def prep_training(self, device=None):
@@ -276,7 +277,7 @@ class CommMAPPO():
                 self.lang_learner.prep_training(self.device)
         if self.comm_autoencode:
             self.obs_decoder.prep_training(self.device)
-        if self.lang_ground is not None:
+        if self.comm_langground:
             self.lang_ground.prep_training(device)
 
     def _comm_step(
@@ -381,7 +382,9 @@ class CommMAPPO():
         out_messages = None
         in_messages = np.zeros((batch_size, self.n_agents, 1))
         gen_comm = None
-        if self.comm_type in ["emergent_continuous", "obs"]:
+        if self.comm_type in [
+                "emergent_continuous", "obs", "emergent_continuous_AE", 
+                "emergent_continuous_LG"]:
             # Concatenate messages to get broadcast
             out_messages = torch.stack(messages, dim=1)
             in_messages = torch.concatenate(messages, 1).repeat(
@@ -642,7 +645,7 @@ class CommMAPPO():
                     # print(i, agent_ids[i], p_i)
                     self.agents[agent_ids[i]].load_state_dict(
                             params[p_i]["acc"]["agents"][agent_ids[i]])
-                    if "lang_learner" in params[p_i]["acc"] and self.comm_type not in ["no_comm", "emergent_continuous"]:
+                    if "lang_learner" in params[p_i]["acc"]: # and self.comm_type not in ["no_comm", "emergent_continuous"]:
                         self.lang_learner[agent_ids[i]].load_state_dict(
                             params[p_i]["acc"]["lang_learner"])
         else:

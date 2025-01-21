@@ -109,11 +109,10 @@ def get_config():
     parser.add_argument("--comm_type", default="no_comm", 
                         choices=["language_sup", "emergent_continuous", "no_comm",
                             "emergent_discrete_lang", "perfect", "obs", "no_comm+lang", 
-                            "perfect+no_lang"])
+                            "perfect+no_lang", "emergent_continuous_LG", "emergent_continuous_AE"])
     parser.add_argument("--comm_eps_smooth", type=float, default=1.0)
     parser.add_argument("--comm_eps_nsteps", default=None, type=int)
     parser.add_argument("--comm_emdisc_max_len", type=int, default=6)
-    parser.add_argument("--comm_autoencode", default=False, action="store_true")
     parser.add_argument("--comm_langground_pt", type=str, default=None)
     # Message generation
     parser.add_argument("--comm_max_sent_len", type=int, default=12)
