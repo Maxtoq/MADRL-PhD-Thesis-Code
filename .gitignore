@@ -1511,3 +1511,7 @@ models/magym_Foraging_RGB/18s50_ec2/*
 !models/magym_Foraging_RGB/18s50_ec2_ae
 models/magym_Foraging_RGB/18s50_ec2_ae/*
 !models/magym_Foraging_RGB/18s50_ec2_ae/train_data
+
+!models/magym_Foraging_RGB/18s50_lang_ce0
+models/magym_Foraging_RGB/18s50_lang_ce0/*
+!models/magym_Foraging_RGB/18s50_lang_ce0/train_data
