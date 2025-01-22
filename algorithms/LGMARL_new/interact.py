@@ -54,7 +54,7 @@ def run():
         env_dones = dones.all(axis=1)
         if True in env_dones:
             print("ENV DONE")
-            break
+            # break
             
     envs.close()
 

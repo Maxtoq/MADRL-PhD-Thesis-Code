@@ -6,7 +6,7 @@ class Parser():
     # vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
 
     def __init__(self):
-        self.env_size = 10
+        self.env_size = 9
 
         # self.vocab = [
         #     "Prey", "Center", "North", "South", "East", "West",
@@ -19,7 +19,7 @@ class Parser():
     def _gen_perfect_message(self, agent_obs):
         # Get observed map
         pos = agent_obs[:2]
-        col = tuple(agent_obs[2:])
+        col = tuple(agent_obs[2:5])
 
         if sum(col) == 0:
             return []
