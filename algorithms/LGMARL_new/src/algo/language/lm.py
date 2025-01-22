@@ -58,7 +58,7 @@ class OneHotEncoder:
         if len(encoding.shape) == 1:
             return self.tokens[np.argmax(encoding)]
         elif len(encoding.shape) == 2:
-            return [self.tokens[np.argmax(enconding[i])] for i in range(encoding.shape[0])]
+            return [self.tokens[np.argmax(encoding[i])] for i in range(encoding.shape[0])]
         else:
             raise NotImplementedError("Wrong index type")
 
@@ -137,7 +137,7 @@ class OneHotEncoder:
                 for ids in ids_batch]
             return onehots
         elif type(ids_batch) is np.ndarray:
-            return self.token_encodings[ids]
+            return self.token_encodings[ids_batch]
         
     def encode_batch(self, sent_batch):
         enc_batch = []
@@ -385,7 +385,8 @@ class GRUDecoder(nn.Module):
         tokens = []
         decoder_outputs = []
         sentences = None
-        sent_finished = np.array([False] * batch_size).reshape((1, batch_size, 1))
+        # sent_finished = np.array([False] * batch_size).reshape((1, batch_size, 1))
+        sent_finished = torch.zeros(1, batch_size, 1, dtype=torch.bool).to(self.device)
         for t_i in range(max_sent_len):
             # RNN pass
             outputs, hidden = self.forward_step(last_tokens, hidden)
@@ -398,10 +399,10 @@ class GRUDecoder(nn.Module):
                 _, topi = outputs.topk(1)
                 
                 # Set next decoder input
-                if self.use_gumbel:
+                if self.use_gumbel: # TODO Fix for differentiable version, does not work because topk() does not pass gradients
                     tau = self.tau_gen(hidden.squeeze())
                     tau = 1 / ((1 + tau.exp()).log() + self.tau_zero)
-                    print(tau.mean())
+  
                     one_hot = nn.functional.gumbel_softmax(
                         outputs.squeeze(), tau=tau, hard=True)
                     last_tokens = torch.matmul(
@@ -410,12 +411,14 @@ class GRUDecoder(nn.Module):
                     last_tokens = self.embed_layer(topi.squeeze(-1))
 
                 # Add next token, if sentence is not already finished (then pad with -1)
-                topi = topi.cpu().numpy()
-                next_token_ids = sent_finished * 0 + (1 - sent_finished) * topi
+                # topi = topi.cpu().numpy()
+                # next_token_ids = sent_finished * 0 + (1 - sent_finished) * topi
+                next_token_ids = sent_finished * 0 + (~sent_finished) * topi
+                # print(next_token_ids)
                 if sentences is None:
                     sentences = next_token_ids
                 else:
-                    sentences = np.concatenate((sentences, next_token_ids), -1)
+                    sentences = torch.cat((sentences, next_token_ids), dim=-1)
 
                 # Check for finished sentences
                 sent_finished = sent_finished | (topi == 1)

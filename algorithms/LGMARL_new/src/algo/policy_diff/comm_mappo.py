@@ -396,7 +396,7 @@ class CommMAPPO():
                 out_messages = []
                 for ll, ca in zip(self.lang_learner, comm_actions):
                     out_messages.append(ll.generate_sentences(ca, pad_max=True))
-                out_messages = np.stack(out_messages, axis=1)
+                out_messages = np.stack(out_messages, axis=1) # TODO change this to torch
             else:
                 dec_in = torch.stack(comm_actions, dim=1).reshape(
                     batch_size * self.n_agents, -1).to(self.device)

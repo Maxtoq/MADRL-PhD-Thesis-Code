@@ -1,18 +1,11 @@
 import os
-import gym
-import time
-import torch
-import random
-import numpy as np
 
 from tqdm import trange
 
 from src.utils.config import get_config
 from src.utils.utils import set_seeds, set_cuda_device, load_args
-from src.utils.decay import ParameterDecay
 from src.log.train_log import Logger
 from src.log.util import get_paths, write_params
-from src.log.progress_bar import Progress
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
 
@@ -22,11 +15,20 @@ def run():
     argparse = get_config()
     cfg = argparse.parse_args()
 
+    # Get paths for saving logs and model
+    run_dir, log_dir = get_paths(cfg)
+    print("Saving model in dir", run_dir)
+
     # Load pretrained checkpoint if needed
     if cfg.model_dir is not None:
+        # In case of adapt, go take the model corresponding to the run number
+        if os.path.basename(cfg.model_dir)[:3] != "run":
+            cfg.model_dir = os.path.join(cfg.model_dir, os.path.basename(run_dir))
+        print(cfg.model_dir)
+
         # Get pretrained stuff
-        assert cfg.model_dir is not None, "Must provide model_dir"
         steps_done = load_args(cfg)
+
         pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
         assert os.path.isfile(pretrained_model_path), "No model checkpoint provided."
 
@@ -48,9 +50,6 @@ def run():
     else:
         start_step = 0
 
-    # Get paths for saving logs and model
-    run_dir, log_dir = get_paths(cfg)
-    print("Saving model in dir", run_dir)
     write_params(run_dir, cfg)
 
     # Init logger
