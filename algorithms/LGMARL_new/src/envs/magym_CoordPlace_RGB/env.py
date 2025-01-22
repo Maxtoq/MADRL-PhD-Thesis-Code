@@ -29,7 +29,7 @@ class Env(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, n_agents=2, step_cost=-1.0, max_steps=100):
+    def __init__(self, n_agents=2, step_cost=-1.0, max_steps=50):
         self._grid_shape = (10, 10)
         self.n_agents = n_agents
         self._max_steps = max_steps
