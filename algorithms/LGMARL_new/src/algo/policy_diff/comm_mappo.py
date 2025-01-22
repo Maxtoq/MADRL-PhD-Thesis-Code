@@ -235,8 +235,6 @@ class CommMAPPO():
 
         if self.comm_langground:
             assert args.comm_langground_pt is not None, "Need pre-trained language encoder path for LangGround."
-            print(args.comm_langground_pt)
-            exit()
             self.lang_ground = LanguageGrounder(
                 obs_dim, args.context_dim, args.lang_hidden_dim, args.lang_embed_dim, 
                 args.policy_layer_N, args.lang_lr, vocab, max_message_len, device)
@@ -346,10 +344,6 @@ class CommMAPPO():
                     end_i = (np.concatenate((agent_m, [1])) == 1).argmax()
                     env_br.extend(agent_m[:end_i])
 
-            # if add_message is not None:
-            #     add_m = self.lang_learner.word_encoder.get_ids(add_message)
-            #     env_br.extend(add_m)
-
             if lang_input is not None:
                 env_br.extend(lang_input[e_i])
             else:
@@ -357,21 +351,6 @@ class CommMAPPO():
             broadcasts.append(env_br)
         
         return broadcasts
-
-    # def _make_lang_messages(self, messages, perfect_messages, comm_eps):
-    #     print(messages, messages.shape)
-    #     print(perfect_messages, perfect_messages.shape)
-    #     comm_eps = 0.4
-
-    #     # Decide which comm strategy for each message
-    #     gen_comm = np.random.random(
-    #         (messages.shape[0], self.n_agents, 1)) > comm_eps
-    #     print(gen_comm, gen_comm.shape)
-    #     print(comm_eps)
-        
-    #     broadcasts = self._make_broadcasts(messages, gen_comm)
-
-    #     exit()
 
     def _aggreg_messages(
             self, messages, comm_actions, perfect_messages, perfect_broadcasts, 
@@ -604,8 +583,6 @@ class CommMAPPO():
             else:
                 lang_obs_enc = None
 
-            # exit()
-
             return actions, action_log_probs, values, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \
                 new_joint_obs_rnn_states, new_comm_rnn_states, out_messages, \
@@ -627,8 +604,6 @@ class CommMAPPO():
             "lang_learner": self.lang_learner.state_dict() 
                 if type(self.lang_learner) != list
                 else [ll.state_dict() for ll in self.lang_learner]}
-        # if self.comm_type in ["perfect", "language"]:
-        #     save_dict["lang_learner"] = self.lang_learner.state_dict()
         return save_dict
 
     def load_params(self, params):
@@ -657,7 +632,4 @@ class CommMAPPO():
             if self.comm_type in ["perfect", "language_sup", "language_rl", 
                     "emergent_discrete_lang", "no_comm+lang", "perfect+no_lang"]:
                 self.lang_learner.load_state_dict(params["acc"]["lang_learner"])
-
-    # def load_zeroshot_team(self, param_list):
-    #     agent_ids = random.sample(range(4), 4)
         
