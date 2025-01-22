@@ -32,6 +32,7 @@ class Env(gym.Env):
     _landmark_sets = {2: (2, 2, 1), 3: (3, 2)}
 
     def __init__(self, n_agents=2, step_cost=-1.0, max_steps=50):
+        assert n_agents in self._landmark_sets, f"Bad number of agents, must be in {list(self._landmark_sets.keys())}."
         self._grid_shape = (9, 9)
         self.n_agents = n_agents
         self._max_steps = max_steps

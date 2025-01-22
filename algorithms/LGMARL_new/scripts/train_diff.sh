@@ -18,17 +18,17 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
 n_run=1
-experiment_name="lang_ce0"
+experiment_name="ec2_ae"
 episode_length=50
-comm_type="language_sup" # default language
-context_dim=16 # default 16
-cuda_device="cuda:1"
+comm_type="emergent_continuous_AE" # default language
+context_dim=2 # default 16
+cuda_device="cuda:3"
 comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
 
 env_name="magym_CoordPlace_RGB"
 magym_env_size=12
 magym_obs_range=5 # default 5
-magym_n_agents=4
+magym_n_agents=2
 magym_n_preys=2
 magym_scaleenv_after_n=10000100
 
