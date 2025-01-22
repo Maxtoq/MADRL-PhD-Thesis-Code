@@ -36,7 +36,7 @@ def run():
     for ep_s_i in range(cfg.episode_length):
         # Perform step
         # Get action
-        actions = np.random.randint(0, 5, (1, 4, 1))
+        actions = np.random.randint(0, 5, (1, cfg.magym_n_agents, 1))
 
         # Perform action and get reward and next obs
         obs, rewards, dones, infos = envs.step(actions)

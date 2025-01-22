@@ -35,14 +35,14 @@ def _get_env(cfg, init_pos):
             see_agents=cfg.magym_see_agents,
             init_pos=init_pos)
 
-    elif cfg.env_name == "magym_Lumber":
-        from .ma_gym.lumberjack import Lumberjacks
-        env = Lumberjacks(
-            n_agents=cfg.magym_n_agents, 
-            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
-            max_steps=cfg.episode_length,
-            agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            actual_obsrange=cfg.FT_magym_reduced_obsrange)
+    # elif cfg.env_name == "magym_Lumber":
+    #     from .ma_gym.lumberjack import Lumberjacks
+    #     env = Lumberjacks(
+    #         n_agents=cfg.magym_n_agents, 
+    #         grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+    #         max_steps=cfg.episode_length,
+    #         agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
+    #         actual_obsrange=cfg.FT_magym_reduced_obsrange)
 
     elif "magym_Foraging" in cfg.env_name:
         if cfg.env_name == "magym_Foraging_fixedpos":
@@ -58,9 +58,15 @@ def _get_env(cfg, init_pos):
             obs_range=cfg.magym_obs_range,
             reduced_obsrange=cfg.FT_magym_reduced_obsrange)
 
-    elif cfg.env_name == "magym_Combat":
+    # elif cfg.env_name == "magym_Combat":
+    #     env = Env(
+    #         grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+    #         max_steps=cfg.episode_length)
+
+    elif cfg.env_name == "magym_CoordPlace_RGB":
+        from .magym_CoordPlace_RGB.env import Env
         env = Env(
-            grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
+            n_agents=cfg.magym_n_agents, 
             max_steps=cfg.episode_length)
 
     elif cfg.env_name == "magym_Empty":
@@ -97,6 +103,10 @@ def _get_parser(cfg):
         else:
             from .magym_Foraging.parser import Parser
         return Parser(cfg.magym_env_size, cfg.magym_obs_range)
+    
+    elif cfg.env_name == "magym_CoordPlace_RGB":
+        from .magym_CoordPlace_RGB.parser import Parser
+        return Parser()
 
     else:
         print("WARNING: No Parser for", cfg.env_name)
