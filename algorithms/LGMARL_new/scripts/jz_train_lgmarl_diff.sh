@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=18_edl1
+#SBATCH --job-name=lang_F18100
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
-#SBATCH --time=100:00:00
-#SBATCH --qos=qos_gpu-t4
+#SBATCH --time=20:00:00
+#SBATCH --qos=qos_gpu-t3
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH -C v100
 #SBATCH -A bqo@v100
@@ -29,15 +29,15 @@ entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
-n_run=4
-experiment_name="18s50np_ec2_AE"
-episode_length=50
-comm_type="emergent_continuous_AE" # default language
-context_dim=2 # default 16
+n_run=1
+experiment_name="18_lang_ce0"
+episode_length=100
+comm_type="language_sup" # default language
+context_dim=16 # default 16
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
+comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
 
-env_name="magym_PredPrey_RGB"
+env_name="magym_Foraging_RGB"
 magym_env_size=18
 magym_obs_range=5 # default 5
 magym_n_agents=4
