@@ -45,6 +45,7 @@ def load_args(cfg, eval=False):
         # For adaptation, modify some parameters
         if cfg.adapt_run or eval:
             # Remove params we want to change from old config
+            args.pop("env_name")
             args.pop("seed")
             args.pop("cuda_device")
             args.pop("model_dir")
@@ -72,8 +73,8 @@ def load_args(cfg, eval=False):
             #     args.pop("no_render")
 
             # Set finetuning parameters
-            if cfg.FT_env_name is not None:
-                args["env_name"] = cfg.FT_env_name
+            # if cfg.FT_env_name is not None:
+            #     args["env_name"] = cfg.FT_env_name
             if cfg.FT_magym_env_size is not None:
                 args["magym_env_size"] = cfg.FT_magym_env_size
             if cfg.FT_magym_not_see_agents is not None:

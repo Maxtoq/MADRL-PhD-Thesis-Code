@@ -4,7 +4,7 @@ experiment_name="Ad_12_18s50np_ec4_lg"
 n_steps=10000000
 lr=0.0005 # default 0.0005
 lang_lr=0.007
-FT_env_name="magym_Foraging_RGB"
+env_name="magym_PredPrey_RGB"
 FT_magym_env_size=18
 FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
@@ -22,7 +22,7 @@ do
     seed=$RANDOM
     comm="python algorithms/LGMARL_new/train_lgmarl_diff.py --seed ${seed}
     --experiment_name ${experiment_name}
-    --FT_env_name ${FT_env_name}
+    --env_name ${env_name}
     --model_dir ${model_dir}
     --n_steps ${n_steps}
     --lr ${lr}
