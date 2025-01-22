@@ -18,11 +18,11 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
 n_run=1
-experiment_name="ec2_ae"
+experiment_name="2a_lang_ce0"
 episode_length=50
-comm_type="emergent_continuous_AE" # default language
-context_dim=2 # default 16
-cuda_device="cuda:3"
+comm_type="language_sup" # default language
+context_dim=16 # default 16
+cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
 
 env_name="magym_CoordPlace_RGB"

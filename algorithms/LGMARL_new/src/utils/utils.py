@@ -44,6 +44,7 @@ def load_args(cfg, eval=False):
 
         # For adaptation, modify some parameters
         if cfg.adapt_run or eval:
+            # Remove params we want to change from old config
             args.pop("seed")
             args.pop("cuda_device")
             args.pop("model_dir")
@@ -55,6 +56,8 @@ def load_args(cfg, eval=False):
             args.pop("experiment_name")
             args.pop("lr")
             args.pop("lang_lr")
+            if "comm_langground_pt" in args:
+                args.pop("comm_langground_pt")
             if eval:
                 args.pop("n_parallel_envs")
                 if "eval_scenario" in args:
@@ -76,6 +79,7 @@ def load_args(cfg, eval=False):
             if cfg.FT_magym_not_see_agents is not None:
                 args["magym_see_agents"] = not cfg.FT_magym_not_see_agents
 
+            # Load old params in new config
             for a in args:
                 if not hasattr(cfg, a):
                     # print(f"WARNING: Argument {a} not found in config.")

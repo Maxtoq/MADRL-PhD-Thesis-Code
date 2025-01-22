@@ -263,6 +263,8 @@ class LanguageGroundedMARL:
         torch.save(save_dict, path)
 
     def load(self, path):
+        print("Loading cp from", path)
+        exit()
         if type(path) is list:
             save_dict = [torch.load(p, map_location=torch.device('cpu')) 
                 for p in path]

@@ -109,14 +109,12 @@ def run():
             # Perform action and get reward and next obs
             obs, rewards, dones, infos = envs.step(actions)
 
-            env_dones = dones.all(axis=1)
+            # env_dones = dones.all(axis=1)
             # if True in env_dones:
             #     model.reset_context(env_dones)
 
             # Log rewards
             logger.count_returns(s_i, rewards, dones)
-            # logger.log_comm(
-            #     s_i + ep_s_i * cfg.n_parallel_envs, comm_rewards)
 
             # Insert data into policy buffer
             parsed_obs = parser.get_perfect_messages(obs)

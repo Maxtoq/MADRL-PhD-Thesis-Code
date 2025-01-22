@@ -33,7 +33,7 @@ class Env(gym.Env):
 
     def __init__(self, n_agents=2, step_cost=-1.0, max_steps=50):
         assert n_agents in self._landmark_sets, f"Bad number of agents, must be in {list(self._landmark_sets.keys())}."
-        self._grid_shape = (9, 9)
+        self._grid_shape = (10, 10)
         self.n_agents = n_agents
         self._max_steps = max_steps
         self._step_count = 0
@@ -96,15 +96,20 @@ class Env(gym.Env):
         for lp, lc in zip(self.lm_positions, self.lm_colors):
             r, c = lp
             cell = ENT_IDS['landmark'] + str(LM_COLORS[lc])
+            # self._full_obs[r][c] = cell
+            # self._full_obs[r + 1][c] = cell
+            # self._full_obs[r + 2][c] = cell
+            # self._full_obs[r][c + 1] = cell
+            # self._full_obs[r + 1][c + 1] = cell
+            # self._full_obs[r + 2][c + 1] = cell
+            # self._full_obs[r][c + 2] = cell
+            # self._full_obs[r + 1][c + 2] = cell
+            # self._full_obs[r + 2][c + 2] = cell
+
             self._full_obs[r][c] = cell
             self._full_obs[r + 1][c] = cell
-            self._full_obs[r + 2][c] = cell
             self._full_obs[r][c + 1] = cell
             self._full_obs[r + 1][c + 1] = cell
-            self._full_obs[r + 2][c + 1] = cell
-            self._full_obs[r][c + 2] = cell
-            self._full_obs[r + 1][c + 2] = cell
-            self._full_obs[r + 2][c + 2] = cell
 
     def __put_agent_i(self, a_i):
         self._full_obs[self.agent_pos[a_i][0]][self.agent_pos[a_i][1]] = ENT_IDS['agent'] + str(a_i + 1)
@@ -136,7 +141,7 @@ class Env(gym.Env):
 
         for a_i in range(self.n_agents):
             while True:
-                pos = [self.np_random.randint(3, 6), self.np_random.randint(3, 6)]
+                pos = [self.np_random.randint(4, 6), self.np_random.randint(4, 6)]
                 if self.__is_cell_vacant(pos):
                     self.agent_pos[a_i] = pos
                     break
@@ -147,8 +152,8 @@ class Env(gym.Env):
         self.__draw_base_img()
 
     def __pos_on_lm(self, lm_pos, pos):
-        return (lm_pos[0] <= pos[0] <= lm_pos[0] + 2) \
-            and (lm_pos[1] <= pos[1] <= lm_pos[1] + 2)
+        return (lm_pos[0] <= pos[0] <= lm_pos[0] + 1) \
+            and (lm_pos[1] <= pos[1] <= lm_pos[1] + 1)
 
     def __get_position_lm(self, pos):
         for l_i, l_p in enumerate(self.lm_positions):
@@ -247,15 +252,20 @@ class Env(gym.Env):
         img = copy.copy(self._base_img)
         for l_i, l_p in enumerate(self.lm_positions):
             r, c = l_p
+            # fill_cell(img, [r, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r + 1, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r + 2, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r + 1, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r + 2, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r + 1, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+            # fill_cell(img, [r + 2, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
+
             fill_cell(img, [r, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
             fill_cell(img, [r + 1, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            fill_cell(img, [r + 2, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
             fill_cell(img, [r, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
             fill_cell(img, [r + 1, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            fill_cell(img, [r + 2, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            fill_cell(img, [r, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            fill_cell(img, [r + 1, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            fill_cell(img, [r + 2, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
 
         for agent_i in range(self.n_agents):
             draw_circle(img, self.agent_pos[agent_i], cell_size=CELL_SIZE, fill=AGENT_COLOR)
@@ -303,15 +313,25 @@ LM_COLORS = {
     6: [0, 0, 1]  # blue
 }
 
+# LM_POSITIONS = [
+#     (0, 0),
+#     (3, 0),
+#     (6, 0),
+#     (0, 3),
+#     (6, 3),
+#     (0, 6),
+#     (3, 6),
+#     (6, 6)
+# ]
 LM_POSITIONS = [
     (0, 0),
-    (3, 0),
-    (6, 0),
-    (0, 3),
-    (6, 3),
-    (0, 6),
-    (3, 6),
-    (6, 6)
+    (4, 0),
+    (8, 0),
+    (0, 4),
+    (8, 4),
+    (0, 8),
+    (4, 8),
+    (8, 8)
 ]
 
 CELL_SIZE = 35

@@ -235,6 +235,8 @@ class CommMAPPO():
 
         if self.comm_langground:
             assert args.comm_langground_pt is not None, "Need pre-trained language encoder path for LangGround."
+            print(args.comm_langground_pt)
+            exit()
             self.lang_ground = LanguageGrounder(
                 obs_dim, args.context_dim, args.lang_hidden_dim, args.lang_embed_dim, 
                 args.policy_layer_N, args.lang_lr, vocab, max_message_len, device)
