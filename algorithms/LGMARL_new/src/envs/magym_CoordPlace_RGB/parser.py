@@ -6,7 +6,7 @@ class Parser():
     # vocab = ["Gem", "Yellow", "Green", "Purple", "Center", "North", "South", "East", "West"]
 
     def __init__(self):
-        self.env_size = 9
+        self.env_size = 10
 
         # self.vocab = [
         #     "Prey", "Center", "North", "South", "East", "West",
