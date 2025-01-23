@@ -38,7 +38,7 @@ class Env(gym.Env):
         self._max_steps = max_steps
         self._step_count = 0
         self._step_cost = step_cost
-        self.n_landmarks = 5
+        self.n_landmarks = np.sum(self._landmark_sets[n_agents])
 
         self.action_space = MultiAgentActionSpace(
             [spaces.Discrete(5) for _ in range(self.n_agents)])
