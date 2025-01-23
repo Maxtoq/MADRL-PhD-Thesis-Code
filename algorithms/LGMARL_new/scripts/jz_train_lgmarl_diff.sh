@@ -35,7 +35,7 @@ episode_length=100
 comm_type="language_sup" # default language
 context_dim=16 # default 16
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
+comm_langground_pt="results/data/lamarl_data/Frgb_18_langground.pt"
 
 env_name="magym_Foraging_RGB"
 magym_env_size=18

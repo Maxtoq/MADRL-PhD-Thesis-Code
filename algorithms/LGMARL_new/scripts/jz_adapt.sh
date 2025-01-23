@@ -22,7 +22,7 @@ FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
 model_dir="models/magym_PredPrey_RGB/12s50np_ec2_ae"
-cuda_device="cuda:1"
+cuda_device="cuda:0"
 
 comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
 
