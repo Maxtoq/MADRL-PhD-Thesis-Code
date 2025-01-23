@@ -385,8 +385,8 @@ class GRUDecoder(nn.Module):
         tokens = []
         decoder_outputs = []
         sentences = None
-        # sent_finished = np.array([False] * batch_size).reshape((1, batch_size, 1))
-        sent_finished = torch.zeros(1, batch_size, 1, dtype=torch.bool).to(self.device)
+        sent_finished = np.array([False] * batch_size).reshape((1, batch_size, 1))
+        # sent_finished = torch.zeros(1, batch_size, 1, dtype=torch.bool).to(self.device)
         for t_i in range(max_sent_len):
             # RNN pass
             outputs, hidden = self.forward_step(last_tokens, hidden)
@@ -399,7 +399,7 @@ class GRUDecoder(nn.Module):
                 _, topi = outputs.topk(1)
                 
                 # Set next decoder input
-                if self.use_gumbel: # TODO Fix for differentiable version, does not work because topk() does not pass gradients
+                if self.use_gumbel: # TODO Fix for differentiable version, does not work because topk() does not pass gradients (don't output indices, only one hots)
                     tau = self.tau_gen(hidden.squeeze())
                     tau = 1 / ((1 + tau.exp()).log() + self.tau_zero)
   
@@ -411,14 +411,13 @@ class GRUDecoder(nn.Module):
                     last_tokens = self.embed_layer(topi.squeeze(-1))
 
                 # Add next token, if sentence is not already finished (then pad with -1)
-                # topi = topi.cpu().numpy()
-                # next_token_ids = sent_finished * 0 + (1 - sent_finished) * topi
-                next_token_ids = sent_finished * 0 + (~sent_finished) * topi
-                # print(next_token_ids)
+                topi = topi.cpu().numpy()
+                next_token_ids = sent_finished * 0 + (1 - sent_finished) * topi
+                # next_token_ids = sent_finished * 0 + (~sent_finished) * topi
                 if sentences is None:
                     sentences = next_token_ids
                 else:
-                    sentences = torch.cat((sentences, next_token_ids), dim=-1)
+                    sentences = np.concatenate((sentences, next_token_ids), -1)
 
                 # Check for finished sentences
                 sent_finished = sent_finished | (topi == 1)
