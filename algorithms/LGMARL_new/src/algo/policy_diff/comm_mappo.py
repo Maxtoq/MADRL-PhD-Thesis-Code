@@ -575,7 +575,7 @@ class CommMAPPO():
             if self.comm_type in [
                     "perfect", "language_sup", "no_comm+lang", "perfect+no_lang"]:
                 # enc_perf_br = torch.stack(enc_perf_br, dim=1)
-                # TODO for training sep ll
+                # TODO training distributed ll
                 if type(self.lang_learner) == list:
                     raise NotImplementedError()
                 lang_obs_enc = self.lang_learner.obs_encoder(

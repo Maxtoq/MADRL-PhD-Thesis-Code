@@ -188,7 +188,6 @@ class LanguageGroundedMARL:
             comm_head_learns_rl = False
         if self.comm_type not in [
                 "perfect", "language_sup", "language_rl", "no_comm+lang"]:
-                # "perfect+no_lang"]:
             train_lang = False
 
         # Compute last value
@@ -237,7 +236,7 @@ class LanguageGroundedMARL:
         """
         # Encode sentences and build broadcast
         if self.comm_type in [
-                "perfect", "language_sup", "language_rl", "no_comm+lang"]:
+                "perfect", "language_sup", "language_rl", "no_comm+lang", "perfect+no_lang"]:
             enc_perf_mess, enc_perf_br \
                 = self.model.encode_perf_messages(perf_messages)
         else:
