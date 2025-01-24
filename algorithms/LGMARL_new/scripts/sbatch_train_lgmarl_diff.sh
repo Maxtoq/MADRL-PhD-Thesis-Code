@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=ae_CP
+#SBATCH --job-name=lang_CP
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -28,11 +28,11 @@ entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
-n_run=3
-experiment_name="2a_ec2_ae"
+n_run=2
+experiment_name="2a_lang"
 episode_length=50
-comm_type="emergent_continuous_AE" # default language
-context_dim=2 # default 16
+comm_type="language_sup" # default language
+context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
 

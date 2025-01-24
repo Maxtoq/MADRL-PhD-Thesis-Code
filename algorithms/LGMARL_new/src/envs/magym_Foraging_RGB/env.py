@@ -37,7 +37,7 @@ class Env(gym.Env):
         self._step_count = 0
         self._penalty = penalty
         self._step_cost = step_cost
-        self._agent_view_mask = (obs_range, obs_range, 3) # 3 canals for Red, Blue, and Green
+        self._agent_view_mask = (obs_range, obs_range, 3) # 3 canals for Red, GReen, and Green
         self._reduced_obsrange = reduced_obsrange
         self._respawn_gems = respawn_gems
 
