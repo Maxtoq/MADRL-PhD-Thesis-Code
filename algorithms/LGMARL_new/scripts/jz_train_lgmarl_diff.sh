@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=lang_noc
+#SBATCH --job-name=obs
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
 #SBATCH --qos=qos_gpu-t3
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH -C v100
-#SBATCH -A bqo@v100
+#SBATCH -A bqo@v100	
 
 source venv/bin/activate
 
@@ -29,10 +29,10 @@ entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
-n_run=2
-experiment_name="18s50np_lang_nocomm"
-episode_length=100
-comm_type="no_comm+lang" # default language
+n_run=1
+experiment_name="18s50np_obs"
+episode_length=50
+comm_type="obs" # default language
 context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/Frgb_18_langground.pt"
