@@ -1,6 +1,6 @@
 #!/bin/sh
-n_run=1
-experiment_name="Ad_12_18s50np_lang"
+n_run=3
+experiment_name="Ad_12_18s50np_ec2_ae"
 n_steps=10000000
 lr=0.0005 # default 0.0005
 lang_lr=0.007
@@ -9,7 +9,7 @@ FT_magym_env_size=18
 FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
-model_dir="models/magym_PredPrey_RGB/12s50np_lang"
+model_dir="models/magym_PredPrey_RGB/12s50np_ec2_ae"
 cuda_device="cuda:3"
 
 comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
