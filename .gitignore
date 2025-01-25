@@ -1498,6 +1498,18 @@ models/magym_PredPrey_RGB/18s50np_edl1/*
 models/magym_PredPrey_RGB/18s50np_edl3/*
 !models/magym_PredPrey_RGB/18s50np_edl3/train_data
 
+!models/magym_PredPrey_RGB/18s50np_lang_nocomm
+models/magym_PredPrey_RGB/18s50np_lang_nocomm/*
+!models/magym_PredPrey_RGB/18s50np_lang_nocomm/train_data
+
+!models/magym_PredPrey_RGB/18s50np_obs
+models/magym_PredPrey_RGB/18s50np_obs/*
+!models/magym_PredPrey_RGB/18s50np_obs/train_data
+
+!models/magym_PredPrey_RGB/18s50np_oracle_nolang
+models/magym_PredPrey_RGB/18s50np_oracle_nolang/*
+!models/magym_PredPrey_RGB/18s50np_oracle_nolang/train_data
+
 !models/magym_PredPrey_RGB/15s50np_noc
 models/magym_PredPrey_RGB/15s50np_noc/*
 !models/magym_PredPrey_RGB/15s50np_noc/train_data
