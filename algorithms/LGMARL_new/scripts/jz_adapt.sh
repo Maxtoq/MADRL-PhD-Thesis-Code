@@ -11,7 +11,7 @@
 
 source venv/bin/activate
 
-n_run=7
+n_run=1
 experiment_name="Ad_12_18s50np_ec2_ae"
 n_steps=10000000
 lr=0.0005 # default 0.0005
