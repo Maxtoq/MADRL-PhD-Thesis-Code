@@ -1,37 +1,35 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=ls
+#SBATCH --job-name=zst_lang
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
-#SBATCH --time=72:00:00
+#SBATCH --time=100:00:00
 #SBATCH --qos=qos_gpu-t4
 #SBATCH --output=outputs/%x-%j.out
-#SBATCH -A bqo@v100
+#SBATCH -C v100
+#SBATCH -A bqo@v100	
 
 source venv/bin/activate
 
-n_parallel_envs=240 # 24 is number of hard scenarios
+n_parallel_envs=250
 # eval_scenario="algorithms/LGMARL_new/src/envs/magym_PredPrey/mid_eval_6.json"
-n_eval_runs=1000
+env_name="magym_PredPrey_RGB"
+n_eval_runs=24
 cuda_device="cuda:0"
 
-# model_dir="models/magym_PredPrey_new/9o5_noc/run3,models/magym_PredPrey_new/9o5_noc/run6,models/magym_PredPrey_new/9o5_noc/run4,models/magym_PredPrey_new/9o5_noc/run15"
-# model_dir="models/magym_PredPrey_new/9o5_Diff_perf/run16,models/magym_PredPrey_new/9o5_Diff_perf/run9,models/magym_PredPrey_new/9o5_Diff_perf/run3,models/magym_PredPrey_new/9o5_Diff_perf/run7" # 16 9 7 12
-# model_dir="models/magym_PredPrey_new/9o5_Diff_langsup/run10,models/magym_PredPrey_new/9o5_Diff_langsup/run3,models/magym_PredPrey_new/9o5_Diff_langsup/run13,models/magym_PredPrey_new/9o5_Diff_langsup/run5" # 10 3 13 5 
-# model_dir="models/magym_PredPrey_new/9o5_Diff_ec2/run9,models/magym_PredPrey_new/9o5_Diff_ec2/run5,models/magym_PredPrey_new/9o5_Diff_ec2/run8,models/magym_PredPrey_new/9o5_Diff_ec2/run4" # 9 5 8 4
-# model_dir="models/magym_PredPrey_new/9o5_Diff_edl/run16,models/magym_PredPrey_new/9o5_Diff_edl/run5,models/magym_PredPrey_new/9o5_Diff_edl/run11,models/magym_PredPrey_new/9o5_Diff_edl/run12"
+# model_dir="models/magym_PredPrey_RGB/18s50np_noc/run11,models/magym_PredPrey_RGB/18s50np_noc/run15,models/magym_PredPrey_RGB/18s50np_noc/run10,models/magym_PredPrey_RGB/18s50np_noc/run4"
+model_dir="models/magym_PredPrey_RGB/18s50np_lang_ce0/run13,models/magym_PredPrey_RGB/18s50np_lang_ce0/run4,models/magym_PredPrey_RGB/18s50np_lang_ce0/run14,models/magym_PredPrey_RGB/18s50np_lang_ce0/run6" 
+# model_dir="models/magym_PredPrey_RGB/18s50np_ec2_ae/run4,models/magym_PredPrey_RGB/18s50np_ec2_ae/run7,models/magym_PredPrey_RGB/18s50np_ec2_ae/run6,models/magym_PredPrey_RGB/18s50np_ec2_ae/run2" 
+# model_dir="models/magym_PredPrey_RGB/18s50np_ec2/run12,models/magym_PredPrey_RGB/18s50np_ec2/run3,models/magym_PredPrey_RGB/18s50np_ec2/run2,models/magym_PredPrey_RGB/18s50np_ec2/run11" 
+# model_dir="models/magym_PredPrey_RGB/18s50np_ec4_lg/run7,models/magym_PredPrey_RGB/18s50np_ec4_lg/run5,models/magym_PredPrey_RGB/18s50np_ec4_lg/run1,models/magym_PredPrey_RGB/18s50np_ec4_lg/run2"
 
-# model_dir="models/magym_PredPrey_new/9o5SA_Diff_noc/run29,models/magym_PredPrey_new/9o5SA_Diff_noc/run24,models/magym_PredPrey_new/9o5SA_Diff_noc/run30,models/magym_PredPrey_new/9o5SA_Diff_noc/run18"
-# model_dir="models/magym_PredPrey_new/9o5SA_Diff_perf/run17,models/magym_PredPrey_new/9o5SA_Diff_perf/run19,models/magym_PredPrey_new/9o5SA_Diff_perf/run14,models/magym_PredPrey_new/9o5SA_Diff_perf/run21" 
-model_dir="models/magym_PredPrey_new/9o5SA_Diff_langsup/run4,models/magym_PredPrey_new/9o5SA_Diff_langsup/run15,models/magym_PredPrey_new/9o5SA_Diff_langsup/run5,models/magym_PredPrey_new/9o5SA_Diff_langsup/run14" 
-#model_dir="models/magym_PredPrey_new/9o5SA_Diff_ec2/run9,models/magym_PredPrey_new/9o5SA_Diff_ec2/run12,models/magym_PredPrey_new/9o5SA_Diff_ec2/ru78,models/magym_PredPrey_new/9o5SA_Diff_ec2/run21" 
-# model_dir="models/magym_PredPrey_new/9o5SA_Diff_edl/run14,models/magym_PredPrey_new/9o5SA_Diff_edl/run5,models/magym_PredPrey_new/9o5SA_Diff_edl/run8,models/magym_PredPrey_new/9o5SA_Diff_edl/run3"
 
-seed=$RANDOM
+seed=$RANDOM # 27425
 comm="python algorithms/LGMARL_new/eval_zst.py 
     --seed ${seed}
     --cuda_device ${cuda_device}
     --model_dir ${model_dir} 
+    --env_name ${env_name}
     --n_steps 100 
     --n_eval_runs ${n_eval_runs}
     --n_parallel_envs ${n_parallel_envs}"

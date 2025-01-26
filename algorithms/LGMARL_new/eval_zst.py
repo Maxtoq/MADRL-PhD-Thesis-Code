@@ -2,6 +2,7 @@ import os
 import json
 import time
 import random
+import itertools
 import numpy as np
 import pandas as pd
 
@@ -175,9 +176,10 @@ if __name__ == '__main__':
         "Mean return": [],
         "Std": []
     }
-    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log1.csv"
+    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log.csv"
     for tc in team_compo:
         print("Evaluating team composition:", tc)
+        permuts = list(itertools.permutations(tc))
         returns = np.zeros(cfg.n_eval_runs)
         seeds = []
         for i in trange(cfg.n_eval_runs):
@@ -193,7 +195,7 @@ if __name__ == '__main__':
             seeds.append(s)
             cfg.seed = s
 
-            returns[i] = run_eval(cfg, tc)
+            returns[i] = run_eval(cfg, permuts[i % len(permuts)])
 
         # TODO log results into file
         results["Team compo"].append(tc)
