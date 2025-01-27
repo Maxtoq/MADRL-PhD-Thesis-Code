@@ -611,7 +611,8 @@ class CommMAPPO():
             self.lang_learner = [
                 copy.deepcopy(self.lang_learner) for _ in range(self.n_agents)]
 
-            agent_ids = random.sample(range(self.n_agents), self.n_agents)
+            # agent_ids = random.sample(range(self.n_agents), self.n_agents)
+            agent_ids = list(range(self.n_agents))
 
             n_agents_by_p = self.n_agents // len(params)
             assert len(params) * n_agents_by_p == self.n_agents

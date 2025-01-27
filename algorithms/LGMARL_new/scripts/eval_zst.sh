@@ -4,8 +4,9 @@ source venv3.8/bin/activate
 n_parallel_envs=250
 # eval_scenario="algorithms/LGMARL_new/src/envs/magym_PredPrey/mid_eval_6.json"
 env_name="magym_PredPrey_RGB"
-n_eval_runs=24
-cuda_device="cuda:0"
+n_eval_runs=100
+episode_length=50
+cuda_device="cuda:1"
 
 # model_dir="models/magym_PredPrey_new/9o5_noc/run3,models/magym_PredPrey_new/9o5_noc/run6,models/magym_PredPrey_new/9o5_noc/run4,models/magym_PredPrey_new/9o5_noc/run15"
 # model_dir="models/magym_PredPrey_new/9o5_Diff_perf/run16,models/magym_PredPrey_new/9o5_Diff_perf/run9,models/magym_PredPrey_new/9o5_Diff_perf/run3,models/magym_PredPrey_new/9o5_Diff_perf/run7" # 16 9 7 12
@@ -31,8 +32,8 @@ cuda_device="cuda:0"
 # EEmodel_dir="models/Foraging/18o5_no_comm/run8,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run6,models/magym_PredPrey_new/Ad_9o5SA_15o5_ec2/run2" 
 # EEmodel_dir="models/Foraging/18o5_perf/run9,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run7,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run3,models/magym_PredPrey_new/Ad_9o5SA_15o5_edl/run6"
 
-# model_dir="models/magym_PredPrey_RGB/18s50np_noc/run11,models/magym_PredPrey_RGB/18s50np_noc/run15,models/magym_PredPrey_RGB/18s50np_noc/run10,models/magym_PredPrey_RGB/18s50np_noc/run4"
-model_dir="models/magym_PredPrey_RGB/18s50np_lang_ce0/run13,models/magym_PredPrey_RGB/18s50np_lang_ce0/run4,models/magym_PredPrey_RGB/18s50np_lang_ce0/run14,models/magym_PredPrey_RGB/18s50np_lang_ce0/run6" 
+model_dir="models/magym_PredPrey_RGB/18s50np_noc/run11,models/magym_PredPrey_RGB/18s50np_noc/run15,models/magym_PredPrey_RGB/18s50np_noc/run10,models/magym_PredPrey_RGB/18s50np_noc/run4"
+# model_dir="models/magym_PredPrey_RGB/18s50np_lang_ce0/run13,models/magym_PredPrey_RGB/18s50np_lang_ce0/run4,models/magym_PredPrey_RGB/18s50np_lang_ce0/run14,models/magym_PredPrey_RGB/18s50np_lang_ce0/run6" 
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec2_ae/run4,models/magym_PredPrey_RGB/18s50np_ec2_ae/run7,models/magym_PredPrey_RGB/18s50np_ec2_ae/run6,models/magym_PredPrey_RGB/18s50np_ec2_ae/run2" 
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec2/run12,models/magym_PredPrey_RGB/18s50np_ec2/run3,models/magym_PredPrey_RGB/18s50np_ec2/run2,models/magym_PredPrey_RGB/18s50np_ec2/run11" 
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec4_lg/run7,models/magym_PredPrey_RGB/18s50np_ec4_lg/run5,models/magym_PredPrey_RGB/18s50np_ec4_lg/run1,models/magym_PredPrey_RGB/18s50np_ec4_lg/run2"
@@ -46,6 +47,7 @@ comm="python algorithms/LGMARL_new/eval_zst.py
     --env_name ${env_name}
     --n_steps 100 
     --n_eval_runs ${n_eval_runs}
+    --episode_length ${episode_length}
     --n_parallel_envs ${n_parallel_envs}"
     # --eval_scenario ${eval_scenario} 
     # --use_render
