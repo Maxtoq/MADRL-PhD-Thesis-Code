@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=ad_ae
+#SBATCH --job-name=ad_lang
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -12,16 +12,16 @@
 source venv/bin/activate
 
 n_run=1
-experiment_name="Ad_12_18s50np_ec2_ae"
+experiment_name="Ad_12_18s50np_lang0001"
 n_steps=10000000
-lr=0.0005 # default 0.0005
+lr=0.0001 # default 0.0005
 lang_lr=0.007
 env_name="magym_PredPrey_RGB"
 FT_magym_env_size=18
 FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
-model_dir="models/magym_PredPrey_RGB/12s50np_ec2_ae"
+model_dir="models/magym_PredPrey_RGB/12s50np_lang"
 cuda_device="cuda:0"
 
 comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
