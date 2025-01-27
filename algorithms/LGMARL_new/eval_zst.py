@@ -73,9 +73,6 @@ def run_eval(cfg, team_compo, n_eval_runs):
     if cfg.eval_scenario is not None:
         with open(cfg.eval_scenario, 'r') as f:
             init_positions = json.load(f)
-
-    print(cfg)
-    exit()
     
     # Create train environment
     envs, parser = make_env(
