@@ -9,7 +9,7 @@ comm_token_penalty=0.001
 lang_batch_size=1024 # default 256
 lang_capt_loss_weight=1 # default 0.0001
 lang_embed_dim=4 # default 4
-lr=0.0005 # default 0.0005
+lr=0.0003 # default 0.0005
 hidden_dim=128 # default 64
 policy_layer_N=2 # default 1
 policy_recurrent_N=2 # default 1
@@ -18,11 +18,11 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
 n_run=1
-experiment_name="2a_lang_ce0"
+experiment_name="2a_lang"
 episode_length=50
 comm_type="language_sup" # default language
 context_dim=16 # default 16
-cuda_device="cuda:0"
+cuda_device="cuda:2"
 comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
 
 env_name="magym_CoordPlace_RGB"

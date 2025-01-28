@@ -29,11 +29,11 @@ class Env(gym.Env):
         landmarks with same color.
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
-    _landmark_sets = {2: (2, 2, 2, 1), 3: (3, 3, 1)}
+    _landmark_sets = {2: (2, 1, 1), 3: (3, 1)}
 
     def __init__(self, n_agents=2, step_cost=-1.0, max_steps=50):
         assert n_agents in self._landmark_sets, f"Bad number of agents, must be in {list(self._landmark_sets.keys())}."
-        self._grid_shape = (8, 8)
+        self._grid_shape = (6, 6)
         self.n_agents = n_agents
         self._max_steps = max_steps
         self._step_count = 0
@@ -141,7 +141,10 @@ class Env(gym.Env):
 
         for a_i in range(self.n_agents):
             while True:
-                pos = [self.np_random.randint(3, 5), self.np_random.randint(3, 5)]
+                mid_i = self._grid_shape[0] // 3
+                pos = [
+                    self.np_random.randint(mid_i, self._grid_shape[0] - mid_i), 
+                    self.np_random.randint(mid_i, self._grid_shape[0] - mid_i)]
                 if self.__is_cell_vacant(pos):
                     self.agent_pos[a_i] = pos
                     break
@@ -312,16 +315,16 @@ LM_COLORS = {
     6: [0, 0, 1]  # blue
 }
 
-LM_POSITIONS = [
-    (0, 0),
-    (3, 0),
-    (6, 0),
-    (0, 3),
-    (6, 3),
-    (0, 6),
-    (3, 6),
-    (6, 6)
-]
+# LM_POSITIONS = [
+#     (0, 0),
+#     (3, 0),
+#     (6, 0),
+#     (0, 3),
+#     (6, 3),
+#     (0, 6),
+#     (3, 6),
+#     (6, 6)
+# ]
 # LM_POSITIONS = [
 #     (0, 0),
 #     (4, 0),
@@ -332,6 +335,16 @@ LM_POSITIONS = [
 #     (4, 8),
 #     (8, 8)
 # ]
+LM_POSITIONS = [
+    (0, 0),
+    (2, 0),
+    (4, 0),
+    (0, 2),
+    (4, 2),
+    (0, 4),
+    (2, 4),
+    (4, 4)
+]
 
 CELL_SIZE = 35
 
