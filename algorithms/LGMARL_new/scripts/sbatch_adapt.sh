@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=adPP_F
+#SBATCH --job-name=ad_lang
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=5000
@@ -10,18 +10,19 @@
 
 source venv/bin/activate
 
-n_run=8
-experiment_name="Ad_PP9_F18_lang"
+n_run=3
+experiment_name="Ad_12_18s50np_lang0001"
 n_steps=10000000
-lr=0.0009 # default 0.0005
-lang_lr=0.009
-FT_env_name="magym_Foraging"
+lr=0.0001 # default 0.0005
+lang_lr=0.007
+env_name="magym_PredPrey_RGB"
 FT_magym_env_size=18
-FT_magym_actual_obsrange=5
 FT_freeze_lang_after_n=10000000 # default None
 FT_comm_eps_start=1.0 # default 1.0
-model_dir="models/magym_PredPrey_new/9o5SA_lang_largVoc/run16/"
+model_dir="models/magym_PredPrey_RGB/12s50np_lang"
 cuda_device="cuda:0"
+
+comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
 
 for n in $(seq 1 $n_run)
 do
@@ -29,7 +30,7 @@ do
     seed=$RANDOM
     comm="python algorithms/LGMARL_new/train_lgmarl_diff.py --seed ${seed}
     --experiment_name ${experiment_name}
-    --FT_env_name ${FT_env_name}
+    --env_name ${env_name}
     --model_dir ${model_dir}
     --n_steps ${n_steps}
     --lr ${lr}
@@ -38,7 +39,8 @@ do
     --FT_freeze_lang_after_n ${FT_freeze_lang_after_n}
     --FT_comm_eps_start ${FT_comm_eps_start}
     --cuda_device ${cuda_device}
-    --adapt_run"
+    --adapt_run
+    --comm_langground_pt ${comm_langground_pt}"
     # --FT_magym_not_see_agents"
     # --FT_freeze_lang"
     printf "Starting training with command:\n${comm}\n\nSEED IS ${seed}\n"
