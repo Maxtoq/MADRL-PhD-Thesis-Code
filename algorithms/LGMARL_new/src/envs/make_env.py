@@ -77,6 +77,15 @@ def _get_env(cfg, init_pos):
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             see_agents=cfg.magym_see_agents)
+
+    elif cfg.env_name == "magym_Empty_RGB":
+        from .magym_empty_RGB.env import EmptyEnv
+        env = EmptyEnv(
+            grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
+            n_agents=cfg.magym_n_agents, 
+            max_steps=cfg.episode_length,
+            obs_range=cfg.magym_obs_range,
+            see_agents=cfg.magym_see_agents)
     else:
         raise NotImplementedError("ARG ERROR: bad env_name")
     return env
@@ -107,6 +116,10 @@ def _get_parser(cfg):
     elif cfg.env_name == "magym_CoordPlace_RGB":
         from .magym_CoordPlace_RGB.parser import Parser
         return Parser()
+    
+    elif cfg.env_name == "magym_Empty_RGB":
+        from .magym_empty_RGB.parser import Parser
+        return Parser(cfg.magym_env_size, cfg.magym_obs_range)
 
     else:
         print("WARNING: No Parser for", cfg.env_name)

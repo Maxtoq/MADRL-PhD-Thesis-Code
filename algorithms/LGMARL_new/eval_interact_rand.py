@@ -53,25 +53,24 @@ def run_eval(cfg):
         interact_logs[f"A{a_i}a3"] = []
         interact_logs[f"A{a_i}a4"] = []
 
-    init_pos = []
-    min_center = cfg.magym_env_size // 3
-    for i in range(min_center, 2 * min_center):
-        for j in range(min_center, 2 * min_center):
-            i_pos = (i, j)
-            for x in range(min_center, 2 * min_center):
-                for y in range(min_center, 2 * min_center):
-                    if (x, y) != i_pos: 
-                        init_pos.append((i_pos, (x, y)))
-    # init_pos = [((4, 4), (3, 4)), ((4, 4), (3, 4))]
+    # init_pos = []
+    # min_center = cfg.magym_env_size // 3
+    # for i in range(min_center, 2 * min_center):
+    #     for j in range(min_center, 2 * min_center):
+    #         i_pos = (i, j)
+    #         for x in range(min_center, 2 * min_center):
+    #             for y in range(min_center, 2 * min_center):
+    #                 if (x, y) != i_pos: 
+    #                     init_pos.append((i_pos, (x, y)))
+    # # init_pos = [((4, 4), (3, 4)), ((4, 4), (3, 4))]
     
-    # Create train environment
-    cfg.env_name = "magym_Empty"
-    if len(init_pos) > 250:
-        cfg.n_parallel_envs = 200
-    else:
-        cfg.n_parallel_envs = len(init_pos)
-    envs, parser = make_env(
-        cfg, cfg.n_parallel_envs)
+    # # Create train environment
+    # assert "Empty" in cfg.env_name, "should use empty env"
+    # if len(init_pos) > 250:
+    #     cfg.n_parallel_envs = 200
+    # else:
+    #     cfg.n_parallel_envs = len(init_pos)
+    envs, parser = make_env(cfg)
     
     # Create model
     n_agents = envs.n_agents
@@ -91,7 +90,8 @@ def run_eval(cfg):
         block_comm=True)
 
     # Load params
-    model.load(pretrained_model_path)    
+    model.load(pretrained_model_path)  
+    model.prep_rollout()  
 
     # model.init_episode(obs, parsed_obs)
     # model.prep_rollout(device)
@@ -102,36 +102,37 @@ def run_eval(cfg):
         input_message = [[tm] for _ in range(cfg.n_parallel_envs)]
         performed_actions = []
 
-        for i in range(0, len(init_pos), cfg.n_parallel_envs):
-            print(i, i + cfg.n_parallel_envs)
-            obs = envs.reset(init_pos[i:i + cfg.n_parallel_envs])
-            parsed_obs = parser.get_perfect_messages(obs)
+        # for i in range(0, len(init_pos), cfg.n_parallel_envs):
+            # print(i, i + cfg.n_parallel_envs)
+        obs = envs.reset()#init_pos[i:i + cfg.n_parallel_envs])
+        parsed_obs = parser.get_perfect_messages(obs)
 
+        if cfg.save_render:
             frames = []
             frames.append(render(cfg, envs)[1])
 
-            model.init_episode(obs, parsed_obs)
-            for ep_s_i in range(cfg.rollout_length):
-                # Get action
-                actions, agent_messages, _, comm_rewards \
-                    = model.act(
-                        deterministic=True, 
-                        lang_input=input_message) # if ep_s_i == 0 else None)
+        model.init_episode(obs, parsed_obs)
+        for ep_s_i in range(cfg.rollout_length):
+            # Get action
+            actions, agent_messages, _, comm_rewards \
+                = model.act(
+                    deterministic=True, 
+                    lang_input=input_message if ep_s_i == 0 else None)
 
-                performed_actions.append(actions)
+            performed_actions.append(actions)
 
-                # Perform action and get reward and next obs
-                next_obs, rewards, dones, infos = envs.step(actions)
+            # Perform action and get reward and next obs
+            next_obs, rewards, dones, infos = envs.step(actions)
 
-                obs = next_obs
-                parsed_obs = parser.get_perfect_messages(obs)
-                model.store_exp(obs, parsed_obs, rewards, dones)
-
-                frames.append(render(cfg, envs)[1])
+            obs = next_obs
+            parsed_obs = parser.get_perfect_messages(obs)
+            model.store_exp(obs, parsed_obs, rewards, dones)
 
             if cfg.save_render:
-                save_frames(frames, cfg.model_dir)
-                frames
+                frames.append(render(cfg, envs)[1])
+
+        if cfg.save_render:
+            save_frames(frames, cfg.model_dir)
         
         
         agent_actions = np.concatenate(performed_actions).squeeze(-1).T
@@ -144,7 +145,7 @@ def run_eval(cfg):
 
     # print(interact_log)
     df = pd.DataFrame(interact_logs)
-    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center.csv")
+    df.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center_onestep.csv")
 
 if __name__ == '__main__':
     # Load config
