@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import torch
 import random
 import itertools
 import numpy as np
@@ -162,7 +163,8 @@ if __name__ == '__main__':
     parser = get_config()
     cfg = parser.parse_args()
 
-    random.seed(cfg.seed)
+    # random.seed(cfg.seed)
+    seeds = np.arange(24) * 1000
 
     team_compo = [
         [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 2], [0, 1, 2, 3]]
@@ -174,13 +176,13 @@ if __name__ == '__main__':
         "Success rate": [],
         "Success std": []
     }
-    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log.csv"
+    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log_hard.csv"
     for tc in team_compo:
         print("Evaluating team composition:", tc)
         permuts = list(set(itertools.permutations(tc)))
         returns = np.array([])
         # seeds = []
-        for i in trange(len(permuts)):
+        for i in trange(24): # 24 = max number of permutations
             # print(f"Run {i + 1}/{cfg.n_eval_runs}")
             # s = random.randint(0, 1000000)
             # # Break seed looping
@@ -191,10 +193,10 @@ if __name__ == '__main__':
             #     s_i += 1
             #     s = random.randint(0, 1000000)
             # seeds.append(s)
-            # cfg.seed = s
-
-            returns = np.concatenate((returns, run_eval(cfg, permuts[i], cfg.n_eval_runs // len(permuts))))
-            success = returns != (cfg.episode_length * -1)
+            cfg.seed = seeds[i]
+            with torch.no_grad():
+                returns = np.concatenate((returns, run_eval(cfg, permuts[i % len(permuts)], cfg.n_eval_runs // 24)))
+            success = returns >= (cfg.episode_length * -1 + 60)
 
         results["Team compo"].append(tc)
         results["Mean return"].append(returns.mean())

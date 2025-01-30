@@ -123,13 +123,18 @@ class PredatorPreyEnv(gym.Env):
             assert len(self._init_pos["agents"]) == self.n_agents
             assert len(self._init_pos["preys"]) == self.n_preys
 
+        hard = True
         for agent_i in range(self.n_agents):
             while True:
                 if self._init_pos is not None:
                     pos = self._init_pos["agents"][agent_i]
                 else:
-                    pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
-                        self.np_random.randint(0, self._grid_shape[1] - 1)]
+                    if hard:
+                        pos = [self.np_random.randint(self._grid_shape[0] // 3, self._grid_shape[0] - self._grid_shape[0] // 3 - 1),
+                               self.np_random.randint(self._grid_shape[1] // 3, self._grid_shape[1] - self._grid_shape[1] // 3 - 1)]
+                    else:
+                        pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
+                               self.np_random.randint(0, self._grid_shape[1] - 1)]
 
                 if self._is_cell_vacant(pos):
                     self.agent_pos[agent_i] = pos
@@ -146,6 +151,12 @@ class PredatorPreyEnv(gym.Env):
                 else:
                     pos = [self.np_random.randint(0, self._grid_shape[0] - 1),
                         self.np_random.randint(0, self._grid_shape[1] - 1)]
+                    
+                    if hard:
+                        if ((self._grid_shape[0] // 3 <= pos[0] < self._grid_shape[0] - self._grid_shape[0] // 3)
+                            and (self._grid_shape[1] // 3 <= pos[1] < self._grid_shape[1] - self._grid_shape[1] // 3)):
+                            continue
+                        
                 if self._is_cell_vacant(pos) and (self._neighbour_agents(pos)[0] == 0):
                     self.prey_pos[prey_i] = pos
                     break

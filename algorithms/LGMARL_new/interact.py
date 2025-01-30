@@ -24,7 +24,7 @@ def run():
     device = set_cuda_device(cfg)
     
     # Create train environment
-    envs, parser = make_env(cfg, cfg.n_parallel_envs)
+    envs, parser = make_env(cfg)
     
     obs = envs.reset()
     # Parse obs
