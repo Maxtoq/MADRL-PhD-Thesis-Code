@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=lang_CP
+#SBATCH --job-name=lg_CP
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -28,13 +28,13 @@ entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
-n_run=2
-experiment_name="2a_lang"
+n_run=7
+experiment_name="2a_noc"
 episode_length=50
-comm_type="language_sup" # default language
-context_dim=16 # default 16
+comm_type="no_comm" # default language
+context_dim=4 # default 16
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
+comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
 env_name="magym_CoordPlace_RGB"
 magym_env_size=18
