@@ -6,7 +6,7 @@ n_parallel_envs=250
 env_name="magym_PredPrey_RGB"
 n_eval_runs=100
 episode_length=50
-cuda_device="cuda:0"
+cuda_device="cuda:3"
 comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
 
 # model_dir="models/magym_PredPrey_new/9o5_noc/run3,models/magym_PredPrey_new/9o5_noc/run6,models/magym_PredPrey_new/9o5_noc/run4,models/magym_PredPrey_new/9o5_noc/run15"
