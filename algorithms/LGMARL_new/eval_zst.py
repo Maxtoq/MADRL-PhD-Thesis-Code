@@ -164,7 +164,7 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
 
     # random.seed(cfg.seed)
-    seeds = np.arange(24) * 1000
+    # seeds = np.arange(24) * 1000
 
     team_compo = [
         [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 1], [0, 0, 1, 2], [0, 1, 2, 3]]
@@ -176,7 +176,7 @@ if __name__ == '__main__':
         "Success rate": [],
         "Success std": []
     }
-    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log_hard.csv"
+    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/zst_log_E.csv"
     for tc in team_compo:
         print("Evaluating team composition:", tc)
         permuts = list(set(itertools.permutations(tc)))
@@ -193,7 +193,7 @@ if __name__ == '__main__':
             #     s_i += 1
             #     s = random.randint(0, 1000000)
             # seeds.append(s)
-            cfg.seed = seeds[i]
+            cfg.seed = 0
             with torch.no_grad():
                 returns = np.concatenate((returns, run_eval(cfg, permuts[i % len(permuts)], cfg.n_eval_runs // 24)))
             success = returns >= (cfg.episode_length * -1 + 60)

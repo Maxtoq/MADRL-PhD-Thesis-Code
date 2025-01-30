@@ -124,7 +124,7 @@ class PredatorPreyEnv(gym.Env):
             assert len(self._init_pos["preys"]) == self.n_preys
 
         # TODO ENLEVER CA
-        hard = True
+        hard = False
         for agent_i in range(self.n_agents):
             while True:
                 if self._init_pos is not None:
