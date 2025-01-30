@@ -1485,8 +1485,16 @@ models/magym_PredPrey_RGB/18s50np_lang_ce0/run14/*
 !models/magym_PredPrey_RGB/18s50np_lang_ce0/run14/model_ep.pt
 !models/magym_PredPrey_RGB/18s50np_lang_ce0/run6
 models/magym_PredPrey_RGB/18s50np_lang_ce0/run6/*
-!models/magym_PredPrey_RGB/18s50np_lang_ce0/run4/args.txt
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run6/args.txt
 !models/magym_PredPrey_RGB/18s50np_lang_ce0/run6/model_ep.pt
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run1
+models/magym_PredPrey_RGB/18s50np_lang_ce0/run1/*
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run1/args.txt
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run1/model_ep.pt
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run5
+models/magym_PredPrey_RGB/18s50np_lang_ce0/run5/*
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run5/args.txt
+!models/magym_PredPrey_RGB/18s50np_lang_ce0/run5/model_ep.pt
 
 !models/magym_PredPrey_RGB/18s50np_oracle
 models/magym_PredPrey_RGB/18s50np_oracle/*
