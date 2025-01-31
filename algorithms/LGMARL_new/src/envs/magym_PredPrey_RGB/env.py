@@ -222,7 +222,7 @@ class PredatorPreyEnv(gym.Env):
         self._agent_dones = [False for _ in range(self.n_agents)]
         self._prey_alive = [True for _ in range(self.n_preys)]
 
-        return self.get_agent_obs()
+        return (self.get_agent_obs(), self.prey_pos)
 
     def __wall_exists(self, pos):
         row, col = pos
@@ -382,7 +382,7 @@ class PredatorPreyEnv(gym.Env):
                     )
                 self._steps_beyond_done += 1
 
-        return self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
+        return (self.get_agent_obs(), self.prey_pos), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
 
     def __get_neighbour_coordinates(self, pos):
         neighbours = []

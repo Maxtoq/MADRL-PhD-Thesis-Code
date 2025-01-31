@@ -166,6 +166,37 @@ class Parser():
                 env_out.append(self._gen_perfect_message(obs_batch[e_i, a_i]))
             out.append(env_out)
         return out
+    
+    def _gen_prey_pos(self, prey_pos):
+        p = ["Prey"]
+
+        card = False
+        if prey_pos[0] < 6:
+            p.append("North")
+            card = True
+        elif prey_pos[0] >= 12:
+            p.append("South")
+            card = True
+        if prey_pos[1] < 6:
+            p.append("West")
+            card = True
+        elif prey_pos[1] >= 12:
+            p.append("East")
+            card = True
+
+        if not card:
+            p.append("Center")
+
+        return p
+    
+    def get_prey_pos(self, prey_pos):
+        out = []
+        for pp in prey_pos:
+            env_out = []
+            for p in pp.values():
+                env_out.extend(self._gen_prey_pos(p))
+            out.append([env_out])
+        return out
 
     def check_obs(self, obs, sentence):
         if len(obs) > self.obs_dim:

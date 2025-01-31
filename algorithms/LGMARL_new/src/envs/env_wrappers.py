@@ -225,14 +225,24 @@ class SubprocVecEnv(ShareVecEnv):
         results = [remote.recv() for remote in self.remotes]
         self.waiting = False
         obs, rews, dones, infos = zip(*results)
-        return np.stack(obs), np.stack(rews), np.stack(dones), infos
+        os = []
+        ps = []
+        for o in obs:
+            os.append(o[0])
+            ps.append(o[1])
+        return np.stack(os), ps, np.stack(rews), np.stack(dones), infos
 
     def reset(self, init_pos=None):
         for r_i, remote in enumerate(self.remotes):
             ip = None if init_pos is None else init_pos[r_i]
             remote.send(('reset', ip))
         obs = [remote.recv() for remote in self.remotes]
-        return np.stack(obs)
+        os = []
+        ps = []
+        for o in obs:
+            os.append(o[0])
+            ps.append(o[1])
+        return np.stack(os), ps
 
     def reset_task(self):
         for remote in self.remotes:

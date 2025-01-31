@@ -1,204 +1,54 @@
 import os
 import json
 import time
+import torch
 import random
+import itertools
 import numpy as np
 import pandas as pd
 
 from tqdm import trange
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, set_cuda_device, load_args, render, save_frames
+from src.utils.utils import set_seeds, set_cuda_device, load_args
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
 
+def render(cfg, envs):
+    if cfg.use_render:
+        envs.render("human")
+    if cfg.render_wait_input:
+        input()
+    else:
+        time.sleep(0.1)
 
-def get_sentence_pos_pairs():
-    # return [
-    #     (["Prey", "West"], [4, 8]),
-    #     (["Prey", "West"], [4, 7]),
-    #     (["Prey", "West"], [4, 6]),
-    #     (["Prey", "West"], [4, 5]),
-    #     (["Prey", "West"], [3, 8]),
-    #     (["Prey", "West"], [3, 7]),
-    #     (["Prey", "West"], [3, 6]),
-    #     (["Prey", "West"], [3, 5]),
-    #     (["Prey", "West"], [5, 8]),
-    #     (["Prey", "West"], [5, 7]),
-    #     (["Prey", "West"], [5, 6]),
-    #     (["Prey", "West"], [5, 5]),
-    #     (["Prey", "East"], [4, 0]),
-    #     (["Prey", "East"], [4, 1]),
-    #     (["Prey", "East"], [4, 2]),
-    #     (["Prey", "East"], [4, 3]),
-    #     (["Prey", "East"], [3, 0]),
-    #     (["Prey", "East"], [3, 1]),
-    #     (["Prey", "East"], [3, 2]),
-    #     (["Prey", "East"], [3, 3]),
-    #     (["Prey", "East"], [5, 0]),
-    #     (["Prey", "East"], [5, 1]),
-    #     (["Prey", "East"], [5, 2]),
-    #     (["Prey", "East"], [5, 3]),
-    #     (["Prey", "South"], [0, 4]),
-    #     (["Prey", "South"], [1, 4]),
-    #     (["Prey", "South"], [2, 4]),
-    #     (["Prey", "South"], [3, 4]),
-    #     (["Prey", "South"], [0, 3]),
-    #     (["Prey", "South"], [1, 3]),
-    #     (["Prey", "South"], [2, 3]),
-    #     (["Prey", "South"], [3, 3]),
-    #     (["Prey", "South"], [0, 5]),
-    #     (["Prey", "South"], [1, 5]),
-    #     (["Prey", "South"], [2, 5]),
-    #     (["Prey", "South"], [3, 5]),
-    #     (["Prey", "North"], [8, 4]),
-    #     (["Prey", "North"], [7, 4]),
-    #     (["Prey", "North"], [6, 4]),
-    #     (["Prey", "North"], [5, 4]),
-    #     (["Prey", "North"], [8, 3]),
-    #     (["Prey", "North"], [7, 3]),
-    #     (["Prey", "North"], [6, 3]),
-    #     (["Prey", "North"], [5, 3]),
-    #     (["Prey", "North"], [8, 5]),
-    #     (["Prey", "North"], [7, 5]),
-    #     (["Prey", "North"], [6, 5]),
-    #     (["Prey", "North"], [5, 5]),
-    #     (["Prey", "North", "East"], [5, 0]),
-    #     (["Prey", "North", "East"], [8, 1]),
-    #     (["Prey", "North", "East"], [8, 2]),
-    #     (["Prey", "North", "East"], [8, 3]),
-    #     (["Prey", "North", "East"], [7, 0]),
-    #     (["Prey", "North", "East"], [7, 1]),
-    #     (["Prey", "North", "East"], [7, 2]),
-    #     (["Prey", "North", "East"], [7, 3]),
-    #     (["Prey", "North", "East"], [6, 0]),
-    #     (["Prey", "North", "East"], [6, 1]),
-    #     (["Prey", "North", "East"], [6, 2]),
-    #     (["Prey", "North", "East"], [5, 1]),
-    #     (["Prey", "South", "East"], [3, 0]),
-    #     (["Prey", "South", "East"], [0, 1]),
-    #     (["Prey", "South", "East"], [0, 2]),
-    #     (["Prey", "South", "East"], [0, 3]),
-    #     (["Prey", "South", "East"], [1, 0]),
-    #     (["Prey", "South", "East"], [1, 1]),
-    #     (["Prey", "South", "East"], [1, 2]),
-    #     (["Prey", "South", "East"], [1, 3]),
-    #     (["Prey", "South", "East"], [2, 0]),
-    #     (["Prey", "South", "East"], [2, 1]),
-    #     (["Prey", "South", "East"], [2, 2]),
-    #     (["Prey", "South", "East"], [3, 1]),
-    #     (["Prey", "North", "West"], [5, 8]),
-    #     (["Prey", "North", "West"], [8, 7]),
-    #     (["Prey", "North", "West"], [8, 6]),
-    #     (["Prey", "North", "West"], [8, 5]),
-    #     (["Prey", "North", "West"], [7, 8]),
-    #     (["Prey", "North", "West"], [7, 7]),
-    #     (["Prey", "North", "West"], [7, 6]),
-    #     (["Prey", "North", "West"], [7, 5]),
-    #     (["Prey", "North", "West"], [6, 8]),
-    #     (["Prey", "North", "West"], [6, 7]),
-    #     (["Prey", "North", "West"], [6, 6]),
-    #     (["Prey", "North", "West"], [5, 7]),
-    #     (["Prey", "South", "West"], [3, 8]),
-    #     (["Prey", "South", "West"], [0, 7]),
-    #     (["Prey", "South", "West"], [0, 6]),
-    #     (["Prey", "South", "West"], [0, 5]),
-    #     (["Prey", "South", "West"], [1, 8]),
-    #     (["Prey", "South", "West"], [1, 7]),
-    #     (["Prey", "South", "West"], [1, 6]),
-    #     (["Prey", "South", "West"], [1, 5]),
-    #     (["Prey", "South", "West"], [2, 8]),
-    #     (["Prey", "South", "West"], [2, 7]),
-    #     (["Prey", "South", "West"], [2, 6]),
-    #     (["Prey", "South", "West"], [3, 7])
-    #     ]
-    return [
-    #     (["Prey", "West"], [4, 4]),
-    #     (["Prey", "West"], [4, 5]),
-    #     (["Prey", "West"], [4, 3]),
-    #     (["Prey", "West"], [3, 3]),
-    #     (["Prey", "West"], [3, 4]),
-    #     (["Prey", "West"], [3, 5]),
-    #     (["Prey", "West"], [5, 3]),
-    #     (["Prey", "West"], [5, 4]),
-    #     (["Prey", "West"], [5, 5]),
-    #     (["Prey", "East"], [4, 4]),
-    #     (["Prey", "East"], [4, 5]),
-    #     (["Prey", "East"], [4, 3]),
-    #     (["Prey", "East"], [3, 3]),
-    #     (["Prey", "East"], [3, 4]),
-    #     (["Prey", "East"], [3, 5]),
-    #     (["Prey", "East"], [5, 3]),
-    #     (["Prey", "East"], [5, 4]),
-    #     (["Prey", "East"], [5, 5]),
-    #     (["Prey", "South"], [4, 4]),
-    #     (["Prey", "South"], [4, 5]),
-    #     (["Prey", "South"], [4, 3]),
-    #     (["Prey", "South"], [3, 3]),
-    #     (["Prey", "South"], [3, 4]),
-    #     (["Prey", "South"], [3, 5]),
-    #     (["Prey", "South"], [5, 3]),
-    #     (["Prey", "South"], [5, 4]),
-    #     (["Prey", "South"], [5, 5]),
-        (["Prey", "North"], [4, 4]),
-    #     (["Prey", "North"], [4, 5]),
-    #     (["Prey", "North"], [4, 3]),
-    #     (["Prey", "North"], [3, 3]),
-    #     (["Prey", "North"], [3, 4]),
-    #     (["Prey", "North"], [3, 5]),
-    # #     (["Prey", "North"], [5, 3]),
-    #     (["Prey", "North"], [5, 4]),
-        # (["Prey", "North"], [5, 5]),
-        # (["Prey", "North", "East"], [4, 4]),
-        # (["Prey", "North", "East"], [4, 5]),
-        # (["Prey", "North", "East"], [4, 3]),
-        # (["Prey", "North", "East"], [3, 3]),
-        # (["Prey", "North", "East"], [3, 4]),
-        # (["Prey", "North", "East"], [3, 5]),
-        # (["Prey", "North", "East"], [5, 3]),
-        # (["Prey", "North", "East"], [5, 4]),
-        # (["Prey", "North", "East"], [5, 5]),
-        # (["Prey", "South", "East"], [4, 4]),
-        # (["Prey", "South", "East"], [4, 5]),
-        # (["Prey", "South", "East"], [4, 3]),
-        # (["Prey", "South", "East"], [3, 3]),
-        # (["Prey", "South", "East"], [3, 4]),
-        # (["Prey", "South", "East"], [3, 5]),
-        # (["Prey", "South", "East"], [5, 3]),
-        # (["Prey", "South", "East"], [5, 4]),
-        # (["Prey", "South", "East"], [5, 5]),
-        # (["Prey", "North", "West"], [4, 4]),
-        # (["Prey", "North", "West"], [4, 5]),
-        # (["Prey", "North", "West"], [4, 3]),
-        # (["Prey", "North", "West"], [3, 3]),
-        # (["Prey", "North", "West"], [3, 4]),
-        # (["Prey", "North", "West"], [3, 5]),
-        # (["Prey", "North", "West"], [5, 3]),
-        # (["Prey", "North", "West"], [5, 4]),
-        # (["Prey", "North", "West"], [5, 5]),
-        # (["Prey", "South", "West"], [4, 4]),
-        # (["Prey", "South", "West"], [4, 5]),
-        # (["Prey", "South", "West"], [4, 3]),
-        # (["Prey", "South", "West"], [3, 3]),
-        # (["Prey", "South", "West"], [3, 4]),
-        # (["Prey", "South", "West"], [3, 5]),
-        # (["Prey", "South", "West"], [5, 3]),
-        # (["Prey", "South", "West"], [5, 4]),
-        # (["Prey", "South", "West"], [5, 5]),
-        ]
+def interact(cfg):
+    if cfg.interact:
+        add_mess = input("Input message:")
+        if len(add_mess):
+            add_mess = add_mess.split(" ")
+        else:
+            add_mess = []
+    else:
+        add_mess = None
+    return add_mess
 
-def run_eval(cfg):
+def run_eval(cfg, comm_prob, n_eval_runs):
+    set_seeds(cfg.seed)
+
     # Get pretrained stuff
     assert cfg.model_dir is not None, "Must provide model_dir"
     load_args(cfg, eval=True)
     pretrained_model_path = os.path.join(cfg.model_dir, "model_ep.pt")
     assert os.path.isfile(pretrained_model_path), "No model checkpoint found at" + str(pretrained_model_path)
-    print("Starting eval with config:")
-    print(cfg)
+    # print("Starting eval with config:")
+    # print(cfg)
+    # cfg.comm_type = "language"
+    # if cfg.comm_type == "perfect":
+    #     cfg.comm_type = "language_sup"
 
-    set_seeds(cfg.seed)
 
-    # Set device
+    # Set training device
     device = set_cuda_device(cfg)
 
     # Get eval scenarios
@@ -206,19 +56,10 @@ def run_eval(cfg):
     if cfg.eval_scenario is not None:
         with open(cfg.eval_scenario, 'r') as f:
             init_positions = json.load(f)
-
-    sent_pos_test_pairs = get_sentence_pos_pairs()
-    # for sp in sent_pos_test_pairs.copy():
-    #     sent_pos_test_pairs.append(([], sp[1]))
-    interact_log = pd.DataFrame({
-        "Message": [sp[0] for sp in sent_pos_test_pairs],
-        "Init_pos": [sp[1] for sp in sent_pos_test_pairs]})
     
     # Create train environment
-    cfg.env_name = "magym_Empty"
-    cfg.n_parallel_envs = len(sent_pos_test_pairs)
     envs, parser = make_env(
-        cfg, cfg.n_parallel_envs)
+        cfg, cfg.n_parallel_envs, init_positions=init_positions)
     
     # Create model
     n_agents = envs.n_agents
@@ -234,54 +75,119 @@ def run_eval(cfg):
         parser, 
         device,
         None,
-        comm_eps_start=0.0,
-        block_comm=True)
+        comm_eps_start=0.0)
+        # block_comm=comm_prob != -1.0)
 
     # Load params
     model.load(pretrained_model_path)
-
-    obs = envs.reset(interact_log["Init_pos"].tolist())
-    parsed_obs = parser.get_perfect_messages(obs)
-
-    frames = []
-    frames.append(render(cfg, envs))
-
-    model.init_episode(obs, parsed_obs)
     model.prep_rollout(device)
-    # n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
-    # for s_i in range(cfg.n_eval_runs):
-    for ep_s_i in range(cfg.rollout_length):
-        # Get action
-        actions, agent_messages, _, comm_rewards \
-            = model.act(
-                deterministic=True, 
-                lang_input=[[sp[0]] for sp in sent_pos_test_pairs])# if ep_s_i == 0 else None)
 
-        for a_i in range(4):
-            interact_log["T" + str(ep_s_i) + "A" + str(a_i)] = actions.squeeze()[:, 0]
+    all_returns = np.array([])
+    for e_i in trange(n_eval_runs):
+        obs, prey_pos = envs.reset()
 
-        # Perform action and get reward and next obs
-        next_obs, rewards, dones, infos = envs.step(actions)
-
-        obs = next_obs
         parsed_obs = parser.get_perfect_messages(obs)
-        model.store_exp(obs, parsed_obs, rewards, dones)
+        parsed_prey_pos = parser.get_prey_pos(prey_pos)
 
-        frames.append(render(cfg, envs))
-        # model.init_episode()
+        model.init_episode(obs, parsed_obs)
+
+        count_returns = np.zeros(cfg.n_parallel_envs)
+        returns = np.zeros(cfg.n_parallel_envs)
+        env_dones = np.zeros(cfg.n_parallel_envs)
+        for ep_s_i in range(0, cfg.episode_length):
+            # add_mess = interact(cfg)
+            # Lang input
+            send_comm = random.random()
+            # print(parsed_obs)
+            # print(parsed_prey_pos)
+            # exit()
+            if send_comm < comm_prob:
+                lang_input = parsed_prey_pos
+            else:
+                lang_input = None
+            
+            # Get action
+            actions, agent_messages, _, comm_rewards \
+                = model.act(deterministic=True, lang_input=lang_input)
+
+            # Perform action and get reward and next obs
+            obs, prey_pos, rewards, dones, infos = envs.step(actions)
+
+
+            if cfg.n_parallel_envs == 1:
+                ll = model.model.lang_learner if type(model.model.lang_learner) != list \
+                    else model.model.lang_learner[0]
+                decoded_messages = ll.word_encoder.decode_batch(
+                    agent_messages.squeeze(0))
+            
+                print(f"\nStep #{ep_s_i + 1}")
+                print("Observations", obs)
+                print("Perfect Messages", parsed_obs)
+                print("Agent Messages", decoded_messages)
+                print("Actions (t-1)", actions)
+                print("Rewards", rewards)
+                print("Communication Rewards", comm_rewards)
+
+            parsed_obs = parser.get_perfect_messages(obs)
+            parsed_prey_pos = parser.get_prey_pos(prey_pos)
+
+            model.store_exp(obs, parsed_obs, rewards, dones)
+
+            count_returns += rewards.mean(-1)
+            render(cfg, envs)
+
+            dones = dones.all(axis=1)
+            new_dones = dones * (1 - env_dones) == True
+            if True in new_dones:
+                env_dones += new_dones
+
+                returns[new_dones] = count_returns[new_dones]
+                # count_returns *= (1 - env_dones)
+                if ep_s_i == cfg.rollout_length - 1:
+                    break
+                # print(f"ENV DONE: {int(sum(env_dones))} / {cfg.n_parallel_envs}")
+                if env_dones.all():
+                    break
+        all_returns = np.concatenate((all_returns, returns))
             
     envs.close()
 
-    if cfg.save_render:
-        save_frames(frames, cfg.model_dir)
-
-    # print(interact_log)
-    interact_log.to_csv("./results/data/lamarl_interact/" + cfg.model_dir.split("/")[-2] + cfg.model_dir[-1] + "_center.csv")
+    return all_returns
 
 if __name__ == '__main__':
     # Load config
     parser = get_config()
     cfg = parser.parse_args()
 
-    run_eval(cfg)
+    # random.seed(cfg.seed)
+    cfg.seed = 0
+
+    comm_probs = [
+        0.05, 0.1, 0.2, 0.5, 0.8, 1.0]
+    results = {
+        "Comm prob": [],
+        "Mean return": [],
+        "Std": [],
+        "Median return": [],
+        "Success rate": [],
+        "Success std": []
+    }
+    log_file_path = '/'.join(cfg.model_dir.split(',')[0].split('/')[:-1]) + "/interact2.csv"
+    for cp in comm_probs:
+        print("Evaluating comm prob:", cp, "-> block_comm =", cp != -1.0)
+        returns = np.array([])
+        cfg.seed = 0
+        with torch.no_grad():
+            returns = np.concatenate((returns, run_eval(cfg, cp, cfg.n_eval_runs)))
+        success = returns >= (cfg.episode_length * -1 + 60)
+
+        results["Comm prob"].append(cp)
+        results["Mean return"].append(returns.mean())
+        results["Std"].append(returns.std())
+        results["Median return"].append(np.median(returns))
+        results["Success rate"].append(success.mean())
+        results["Success std"].append(success.std())
+        
+        df = pd.DataFrame(results)
+        df.to_csv(log_file_path, mode='w')
     
