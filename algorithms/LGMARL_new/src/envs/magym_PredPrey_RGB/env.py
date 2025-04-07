@@ -382,7 +382,7 @@ class PredatorPreyEnv(gym.Env):
                     )
                 self._steps_beyond_done += 1
 
-        return self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive}
+        return self.get_agent_obs(), rewards, self._agent_dones, {'prey_alive': self._prey_alive, "prey_pos": self.prey_pos}
 
     def __get_neighbour_coordinates(self, pos):
         neighbours = []

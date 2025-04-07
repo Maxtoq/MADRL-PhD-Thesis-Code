@@ -117,7 +117,7 @@ class World(object):
     def step(self):
         # set actions for scripted agents 
         for agent in self.scripted_agents:
-            agent.action = agent.action_callback(agent, self)
+            agent.action = agent.action_callback(self)
         # gather forces applied to entities
         p_force = [None] * len(self.entities)
         # apply agent physical controls
@@ -133,10 +133,10 @@ class World(object):
     # gather agent action forces
     def apply_action_force(self, p_force):
         # set applied forces
-        for i,agent in enumerate(self.agents):
-            if agent.movable:
-                noise = np.random.randn(*agent.action.u.shape) * agent.u_noise if agent.u_noise else 0.0
-                p_force[i] = agent.action.u + noise                
+        for i, e in enumerate(self.entities):
+            if e.movable:
+                noise = np.random.randn(*e.action.u.shape) * e.u_noise if e.u_noise else 0.0
+                p_force[i] = e.action.u + noise                
         return p_force
 
     # gather physical forces acting on entities

@@ -86,6 +86,12 @@ def _get_env(cfg, init_pos):
             max_steps=cfg.episode_length,
             obs_range=cfg.magym_obs_range,
             see_agents=cfg.magym_see_agents)
+        
+    elif cfg.env_name == "mpe_PredPrey":
+        from .mpe_PredPrey_RGB.env import Scenario
+        scenario = Scenario()
+        scenario.make_world()
+        env = MultiAgentEnv(scenario, discrete_action=True)
     else:
         raise NotImplementedError("ARG ERROR: bad env_name")
     return env

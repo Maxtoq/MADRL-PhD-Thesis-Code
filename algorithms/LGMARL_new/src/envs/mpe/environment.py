@@ -100,9 +100,9 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
-    def reset(self):
+    def reset(self, init_pos=None):
         # reset world
-        self.scenario.reset_world()
+        self.scenario.reset_world(init_pos)
         # reset renderer
         self._reset_render()
         # record observations for each agent
@@ -193,7 +193,7 @@ class MultiAgentEnv(gym.Env):
 
     # render environment
     def render(self, mode='human'):
-        import rendering
+        from . import rendering
 
         if mode == 'human':
             alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -218,8 +218,6 @@ class MultiAgentEnv(gym.Env):
 
         # create rendering geometry
         if self.render_geoms is None:
-            # import rendering only if we need it (and don't import for headless machines)
-            #from gym.envs.classic_control import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
             for entity in self.world.entities:
@@ -250,7 +248,10 @@ class MultiAgentEnv(gym.Env):
             self.viewers[i].set_bounds(pos[0]-cam_range,pos[0]+cam_range,pos[1]-cam_range,pos[1]+cam_range)
             # update geometry positions
             for e, entity in enumerate(self.world.entities):
-                self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
+                if hasattr(entity, "visible") and not entity.visible:
+                    self.render_geoms_xform[e].set_translation(-10, -10)
+                else:
+                    self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
             # render to display or array
             results.append(self.viewers[i].render(return_rgb_array = mode=='rgb_array'))
 

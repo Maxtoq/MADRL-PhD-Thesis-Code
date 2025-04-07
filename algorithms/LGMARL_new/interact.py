@@ -3,15 +3,15 @@ import time
 import numpy as np
 
 from src.utils.config import get_config
-from src.utils.utils import set_seeds, load_args, set_cuda_device
+from src.utils.utils import set_seeds, load_args, set_cuda_device, render
 from src.envs.make_env import make_env
 # from src.lmc.lmc_context import LMC
 
 
-def render(envs):
-    envs.render("human")
-    input()
-    time.sleep(0.1)
+# def render(envs):
+#     envs.render("human")
+#     # input()
+#     time.sleep(0.1)
 
 def run():
     # Load config
@@ -28,10 +28,13 @@ def run():
     
     obs = envs.reset()
     # Parse obs
-    parsed_obs = parser.get_perfect_messages(obs)
+    if parser is not None:
+        parsed_obs = parser.get_perfect_messages(obs)
+    else:
+        parsed_obs = None
     print("Observations", obs)
     print("Perfect Messages", parsed_obs)
-    render(envs)
+    render(cfg, envs)
 
     for ep_s_i in range(cfg.episode_length):
         # Perform step
@@ -41,7 +44,10 @@ def run():
         # Perform action and get reward and next obs
         obs, rewards, dones, infos = envs.step(actions)
         # Parse obs
-        parsed_obs = parser.get_perfect_messages(obs)
+        if parser is not None:
+            parsed_obs = parser.get_perfect_messages(obs)
+        else:
+            parsed_obs = None
         
         print(f"\nStep #{ep_s_i + 1}")
         print("Observations", obs)
@@ -49,7 +55,7 @@ def run():
         print("Actions (t-1)", actions)
         print("Rewards", rewards)
 
-        render(envs)
+        render(cfg, envs)
 
         env_dones = dones.all(axis=1)
         if True in env_dones:
