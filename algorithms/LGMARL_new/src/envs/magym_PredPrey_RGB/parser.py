@@ -25,16 +25,16 @@ class Parser():
         p = ["Prey"]
 
         card = False
-        if prey_pos[0] < 6:
+        if prey_pos[0] < self.env_size / 3:
             p.append("North")
             card = True
-        elif prey_pos[0] >= 12:
+        elif prey_pos[0] >= 2 * (self.env_size / 3):
             p.append("South")
             card = True
-        if prey_pos[1] < 6:
+        if prey_pos[1] < self.env_size / 3:
             p.append("West")
             card = True
-        elif prey_pos[1] >= 12:
+        elif prey_pos[1] >= 2 * (self.env_size / 3):
             p.append("East")
             card = True
 

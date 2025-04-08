@@ -5,7 +5,7 @@ from ..mpe.core import Agent, Action, Walled_World
 from ..mpe.scenario import BaseScenario
 
 
-AGENT_RADIUS = 0.06
+AGENT_RADIUS = 0.07
 AGENT_MASS = 0.5
 
 REWARD_CAPTURE = 30.0
