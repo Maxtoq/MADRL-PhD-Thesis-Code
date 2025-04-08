@@ -4,7 +4,7 @@ from tqdm import trange
 
 from src.utils.config import get_config
 from src.utils.utils import set_seeds, set_cuda_device, load_args
-from src.log.train_log import Logger
+from src.log.log_wandb import Logger
 from src.log.util import get_paths, write_params
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
