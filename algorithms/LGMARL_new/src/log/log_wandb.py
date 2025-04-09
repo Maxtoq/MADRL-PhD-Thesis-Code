@@ -77,7 +77,7 @@ class Logger():
         if self.log_wandb:
             wandb.log({
                 "train/episode_return": self.returns[env_i],
-                "train/success": int(self.success[env_i]),
+                "train/success": float(self.success[env_i]),
                 "train/episode_length": self.ep_lengths[env_i],
                 "train/step": self.n_step_done
             })
