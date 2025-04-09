@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=lg_CP
+#SBATCH --job-name=mpe
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -28,20 +28,23 @@ entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 
-n_run=7
-experiment_name="2a_noc"
+n_run=2
+experiment_name="noc"
 episode_length=50
 comm_type="no_comm" # default language
 context_dim=4 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
-env_name="magym_CoordPlace_RGB"
+env_name="mpe_PredPrey"
 magym_env_size=18
 magym_obs_range=5 # default 5
 magym_n_agents=2
 magym_n_preys=2
 magym_scaleenv_after_n=10000100
+
+
+export WANDB_MODE=offline
 
 for n in $(seq 1 $n_run)
 do

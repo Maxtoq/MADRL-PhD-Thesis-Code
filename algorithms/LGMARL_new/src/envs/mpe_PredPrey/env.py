@@ -83,6 +83,8 @@ class PredPreyWorld(Walled_World):
         # Full obs
         self.full_obs = np.zeros((20, 20, 3))
 
+        self.current_step = 0
+
     @property
     def entities(self):
         return self.agents + self.preys + self.landmarks
@@ -111,6 +113,8 @@ class PredPreyWorld(Walled_World):
                 p.catch()
                 self.catch_reward +=1
 
+        self.current_step += 1
+
         # Update full obs
         # self.full_obs = np.zeros((20, 20, 3))
         # for e in self.entities:
@@ -120,9 +124,10 @@ class PredPreyWorld(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, n_agents=4, n_preys=2, obs_range=0.5):
+    def make_world(self, n_agents=4, n_preys=2, obs_range=0.5, max_steps=100):
         self.n_agents, self.n_preys = n_agents, n_preys
         self.obs_range = obs_range
+        self.max_steps = max_steps
 
         self.world = PredPreyWorld(n_agents, n_preys)
         self.world.dim_c = 0 # No communication via mpe
@@ -136,7 +141,8 @@ class Scenario(BaseScenario):
 
     def done(self, agent):
         # Done if all preys are caught
-        return all([p.caught for p in self.world.preys])
+        return all([p.caught for p in self.world.preys]) \
+                or self.world.current_step >= self.max_steps
 
     def reset_world(self, seed=None, init_pos=None):
         if seed is not None:
@@ -167,6 +173,8 @@ class Scenario(BaseScenario):
         # Set initial velocity
         for entity in self.world.entities:
             entity.state.p_vel = np.zeros(self.world.dim_p)
+
+        self.world.current_step = 0
 
     def reward(self, agent):
         reward = self.world.catch_reward * REWARD_CAPTURE - PENALTY_STEP

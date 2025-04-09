@@ -3,6 +3,17 @@ import numpy as np
 import pandas as pd
 import wandb
 
+# from requests.exceptions import RequestException
+
+# def safe_wandb_init(**kwargs):
+#     try:
+#         return wandb.init(**kwargs)
+#     except wandb.errors.errors.CommError:
+#         wandb.finish()
+#         print("WANDB connection timed out — switching to offline mode.")
+#         os.environ["WANDB_MODE"] = "offline"
+#         return wandb.init(**kwargs)
+
 
 class Logger():
     """
@@ -45,7 +56,7 @@ class Logger():
             wandb.init(
                 project=f"{args.env_name}-{args.experiment_name}",  # Replace with your project name
                 config={**vars(args)},
-                dir=log_dir_path)
+                dir="outputs")
             
     def reset_all(self):
         self.returns = np.zeros(self.n_parallel_envs)
@@ -66,7 +77,7 @@ class Logger():
         if self.log_wandb:
             wandb.log({
                 "train/episode_return": self.returns[env_i],
-                "train/success": self.success[env_i],
+                "train/success": int(self.success[env_i]),
                 "train/episode_length": self.ep_lengths[env_i],
                 "train/step": self.n_step_done
             })

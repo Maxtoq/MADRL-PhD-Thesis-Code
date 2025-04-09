@@ -90,7 +90,7 @@ def _get_env(cfg, init_pos):
     elif cfg.env_name == "mpe_PredPrey":
         from .mpe_PredPrey.env import Scenario
         scenario = Scenario()
-        scenario.make_world()
+        scenario.make_world(max_steps=cfg.episode_length)
         env = MultiAgentEnv(scenario, discrete_action=True)
 
     else:
