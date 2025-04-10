@@ -5,12 +5,14 @@ def get_config():
     parser = argparse.ArgumentParser(
         description='lmc', formatter_class=argparse.RawDescriptionHelpFormatter)
 
+    # Experiment parameters
     parser.add_argument("--experiment_name", type=str, default="TEST", 
                         help="an identifier to distinguish different experiment.")
     parser.add_argument("--seed", type=int, default=1, help="Random seed for numpy/torch")
     parser.add_argument("--cuda_device", default=None, type=str)
     parser.add_argument("--cuda_deterministic", action='store_false', default=True, 
                         help="by default, make sure random seed effective. if set, bypass such function.")
+    
     parser.add_argument("--n_training_threads", type=int,
                         default=1, help="Number of torch threads for training")
     parser.add_argument("--n_parallel_envs", type=int, default=1,
@@ -77,9 +79,10 @@ def get_config():
                         help='Save incremental model checkpoints throughout training.')
 
     # log parameters
-    parser.add_argument("--log_tensorboard", action='store_false', default=True, 
+    parser.add_argument("--log_wandb", action='store_false', default=True, 
                         help='log training data in tensorboard')
     parser.add_argument("--log_comm", action='store_true', default=False)
+    parser.add_argument("--log_exp_device", type=str, default="laptop")
 
     # pretrained parameters
     parser.add_argument("--model_dir", type=str, default=None, 

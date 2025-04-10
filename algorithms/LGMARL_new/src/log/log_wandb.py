@@ -24,7 +24,7 @@ class Logger():
     def __init__(self, args, log_dir_path, n_steps_done=0):
         self.log_dir_path = log_dir_path
         self.max_ep_length = args.episode_length
-        self.log_wandb = args.log_tensorboard  # Same flag reused for wandb
+        self.log_wandb = args.log_wandb
         self.n_parallel_envs = args.n_parallel_envs
         self.do_eval = args.do_eval
 
@@ -56,7 +56,8 @@ class Logger():
             wandb.init(
                 project=f"{args.env_name}-{args.experiment_name}",  # Replace with your project name
                 config={**vars(args)},
-                dir="outputs")
+                dir="outputs",
+                name=f"{args.log_exp_device}-{os.path.normpath(log_dir_path).split(os.sep)[-2]}")
             
     def reset_all(self):
         self.returns = np.zeros(self.n_parallel_envs)
