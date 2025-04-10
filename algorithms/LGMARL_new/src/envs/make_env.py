@@ -93,6 +93,8 @@ def _get_env(cfg, init_pos):
         scenario.make_world(max_steps=cfg.episode_length)
         env = MultiAgentEnv(scenario, discrete_action=True)
 
+    
+
     else:
         raise NotImplementedError("ARG ERROR: bad env_name")
     return env
