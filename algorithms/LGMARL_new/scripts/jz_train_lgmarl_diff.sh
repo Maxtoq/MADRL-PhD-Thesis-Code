@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=obs
+#SBATCH --job-name=mpe
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -28,21 +28,25 @@ policy_recurrent_N=2 # default 1
 entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
+log_exp_device="jz"
 
-n_run=1
-experiment_name="18s50np_obs"
+n_run=2
+experiment_name="ec2_AE"
 episode_length=50
-comm_type="obs" # default language
-context_dim=16 # default 16
+comm_type="emergent_continuous_AE" # default language
+context_dim=2 # default 16
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/Frgb_18_langground.pt"
+comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
-env_name="magym_PredPrey_RGB"
+env_name="mpe_PredPrey"
 magym_env_size=18
 magym_obs_range=5 # default 5
-magym_n_agents=4
+magym_n_agents=2
 magym_n_preys=2
 magym_scaleenv_after_n=10000100
+
+
+#export WANDB_MODE=offline
 
 for n in $(seq 1 $n_run)
 do
@@ -77,6 +81,7 @@ do
     --magym_n_agents ${magym_n_agents}
     --magym_scaleenv_after_n ${magym_scaleenv_after_n}
     --magym_n_preys ${magym_n_preys}
+    --log_exp_device ${log_exp_device}
     --dyna_weight_loss
     --magym_see_agents"
     # --save_increments"
