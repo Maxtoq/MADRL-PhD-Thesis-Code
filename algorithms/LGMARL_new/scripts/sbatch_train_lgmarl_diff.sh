@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=hard
+#SBATCH --partition=electronic
 #SBATCH --job-name=mpe
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
@@ -27,12 +27,13 @@ policy_recurrent_N=2 # default 1
 entropy_coef=0.01 #default 0.01
 lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
+log_exp_device="scai"
 
 n_run=2
-experiment_name="noc"
+experiment_name="ec2"
 episode_length=50
-comm_type="no_comm" # default language
-context_dim=4 # default 16
+comm_type="emergent_continuous" # default language
+context_dim=2 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
@@ -79,6 +80,7 @@ do
     --magym_n_agents ${magym_n_agents}
     --magym_scaleenv_after_n ${magym_scaleenv_after_n}
     --magym_n_preys ${magym_n_preys}
+    --log_exp_device ${log_exp_device}
     --dyna_weight_loss
     --magym_see_agents"
     # --save_increments"

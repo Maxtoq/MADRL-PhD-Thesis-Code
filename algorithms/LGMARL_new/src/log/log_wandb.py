@@ -54,10 +54,10 @@ class Logger():
 
         if self.log_wandb:
             wandb.init(
-                project=f"{args.env_name}-{args.experiment_name}",  # Replace with your project name
+                project=f"{args.env_name}",  # Replace with your project name
                 config={**vars(args)},
                 dir="outputs",
-                name=f"{args.log_exp_device}-{os.path.normpath(log_dir_path).split(os.sep)[-2]}")
+                name=f"{args.experiment_name}-{args.log_exp_device}-{os.path.normpath(log_dir_path).split(os.sep)[-2]}")
             
     def reset_all(self):
         self.returns = np.zeros(self.n_parallel_envs)

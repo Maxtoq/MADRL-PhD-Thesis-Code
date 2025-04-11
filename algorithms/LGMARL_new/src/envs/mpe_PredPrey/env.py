@@ -5,8 +5,10 @@ from ..mpe.core import Agent, Action, Walled_World
 from ..mpe.scenario import BaseScenario
 
 
-AGENT_RADIUS = 0.09
+AGENT_RADIUS = 0.12
 AGENT_MASS = 0.5
+
+OBS_RANGE = 0.6
 
 REWARD_CAPTURE = 30.0
 PENALTY_MISS = 0.0
@@ -124,9 +126,9 @@ class PredPreyWorld(Walled_World):
 
 class Scenario(BaseScenario):
 
-    def make_world(self, n_agents=4, n_preys=2, obs_range=0.5, max_steps=100):
+    def make_world(self, n_agents=4, n_preys=2, max_steps=100):
         self.n_agents, self.n_preys = n_agents, n_preys
-        self.obs_range = obs_range
+        # self.obs_range = obs_range
         self.max_steps = max_steps
 
         self.world = PredPreyWorld(n_agents, n_preys)
@@ -198,10 +200,10 @@ class Scenario(BaseScenario):
 
         for e in self.world.entities:
             if e is agent: continue
-            if get_dist(agent.state.p_pos, e.state.p_pos) <= self.obs_range:
+            if get_dist(agent.state.p_pos, e.state.p_pos) <= OBS_RANGE:
                 obs.append(np.concatenate((
                     [1.0],
-                    (e.state.p_pos - agent.state.p_pos) / self.obs_range, # Relative position normailised into [0, 1]
+                    (e.state.p_pos - agent.state.p_pos) / OBS_RANGE, # Relative position normailised into [0, 1]
                     e.color # Velocity
                 )))
             else:
