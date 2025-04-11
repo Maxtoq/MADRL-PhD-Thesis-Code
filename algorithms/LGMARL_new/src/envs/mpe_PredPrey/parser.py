@@ -1,60 +1,80 @@
 import numpy as np
 import random
 
+from .env import OBS_RANGE
+
 
 # Mother classes
 class Parser:
     """ Base Parser """
 
-    def __init__(self):
+    def __init__(self, n_agents=4, n_preys=2):
         self.vocab = []
         self.max_message_len = 0
-    
-    # def parse_obs(self, obs):
-    #     """
-    #     Returns a sentence generated based on the actions of the agent
-    #     """
-    #     raise NotImplementedError
+        self.n_agents = n_agents
+        self.n_preys = n_preys
 
-    # def position_agent(self, obs):
-    #     sentence = []
-    #     # Position of the agent (at all time)
-    #     sentence.append("Located")
-        
-    #     # North / South
-    #     if  obs[1] >= 0.33:
-    #         sentence.append("North")
-    #     elif  obs[1] < -0.33:
-    #         sentence.append("South")
-        
-    #     # West / East
-    #     if  obs[0] >= 0.33:
-    #         sentence.append("East")
-    #     elif  obs[0] < -0.33:
-    #         sentence.append("West")
-        
-    #     # Center
-    #     if len(sentence) == 1:
-    #         sentence.append("Center")
+    def _gen_perfect_message(self, agent_obs):
+        '''
+        Generate a description of an observation.
+        Input:  
+            obs: (np.array(float)) observation of the agent with all the 
+                entities
 
-    #     return sentence
-    
-    # def get_descriptions(self, obs_list):
-    #     """
-    #     Returns descriptions of all agents' observations.
-    #     Inputs:
-    #         obs_list (list(np.array)): List of observations, one for each agent.
-    #     Output:
-    #         descrs (list(list(str))): List of descriptions, one sentence for 
-    #             each agent.
-    #     """
-    #     descr = [
-    #         self.parse_obs(obs_list[a_i]) 
-    #         for a_i in range(self.nb_agents)]
-    #     return descr
+        Output: sentence: list(str) The sentence generated
+        '''
+        m = []
+
+        agent_pos = agent_obs[:2]
+
+        # Prey messages
+        start_prey = 2 + 6 * (self.n_agents - 1)
+        for p_i in range(self.n_preys):
+            prey_i = start_prey + p_i * 6
+
+            if agent_obs[prey_i] == 1:
+                p_obs = agent_obs[prey_i: prey_i + 6]
+        
+                p = ["Prey"]
+
+                # ablsolute position
+                prey_pos = agent_pos + p_obs[1:3] * OBS_RANGE # de-normalize
+
+                card = False
+                if prey_pos[1] >= 0.33:
+                    p.append("North")
+                    card = True
+                elif prey_pos[1] <= -0.33:
+                    p.append("South")
+                    card = True
+                if prey_pos[0] <= -0.33:
+                    p.append("West")
+                    card = True
+                elif prey_pos[0] >= 0.33:
+                    p.append("East")
+                    card = True
+
+                if not card:
+                    p.append("Center")
+
+                print(prey_pos, p)
+
+                m.extend(p)
+
+        return m
 
     def get_perfect_messages(self, obs_batch):
-        return None
+        """
+        Generate perfect messages for given observations.
+        :param obs_batch (np.ndarray): Batch of observations
+        """
+        out = []
+        for e_i in range(obs_batch.shape[0]):
+            env_out = []
+            for a_i in range(obs_batch.shape[1]):
+                env_out.append(self._gen_perfect_message(obs_batch[e_i, a_i]))
+            out.append(env_out)
+        return out
 
 
 # class ColorParser(Parser):
@@ -70,10 +90,6 @@ class Parser:
 #         # Get the color based on the array
 #         idx = np.where(array == 1)[0]
 #         return self.colors[idx]
-
-
-
-
 
 
 # class ObservationParser(ColorParser):

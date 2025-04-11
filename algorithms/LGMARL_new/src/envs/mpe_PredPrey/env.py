@@ -189,7 +189,7 @@ class Scenario(BaseScenario):
     def observation(self, agent):
         """
         Observation:
-         - Agent state: position, velocity
+         - Agent state: position
          - Other agents and preys:
             - If in sight: [1, distance x, distance y, color]
             - If not: [0, 1, 1, 0, 0, 0]
