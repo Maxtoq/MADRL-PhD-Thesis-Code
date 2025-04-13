@@ -9,7 +9,7 @@ class Parser:
     """ Base Parser """
 
     def __init__(self, n_agents=4, n_preys=2):
-        self.vocab = []
+        self.vocab = ["Prey", "North", "South", "East", "West", "Center"]
         self.max_message_len = 0
         self.n_agents = n_agents
         self.n_preys = n_preys
@@ -56,8 +56,6 @@ class Parser:
 
                 if not card:
                     p.append("Center")
-
-                print(prey_pos, p)
 
                 m.extend(p)
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=electronic
+#SBATCH --partition=hard
 #SBATCH --job-name=mpe
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
@@ -29,11 +29,11 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="scai"
 
-n_run=2
-experiment_name="ec2"
+n_run=1
+experiment_name="lang"
 episode_length=50
-comm_type="emergent_continuous" # default language
-context_dim=2 # default 16
+comm_type="language_sup" # default language
+context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
@@ -46,6 +46,7 @@ magym_scaleenv_after_n=10000100
 
 
 export WANDB_MODE=offline
+# export WANDB_API_KEY=46dca67f37b349cf3cffb8d28591dbbb1b266fcc
 
 for n in $(seq 1 $n_run)
 do
