@@ -10,9 +10,9 @@ class Parser:
 
     def __init__(self, n_agents=4, n_preys=2):
         self.vocab = ["Prey", "North", "South", "East", "West", "Center"]
-        self.max_message_len = 0
         self.n_agents = n_agents
         self.n_preys = n_preys
+        self.max_message_len = 3 * self.n_preys
 
     def _gen_perfect_message(self, agent_obs):
         '''

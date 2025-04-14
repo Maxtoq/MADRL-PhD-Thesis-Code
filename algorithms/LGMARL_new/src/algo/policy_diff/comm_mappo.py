@@ -594,7 +594,7 @@ class CommMAPPO():
         we = self.lang_learner.word_encoder \
             if type(self.lang_learner) != list \
             else self.lang_learner[0].word_encoder
-
+        
         return we.encode_rollout_step(perf_messages)
 
     def get_save_dict(self):
