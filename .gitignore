@@ -1852,3 +1852,7 @@ models/magym_CoordPlace_RGB/2a_ec2_ae/*
 !models/magym_CoordPlace_RGB/2a_ec4_lg
 models/magym_CoordPlace_RGB/2a_ec4_lg/*
 !models/magym_CoordPlace_RGB/2a_ec4_lg/train_data
+
+!outputs/wandb
+outputs/wandb/*
+!outputs/wandb/syncall_once.sh
