@@ -57,7 +57,8 @@ class Logger():
                 project=f"{args.env_name}",  # Replace with your project name
                 config={**vars(args)},
                 dir="outputs",
-                name=f"{args.experiment_name}-{args.log_exp_device}-{os.path.normpath(log_dir_path).split(os.sep)[-2]}")
+                name=f"{args.experiment_name}-{args.log_exp_device}-{os.path.normpath(log_dir_path).split(os.sep)[-2]}",
+                settings=wandb.Settings(_disable_stats=True))
             
     def reset_all(self):
         self.returns = np.zeros(self.n_parallel_envs)
