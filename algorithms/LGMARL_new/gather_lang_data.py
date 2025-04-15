@@ -25,11 +25,11 @@ def run():
 
     for s_i in trange(0, cfg.n_steps, cfg.n_parallel_envs, ncols=0):
         for e_i in range(cfg.n_parallel_envs):
-            for a_i in range(cfg.magym_n_agents):
+            for a_i in range(cfg.n_agents):
                 data["obs"].append(list(obs[e_i, a_i]))
                 data["lang"].append(' '.join(parsed_obs[e_i][a_i]))
 
-        actions = np.random.randint(0, 5, (cfg.n_parallel_envs, cfg.magym_n_agents, 1))
+        actions = np.random.randint(0, 5, (cfg.n_parallel_envs, cfg.n_agents, 1))
 
         # Perform action and get reward and next obs
         obs, rewards, dones, infos = envs.step(actions)

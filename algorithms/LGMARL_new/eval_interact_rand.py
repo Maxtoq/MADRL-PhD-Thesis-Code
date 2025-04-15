@@ -46,7 +46,7 @@ def run_eval(cfg):
         []
     ]
     interact_logs = { "Message":[] }
-    for a_i in range(cfg.magym_n_agents):
+    for a_i in range(cfg.n_agents):
         interact_logs[f"A{a_i}a0"] = []
         interact_logs[f"A{a_i}a1"] = []
         interact_logs[f"A{a_i}a2"] = []
@@ -137,7 +137,7 @@ def run_eval(cfg):
         
         agent_actions = np.concatenate(performed_actions).squeeze(-1).T
         interact_logs["Message"].append(tm)
-        for ag_i in range(cfg.magym_n_agents):
+        for ag_i in range(cfg.n_agents):
             for a_i in range(5):
                 action_count = (agent_actions[ag_i] == a_i).sum()
                 interact_logs[f"A{ag_i}a{a_i}"].append(action_count)#  / agent_actions.shape[-1])

@@ -11,9 +11,9 @@ def _get_env(cfg, init_pos):
     if cfg.env_name == "magym_PredPrey_RGB":
         from .magym_PredPrey_RGB.env import PredatorPreyEnv
         env = PredatorPreyEnv(
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
-            n_preys=cfg.magym_n_preys, 
+            n_preys=cfg.n_preys, 
             max_steps=cfg.episode_length,
             obs_range=cfg.magym_obs_range,
             reduced_obsrange=cfg.FT_magym_reduced_obsrange,
@@ -26,9 +26,9 @@ def _get_env(cfg, init_pos):
         else:
             from .magym_PredPrey.env import PredatorPreyEnv
         env = PredatorPreyEnv(
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
-            n_preys=cfg.magym_n_preys, 
+            n_preys=cfg.n_preys, 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             actual_obsrange=cfg.FT_magym_reduced_obsrange,
@@ -38,7 +38,7 @@ def _get_env(cfg, init_pos):
     # elif cfg.env_name == "magym_Lumber":
     #     from .ma_gym.lumberjack import Lumberjacks
     #     env = Lumberjacks(
-    #         n_agents=cfg.magym_n_agents, 
+    #         n_agents=cfg.n_agents, 
     #         grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
     #         max_steps=cfg.episode_length,
     #         agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
@@ -52,7 +52,7 @@ def _get_env(cfg, init_pos):
         else:
             from .magym_Foraging.env import Env
         env = Env(
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             max_steps=cfg.episode_length,
             obs_range=cfg.magym_obs_range,
@@ -66,14 +66,14 @@ def _get_env(cfg, init_pos):
     elif cfg.env_name == "magym_CoordPlace_RGB":
         from .magym_CoordPlace_RGB.env import Env
         env = Env(
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             max_steps=cfg.episode_length)
 
     elif cfg.env_name == "magym_Empty":
         from .magym_empty.env import EmptyEnv
         env = EmptyEnv(
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             max_steps=cfg.episode_length,
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
             see_agents=cfg.magym_see_agents)
@@ -82,7 +82,7 @@ def _get_env(cfg, init_pos):
         from .magym_empty_RGB.env import EmptyEnv
         env = EmptyEnv(
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             max_steps=cfg.episode_length,
             obs_range=cfg.magym_obs_range,
             see_agents=cfg.magym_see_agents)
@@ -90,7 +90,15 @@ def _get_env(cfg, init_pos):
     elif cfg.env_name == "mpe_PredPrey":
         from .mpe_PredPrey.env import Scenario
         scenario = Scenario()
-        scenario.make_world(max_steps=cfg.episode_length)
+        scenario.make_world(
+            cfg.n_agents, cfg.n_preys, max_steps=cfg.episode_length)
+        env = MultiAgentEnv(scenario, discrete_action=True)
+        
+    elif cfg.env_name == "mpe_PredPrey_shape":
+        from .mpe_PredPrey_shape.env import Scenario
+        scenario = Scenario()
+        scenario.make_world(
+            cfg.n_agents, cfg.n_preys, max_steps=cfg.episode_length)
         env = MultiAgentEnv(scenario, discrete_action=True)
 
     elif cfg.env_name == "mpe_simple_tag":
@@ -111,7 +119,7 @@ def _get_parser(cfg):
             from .magym_PredPrey_RGB.parser import Parser
         else:
             from .magym_PredPrey.parser import Parser
-        return Parser(cfg.magym_env_size, cfg.magym_obs_range, cfg.magym_n_preys)
+        return Parser(cfg.magym_env_size, cfg.magym_obs_range, cfg.n_preys)
 
     elif cfg.env_name == "magym_Lumber":
         from .parsers.lumberjack import Lumberjack_Parser
@@ -136,7 +144,11 @@ def _get_parser(cfg):
         
     elif cfg.env_name == "mpe_PredPrey":
         from .mpe_PredPrey.parser import Parser
-        return Parser()
+        return Parser(cfg.n_agents, cfg.n_preys)
+        
+    elif cfg.env_name == "mpe_PredPrey_shape":
+        from .mpe_PredPrey_shape.parser import Parser
+        return Parser(cfg.n_agents, cfg.n_preys)
 
     else:
         print("WARNING: No Parser for", cfg.env_name)

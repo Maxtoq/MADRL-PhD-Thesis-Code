@@ -19,10 +19,10 @@ def make_env(cfg, sce_conf={}, discrete_action=False):
     '''
     if cfg.env_path.endswith("magym_PredPrey.py"):
         env = imp.load_source('', cfg.env_path).PredatorPrey(
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size), 
             agent_view_mask=(cfg.magym_obs_range, cfg.magym_obs_range),
-            n_preys=cfg.magym_n_preys, 
+            n_preys=cfg.n_preys, 
             max_steps=cfg.episode_length)
     else:
         from multiagent.environment import MultiAgentEnv

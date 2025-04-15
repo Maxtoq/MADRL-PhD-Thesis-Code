@@ -28,8 +28,8 @@ comm_langground_pt="results/data/lamarl_data/PPrgb_12_langground.pt"
 env_name="magym_CoordPlace_RGB"
 magym_env_size=12
 magym_obs_range=5 # default 5
-magym_n_agents=2
-magym_n_preys=2
+n_agents=2
+n_preys=2
 magym_scaleenv_after_n=10000100
 
 source venv3.8/bin/activate
@@ -64,9 +64,9 @@ do
     --lang_hidden_dim ${lang_hidden_dim}
     --magym_env_size ${magym_env_size}
     --magym_obs_range ${magym_obs_range}
-    --magym_n_agents ${magym_n_agents}
+    --n_agents ${n_agents}
     --magym_scaleenv_after_n ${magym_scaleenv_after_n}
-    --magym_n_preys ${magym_n_preys}
+    --n_preys ${n_preys}
     --dyna_weight_loss
     --magym_see_agents"
     # --save_increments"

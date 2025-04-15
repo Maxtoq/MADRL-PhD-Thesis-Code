@@ -437,10 +437,10 @@ if __name__ == '__main__':
                          default=False)
 
     # MA_GYM parameters
-    parser.add_argument("--magym_n_agents", type=int, default=4)
+    parser.add_argument("--n_agents", type=int, default=4)
     parser.add_argument("--magym_env_size", type=int, default=7)
     parser.add_argument("--magym_obs_range", type=int, default=5)
-    parser.add_argument("--magym_n_preys", type=int, default=2)
+    parser.add_argument("--n_preys", type=int, default=2)
 
     config = parser.parse_args()
 

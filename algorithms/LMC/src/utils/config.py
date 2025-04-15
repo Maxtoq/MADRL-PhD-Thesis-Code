@@ -196,9 +196,9 @@ def get_config():
                         help="Number of episodes (=*ep_length steps) sampled for a single training update.")
 
     # MA_GYM parameters
-    parser.add_argument("--magym_n_agents", type=int, default=4)
+    parser.add_argument("--n_agents", type=int, default=4)
     parser.add_argument("--magym_env_size", type=int, default=7)
-    parser.add_argument("--magym_n_preys", type=int, default=2)
+    parser.add_argument("--n_preys", type=int, default=2)
 
     # Fine-tune parameters
     parser.add_argument("--FT_pretrained_model_path", type=str, default=None)

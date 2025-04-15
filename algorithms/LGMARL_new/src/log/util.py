@@ -16,20 +16,26 @@ def get_paths(cfg):
     else:
         model_dir = Path('./models') / cfg.env_name / cfg.experiment_name
         if not model_dir.exists():
-            curr_run = 'run1'
+            curr_run = 1
         else:
             exst_run_nums = [int(str(folder.name).split('run')[1]) for folder in
                             model_dir.iterdir() if
                             str(folder.name).startswith('run')]
             if len(exst_run_nums) == 0:
-                curr_run = 'run1'
+                curr_run = 1
             else:
-                curr_run = 'run%i' % (max(exst_run_nums) + 1)
-        run_dir = model_dir / curr_run
+                curr_run = max(exst_run_nums) + 1
 
-        log_dir = run_dir / 'logs'
-        if not log_dir.exists():
-            os.makedirs(log_dir)
+        while True:
+            run_dir = model_dir / f"run{curr_run}"
+
+            log_dir = run_dir / 'logs'
+            try:
+                os.makedirs(log_dir)
+            except FileExistsError:
+                curr_run += 1
+            else:
+                break
         
         os.makedirs(run_dir / "incremental")
 

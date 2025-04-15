@@ -27,9 +27,9 @@ def _get_env(cfg):
     if cfg.env_name == "magym_PredPrey":
         from .ma_gym.envs.predator_prey.predator_prey import PredatorPrey
         env = PredatorPrey(
-            n_agents=cfg.magym_n_agents, 
+            n_agents=cfg.n_agents, 
             grid_shape=(cfg.magym_env_size, cfg.magym_env_size),
-            n_preys=cfg.magym_n_preys, 
+            n_preys=cfg.n_preys, 
             max_steps=cfg.episode_length,
             global_state=cfg.use_shared_mem)
     return env

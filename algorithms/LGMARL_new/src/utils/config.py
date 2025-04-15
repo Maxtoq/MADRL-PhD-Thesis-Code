@@ -126,11 +126,13 @@ def get_config():
     parser.add_argument("--comm_env_reward_coef", type=float, default=1.0)
     parser.add_argument("--comm_noreward_empty_mess", default=False, 
                         action="store_true")
+    
+    # Environment params
+    parser.add_argument("--n_agents", type=int, default=4)
+    parser.add_argument("--n_preys", type=int, default=2)
 
     # MA_GYM parameters
-    parser.add_argument("--magym_n_agents", type=int, default=4)
     parser.add_argument("--magym_env_size", type=int, default=7)
-    parser.add_argument("--magym_n_preys", type=int, default=2)
     parser.add_argument("--magym_obs_range", type=int, default=5)
     parser.add_argument("--magym_see_agents", default=False, action="store_true")
     parser.add_argument("--magym_scaleenv_after_n", default=None, type=int)
