@@ -30,7 +30,7 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="jz"
 
-n_run=2
+n_run=4
 experiment_name="ec2_AE"
 episode_length=50
 comm_type="emergent_continuous_AE" # default language
@@ -38,11 +38,11 @@ context_dim=2 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
-env_name="mpe_PredPrey"
+env_name="mpe_PredPrey_shape"
 magym_env_size=18
 magym_obs_range=5 # default 5
 n_agents=2
-n_preys=2
+n_preys=1
 magym_scaleenv_after_n=10000100
 
 
