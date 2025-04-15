@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=mpe
+#SBATCH --job-name=lang
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -30,10 +30,10 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="jz"
 
-n_run=4
+n_run=2
 experiment_name="ec2_AE"
 episode_length=50
-comm_type="emergent_continuous_AE" # default language
+comm_type="emergent_continuous_AE" # default language_sup
 context_dim=2 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
@@ -46,7 +46,7 @@ n_preys=1
 magym_scaleenv_after_n=10000100
 
 
-#export WANDB_MODE=offline
+export WANDB_MODE=offline
 
 for n in $(seq 1 $n_run)
 do
