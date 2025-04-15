@@ -6,9 +6,9 @@ from ..mpe.scenario import BaseScenario
 
 
 AGENT_RADIUS = 0.04
-AGENT_MASS = 2.0
+AGENT_MASS = 1.0
 
-OBS_RANGE = 0.3
+OBS_RANGE = 0.4
 
 REWARD_CAPTURE = 30.0
 PENALTY_MISS = 0.0
