@@ -1856,3 +1856,4 @@ models/magym_CoordPlace_RGB/2a_ec4_lg/*
 !outputs/wandb
 outputs/wandb/*
 !outputs/wandb/syncall_once.sh
+!outputs/wandb/syncall.sh

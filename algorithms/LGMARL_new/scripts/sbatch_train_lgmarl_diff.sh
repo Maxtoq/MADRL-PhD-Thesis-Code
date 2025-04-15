@@ -29,10 +29,10 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="scai"
 
-n_run=7
-experiment_name="noc"
+n_run=1
+experiment_name="lang"
 episode_length=50
-comm_type="no_comm" # default language
+comm_type="language_sup" # default language
 context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
