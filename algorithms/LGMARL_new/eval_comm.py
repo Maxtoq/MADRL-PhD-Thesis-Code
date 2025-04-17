@@ -77,16 +77,19 @@ def run_eval(cfg):
     obs = envs.reset()
     parsed_obs = parser.get_perfect_messages(obs)
 
-    img = render(cfg, envs)
-    if cfg.save_render:
-        frames = [img]
+    # img = render(cfg, envs)
+    # if cfg.save_render:
+    #     frames = [img]
 
     model.init_episode(obs, parsed_obs)
     model.prep_rollout(device)
 
-    count_returns = np.zeros(cfg.n_parallel_envs)
-    returns = []
-    comm = []
+    logs = {
+        "obs": [],
+        "messages": [],
+        "actions": [],
+        "perfect_messages": []
+    }
     n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
     for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
         for ep_s_i in range(cfg.rollout_length):
@@ -101,40 +104,33 @@ def run_eval(cfg):
 
             ll = model.model.lang_learner if type(model.model.lang_learner) != list \
                     else model.model.lang_learner[0]
-            if cfg.log_comm:
-                log_comm(comm, ll, agent_messages, parsed_obs)
+            enc_perf_mess, _ = model.model.encode_perf_messages(parsed_obs, False)
 
-            if cfg.n_parallel_envs == 1:
-                ll = model.model.lang_learner if type(model.model.lang_learner) != list \
-                    else model.model.lang_learner[0]
-                decoded_messages = ll.word_encoder.decode_batch(
-                    agent_messages.squeeze(0))
-            
-                print(f"\nStep #{ep_s_i + 1}")
-                print("Observations", obs)
-                print("Perfect Messages", parsed_obs)
-                print("Agent Messages", decoded_messages)
-                print("Actions (t-1)", actions)
-                print("Rewards", rewards)
-                print("Communication Rewards", comm_rewards)
+            logs["obs"].append(obs)
+            logs["messages"].append(agent_messages)
+            logs["actions"].append(actions)
+            logs["perfect_messages"].append(enc_perf_mess)
 
             obs = next_obs
             parsed_obs = parser.get_perfect_messages(obs)
             model.store_exp(obs, parsed_obs, rewards, dones)
 
-            count_returns += rewards.mean(-1)
-            img = render(cfg, envs)
-            if cfg.save_render:
-                frames.append(img)
+            # count_returns += rewards.mean(-1)
+            # img = render(cfg, envs)
+            # if cfg.save_render:
+            #     frames.append(img)
 
-            env_dones = dones.all(axis=1)
-            if True in env_dones:
-                returns += list(count_returns[env_dones == True])
-                count_returns *= (1 - env_dones)
+            # env_dones = dones.all(axis=1)
+            # if True in env_dones:
+            #     returns += list(count_returns[env_dones == True])
+            #     count_returns *= (1 - env_dones)
         model.init_episode()
 
-        if cfg.save_render:
-            save_frames(frames, cfg.model_dir)
+        print(np.concatenate(logs["obs"]).shape)
+        exit()
+
+        # if cfg.save_render:
+        #     save_frames(frames, cfg.model_dir)
             
     envs.close()
 
