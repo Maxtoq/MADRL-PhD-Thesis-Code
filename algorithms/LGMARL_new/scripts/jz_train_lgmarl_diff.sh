@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=lang
+#SBATCH --job-name=mpelang
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -31,10 +31,10 @@ lang_hidden_dim=64
 log_exp_device="jz"
 
 n_run=2
-experiment_name="ec2_AE"
+experiment_name="lang"
 episode_length=50
-comm_type="emergent_continuous_AE" # default language_sup
-context_dim=2 # default 16
+comm_type="language_sup" # default language_sup
+context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
