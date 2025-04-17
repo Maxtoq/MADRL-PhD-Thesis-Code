@@ -589,13 +589,13 @@ class CommMAPPO():
                 eval_action_log_probs, eval_dist_entropy, \
                 eval_comm_action_log_probs, eval_comm_dist_entropy, lang_obs_enc
 
-    def encode_perf_messages(self, perf_messages):
+    def encode_perf_messages(self, perf_messages, pad=True):
         # if type(self.lang_learner) == list:
         we = self.lang_learner.word_encoder \
             if type(self.lang_learner) != list \
             else self.lang_learner[0].word_encoder
         
-        return we.encode_rollout_step(perf_messages)
+        return we.encode_rollout_step(perf_messages, pad)
 
     def get_save_dict(self):
         self.prep_rollout("cpu")
