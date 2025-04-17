@@ -34,7 +34,12 @@ class LanguageGroundedMARL:
         # Get model input dims
         obs_shape = get_shape_from_obs_space(obs_space[0])
         joint_obs_shape = get_shape_from_obs_space(shared_obs_space[0])
-        act_dim = act_space[0].n
+        if len(act_space[0].shape) > 0: # continuous actions
+            act_dim = act_space[0].shape[0]
+            discrete_action = False
+        else: # discrete actions
+            act_dim = act_space[0].n
+            discrete_action = True
 
         # Language encoder
         # self.word_encoder = OneHotEncoder(
@@ -46,14 +51,14 @@ class LanguageGroundedMARL:
             ModelClass = CommMAPPO
         self.model = ModelClass(
             args, parser, n_agents, obs_shape, joint_obs_shape, 
-            act_dim, self.device, block_comm)
+            act_dim, self.device, block_comm, discrete_action)
 
         self.buffer = ReplayBuffer(
             args, 
             n_agents, 
             obs_shape, 
             joint_obs_shape,
-            1, 
+            1 if discrete_action else act_dim, 
             args.context_dim, 
             parser.max_message_len + 1,
             log_dir)

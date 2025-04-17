@@ -190,7 +190,8 @@ class CommMAPPO_Shared:
 class CommMAPPO():
 
     def __init__(self, args, parser, n_agents, obs_dim, 
-                 shared_obs_dim, act_dim, device, block_comm=False):
+                 shared_obs_dim, act_dim, device, block_comm=False, 
+                 discrete_action=True):
         self.args = args
         self.n_envs = args.n_parallel_envs
         self.n_agents = n_agents
@@ -210,12 +211,12 @@ class CommMAPPO():
             self.agents = [
                 CommAgent(
                     args, parser, n_agents, obs_dim, shared_obs_dim, act_dim, 
-                    device)]
+                    device, discrete_action)]
         else:
             self.agents = [
                 CommAgent(
                     args, parser, n_agents, obs_dim, shared_obs_dim, act_dim, 
-                    device)
+                    device, discrete_action)
                 for a_i in range(self.n_agents)]
 
         # if self.comm_type in ["perfect", "language"]:

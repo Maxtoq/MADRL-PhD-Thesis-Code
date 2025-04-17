@@ -13,7 +13,7 @@ class CommAgent(nn.Module):
 
     def __init__(
             self, args, parser, n_agents, obs_dim, joint_obs_dim, act_dim, 
-            device):
+            device, discrete_action):
         super(CommAgent, self).__init__()
         self.lr = args.lr
         self.comm_type = args.comm_type
@@ -59,7 +59,8 @@ class CommAgent(nn.Module):
                 args.hidden_dim, 
                 n_hidden_layers=args.policy_layer_N,
                 out_activation_fn="relu"),
-            Categorical(args.hidden_dim, act_dim))
+            Categorical(args.hidden_dim, act_dim) if discrete_action 
+            else DiagGaussian(args.hidden_dim, act_dim, out_tanh=True))
         self.act_val = nn.Sequential(
             MLPNetwork(
                 act_val_input, 

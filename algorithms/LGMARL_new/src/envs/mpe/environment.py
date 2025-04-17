@@ -20,7 +20,7 @@ class MultiAgentEnv(gym.Env):
         # environment parameters
         self.discrete_action_space = discrete_action
         # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
-        self.discrete_action_input = True
+        self.discrete_action_input = discrete_action
         # if true, even the action is continuous, action will be performed discretely
         self.force_discrete_action = self.world.discrete_action if hasattr(self.world, 'discrete_action') else False
         # if true, every agent has the same reward
