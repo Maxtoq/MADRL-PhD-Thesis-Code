@@ -92,20 +92,20 @@ def _get_env(cfg, init_pos):
         scenario = Scenario()
         scenario.make_world(
             cfg.n_agents, cfg.n_preys, max_steps=cfg.episode_length)
-        env = MultiAgentEnv(scenario, discrete_action=True)
+        env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
         
     elif cfg.env_name == "mpe_PredPrey_shape":
         from .mpe_PredPrey_shape.env import Scenario
         scenario = Scenario()
         scenario.make_world(
             cfg.n_agents, cfg.n_preys, max_steps=cfg.episode_length)
-        env = MultiAgentEnv(scenario, discrete_action=True)
+        env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
 
     elif cfg.env_name == "mpe_simple_tag":
         from .mpe_simple_tag.env import Scenario
         scenario = Scenario()
         scenario.make_world()
-        env = MultiAgentEnv(scenario, discrete_action=True)
+        env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
 
     else:
         raise NotImplementedError("ARG ERROR: bad env_name")

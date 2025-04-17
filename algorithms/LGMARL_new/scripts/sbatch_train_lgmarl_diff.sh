@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=mpe
+#SBATCH --job-name=mpecont
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=6000
@@ -30,7 +30,7 @@ lang_hidden_dim=64
 log_exp_device="scai"
 
 n_run=1
-experiment_name="lang"
+experiment_name="lang_cont"
 episode_length=50
 comm_type="language_sup" # default language
 context_dim=16 # default 16

@@ -137,6 +137,9 @@ def get_config():
     parser.add_argument("--magym_see_agents", default=False, action="store_true")
     parser.add_argument("--magym_scaleenv_after_n", default=None, type=int)
 
+     # MPE parameters
+    parser.add_argument("--mpe_discrete_action", default=False, action="store_true")
+
 
     # Fine-tuning parameters
     parser.add_argument("--FT_env_name", type=str, default=None)
