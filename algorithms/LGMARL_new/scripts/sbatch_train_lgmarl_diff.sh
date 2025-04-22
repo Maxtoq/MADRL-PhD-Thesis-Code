@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=mpecont
+#SBATCH --job-name=sref_noc
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
-#SBATCH --time=6000
+#SBATCH --time=1000
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=maxime.toquebiau@sorbonne.universite.fr
 #SBATCH --output=outputs/%x-%j.out
@@ -29,15 +29,15 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="scai"
 
-n_run=1
-experiment_name="lang_cont"
+n_run=3
+experiment_name="ec2_AE"
 episode_length=50
-comm_type="language_sup" # default language
-context_dim=16 # default 16
+comm_type="emergent_continuous_AE" # default language
+context_dim=2 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
-env_name="mpe_PredPrey_shape"
+env_name="mpe_simple_color_reference"
 magym_env_size=18
 magym_obs_range=5 # default 5
 n_agents=2

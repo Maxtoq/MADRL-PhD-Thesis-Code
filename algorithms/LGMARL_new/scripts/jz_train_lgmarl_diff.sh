@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=mpeLG
+#SBATCH --job-name=sref_lang
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -30,15 +30,15 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="jz"
 
-n_run=2
-experiment_name="ec4_LG"
+n_run=1
+experiment_name="lang"
 episode_length=50
-comm_type="emergent_continuous_LG" # default language_sup
-context_dim=4 # default 16
+comm_type="language_sup" # default language_sup
+context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/MPEPPshap_langground.pt"
 
-env_name="mpe_PredPrey_shape"
+env_name="mpe_simple_color_reference"
 magym_env_size=18
 magym_obs_range=5 # default 5
 n_agents=2
