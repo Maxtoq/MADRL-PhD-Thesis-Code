@@ -98,6 +98,8 @@ class World(object):
         self.contact_force = 1e+2
         self.contact_margin = 5 * 1e-3
 
+        self.current_step = 0
+
     # return all entities in the world
     @property
     def entities(self):
@@ -129,6 +131,8 @@ class World(object):
         # update agent state
         for agent in self.agents:
             self.update_agent_state(agent)
+
+        self.current_step += 1
 
     # gather agent action forces
     def apply_action_force(self, p_force):

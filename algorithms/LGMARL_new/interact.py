@@ -36,7 +36,7 @@ def run():
     print("Perfect Messages", parsed_obs)
     render(cfg, envs)
 
-    for ep_s_i in range(cfg.episode_length):
+    for ep_s_i in range(cfg.rollout_length):
         # Perform step
         # Get action
         actions = np.random.randint(0, 5, (1, cfg.n_agents, 1))

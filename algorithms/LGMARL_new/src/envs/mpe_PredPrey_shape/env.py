@@ -85,7 +85,7 @@ class PredPreyWorld(Walled_World):
         # Full obs
         self.full_obs = np.zeros((20, 20, 3))
 
-        self.current_step = 0
+        # self.current_step = 0
 
     @property
     def entities(self):
@@ -115,7 +115,7 @@ class PredPreyWorld(Walled_World):
                 p.catch()
                 self.catch_reward +=1
 
-        self.current_step += 1
+        # self.current_step += 1
 
         # Update full obs
         # self.full_obs = np.zeros((20, 20, 3))
@@ -146,9 +146,9 @@ class Scenario(BaseScenario):
         return all([p.caught for p in self.world.preys]) \
                 or self.world.current_step >= self.max_steps
 
-    def reset_world(self, seed=None, init_pos=None):
-        if seed is not None:
-            np.random.seed(seed)
+    def reset_world(self, init_pos=None):
+        # if seed is not None:
+        #     np.random.seed(seed)
 
         # Check if init positions are valid
         if init_pos is not None:

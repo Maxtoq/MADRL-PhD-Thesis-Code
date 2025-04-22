@@ -503,9 +503,9 @@ class CommMAPPO():
             eval_actions = torch.from_numpy(eval_actions).to(self.device)
             eval_comm_actions = torch.from_numpy(
                 eval_comm_actions).to(self.device)
-            _eval = True
+            _training = True
         else:
-            _eval = False
+            _training = False
 
         # Generate comm
         messages, enc_obs, enc_joint_obs, comm_actions, comm_action_log_probs, \
@@ -528,7 +528,7 @@ class CommMAPPO():
                 deterministic, eval_actions)
 
         # Return data in tensors
-        if not _eval:
+        if not _training:
             actions = torch2numpy(torch.stack(actions, dim=1))
             action_log_probs = torch2numpy(
                 torch.stack(action_log_probs, dim=1))
@@ -543,6 +543,8 @@ class CommMAPPO():
                 torch.stack(new_joint_obs_rnn_states, dim=1))
             new_comm_rnn_states = torch2numpy(
                 torch.stack(new_comm_rnn_states, dim=1))
+            if type(out_messages) is torch.Tensor:
+                out_messages = torch2numpy(out_messages)
             
             return actions, action_log_probs, values, comm_actions, \
                 comm_action_log_probs, comm_values, new_obs_rnn_states, \

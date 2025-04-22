@@ -1,5 +1,6 @@
 import os
 import json
+import torch
 import numpy as np
 import pandas as pd
 
@@ -10,6 +11,24 @@ from src.utils.utils import set_seeds, set_cuda_device, load_args, render, save_
 from src.envs.make_env import make_env
 from src.algo.lgmarl_diff import LanguageGroundedMARL
 
+
+
+def init_logs(logs, n_agents):
+    for a_i in range(n_agents):
+        logs[f"obs_{a_i}"] = []
+        logs[f"mess_{a_i}"] = []
+        logs[f"action_{a_i}"] = []
+        logs[f"perf_{a_i}"] = []
+
+
+def save(data, path):
+    df = pd.DataFrame(data)
+
+    if os.path.isfile(path):
+        previous_data = pd.read_csv(path, index_col=0)
+        df = pd.concat([previous_data, df], ignore_index=True)
+
+    df.to_csv(path)
 
 
 def run_eval(cfg):
@@ -47,9 +66,12 @@ def run_eval(cfg):
     envs, parser = make_env(
         cfg, cfg.n_parallel_envs, init_positions=init_positions)
 
-    log_dir = None
-    if cfg.log_comm:
-        log_dir = "results/comm_logs/" + cfg.model_dir.split("/")[-2] + ".csv"
+    if cfg.model_dir.endswith("/"):
+        cfg.model_dir = cfg.model_dir[:-1]
+    env = cfg.model_dir.split("/")[-3]
+    name = cfg.model_dir.split("/")[-2]
+    run = cfg.model_dir.split("/")[-1]
+    log_path = f"results/data/eval_comm/{env}-{name}-{run}.csv"
     
     # Create model
     n_agents = envs.n_agents
@@ -84,66 +106,63 @@ def run_eval(cfg):
     model.init_episode(obs, parsed_obs)
     model.prep_rollout(device)
 
-    logs = {
-        "obs": [],
-        "messages": [],
-        "actions": [],
-        "perfect_messages": []
-    }
+    logs = {}
+    init_logs(logs, n_agents)
+
     n_steps_per_update = cfg.n_parallel_envs * cfg.rollout_length
-    for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
-        for ep_s_i in range(cfg.rollout_length):
-            # add_mess = interact(cfg)
-            
-            # Get action
-            actions, agent_messages, _, comm_rewards \
-                = model.act(deterministic=True)
+    last_save = 0
+    with torch.no_grad():
+        for s_i in trange(0, cfg.n_steps, n_steps_per_update, ncols=0):
+            for ep_s_i in range(cfg.rollout_length):
+                # add_mess = interact(cfg)
+                
+                # Get action
+                actions, agent_messages, _, comm_rewards \
+                    = model.act(deterministic=True)
 
-            # Perform action and get reward and next obs
-            next_obs, rewards, dones, infos = envs.step(actions)
+                # Perform action and get reward and next obs
+                next_obs, rewards, dones, infos = envs.step(actions)
 
-            ll = model.model.lang_learner if type(model.model.lang_learner) != list \
-                    else model.model.lang_learner[0]
-            enc_perf_mess, _ = model.model.encode_perf_messages(parsed_obs, False)
+                ll = model.model.lang_learner if type(model.model.lang_learner) != list \
+                        else model.model.lang_learner[0]
+                enc_perf_mess, _ = model.model.encode_perf_messages(parsed_obs, False)
 
-            logs["obs"].append(obs)
-            logs["messages"].append(agent_messages)
-            logs["actions"].append(actions)
-            logs["perfect_messages"].append(enc_perf_mess)
+                for e_i in range(cfg.n_parallel_envs):
+                    for a_i in range(n_agents):
+                        logs[f"obs_{a_i}"].append(list(obs[e_i, a_i]))
+                        logs[f"mess_{a_i}"].append(list(agent_messages[e_i, a_i]))
+                        logs[f"action_{a_i}"].append(list(actions[e_i, a_i]))
+                        logs[f"perf_{a_i}"].append(enc_perf_mess[e_i][a_i])
 
-            obs = next_obs
-            parsed_obs = parser.get_perfect_messages(obs)
-            model.store_exp(obs, parsed_obs, rewards, dones)
+                obs = next_obs
+                parsed_obs = parser.get_perfect_messages(obs)
+                model.store_exp(obs, parsed_obs, rewards, dones)
 
-            # count_returns += rewards.mean(-1)
-            # img = render(cfg, envs)
+                # count_returns += rewards.mean(-1)
+                # img = render(cfg, envs)
+                # if cfg.save_render:
+                #     frames.append(img)
+
+                # env_dones = dones.all(axis=1)
+                # if True in env_dones:
+                #     returns += list(count_returns[env_dones == True])
+                #     count_returns *= (1 - env_dones)
+            model.init_episode()
+
+            if last_save > 100000:
+                last_save = 0
+                save(logs, log_path)
+                init_logs(logs, n_agents)
+            else:
+                last_save += n_steps_per_update
+
             # if cfg.save_render:
-            #     frames.append(img)
-
-            # env_dones = dones.all(axis=1)
-            # if True in env_dones:
-            #     returns += list(count_returns[env_dones == True])
-            #     count_returns *= (1 - env_dones)
-        model.init_episode()
-
-        print(np.concatenate(logs["obs"]).shape)
-        exit()
-
-        # if cfg.save_render:
-        #     save_frames(frames, cfg.model_dir)
+            #     save_frames(frames, cfg.model_dir)
             
     envs.close()
 
-    if cfg.log_comm:
-        print("Saving comm logs to", log_dir)
-        comm_logs = pd.DataFrame(comm)
-        comm_logs.to_csv(log_dir)
-
-    print("Done", len(returns), "complete episodes.")
-    print("Returns", returns)
-    print("Mean return:", sum(returns) / len(returns))
-
-    return sum(returns) / len(returns)
+    print("Saving logs to", log_path)
+    save(logs, log_path)
 
 if __name__ == '__main__':
     # Load config

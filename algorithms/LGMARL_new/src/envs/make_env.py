@@ -101,10 +101,10 @@ def _get_env(cfg, init_pos):
             cfg.n_agents, cfg.n_preys, max_steps=cfg.episode_length)
         env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
 
-    elif cfg.env_name == "mpe_simple_tag":
-        from .mpe_simple_tag.env import Scenario
+    elif cfg.env_name == "mpe_simple_color_reference":
+        from .mpe_simple_color_reference.env import Scenario
         scenario = Scenario()
-        scenario.make_world()
+        scenario.make_world(cfg.episode_length)
         env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
 
     else:
@@ -149,6 +149,10 @@ def _get_parser(cfg):
     elif cfg.env_name == "mpe_PredPrey_shape":
         from .mpe_PredPrey_shape.parser import Parser
         return Parser(cfg.n_agents, cfg.n_preys)
+    
+    elif cfg.env_name == "mpe_simple_color_reference":
+        from .mpe_simple_color_reference.parser import Parser
+        return Parser()
 
     else:
         print("WARNING: No Parser for", cfg.env_name)

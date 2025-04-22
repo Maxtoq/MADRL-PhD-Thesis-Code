@@ -82,11 +82,6 @@ class PredPreyWorld(Walled_World):
         # Flag for rewarding a catch
         self.catch_reward = 0
 
-        # Full obs
-        self.full_obs = np.zeros((20, 20, 3))
-
-        self.current_step = 0
-
     @property
     def entities(self):
         return self.agents + self.preys + self.landmarks
@@ -115,14 +110,6 @@ class PredPreyWorld(Walled_World):
                 p.catch()
                 self.catch_reward +=1
 
-        self.current_step += 1
-
-        # Update full obs
-        # self.full_obs = np.zeros((20, 20, 3))
-        # for e in self.entities:
-        #     pos = (e.state.p_pos + 1) * 10
-        #     self.full_obs[int(pos[0]), int(pos[1])] = e.color
-
 
 class Scenario(BaseScenario):
 
@@ -136,10 +123,6 @@ class Scenario(BaseScenario):
 
         # make initial conditions
         self.reset_world()
-
-    def seed(self, seed):
-        np.random.seed(seed)
-        random.seed(seed)
 
     def done(self, agent):
         # Done if all preys are caught
