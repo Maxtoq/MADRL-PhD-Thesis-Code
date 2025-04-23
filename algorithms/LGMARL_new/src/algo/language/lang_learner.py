@@ -16,8 +16,9 @@ class LanguageLearner(nn.Module):
     def __init__(self, args, vocab, max_message_len, diff=False, device="cpu"):
         super(LanguageLearner, self).__init__()
         self.device = device
+        self.max_message_len = max_message_len + 1
 
-        self.word_encoder = OneHotEncoder(vocab, max_message_len)
+        self.word_encoder = OneHotEncoder(vocab, self.max_message_len)
 
         self.lang_encoder = GRUEncoder(
             args.context_dim, 
@@ -33,7 +34,7 @@ class LanguageLearner(nn.Module):
             args.context_dim, 
             args.lang_embed_dim, 
             self.word_encoder.enc_dim,
-            max_message_len, 
+            self.max_message_len, 
             embed_layer=self.lang_encoder.embed_layer,
             use_gumbel=diff,
             device=device)
@@ -87,11 +88,11 @@ class LanguageLearner(nn.Module):
         # context_batch = torch.from_numpy(context_batch).to(self.device)
         _, sentences = self.decoder(context_batch)
 
-        if pad_max and sentences.shape[1] < self.word_encoder.max_message_len:
+        if pad_max and sentences.shape[1] < self.max_message_len:
             sentences = np.concatenate(
                 (sentences, np.zeros(
                     (sentences.shape[0], 
-                     self.word_encoder.max_message_len - sentences.shape[1]),
+                     self.max_message_len - sentences.shape[1]),
                     dtype=int)), 
                 axis=-1)
 

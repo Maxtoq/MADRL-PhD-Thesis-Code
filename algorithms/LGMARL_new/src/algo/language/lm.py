@@ -26,7 +26,7 @@ class OneHotEncoder:
         self.tokens = ["<SOS>", "<EOS>"] + vocab
         self.enc_dim = len(self.tokens)
         self.token_encodings = np.eye(self.enc_dim)
-        self.max_message_len = max_message_len + 1
+        self.max_message_len = max_message_len
 
         self.SOS_ENC = self.token_encodings[0]
         self.EOS_ENC = self.token_encodings[1]

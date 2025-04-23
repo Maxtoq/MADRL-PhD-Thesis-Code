@@ -69,8 +69,6 @@ class Scenario(BaseScenario):
             agent.color = np.array([0.25, 0.25, 0.25])
         # random properties for landmarks
         colors = random.sample(list(LM_COLORS.values()), 3)
-        print(colors)
-        print()
         self.world.landmarks[0].color = colors[0]
         self.world.landmarks[1].color = colors[1]
         self.world.landmarks[2].color = colors[2]
