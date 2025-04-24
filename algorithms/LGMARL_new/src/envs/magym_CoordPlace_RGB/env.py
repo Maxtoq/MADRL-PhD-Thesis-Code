@@ -235,7 +235,8 @@ class Env(gym.Env):
             done = all_same_color and all_diff_landmark
         else:
             done = False
-            rewards = [r - self._step_cost for r in rewards]
+            if all_same_color and all_diff_landmark:
+                rewards = [r - self._step_cost for r in rewards]
 
         if (self._step_count >= self._max_steps) or done:
             for i in range(self.n_agents):
@@ -250,15 +251,6 @@ class Env(gym.Env):
         img = copy.copy(self._base_img)
         for l_i, l_p in enumerate(self.lm_positions):
             r, c = l_p
-            # fill_cell(img, [r, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r + 1, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r + 2, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r + 1, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r + 2, c + 1], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r + 1, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
-            # fill_cell(img, [r + 2, c + 2], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
 
             fill_cell(img, [r, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
             fill_cell(img, [r + 1, c], cell_size=CELL_SIZE, fill=LM_RENDER_COLORS[self.lm_colors[l_i]], margin=0.1)
