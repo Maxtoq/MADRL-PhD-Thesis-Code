@@ -31,13 +31,14 @@ class Env(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
     _landmark_sets = {2: (2, 1, 1), 3: (3, 1)}
 
-    def __init__(self, n_agents=2, step_cost=-1.0, max_steps=50):
+    def __init__(self, n_agents=2, step_cost=-1.0, max_steps=50, stop_done=False):
         assert n_agents in self._landmark_sets, f"Bad number of agents, must be in {list(self._landmark_sets.keys())}."
         self._grid_shape = (6, 6)
         self.n_agents = n_agents
         self._max_steps = max_steps
         self._step_count = 0
         self._step_cost = step_cost
+        self._stop_done = stop_done
         self.n_landmarks = np.sum(self._landmark_sets[n_agents])
 
         self.action_space = MultiAgentActionSpace(
@@ -96,15 +97,6 @@ class Env(gym.Env):
         for lp, lc in zip(self.lm_positions, self.lm_colors):
             r, c = lp
             cell = ENT_IDS['landmark'] + str(LM_COLORS[lc])
-            # self._full_obs[r][c] = cell
-            # self._full_obs[r + 1][c] = cell
-            # self._full_obs[r + 2][c] = cell
-            # self._full_obs[r][c + 1] = cell
-            # self._full_obs[r + 1][c + 1] = cell
-            # self._full_obs[r + 2][c + 1] = cell
-            # self._full_obs[r][c + 2] = cell
-            # self._full_obs[r + 1][c + 2] = cell
-            # self._full_obs[r + 2][c + 2] = cell
 
             self._full_obs[r][c] = cell
             self._full_obs[r + 1][c] = cell
@@ -239,7 +231,11 @@ class Env(gym.Env):
             agent_lms.append(i)
         all_same_color = len(set(agent_colors)) <= 1
         all_diff_landmark = len(set(agent_lms)) == len(agent_lms)
-        done = all_same_color and all_diff_landmark
+        if self._stop_done:
+            done = all_same_color and all_diff_landmark
+        else:
+            done = False
+            rewards = [r - self._step_cost for r in rewards]
 
         if (self._step_count >= self._max_steps) or done:
             for i in range(self.n_agents):

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=hard
-#SBATCH --job-name=sref_noc
+#SBATCH --job-name=cpnostop
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=1
 #SBATCH --time=1000
@@ -30,14 +30,14 @@ lang_hidden_dim=64
 log_exp_device="scai"
 
 n_run=3
-experiment_name="ec2_AE"
+experiment_name="nostop_ec4_lg"
 episode_length=50
-comm_type="emergent_continuous_AE" # default language
-context_dim=2 # default 16
+comm_type="emergent_continuous_LG" # default language
+context_dim=4 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/CPrgb2a_langground.pt"
 
-env_name="mpe_simple_color_reference"
+env_name="magym_CoordPlace_RGB"
 magym_env_size=18
 magym_obs_range=5 # default 5
 n_agents=2

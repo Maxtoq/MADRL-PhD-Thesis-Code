@@ -30,15 +30,15 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="jz"
 
-n_run=1
-experiment_name="lang"
+n_run=2
+experiment_name="nostop_lang"
 episode_length=50
 comm_type="language_sup" # default language_sup
 context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/MPEPPshap_langground.pt"
 
-env_name="mpe_simple_color_reference"
+env_name="magym_CoordPlace_RGB"
 magym_env_size=18
 magym_obs_range=5 # default 5
 n_agents=2
