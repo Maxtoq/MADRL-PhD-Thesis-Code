@@ -99,13 +99,13 @@ class Env(gym.Env):
 
         # agent pos (2), gem (25), step (1)
         mask_size = np.prod(self._agent_view_mask)
-        self._obs_high = np.ones(2 + mask_size, dtype=np.float32)
-        self._obs_low = np.zeros(2 + mask_size, dtype=np.float32)
+        self._obs_high = np.ones(2 + mask_size + 1, dtype=np.float32)
+        self._obs_low = np.zeros(2 + mask_size + 1, dtype=np.float32)
         self.observation_space = MultiAgentObservationSpace(
             [spaces.Box(self._obs_low, self._obs_high) for _ in range(self.n_agents)])
 
-        self._shared_obs_high = np.ones((2 + mask_size) * self.n_agents, dtype=np.float32)
-        self._shared_obs_low = np.zeros((2 + mask_size) * self.n_agents, dtype=np.float32)
+        self._shared_obs_high = np.ones((2 + mask_size + 1) * self.n_agents, dtype=np.float32)
+        self._shared_obs_low = np.zeros((2 + mask_size + 1) * self.n_agents, dtype=np.float32)
         self.shared_observation_space = MultiAgentObservationSpace(
             [spaces.Box(self._shared_obs_low, self._shared_obs_high)
                 for _ in range(self.n_agents)])
