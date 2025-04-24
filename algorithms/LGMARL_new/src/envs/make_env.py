@@ -49,6 +49,8 @@ def _get_env(cfg, init_pos):
             from .magym_Foraging_fixedpos.env import Env
         elif cfg.env_name == "magym_Foraging_RGB":
             from .magym_Foraging_RGB.env import Env
+        elif cfg.env_name == "magym_ForagingHostile_RGB":
+            from .magym_ForagingHostile_RGB.env import Env
         else:
             from .magym_Foraging.env import Env
         env = Env(
@@ -130,6 +132,8 @@ def _get_parser(cfg):
             from .magym_Foraging_fixedpos.parser import Parser
         elif cfg.env_name == "magym_Foraging_RGB":
             from .magym_Foraging_RGB.parser import Parser
+        elif cfg.env_name == "magym_ForagingHostile_RGB":
+            from .magym_ForagingHostile_RGB.parser import Parser
         else:
             from .magym_Foraging.parser import Parser
         return Parser(cfg.magym_env_size, cfg.magym_obs_range)
