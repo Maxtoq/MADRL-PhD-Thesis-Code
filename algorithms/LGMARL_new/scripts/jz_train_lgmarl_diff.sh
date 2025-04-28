@@ -38,7 +38,7 @@ context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/MPEHardSimpRef_lg.pt"
 
-env_name="mpe_simple_harcolor_reference"
+env_name="mpe_simple_hardcolor_reference"
 magym_env_size=18
 magym_obs_range=5 # default 5
 n_agents=2
