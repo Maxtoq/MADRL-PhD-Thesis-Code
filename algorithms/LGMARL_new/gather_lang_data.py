@@ -29,8 +29,8 @@ def run():
                 data["obs"].append(list(obs[e_i, a_i]))
                 data["lang"].append(' '.join(parsed_obs[e_i][a_i]))
 
-        actions = np.random.randint(0, 5, (cfg.n_parallel_envs, cfg.n_agents, 1))
-        # actions = np.random.uniform(-1, 1, (cfg.n_parallel_envs, cfg.n_agents, 2))
+        # actions = np.random.randint(0, 5, (cfg.n_parallel_envs, cfg.n_agents, 1))
+        actions = np.random.uniform(-1, 1, (cfg.n_parallel_envs, cfg.n_agents, 2))
 
         # Perform action and get reward and next obs
         obs, rewards, dones, infos = envs.step(actions)

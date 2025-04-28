@@ -28,10 +28,16 @@ class RNNLayer(nn.Module):
     def forward(self, x, hxs, masks):
         """ masks indicate where the hidden states need to be reset. """
         if x.size(0) == hxs.size(0):
-            x, hxs = self.rnn(
-                x.unsqueeze(0),
-                (hxs * masks.repeat(1, self._recurrent_N).unsqueeze(-1))\
-                    .transpose(0, 1).contiguous())
+            if masks is not None:
+                # print((hxs * masks.repeat(1, self._recurrent_N).unsqueeze(-1)).transpose(0, 1).shape)
+                # exit()
+                x, hxs = self.rnn(
+                    x.unsqueeze(0),
+                    (hxs * masks.repeat(1, self._recurrent_N).unsqueeze(-1))\
+                        .transpose(0, 1).contiguous())
+            else:
+                x, hxs = self.rnn(
+                    x.unsqueeze(0), hxs.transpose(0, 1))
             x = x.squeeze(0)
             hxs = hxs.transpose(0, 1)
         else:

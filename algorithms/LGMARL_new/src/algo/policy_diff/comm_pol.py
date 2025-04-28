@@ -62,7 +62,7 @@ class CommPolicy(nn.Module):
         
         elif self.comm_type in ["perfect", "language_sup", "perfect+no_lang"]:
             comm_actions = self.comm_in(enc_obs)
-            messages = perfect_messages
+            messages = perfect_messages # set as perfect, but used only for comm_type=perfect, lang will use comm_actions to generate message
 
             eval_comm_action_log_probs = None
             eval_comm_dist_entropy = None

@@ -109,6 +109,12 @@ def _get_env(cfg, init_pos):
         scenario.make_world(cfg.episode_length)
         env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
 
+    elif cfg.env_name == "mpe_simple_hardcolor_reference":
+        from .mpe_simple_hardcolor_reference.env import Scenario
+        scenario = Scenario()
+        scenario.make_world(cfg.episode_length)
+        env = MultiAgentEnv(scenario, discrete_action=cfg.mpe_discrete_action)
+
     else:
         raise NotImplementedError("ARG ERROR: bad env_name")
     return env
@@ -156,6 +162,10 @@ def _get_parser(cfg):
     
     elif cfg.env_name == "mpe_simple_color_reference":
         from .mpe_simple_color_reference.parser import Parser
+        return Parser()
+    
+    elif cfg.env_name == "mpe_simple_hardcolor_reference":
+        from .mpe_simple_hardcolor_reference.parser import Parser
         return Parser()
 
     else:
