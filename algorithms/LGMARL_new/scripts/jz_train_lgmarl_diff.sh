@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=gpu_p2
-#SBATCH --job-name=fh
+#SBATCH --job-name=hardcolor
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1 
 #SBATCH --time=20:00:00
@@ -32,16 +32,16 @@ log_exp_device="jz"
 
 n_run=2
 experiment_name="lang"
-episode_length=100
+episode_length=50
 comm_type="language_sup" # default language
 context_dim=16 # default 16
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/FH18_langground.pt"
+comm_langground_pt="results/data/lamarl_data/MPEHardSimpRef_lg.pt"
 
-env_name="magym_ForagingHostile_RGB"
+env_name="mpe_simple_harcolor_reference"
 magym_env_size=18
 magym_obs_range=5 # default 5
-n_agents=4
+n_agents=2
 n_preys=1
 magym_scaleenv_after_n=10000100
 
