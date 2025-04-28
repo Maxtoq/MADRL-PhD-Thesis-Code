@@ -33,8 +33,10 @@ def get_dist(pos1, pos2, squared=False):
     
 class Scenario(BaseScenario):
 
-    def make_world(self, max_steps=100):
+    def make_world(self, max_steps=100, n_landmarks=5, env_size=5):
         self.max_steps = max_steps
+        self.n_landmarks = n_landmarks
+        self.env_size = env_size
 
         self.world = World()
         # set any world properties first
@@ -49,7 +51,7 @@ class Scenario(BaseScenario):
             agent.initial_mass = AGENT_MASS
             agent.silent = True
         # add landmarks
-        self.world.landmarks = [Landmark() for i in range(3)]
+        self.world.landmarks = [Landmark() for i in range(self.n_landmarks)]
         for i, landmark in enumerate(self.world.landmarks):
             landmark.name = "landmark %d" % i
             landmark.collide = False
@@ -74,21 +76,24 @@ class Scenario(BaseScenario):
         for i, agent in enumerate(self.world.agents):
             agent.color = np.array([0.25, 0.25, 0.25])
         # random properties for landmarks
-        colors = random.sample(list(LM_COLORS.values()), len(LM_COLORS))
-        self.world.landmarks[0].color = colors[0]
-        self.world.landmarks[1].color = colors[1]
-        self.world.landmarks[2].color = colors[2]
+        # self.world.landmarks[0].color = colors[0]
+        # self.world.landmarks[1].color = colors[1]
+        # self.world.landmarks[2].color = colors[2]
         # special colors for goals
         self.world.agents[0].goal_a.color = self.world.agents[0].goal_lm.color
         self.world.agents[1].goal_a.color = self.world.agents[1].goal_lm.color
         # set random initial states
         for agent in self.world.agents:
-            agent.state.p_pos = np.random.uniform(-1, +1, self.world.dim_p)
+            agent.state.p_pos = np.random.uniform(-self.env_size, +self.env_size, self.world.dim_p)
             agent.state.p_vel = np.zeros(self.world.dim_p)
             agent.state.c = np.zeros(self.world.dim_c)
+
+        colors = random.sample(list(LM_COLORS.values()), len(LM_COLORS))
         for i, landmark in enumerate(self.world.landmarks):
-            landmark.state.p_pos = np.random.uniform(-1, +1, self.world.dim_p)
+            landmark.state.p_pos = np.random.uniform(-self.env_size, +self.env_size, self.world.dim_p)
             landmark.state.p_vel = np.zeros(self.world.dim_p)
+
+            landmark.color = colors[i]
 
         self.world.current_step = 0
 
@@ -131,6 +136,8 @@ class Scenario(BaseScenario):
 
         obs.append(agent.goal_lm.state.p_pos)
         obs.append(agent.goal_lm.color)
+
+        obs.append([self.world.current_step / self.max_steps])
 
         return np.concatenate(obs)
 
