@@ -30,8 +30,8 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="jz"
 
-n_run=2
-experiment_name="lang"
+n_run=1
+experiment_name="l5s5_lang"
 episode_length=50
 comm_type="language_sup" # default language
 context_dim=16 # default 16
