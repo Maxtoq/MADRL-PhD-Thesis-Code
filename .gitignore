@@ -1878,3 +1878,7 @@ models/mpe_simple_color_reference/ec4_LG/*
 !models/mpe_simple_color_reference/noc
 models/mpe_simple_color_reference/noc/*
 !models/mpe_simple_color_reference/noc/train_data
+
+!models/mpe_simple_color_reference/lang_smolbatch
+models/mpe_simple_color_reference/lang_smolbatch/*
+!models/mpe_simple_color_reference/lang_smolbatch/train_data
