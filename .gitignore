@@ -1859,3 +1859,22 @@ outputs/wandb/*
 !outputs/wandb/syncall.sh
 
 results/data/eval_comm
+
+!models/mpe_simple_color_reference
+models/mpe_simple_color_reference/*
+
+!models/mpe_simple_color_reference/ec2
+models/mpe_simple_color_reference/ec2/*
+!models/mpe_simple_color_reference/ec2/train_data
+
+!models/mpe_simple_color_reference/ec2_AE
+models/mpe_simple_color_reference/ec2_AE/*
+!models/mpe_simple_color_reference/ec2_AE/train_data
+
+!models/mpe_simple_color_reference/ec4_LG
+models/mpe_simple_color_reference/ec4_LG/*
+!models/mpe_simple_color_reference/ec4_LG/train_data
+
+!models/mpe_simple_color_reference/noc
+models/mpe_simple_color_reference/noc/*
+!models/mpe_simple_color_reference/noc/train_data

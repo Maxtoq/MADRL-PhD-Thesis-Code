@@ -30,12 +30,12 @@ lang_hidden_dim=64
 log_exp_device="scai"
 
 n_run=3
-experiment_name="ec4_lg"
+experiment_name="l5s5_ec4_lg"
 episode_length=50
 comm_type="emergent_continuous_LG" # default language
 context_dim=4 # default 16
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/MPEHardSimpRef_lg.pt"
+comm_langground_pt="results/data/lamarl_data/MPEHardSimpRef_l5s5_lg.pt"
 
 env_name="mpe_simple_hardcolor_reference"
 magym_env_size=18
