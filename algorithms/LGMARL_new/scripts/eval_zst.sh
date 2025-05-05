@@ -39,7 +39,8 @@ comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec2/run12,models/magym_PredPrey_RGB/18s50np_ec2/run3,models/magym_PredPrey_RGB/18s50np_ec2/run2,models/magym_PredPrey_RGB/18s50np_ec2/run11" 
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec4_lg/run7,models/magym_PredPrey_RGB/18s50np_ec4_lg/run5,models/magym_PredPrey_RGB/18s50np_ec4_lg/run1,models/magym_PredPrey_RGB/18s50np_ec4_lg/run2"
 
-model_dir="models/magym_Foraging_RGB/18_lang_ce0/run2,models/magym_Foraging_RGB/18_lang_ce0/run4,models/magym_Foraging_RGB/18_lang_ce0/run3,models/magym_Foraging_RGB/18_lang_ce0/run1"
+# model_dir="models/magym_Foraging_RGB/18_lang_ce0/run2,models/magym_Foraging_RGB/18_lang_ce0/run4,models/magym_Foraging_RGB/18_lang_ce0/run3,models/magym_Foraging_RGB/18_lang_ce0/run1"
+model_dir="models/magym_Foraging_RGB/18_ec4_lg/run1,models/magym_Foraging_RGB/18_ec4_lg/run3,models/magym_Foraging_RGB/18_ec4_lg/run6,models/magym_Foraging_RGB/18_ec4_lg/run2"
 
 
 seed=$RANDOM # 27425
