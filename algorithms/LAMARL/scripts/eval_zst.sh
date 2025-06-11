@@ -3,11 +3,11 @@ source venv3.8/bin/activate
 
 n_parallel_envs=250
 # eval_scenario="algorithms/LAMARL/src/envs/magym_PredPrey/mid_eval_6.json"
-env_name="magym_Foraging_RGB"
+env_name="mpe_simple_color_reference"
 n_eval_runs=1
 episode_length=100
 cuda_device="cuda:0"
-comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
+comm_langground_pt="results/data/lamarl_data/Frgb_18_langground.pt"
 
 # model_dir="models/magym_PredPrey_new/9o5_noc/run3,models/magym_PredPrey_new/9o5_noc/run6,models/magym_PredPrey_new/9o5_noc/run4,models/magym_PredPrey_new/9o5_noc/run15"
 # model_dir="models/magym_PredPrey_new/9o5_Diff_perf/run16,models/magym_PredPrey_new/9o5_Diff_perf/run9,models/magym_PredPrey_new/9o5_Diff_perf/run3,models/magym_PredPrey_new/9o5_Diff_perf/run7" # 16 9 7 12
@@ -39,8 +39,17 @@ comm_langground_pt="results/data/lamarl_data/PPrgb_18_langground.pt"
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec2/run12,models/magym_PredPrey_RGB/18s50np_ec2/run3,models/magym_PredPrey_RGB/18s50np_ec2/run2,models/magym_PredPrey_RGB/18s50np_ec2/run11" 
 # model_dir="models/magym_PredPrey_RGB/18s50np_ec4_lg/run7,models/magym_PredPrey_RGB/18s50np_ec4_lg/run5,models/magym_PredPrey_RGB/18s50np_ec4_lg/run1,models/magym_PredPrey_RGB/18s50np_ec4_lg/run2"
 
-model_dir="models/magym_Foraging_RGB/18_lang_ce0/run2,models/magym_Foraging_RGB/18_lang_ce0/run4,models/magym_Foraging_RGB/18_lang_ce0/run3,models/magym_Foraging_RGB/18_lang_ce0/run1"
-# model_dir="models/magym_Foraging_RGB/18_ec4_lg/run1,models/magym_Foraging_RGB/18_ec4_lg/run3,models/magym_Foraging_RGB/18_ec4_lg/run6,models/magym_Foraging_RGB/18_ec4_lg/run2"
+# model_dir="models/magym_Foraging_RGB/18_lang_ce0/run2,models/magym_Foraging_RGB/18_lang_ce0/run4,models/magym_Foraging_RGB/18_lang_ce0/run3,models/magym_Foraging_RGB/18_lang_ce0/run1"
+# model_dir="models/magym_Foraging_RGB/18_ec4_lg/run1,models/magym_Foraging_RGB/18_ec4_lg/run5,models/magym_Foraging_RGB/18_ec4_lg/run6,models/magym_Foraging_RGB/18_ec4_lg/run2"
+# model_dir="models/magym_Foraging_RGB/18_ec2_ae/run7,models/magym_Foraging_RGB/18_ec2_ae/run1,models/magym_Foraging_RGB/18_ec2_ae/run1,models/magym_Foraging_RGB/18_ec2_ae/run1"
+
+# model_dir="models/mpe_PredPrey_shape/ec2_AE_cont/run7,models/mpe_PredPrey_shape/ec2_AE_cont/run5,models/mpe_PredPrey_shape/ec2_AE_cont/run1,models/mpe_PredPrey_shape/ec2_AE_cont/run4"
+# model_dir="models/mpe_PredPrey_shape/ec2_cont/run3,models/mpe_PredPrey_shape/ec2_cont/run5,models/mpe_PredPrey_shape/ec2_cont/run1,models/mpe_PredPrey_shape/ec2_cont/run4"
+# model_dir="models/mpe_PredPrey_shape/ec4_LG_cont/run7,models/mpe_PredPrey_shape/ec4_LG_cont/run2,models/mpe_PredPrey_shape/ec4_LG_cont/run1,models/mpe_PredPrey_shape/ec4_LG_cont/run6"
+# model_dir="models/mpe_PredPrey_shape/lang_cont/run3,models/mpe_PredPrey_shape/lang_cont/run6,models/mpe_PredPrey_shape/lang_cont/run1,models/mpe_PredPrey_shape/lang_cont/run4"
+# model_dir="models/mpe_PredPrey_shape/noc_cont/run3,models/mpe_PredPrey_shape/noc_cont/run7,models/mpe_PredPrey_shape/noc_cont/run1,models/mpe_PredPrey_shape/noc_cont/run4"
+
+model_dir="models/mpe_simple_color_reference/lang_smolbatch/run3,models/mpe_simple_color_reference/lang_smolbatch/run2,models/mpe_simple_color_reference/lang_smolbatch/run1,models/mpe_simple_color_reference/lang_smolbatch/run4"
 
 
 seed=$RANDOM # 27425

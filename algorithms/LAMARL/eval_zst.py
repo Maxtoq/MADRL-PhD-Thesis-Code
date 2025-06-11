@@ -26,7 +26,7 @@ def get_unique_mappings(pattern):
         return []  # Impossible to assign more unique agents than IDs
     
     # All permutations of IDs for unique letters
-    return permutations(range(num_ids), len(unique_letters))
+    return permutations(range(num_ids), len(pattern))
 
 def generate_teams(pattern):
     unique_letters = sorted(set(pattern))
@@ -60,10 +60,9 @@ def interact(cfg):
     return add_mess
 
 def get_team_compo(paths, team_compo):
-    ids = list(range(len(paths)))
-    random.shuffle(ids)
-
-    team = [paths[ids[team_compo[i]]] for i in range(len(ids))]
+    # ids = list(range(len(team_compo)))
+    # random.shuffle(ids)
+    team = [paths[team_compo[i]] for i in range(len(team_compo))]
     return team
 
 def compute_ci(data, c=0.95):
@@ -200,11 +199,9 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     cfg.seed = 0
 
-    # random.seed(cfg.seed)
-    # seeds = np.arange(24) * 1000
-
-    team_compo = [
-        "AAAA", "AAAB", "AABB", "AABC", "ABCD"]
+    # team_compo = [
+    #     "AAAA", "AAAB", "AABB", "AABC", "ABCD"]
+    team_compo = ["AA", "AB"]
     results = {
         "Team compo": [],
         "Mean return": [],
