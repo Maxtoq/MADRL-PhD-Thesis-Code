@@ -199,9 +199,11 @@ if __name__ == '__main__':
     cfg = parser.parse_args()
     cfg.seed = 0
 
-    # team_compo = [
-    #     "AAAA", "AAAB", "AABB", "AABC", "ABCD"]
-    team_compo = ["AA", "AB"]
+    if cfg.n_agents == 4:
+        team_compo = [
+            "AAAA", "AAAB", "AABB", "AABC", "ABCD"]
+    elif cfg.n_agents == 2:
+        team_compo = ["AA", "AB"]
     results = {
         "Team compo": [],
         "Mean return": [],

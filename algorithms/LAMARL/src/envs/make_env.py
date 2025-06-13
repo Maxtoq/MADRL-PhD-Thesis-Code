@@ -69,7 +69,8 @@ def _get_env(cfg, init_pos):
         from .magym_CoordPlace_RGB.env import Env
         env = Env(
             n_agents=cfg.n_agents, 
-            max_steps=cfg.episode_length)
+            max_steps=cfg.episode_length,
+            stop_done=True)
 
     elif cfg.env_name == "magym_Empty":
         from .magym_empty.env import EmptyEnv
