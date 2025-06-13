@@ -460,8 +460,8 @@ models/rel_overgen/qmix_cent_e2snoveld_invdyn_4050/*
 models/rel_overgen/qmix_loc_e2snoveld_invdyn_4050/*
 !models/rel_overgen/qmix_loc_e2snoveld_invdyn_4050/train_data
 
-!models/coop_push_corners
-models/coop_push_corners/*
+# !models/coop_push_corners
+# models/coop_push_corners/*
 
 !models/coop_push_corners/qmix_loc_e2snoveld_invdyn
 models/coop_push_corners/qmix_loc_e2snoveld_invdyn/*
@@ -1905,3 +1905,5 @@ models/mpe_PredPrey_shape/noc_cont/*
 !models/mpe_PredPrey_shape/lang_cont
 models/mpe_PredPrey_shape/lang_cont/*
 !models/mpe_PredPrey_shape/lang_cont/train_data
+
+!models/.*zst_log_E.csv

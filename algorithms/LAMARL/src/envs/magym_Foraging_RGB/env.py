@@ -41,7 +41,6 @@ class Env(gym.Env):
         self._reduced_obsrange = reduced_obsrange
         self._respawn_gems = respawn_gems
 
-        env_size = grid_shape[0]
         self._agent_init_pos = [
             [grid_shape[0] // 2 - 1, grid_shape[1] // 2 - 1],
             [grid_shape[0] // 2 - 1, grid_shape[1] // 2],
@@ -59,8 +58,9 @@ class Env(gym.Env):
         # Init gem set
         self.gem_pos = {_: None for _ in range(self.n_gems)}
         self.gem_colors = [3, 3, 3, 2, 2, 2, 2, 2, 2, 2]
-        for g_i in range(len(self.gem_colors), self.n_gems):
-            self.gem_colors.append(1)
+        self.gem_colors += [1] * (self.n_gems - len(self.gem_colors))
+        # for g_i in range(len(self.gem_colors), self.n_gems):
+        #     self.gem_colors.append(1)
         self._gem_alive = None
 
         self._base_grid = self.__create_grid()  # with no agents
