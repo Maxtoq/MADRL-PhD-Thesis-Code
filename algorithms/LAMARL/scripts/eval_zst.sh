@@ -3,10 +3,10 @@ source venv3.8/bin/activate
 
 n_parallel_envs=250
 # eval_scenario="algorithms/LAMARL/src/envs/magym_PredPrey/mid_eval_6.json"
-env_name="magym_PredPrey_RGB"
+env_name="magym_CoordPlace_RGB"
 n_eval_runs=1
 episode_length=50
-n_agents=4
+n_agents=2
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/Frgb_18_langground.pt"
 
@@ -52,7 +52,7 @@ comm_langground_pt="results/data/lamarl_data/Frgb_18_langground.pt"
 
 # model_dir="models/mpe_simple_color_reference/lang_smolbatch/run3,models/mpe_simple_color_reference/lang_smolbatch/run2,models/mpe_simple_color_reference/lang_smolbatch/run1,models/mpe_simple_color_reference/lang_smolbatch/run4"
 
-# model_dir="models/magym_CoordPlace_RGB/2a_lang/run6,models/magym_CoordPlace_RGB/2a_lang/run2,models/magym_CoordPlace_RGB/2a_lang/run1,models/magym_CoordPlace_RGB/2a_lang/run4"
+model_dir="models/magym_CoordPlace_RGB/2a_lang/run6,models/magym_CoordPlace_RGB/2a_lang/run2,models/magym_CoordPlace_RGB/2a_lang/run1,models/magym_CoordPlace_RGB/2a_lang/run4"
 # model_dir="models/magym_CoordPlace_RGB/2a_ec2_ae/run6,models/magym_CoordPlace_RGB/2a_ec2_ae/run2,models/magym_CoordPlace_RGB/2a_ec2_ae/run1,models/magym_CoordPlace_RGB/2a_ec2_ae/run3"
 # model_dir="models/magym_CoordPlace_RGB/2a_ec2/run5,models/magym_CoordPlace_RGB/2a_ec2/run7,models/magym_CoordPlace_RGB/2a_ec2/run1,models/magym_CoordPlace_RGB/2a_ec2/run3"
 
