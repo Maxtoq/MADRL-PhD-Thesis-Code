@@ -1467,6 +1467,10 @@ models/magym_PredPrey_RGB/18s50np_noc/*
 models/magym_PredPrey_RGB/18s50np_lang/*
 !models/magym_PredPrey_RGB/18s50np_lang/train_data
 
+!models/magym_PredPrey_RGB/18s50_lang_noclip
+models/magym_PredPrey_RGB/18s50_lang_noclip/*
+!models/magym_PredPrey_RGB/18s50_lang_noclip/train_data
+
 !models/magym_PredPrey_RGB/18s50np_lang_ce0
 models/magym_PredPrey_RGB/18s50np_lang_ce0/*
 !models/magym_PredPrey_RGB/18s50np_lang_ce0/train_data

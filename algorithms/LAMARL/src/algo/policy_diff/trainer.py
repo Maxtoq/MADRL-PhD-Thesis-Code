@@ -448,19 +448,22 @@ class Trainer:
                 # p=mess_sampling_probs if self.lang_imp_sample else None)
 
             # CLIP loss 
-            # Encode sentences
-            sample_obs_contexts = lang_obs_enc.reshape(
-                len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
-            sample_broadcasts = [
-                perf_broadcasts_batch[i // self.model.n_agents] for i in ids]
-            sample_lang_contexts = self.model.lang_learner.encode_sentences(
-                sample_broadcasts)
-            # CLIP loss
-            clip_loss, mean_sim = self._compute_clip_loss(
-                sample_obs_contexts, sample_lang_contexts)
+            if self.model.comm_type != "lang+no_clip":
+                # Encode sentences
+                sample_obs_contexts = lang_obs_enc.reshape(
+                    len(perf_broadcasts_batch) * self.model.n_agents, -1)[ids]
+                sample_broadcasts = [
+                    perf_broadcasts_batch[i // self.model.n_agents] for i in ids]
+                sample_lang_contexts = self.model.lang_learner.encode_sentences(
+                    sample_broadcasts)
+                # CLIP loss
+                clip_loss, mean_sim = self._compute_clip_loss(
+                    sample_obs_contexts, sample_lang_contexts)
 
-            log_losses["clip_loss"] = clip_loss.item()
-            log_losses["mean_sim"] = mean_sim
+                log_losses["clip_loss"] = clip_loss.item()
+                log_losses["mean_sim"] = mean_sim
+            else:
+                clip_loss = torch.zeros_like(env_value_loss)
 
             # Captioning loss
             # Decode
@@ -565,17 +568,6 @@ class Trainer:
             train_comm_head)
         
         losses = {}
-        #     "env_value_loss": 0.0,
-        #     "actor_loss": 0.0}
-        # if train_comm_head:
-        #     losses["comm_value_loss"] = 0.0
-        #     losses["comm_loss"] = 0.0
-        # if train_lang:
-        #     losses["clip_loss"] = 0.0
-        #     losses["mean_sim"] = 0.0
-        #     losses["capt_loss"] = 0.0
-        # if "language" in self.model.comm_type:
-        #     losses["ratio_gen_perf"] = 0.0
 
         # Train policy
         num_updates = self.ppo_epoch * self.n_mini_batch
@@ -619,61 +611,3 @@ class Trainer:
                             losses[k] = loss[k]
 
         return losses
-
-    # def train(self, warmup=False, train_comm_head=True, train_lang=True):
-    #     """
-    #     Train LGMARL.
-
-    #     :param train_comm_head: (bool) Whether to train the communicator head.
-    #     :param train_lang: (bool) Whether to train language modules.
-
-    #     :return losses: (dict) Contains losses obtained during update.
-    #     """
-    #     for a in self.agents:
-    #         a.warmup_lr(warmup)
-            
-    #     act_advantages, comm_advantages = self._compute_advantages(
-    #         train_comm_head)
-        
-    #     losses = {
-    #         "env_value_loss": 0.0,
-    #         "actor_loss": 0.0}
-    #     if train_comm_head:
-    #         losses["comm_value_loss"] = 0.0
-    #         losses["comm_loss"] = 0.0
-    #     if train_lang:
-    #         losses["clip_loss"] = 0.0
-    #         losses["mean_sim"] = 0.0
-    #         losses["capt_loss"] = 0.0
-
-    #     # Train policy
-    #     num_updates = self.ppo_epoch * self.n_mini_batch
-    #     for _ in range(self.ppo_epoch):
-    #         data_generator = self.buffer.recurrent_policy_generator(
-    #             act_advantages, comm_advantages)
-    
-    #         for sample in data_generator:
-    #             if self.share_params:
-    #                 loss = self._train_mappo(
-    #                     0, sample, train_comm_head, train_lang)
-                    
-    #                 for key in loss:
-    #                     losses[key] += loss[key] / num_updates
-    #             else:
-    #                 for a_i in range(len(self.agents)):
-    #                     sample_i = (
-    #                         *[batch[:, a_i] for batch in sample[:-1]],
-    #                         [s[a_i] for s in sample[-1]])
-    #                         # sample[-1][a_i])
-
-    #                     loss = self._train_mappo(
-    #                         a_i, 
-    #                         sample_i, 
-    #                         train_comm_head, 
-    #                         train_lang)
-                        
-    #                     for key in loss:
-    #                         losses[key] += loss[key] / (
-    #                             num_updates * len(self.agents))
-
-    #     return losses

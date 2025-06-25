@@ -41,8 +41,8 @@ ulimit -n
 
 # model_dir="models/mpe_PredPrey_shape/lang_cont/run3,models/mpe_PredPrey_shape/lang_cont/run6,models/mpe_PredPrey_shape/lang_cont/run1,models/mpe_PredPrey_shape/lang_cont/run4"
 
-# model_dir="models/magym_CoordPlace_RGB/2a_noc/run6,models/magym_CoordPlace_RGB/2a_noc/run7,models/magym_CoordPlace_RGB/2a_noc/run1,models/magym_CoordPlace_RGB/2a_noc/run4"
-model_dir="models/magym_CoordPlace_RGB/2a_ec4_lg/run6,models/magym_CoordPlace_RGB/2a_ec4_lg/run5,models/magym_CoordPlace_RGB/2a_ec4_lg/run3,models/magym_CoordPlace_RGB/2a_ec4_lg/run2"
+model_dir="models/magym_CoordPlace_RGB/2a_noc/run6,models/magym_CoordPlace_RGB/2a_noc/run7,models/magym_CoordPlace_RGB/2a_noc/run1,models/magym_CoordPlace_RGB/2a_noc/run4"
+# model_dir="models/magym_CoordPlace_RGB/2a_ec4_lg/run6,models/magym_CoordPlace_RGB/2a_ec4_lg/run5,models/magym_CoordPlace_RGB/2a_ec4_lg/run3,models/magym_CoordPlace_RGB/2a_ec4_lg/run2"
 
 seed=$RANDOM 
 comm="python algorithms/LAMARL/eval_zst.py 

@@ -29,19 +29,19 @@ lang_lr=0.007 # default 0.007
 lang_hidden_dim=64
 log_exp_device="scai"
 
-n_run=3
-experiment_name="l5s5_ec4_lg"
+n_run=1
+experiment_name="18s50_lang_noclip"
 episode_length=50
-comm_type="emergent_continuous_LG" # default language
-context_dim=4 # default 16
+comm_type="lang+no_clip" # default language
+context_dim=16 # default 16
 cuda_device="cuda:0"
 comm_langground_pt="results/data/lamarl_data/MPEHardSimpRef_l5s5_lg.pt"
 
-env_name="mpe_simple_hardcolor_reference"
+env_name="magym_PredPrey_RGB"
 magym_env_size=18
 magym_obs_range=5 # default 5
-n_agents=2
-n_preys=1
+n_agents=4
+n_preys=2
 magym_scaleenv_after_n=10000100
 
 

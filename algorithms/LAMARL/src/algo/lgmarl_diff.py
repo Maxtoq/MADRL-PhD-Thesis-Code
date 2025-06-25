@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 # from .language.lm import OneHotEncoder
-from .policy_diff.comm_mappo import CommMAPPO, CommMAPPO_Shared
+from .policy_diff.comm_mappo import CommMAPPO
 from .policy_diff.buffer import ReplayBuffer
 from .policy_diff.trainer import Trainer
 from .policy_diff.utils import get_shape_from_obs_space, torch2numpy, update_linear_schedule
@@ -45,10 +45,7 @@ class LanguageGroundedMARL:
         # self.word_encoder = OneHotEncoder(
         #     parser.vocab, parser.max_message_len)
 
-        if args.share_params:
-            ModelClass = CommMAPPO_Shared
-        else:
-            ModelClass = CommMAPPO
+        ModelClass = CommMAPPO
         self.model = ModelClass(
             args, parser, n_agents, obs_shape, joint_obs_shape, 
             act_dim, self.device, block_comm, discrete_action)
@@ -183,7 +180,7 @@ class LanguageGroundedMARL:
         self.prep_training()
 
         # self._anneal_capt_weight(step)
-        self._update_comm_eps(step)
+        # self._update_comm_eps(step)
 
         warmup = step < self.n_warmup_steps
 
@@ -192,7 +189,8 @@ class LanguageGroundedMARL:
         else:
             comm_head_learns_rl = False
         if self.comm_type not in [
-                "perfect", "language_sup", "language_rl", "no_comm+lang"]:
+                "perfect", "language_sup", "language_rl", "no_comm+lang",
+                "lang+no_clip"]:
             train_lang = False
 
         # Compute last value
@@ -241,7 +239,8 @@ class LanguageGroundedMARL:
         """
         # Encode sentences and build broadcast
         if perf_messages is not None and self.comm_type in [
-                "perfect", "language_sup", "language_rl", "no_comm+lang", "perfect+no_lang"]:
+                "perfect", "language_sup", "language_rl", "no_comm+lang", 
+                "perfect+no_lang", "lang+no_clip"]:
             enc_perf_mess, enc_perf_br \
                 = self.model.encode_perf_messages(perf_messages)
         else:
@@ -254,9 +253,9 @@ class LanguageGroundedMARL:
 
         self.buffer.insert_obs(obs, joint_obs, enc_perf_mess, enc_perf_br)
 
-    def _update_comm_eps(self, step):
-        if "language" in self.comm_type:
-            self.comm_eps.get_explo_rate(step)    
+    # def _update_comm_eps(self, step):
+    #     if "language" in self.comm_type:
+    #         self.comm_eps.get_explo_rate(step)    
 
     def save(self, path):
         self.prep_rollout("cpu")
